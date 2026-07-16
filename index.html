@@ -278,9 +278,9 @@
     .rules-doc table.spec.act tr{display:table;width:100%}
     .rules-doc table.spec.act tr{border-bottom:1px solid var(--line)}
     .rules-doc table.spec.act td{display:table-cell;padding:8px 6px;font-size:12.5px}
-    .rules-doc table.spec.act td:first-child{width:62px}
-    .rules-doc table.spec.act td.ap{width:30px}
-    .rules-doc table.spec.act thead{display:none}
+    .rules-doc table.spec.act td.act-name{width:74px;padding-right:10px}
+    .rules-doc table.spec.act td.act-name b{font-size:11.5px}
+    .ap-cost{font-size:9.5px;padding:1px 5px;margin-top:4px}
 
     .two-col{gap:0}
     .phase{gap:10px;margin-bottom:13px}
@@ -464,19 +464,19 @@
     font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;padding-top:9px}
   .rules-doc table.spec td:nth-child(even){color:var(--bone)}
   .rules-doc table.spec tr:last-child td{border-bottom:0}
-  .rules-doc table.spec.act td:nth-child(odd),
-  .rules-doc table.spec.act td:nth-child(even){color:var(--bone);font-family:'Barlow',sans-serif;
-    font-size:13.5px;letter-spacing:0;text-transform:none;white-space:normal}
-  .rules-doc table.spec.act th{font-size:10px}
-  /* The AP number is Oswald and the description is Barlow — different fonts, so
-     vertical-align:top lines up the boxes but not the text. Align on the first
-     baseline instead, and nudge the label column to match. */
-  .rules-doc table.spec.act td{vertical-align:baseline;padding-top:11px}
-  .rules-doc table.spec.act td.ap,.rules-doc table.spec.act th.ap{width:44px;text-align:center;
-    font-family:'Oswald',sans-serif;font-weight:600;color:var(--brass);font-size:15px}
-  .rules-doc table.spec.act td:first-child{width:78px;white-space:nowrap;
-    font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
-  .rules-doc table.spec.act td:first-child b{font-weight:600}
+  /* Actions table: the name and its cost stack in one column, so the AP label
+     sits under the action it belongs to rather than floating in a column of its
+     own. Two fonts on one baseline never lined up cleanly. */
+  .rules-doc table.spec.act td{vertical-align:top;padding:12px 8px;
+    font-family:'Barlow',sans-serif;font-size:13.5px;letter-spacing:0;text-transform:none;
+    white-space:normal;color:var(--bone)}
+  .rules-doc table.spec.act td.act-name{width:92px;padding-right:16px}
+  .rules-doc table.spec.act td.act-name b{display:block;font-family:'Oswald',sans-serif;
+    font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone);
+    line-height:1.55}
+  .ap-cost{display:inline-block;margin-top:5px;font-family:'Oswald',sans-serif;font-size:10.5px;
+    font-weight:600;letter-spacing:.08em;color:var(--brass);border:1px solid var(--brass-dim);
+    padding:1px 6px;white-space:nowrap}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:700px){.two-col{grid-template-columns:1fr;gap:0}}
   .rules-doc ol{margin:0 0 11px;padding-left:20px;font-size:14.5px;line-height:1.7}
@@ -1562,11 +1562,15 @@ const RULES_TURN = `
     <details class="fold" open>
       <summary>Standard actions</summary>
       <div class="fold-in">
-    <table class="spec act"><thead><tr><th>Action</th><th class="ap">AP</th><th>Effect</th></tr></thead><tbody>
-      <tr><td><b>Move</b></td><td class="ap">1</td><td>Move up to the unit's Speed. May curve around obstacles, but can't pass through models, husks or high terrain, nor through gaps narrower than its base. <b>Provokes retaliation.</b></td></tr>
-      <tr><td><b>Attack</b></td><td class="ap">1</td><td>Roll 1d20 + Accuracy vs the target's Defense. ≥ Defense = hit (full damage); &lt; = graze (reduced damage). Melee (enemy within 1" + LoE) or Ranged (within Range + LoS).</td></tr>
-      <tr><td><b>Charge</b></td><td class="ap">2</td><td>Move up to 2× Speed toward an unengaged enemy (needs LoS), then make a melee attack. The base must not leave the LoS path. <b>Provokes retaliation.</b></td></tr>
-      <tr><td><b>Shift</b></td><td class="ap">2</td><td>A single move up to Speed, in a straight line with clear LoS (no obstacles). <b>Does not provoke retaliation</b>; can pass through gaps narrower than the base.</td></tr>
+    <table class="spec act"><tbody>
+      <tr><td class="act-name"><b>Move</b><span class="ap-cost">1 AP</span></td>
+        <td>Move up to the unit's Speed. May curve around obstacles, but can't pass through models, husks or high terrain, nor through gaps narrower than its base. <b>Provokes retaliation.</b></td></tr>
+      <tr><td class="act-name"><b>Attack</b><span class="ap-cost">1 AP</span></td>
+        <td>Roll 1d20 + Accuracy vs the target's Defense. ≥ Defense = hit (full damage); &lt; = graze (reduced damage). Melee (enemy within 1" + LoE) or Ranged (within Range + LoS).</td></tr>
+      <tr><td class="act-name"><b>Charge</b><span class="ap-cost">2 AP</span></td>
+        <td>Move up to 2× Speed toward an unengaged enemy (needs LoS), then make a melee attack. The base must not leave the LoS path. <b>Provokes retaliation.</b></td></tr>
+      <tr><td class="act-name"><b>Shift</b><span class="ap-cost">2 AP</span></td>
+        <td>A single move up to Speed, in a straight line with clear LoS (no obstacles). <b>Does not provoke retaliation</b>; can pass through gaps narrower than the base.</td></tr>
     </tbody></table>
       </div>
     </details>
