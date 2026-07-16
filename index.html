@@ -155,50 +155,136 @@
     font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase}
   .opt{color:var(--line-2);font-size:9px;letter-spacing:.06em}
 
-  /* ---- live tracker ---- */
-  .round-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;
-    padding-top:14px;border-top:1px solid var(--line)}
-  .round-bar button.ghost.rnd{width:32px;height:32px;padding:0;font-size:16px;line-height:1}
-  .round-n{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--bone-dim);min-width:74px;text-align:center}
-  .round-n b{color:var(--bone);font-size:16px}
-  .round-hint{font-size:11.5px;color:var(--bone-dim);font-style:italic}
-
-  .trk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:680px){.trk-grid{grid-template-columns:1fr}}
-  .trk-player{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--line-2);
-    padding:18px;transition:.2s}
-  .trk-player.won{border-top-color:var(--crimson);box-shadow:0 0 0 1px var(--crimson) inset}
-  .trk-name{background:transparent;border:0;border-bottom:1px solid var(--line-2);
-    font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;letter-spacing:.06em;
-    color:var(--bone);padding:0 0 7px;margin-bottom:16px;text-transform:uppercase}
-  .trk-name:focus{border-bottom-color:var(--crimson);box-shadow:none}
+  /* ---- live tracker (single player, thumb-friendly) ---- */
+  .trk-single{max-width:520px;margin:0 auto}
   .tm-label{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--bone-dim);margin-bottom:7px;display:flex;justify-content:space-between;align-items:baseline}
-  .rel-count{color:var(--brass);letter-spacing:.06em}
-  .tm-row{display:flex;align-items:stretch;gap:8px}
-  .tm-btn{flex:0 0 auto;width:46px;background:var(--coal-2);border:1px solid var(--line-2);
-    color:var(--bone);font-size:22px;line-height:1;cursor:pointer;transition:.12s;
-    -webkit-user-select:none;user-select:none}
-  .tm-btn:hover{border-color:var(--crimson);color:var(--crimson)}
-  .tm-btn:active{background:var(--crimson);color:#fff}
-  .tm-val{flex:1;text-align:center;font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;
-    color:var(--bone);background:var(--coal-2);border:1px solid var(--line-2);padding:4px 0;
-    font-variant-numeric:tabular-nums}
-  .tm-val.echo{font-size:24px;color:var(--brass)}
-  .tm-bar{height:4px;background:var(--coal-2);border:1px solid var(--line);margin-top:9px;overflow:hidden}
-  .tm-fill{height:100%;background:var(--crimson);transition:width .35s ease}
-  .tm-goal{font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--bone-dim);margin-top:5px;text-align:right}
+    color:var(--bone-dim);margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .tm-of,.rel-count{color:var(--brass);letter-spacing:.06em;font-size:10px}
+  .mastery-block{margin-top:20px;padding:16px;background:var(--coal-2);border:1px solid var(--line);
+    border-top:2px solid var(--line-2);transition:.25s}
+  .mastery-block.reached{border-top-color:var(--crimson);box-shadow:0 0 0 1px var(--crimson) inset}
+  .mastery-block.reached .tm-of{color:var(--crimson)}
 
-  .rel-row{display:flex;gap:8px}
-  .rel{flex:1;aspect-ratio:1;max-height:60px;background:var(--coal-2);border:1px solid var(--line-2);
-    color:var(--line-2);font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
-    transition:.15s;-webkit-user-select:none;user-select:none}
+  .tm-row{display:flex;align-items:stretch;gap:8px}
+  .tm-btn{flex:0 0 auto;width:58px;background:var(--surface);border:1px solid var(--line-2);
+    color:var(--bone);font-size:26px;line-height:1;cursor:pointer;transition:.1s;
+    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  .tm-btn:hover{border-color:var(--crimson);color:var(--crimson)}
+  .tm-btn:active{background:var(--crimson);border-color:var(--crimson);color:#fff;transform:scale(.96)}
+  .tm-val{flex:1;text-align:center;font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;
+    color:var(--bone);background:var(--surface);border:1px solid var(--line-2);padding:6px 0;
+    font-variant-numeric:tabular-nums}
+  .tm-row.big .tm-btn{height:74px;width:64px;font-size:32px}
+  .tm-row.big .tm-val{font-size:52px;padding:0}
+  .tm-val.echo{color:var(--brass)}
+  .tm-val.round{color:var(--bone-dim)}
+  .tm-bar{height:5px;background:var(--surface);border:1px solid var(--line);margin-top:12px;overflow:hidden}
+  .tm-fill{height:100%;background:var(--crimson);transition:width .35s ease}
+
+  .rel-row{display:flex;gap:9px}
+  .rel{flex:1;aspect-ratio:1;max-height:76px;background:var(--coal-2);border:1px solid var(--line-2);
+    color:var(--line-2);font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;cursor:pointer;
+    transition:.15s;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
   .rel:hover{border-color:var(--brass-dim);color:var(--bone-dim)}
+  .rel:active{transform:scale(.94)}
   .rel.on{background:var(--brass);border-color:var(--brass);color:var(--coal);
-    box-shadow:0 0 12px rgba(200,165,104,.35)}
-  .rel-hint{font-size:11px;color:var(--bone-dim);margin-top:7px;font-style:italic}
+    box-shadow:0 0 14px rgba(200,165,104,.4)}
+
+  .trk-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+  .next-round{width:100%;margin-top:18px;padding:15px;font-size:13px}
+  .rel-hint{font-size:11px;color:var(--bone-dim);margin-top:8px;font-style:italic}
+
+  /* Narrow screens: two ± groups side by side overflow, so stack them.
+     The tracker is used at the table, on a phone — this is the common case. */
+  @media(max-width:460px){
+    .wrap{padding-left:12px;padding-right:12px}
+    .trk-single{padding:14px}
+    .trk-bottom{grid-template-columns:1fr;gap:16px}
+    .tm-btn{width:52px}
+    .tm-row.big .tm-btn{width:56px;height:66px;font-size:28px}
+    .tm-row.big .tm-val{font-size:44px}
+    .rel{max-height:64px;font-size:15px}
+    .rel-row{gap:7px}
+  }
+
+  /* ============================================================
+     MOBILE LAYOUT
+     Phones are the common case at the table. Two things matter: never
+     scroll sideways, and don't burn half the screen on chrome before the
+     content starts.
+     ============================================================ */
+  @media(max-width:620px){
+    /* Header on one line: logo left, account right. The tagline and the
+       role chip are decoration — they go. */
+    header.masthead{padding:11px 0;gap:8px;flex-wrap:nowrap}
+    .brand{flex-direction:row;align-items:center;gap:9px}
+    .brand img.logo{height:26px}
+    .brand .tagline{display:none}
+    .userbox{font-size:13px;gap:7px}
+    .userbox .rolechip{display:none}
+    .userbox button.ghost{padding:5px 9px;font-size:10px}
+
+    /* Tabs: tighter, and let them scroll rather than wrap to two rows */
+    nav.tabs{margin-bottom:14px}
+    nav.tabs button{padding:11px 12px;font-size:11px;letter-spacing:.08em}
+    nav.tabs::-webkit-scrollbar{height:0}
+
+    /* Panels lose their generous desktop padding */
+    .panel{padding:15px;margin-bottom:12px}
+    .panel h2{font-size:15px}
+    .panel .hint{font-size:13.5px;margin-bottom:12px}
+
+    /* Stat strips: 2×2 instead of a squeezed row of four */
+    .stat-strip{gap:8px}
+    .stat{min-width:calc(50% - 4px);padding:9px 12px}
+    .stat b{font-size:20px}
+
+    .league-grid,.link-grid{grid-template-columns:1fr;gap:10px}
+    .rules-doc h3{margin:20px 0 8px;font-size:12px}
+    .rules-doc p,.rules-doc ul,.rules-doc ol{font-size:14px}
+    .champion{font-size:17px;padding:14px}
+    footer{margin-top:26px}
+    .disclaimer p{font-size:10.5px}
+
+    /* A four-column spec table cannot fit 400px. Rebuild it as a list:
+       each label sits above its value, rows separated by a hairline. */
+    .rules-doc table.spec,
+    .rules-doc table.spec tbody,
+    .rules-doc table.spec tr,
+    .rules-doc table.spec td{display:block;width:100%}
+    .rules-doc table.spec tr{padding:7px 0;border-bottom:1px solid var(--line)}
+    .rules-doc table.spec tr:last-child{border-bottom:0}
+    .rules-doc table.spec td{border:0;padding:0}
+    .rules-doc table.spec td:nth-child(odd){padding-top:6px}
+    .rules-doc table.spec td:nth-child(odd):first-child{padding-top:0}
+    .rules-doc table.spec td:nth-child(even){padding-bottom:2px}
+
+    /* The actions table keeps its shape — it reads as a table — but the
+       header row and AP column shrink to fit. */
+    .rules-doc table.spec.act,
+    .rules-doc table.spec.act tbody,
+    .rules-doc table.spec.act tr{display:table;width:100%}
+    .rules-doc table.spec.act tr{border-bottom:1px solid var(--line)}
+    .rules-doc table.spec.act td{display:table-cell;padding:8px 6px;font-size:12.5px}
+    .rules-doc table.spec.act td:first-child{width:62px}
+    .rules-doc table.spec.act td.ap{width:30px}
+    .rules-doc table.spec.act thead{display:none}
+
+    .two-col{gap:0}
+    .phase{gap:10px;margin-bottom:13px}
+    .ph-n{width:25px;height:25px;font-size:12px}
+    .ph-body > b{font-size:12px;padding-top:3px}
+    .ph-body p,.ph-body ul{font-size:13.5px}
+
+    /* Header controls (scope + window pickers, sort dropdowns) sit beside a
+       heading on desktop; on a phone they need their own line. */
+    .flex-between{flex-direction:column;align-items:stretch;gap:10px}
+    .flex-between > div[style*="flex:0 0 auto"]{width:100%}
+    .flex-between select[style*="width:auto"]{width:100%!important}
+    .bar-label{width:82px;font-size:11.5px}
+    .bar-val{width:70px;font-size:10px}
+    .matrix table{min-width:420px}
+  }
 
   /* ---- rules ---- */
   .link-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
@@ -240,6 +326,34 @@
   .ph-body ul{font-size:14.5px;margin-bottom:6px}
   .rules-note{background:rgba(200,165,104,.07);border-left:2px solid var(--brass-dim);
     padding:11px 14px;font-size:13.5px;color:var(--bone-dim);margin-top:16px}
+
+  /* "At a glance" — a grid of label/value pairs. Two columns on desktop,
+     one on a phone, and each pair stays together either way. */
+  .glance{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-bottom:16px}
+  .gl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding:8px 0;border-bottom:1px solid var(--line)}
+  .gl span{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--bone-dim);flex:0 0 auto}
+  .gl b{color:var(--bone);font-size:13.5px;text-align:right;font-weight:500}
+  .gl b i{color:var(--bone-dim);font-weight:400;font-size:12px;font-style:normal;display:block}
+  @media(max-width:620px){.glance{grid-template-columns:1fr;gap:0}}
+
+  /* Collapsible sections. Native <details> — no JS, works with keyboard and
+     screen readers for free. Reference material you consult once per game
+     starts closed; what you check mid-turn starts open. */
+  .rules-doc details.fold{border-top:1px solid var(--line);margin-top:14px}
+  .rules-doc details.fold summary{font-family:'Oswald',sans-serif;font-size:12.5px;font-weight:600;
+    letter-spacing:.13em;text-transform:uppercase;color:var(--brass);padding:13px 0;cursor:pointer;
+    list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    -webkit-tap-highlight-color:transparent}
+  .rules-doc details.fold summary::-webkit-details-marker{display:none}
+  .rules-doc details.fold summary::after{content:'+';font-size:17px;color:var(--bone-dim);
+    font-weight:400;transition:.2s;flex:0 0 auto;line-height:1}
+  .rules-doc details.fold[open] summary::after{content:'−';color:var(--crimson)}
+  .rules-doc details.fold summary:hover{color:var(--bone)}
+  .rules-doc details.fold summary:hover::after{color:var(--crimson)}
+  .fold-in{padding-bottom:8px}
+  .fold-in > .phase-list{margin-top:4px}
 
   /* spec tables inside the rules docs */
   .rules-doc table.spec{width:100%;border-collapse:collapse;margin:0 0 14px}
@@ -1178,21 +1292,32 @@ function renderRules(){
 const RULES_SETUP = `
   <div class="rules-doc">
     <h3>At a glance — standard 2-player game</h3>
-    <table class="spec"><tbody>
-      <tr><td>Players</td><td>2</td><td>Min. husk spacing</td><td>10"</td></tr>
-      <tr><td>Battlefield</td><td>30" × 30" (≈76 × 76 cm)</td><td>Terrain per player</td><td>1 large, 1 medium, 2 small</td></tr>
-      <tr><td>Deployment zone</td><td>quarter circle, 6" from corner</td><td>Mastery to win</td><td>40</td></tr>
-      <tr><td>Husks on field</td><td>4</td><td>Relic display</td><td>15 cards (4 face up)</td></tr>
-      <tr><td>Opening hand</td><td>7 cards (mulligan up to 5×, −1 each)</td><td>Starting round</td><td>1, Mastery at 0</td></tr>
-    </tbody></table>
+    <div class="glance">
+      <div class="gl"><span>Players</span><b>2</b></div>
+      <div class="gl"><span>Min. husk spacing</span><b>10"</b></div>
+      <div class="gl"><span>Battlefield</span><b>30" × 30" <i>(≈76 × 76 cm)</i></b></div>
+      <div class="gl"><span>Terrain per player</span><b>1 large, 1 medium, 2 small</b></div>
+      <div class="gl"><span>Deployment zone</span><b>quarter circle, 6" from corner</b></div>
+      <div class="gl"><span>Mastery to win</span><b>40</b></div>
+      <div class="gl"><span>Husks on field</span><b>4</b></div>
+      <div class="gl"><span>Relic display</span><b>15 cards <i>(4 face up)</i></b></div>
+      <div class="gl"><span>Opening hand</span><b>7 cards <i>(mulligan up to 5×, −1 each)</i></b></div>
+      <div class="gl"><span>Starting round</span><b>1, Mastery at 0</b></div>
+    </div>
 
-    <h3>Before the game — what to bring</h3>
-    <p>Each player brings their own warband: <b>1 Seeker</b>, its matching <b>Legacy</b>, <b>1 terrain card</b>
-    with its terrain set, and a deck of <b>30–50 cards</b> (units, spells and non-relic attachments).</p>
-    <p>Agree on a shared <b>15-card Relic deck</b>.</p>
-    <p>Have ready: dice, rulers, Echo/Mastery/Round markers, initiative token, 4 husk markers.</p>
+    <details class="fold">
+      <summary>Before the game — what to bring</summary>
+      <div class="fold-in">
+        <p>Each player brings their own warband: <b>1 Seeker</b>, its matching <b>Legacy</b>, <b>1 terrain card</b>
+        with its terrain set, and a deck of <b>30–50 cards</b> (units, spells and non-relic attachments).</p>
+        <p>Agree on a shared <b>15-card Relic deck</b>.</p>
+        <p>Have ready: dice, rulers, Echo/Mastery/Round markers, initiative token, 4 husk markers.</p>
+      </div>
+    </details>
 
-    <h3>Battlefield setup — seven steps, in order</h3>
+    <details class="fold">
+      <summary>Battlefield setup — seven steps, in order</summary>
+      <div class="fold-in">
     <div class="phase-list">
       <div class="phase"><div class="ph-n">1</div><div class="ph-body"><b>Define the battlefield</b>
         <p>Prepare a flat 30" × 30" surface (≈76 × 76 cm).</p></div></div>
@@ -1227,17 +1352,25 @@ const RULES_SETUP = `
         take the zone, the opponent's zone is the diagonally opposite one. Cards used to bid are
         <b>banished</b>.</p></div></div>
     </div>
+      </div>
+    </details>
 
-    <h3>How initiative works</h3>
-    <table class="spec"><tbody>
-      <tr><td style="width:130px">Deploy Phase</td><td>The player with initiative chooses to deploy first, or to defer — in which case the opponent deploys first. Then the other player completes their deployment.</td></tr>
-      <tr><td>Action Phase</td><td>The player with initiative chooses who activates the first unit: themselves, or defer to the opponent, who must then activate first. After that, alternate one unit at a time.</td></tr>
-    </tbody></table>
+    <details class="fold">
+      <summary>How initiative works</summary>
+      <div class="fold-in">
+        <table class="spec"><tbody>
+          <tr><td style="width:130px">Deploy Phase</td><td>The player with initiative chooses to deploy first, or to defer — in which case the opponent deploys first. Then the other player completes their deployment.</td></tr>
+          <tr><td>Action Phase</td><td>The player with initiative chooses who activates the first unit: themselves, or defer to the opponent, who must then activate first. After that, alternate one unit at a time.</td></tr>
+        </tbody></table>
+      </div>
+    </details>
   </div>`;
 
 const RULES_TURN = `
   <div class="rules-doc">
-    <h3>Round structure — four phases</h3>
+    <details class="fold">
+      <summary>Round structure — four phases</summary>
+      <div class="fold-in">
     <div class="phase-list">
       <div class="phase"><div class="ph-n">1</div><div class="ph-body">
         <b>Refresh Phase <span class="ph-note">skipped on round 1</span></b>
@@ -1270,8 +1403,12 @@ const RULES_TURN = `
         <p><b>Claim:</b> +10 Mastery, husk removed, new relic into the display. Then check for victory
         (40 Mastery), or start a new round.</p></div></div>
     </div>
+      </div>
+    </details>
 
-    <h3>Activation flow</h3>
+    <details class="fold">
+      <summary>Activation flow</summary>
+      <div class="fold-in">
     <ol class="flow">
       <li>Pick a refreshed unit and exhaust it.</li>
       <li>It gets <b>2 AP</b>.</li>
@@ -1282,16 +1419,24 @@ const RULES_TURN = `
         already cast one this activation.</li>
       <li>Pass the turn: <b>unspent AP are lost</b>.</li>
     </ol>
+      </div>
+    </details>
 
-    <h3>Standard actions</h3>
+    <details class="fold" open>
+      <summary>Standard actions</summary>
+      <div class="fold-in">
     <table class="spec act"><thead><tr><th>Action</th><th class="ap">AP</th><th>Effect</th></tr></thead><tbody>
       <tr><td><b>Move</b></td><td class="ap">1</td><td>Move up to the unit's Speed. May curve around obstacles, but can't pass through models, husks or high terrain, nor through gaps narrower than its base. <b>Provokes retaliation.</b></td></tr>
       <tr><td><b>Attack</b></td><td class="ap">1</td><td>Roll 1d20 + Accuracy vs the target's Defense. ≥ Defense = hit (full damage); &lt; = graze (reduced damage). Melee (enemy within 1" + LoE) or Ranged (within Range + LoS).</td></tr>
       <tr><td><b>Charge</b></td><td class="ap">2</td><td>Move up to 2× Speed toward an unengaged enemy (needs LoS), then make a melee attack. The base must not leave the LoS path. <b>Provokes retaliation.</b></td></tr>
       <tr><td><b>Shift</b></td><td class="ap">2</td><td>A single move up to Speed, in a straight line with clear LoS (no obstacles). <b>Does not provoke retaliation</b>; can pass through gaps narrower than the base.</td></tr>
     </tbody></table>
+      </div>
+    </details>
 
-    <h3>Combat &amp; stats</h3>
+    <details class="fold">
+      <summary>Combat &amp; stats</summary>
+      <div class="fold-in">
     <div class="two-col">
       <table class="spec"><tbody>
         <tr><td>Formula</td><td>1d20 + Accuracy vs target's Defense</td></tr>
@@ -1314,8 +1459,12 @@ const RULES_TURN = `
         <tr><td>Retaliation</td><td>Free melee attack when an engaged enemy moves/charges/shoots; resolved before the provoking action</td></tr>
       </tbody></table>
     </div>
+      </div>
+    </details>
 
-    <h3>Claiming a relic (End Phase)</h3>
+    <details class="fold">
+      <summary>Claiming a relic (End Phase)</summary>
+      <div class="fold-in">
     <p>You claim if all three are true:</p>
     <ul>
       <li>near a husk (within 1")</li>
@@ -1324,21 +1473,23 @@ const RULES_TURN = `
     </ul>
     <p>Pick a relic from the display (then replace it) or draw the top card of the deck. Equip it
     under the unit, remove the husk, and gain <b>+10 Mastery</b>.</p>
+      </div>
+    </details>
   </div>`;
 /* ============================================================
    LIVE TRACKER
-   A scratchpad for the table: Echo, Mastery, relic toggles. Deliberately
-   NOT saved to the database — it's for the game in front of you, and it
-   resets when you're done. State lives in localStorage so a refresh or an
-   accidental tab close doesn't wipe the board mid-game.
+   Tracks ONE player — your own board. Everyone at the table has a phone,
+   and a single column keeps the numbers big enough to hit with a thumb
+   mid-game. Deliberately not saved to the league: this is a scratchpad for
+   the game in front of you. State sits in localStorage so a stray refresh
+   doesn't wipe the board.
    ============================================================ */
 const TRK_KEY = 'mlt.tracker';
 const TRK_DEFAULT = () => ({
-  target: 40,                       // 40 duel, 50 team play
-  players: [
-    {name:'', echo:0, mastery:0, relics:[false,false,false,false]},
-    {name:'', echo:0, mastery:0, relics:[false,false,false,false]},
-  ],
+  target: 40,                    // 40 duel, 50 team play
+  mastery: 0,
+  echo: 0,
+  relics: [false,false,false,false],
   round: 1,
 });
 let trk = null;
@@ -1347,50 +1498,53 @@ function trkLoad(){
   try{
     const raw=localStorage.getItem(TRK_KEY);
     trk = raw ? JSON.parse(raw) : TRK_DEFAULT();
-    if(!Array.isArray(trk.players) || trk.players.length!==2) trk = TRK_DEFAULT();
-    trk.players.forEach(p=>{ if(!Array.isArray(p.relics)||p.relics.length!==4) p.relics=[false,false,false,false]; });
+    // an older version stored a two-player shape — start clean if we see it
+    if(trk.players || !Array.isArray(trk.relics) || trk.relics.length!==4) trk = TRK_DEFAULT();
+    trk.mastery = Math.max(0, +trk.mastery||0);
+    trk.echo    = Math.max(0, +trk.echo||0);
+    trk.round   = Math.max(1, +trk.round||1);
+    trk.target  = +trk.target||40;
   }catch(e){ trk = TRK_DEFAULT(); }
 }
 function trkSave(){ try{ localStorage.setItem(TRK_KEY, JSON.stringify(trk)); }catch(e){} }
-function trkAdj(i, field, delta){
-  const p=trk.players[i];
-  p[field] = Math.max(0, (p[field]||0) + delta);
+
+function trkAdj(field, delta){
+  trk[field] = Math.max(0, (trk[field]||0) + delta);
   trkSave(); paintTracker();
 }
-function trkSet(i, field, val){
+function trkSet(field, val){
   const n = parseInt(val,10);
-  trk.players[i][field] = isNaN(n) ? 0 : Math.max(0,n);
+  trk[field] = isNaN(n) ? 0 : Math.max(0,n);
   trkSave(); paintTracker();
 }
-function trkName(i, val){ trk.players[i].name = val; trkSave(); }
 function trkTarget(v){ trk.target = parseInt(v,10)||40; trkSave(); paintTracker(); }
 
 // A relic is worth 10 Mastery while held. Toggling on adds 10, off removes 10 —
 // one counter holds the total, so kill points and relic points live together.
-function trkRelic(i, r){
-  const p=trk.players[i];
-  const had=p.relics[r];
-  p.relics[r]=!had;
-  p.mastery = Math.max(0, (p.mastery||0) + (had ? -10 : 10));
+function trkRelic(r){
+  const had = trk.relics[r];
+  trk.relics[r] = !had;
+  trk.mastery = Math.max(0, (trk.mastery||0) + (had ? -10 : 10));
   trkSave(); paintTracker();
 }
 function trkRound(delta){
   trk.round = Math.max(1, (trk.round||1)+delta);
   trkSave(); paintTracker();
 }
-// Echo generated at the start of a round: 2× the round number up to 5, then 10.
+// Echo gained at the start of a round: 2× the round number, capped at 10 from round 5.
 function echoForRound(r){ return r<=5 ? r*2 : 10; }
-function trkGrantEcho(){
+function trkNextRound(){
+  trk.round = (trk.round||1)+1;
   const gain = echoForRound(trk.round);
-  trk.players.forEach(p=>{ p.echo = (p.echo||0) + gain; });
+  trk.echo = (trk.echo||0) + gain;     // Echo is cumulative
   trkSave(); paintTracker();
-  toast(`+${gain} Echo each — round ${trk.round}`, true);
+  toast(`Round ${trk.round} — +${gain} Echo`, true);
 }
 function trkReset(){
   if(!confirm('Clear the tracker and start a fresh game?')) return;
-  const names = trk.players.map(p=>p.name);
+  const target = trk.target;           // keep the format you were playing
   trk = TRK_DEFAULT();
-  trk.players.forEach((p,i)=>p.name=names[i]);   // keep names, drop the numbers
+  trk.target = target;
   trkSave(); paintTracker();
   toast('Tracker cleared', true);
 }
@@ -1402,78 +1556,73 @@ function renderTracker(){
 function paintTracker(){
   const body=$('tracker-body');
   if(!body) return;
-  const winner = trk.players.findIndex(p=>(p.mastery||0) >= trk.target);
+  const held = trk.relics.filter(Boolean).length;
+  const pctDone = Math.min(100, (trk.mastery||0)/trk.target*100);
+  const reached = (trk.mastery||0) >= trk.target;
 
   body.innerHTML = `
-    <div class="panel">
-      <div class="flex-between">
+    <div class="panel trk-single">
+      <div class="flex-between" style="margin-bottom:4px">
         <div>
-          <h2 style="margin:0">Live tracker</h2>
-          <p class="hint" style="margin:0">A scratchpad for the game in front of you. Nothing here is saved to the league.</p>
+          <h2 style="margin:0">Your board</h2>
+          <p class="hint" style="margin:0">Just your side of the table. Nothing here is saved to the league.</p>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex:0 0 auto;flex-wrap:wrap">
-          <label style="display:flex;align-items:center;gap:7px;margin:0">
-            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.12em;
-              text-transform:uppercase;color:var(--bone-dim)">To win</span>
-            <select style="width:auto" onchange="trkTarget(this.value)">
-              <option value="40"${trk.target===40?' selected':''}>40 — duel</option>
-              <option value="50"${trk.target===50?' selected':''}>50 — team</option>
-            </select>
-          </label>
+        <div style="display:flex;gap:8px;align-items:center;flex:0 0 auto">
+          <select style="width:auto" onchange="trkTarget(this.value)">
+            <option value="40"${trk.target===40?' selected':''}>40 — duel</option>
+            <option value="50"${trk.target===50?' selected':''}>50 — team</option>
+          </select>
           <button class="ghost" onclick="trkReset()">New game</button>
         </div>
       </div>
-      <div class="round-bar">
-        <button class="ghost rnd" onclick="trkRound(-1)">−</button>
-        <div class="round-n">Round <b>${trk.round}</b></div>
-        <button class="ghost rnd" onclick="trkRound(1)">+</button>
-        <button class="act" style="padding:8px 14px;font-size:11px" onclick="trkGrantEcho()">
-          Grant +${echoForRound(trk.round)} Echo to both</button>
-        <span class="round-hint">${trk.round<=5?'round × 2':'10 from round 6 on'}</span>
+
+      <div class="mastery-block ${reached?'reached':''}">
+        <div class="tm-label">Mastery <span class="tm-of">${trk.mastery||0} of ${trk.target}${reached?' — target reached':''}</span></div>
+        <div class="tm-row big">
+          <button class="tm-btn" onclick="trkAdj('mastery',-1)">−</button>
+          <input class="tm-val" type="text" inputmode="numeric" value="${trk.mastery||0}"
+                 onchange="trkSet('mastery',this.value)">
+          <button class="tm-btn" onclick="trkAdj('mastery',1)">+</button>
+        </div>
+        <div class="tm-bar"><div class="tm-fill" style="width:${pctDone}%"></div></div>
       </div>
-    </div>
 
-    <div class="trk-grid">
-      ${trk.players.map((p,i)=>{
-        const won = winner===i;
-        const held = p.relics.filter(Boolean).length;
-        return `<div class="trk-player ${won?'won':''}">
-          <input class="trk-name" type="text" placeholder="Player ${i+1}"
-                 value="${esc(p.name||'')}" oninput="trkName(${i},this.value)">
-          <div class="tm-label">Mastery</div>
+      <div class="tm-label" style="margin-top:22px">Relics held
+        <span class="rel-count">${held}/4 · ${held*10} Mastery</span></div>
+      <div class="rel-row">
+        ${trk.relics.map((on,r)=>`
+          <button class="rel ${on?'on':''}" onclick="trkRelic(${r})"
+            title="${on?'Lost — removes 10 Mastery':'Claimed — adds 10 Mastery'}">${r+1}</button>`).join('')}
+      </div>
+      <div class="rel-hint">Each relic moves Mastery by 10. Add kill points with the ± above.</div>
+
+      <div class="trk-bottom">
+        <div class="tb-col">
+          <div class="tm-label">Echo</div>
           <div class="tm-row">
-            <button class="tm-btn" onclick="trkAdj(${i},'mastery',-1)">−</button>
-            <input class="tm-val" type="text" inputmode="numeric" value="${p.mastery||0}"
-                   onchange="trkSet(${i},'mastery',this.value)">
-            <button class="tm-btn" onclick="trkAdj(${i},'mastery',1)">+</button>
+            <button class="tm-btn" onclick="trkAdj('echo',-1)">−</button>
+            <input class="tm-val echo" type="text" inputmode="numeric" value="${trk.echo||0}"
+                   onchange="trkSet('echo',this.value)">
+            <button class="tm-btn" onclick="trkAdj('echo',1)">+</button>
           </div>
-          <div class="tm-bar"><div class="tm-fill" style="width:${Math.min(100,(p.mastery||0)/trk.target*100)}%"></div></div>
-          <div class="tm-goal">${p.mastery||0} / ${trk.target}${won?' — wins':''}</div>
-
-          <div class="tm-label" style="margin-top:16px">Relics held
-            <span class="rel-count">${held}/4 · ${held*10} Mastery</span></div>
-          <div class="rel-row">
-            ${p.relics.map((on,r)=>`
-              <button class="rel ${on?'on':''}" onclick="trkRelic(${i},${r})"
-                title="${on?'Lost — removes 10 Mastery':'Claimed — adds 10 Mastery'}">${r+1}</button>`).join('')}
-          </div>
-          <div class="rel-hint">Each relic moves Mastery by 10. Add kill points by hand.</div>
-
-          <div class="tm-label" style="margin-top:16px">Echo</div>
+        </div>
+        <div class="tb-col">
+          <div class="tm-label">Round</div>
           <div class="tm-row">
-            <button class="tm-btn" onclick="trkAdj(${i},'echo',-1)">−</button>
-            <input class="tm-val echo" type="text" inputmode="numeric" value="${p.echo||0}"
-                   onchange="trkSet(${i},'echo',this.value)">
-            <button class="tm-btn" onclick="trkAdj(${i},'echo',1)">+</button>
+            <button class="tm-btn" onclick="trkRound(-1)">−</button>
+            <input class="tm-val round" type="text" inputmode="numeric" value="${trk.round||1}"
+                   onchange="trkSet('round',this.value)">
+            <button class="tm-btn" onclick="trkRound(1)">+</button>
           </div>
-        </div>`;
-      }).join('')}
-    </div>
+        </div>
+      </div>
 
-    ${winner>=0?`<div class="champion" style="margin-top:8px">
-      ${esc(trk.players[winner].name||'Player '+(winner+1))} reaches ${trk.target} Mastery</div>`:''}`;
+      <button class="act next-round" onclick="trkNextRound()">
+        Next round → +${echoForRound((trk.round||1)+1)} Echo</button>
+      <div class="rel-hint" style="text-align:center">
+        Echo is 2× the round, capped at 10 from round 5. Refresh Phase is skipped on round 1.</div>
+    </div>`;
 }
-
 async function renderMetaView(){
   const scope=$('meta-scope');
   if(!scope.dataset.filled){
