@@ -202,7 +202,18 @@
   .rel.on{background:var(--brass);border-color:var(--brass);color:var(--coal);
     box-shadow:0 0 14px rgba(200,165,104,.4)}
 
-  .trk-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+  /* Grid items default to min-width:auto, so a column can't shrink below its
+     content — that let Round's wider content steal space and squeeze Echo's
+     input down to 2px. minmax(0,1fr) lets both columns actually split in half. */
+  .trk-bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:22px}
+  .tb-col{min-width:0}
+  .tb-col .tm-row{min-width:0}
+  .tb-col .tm-val{min-width:0;width:100%}
+  /* The bottom row splits the width in two, so its ± buttons need to be able to
+     give ground — fixed 58px leaves nothing for the number. */
+  .tb-col .tm-btn{width:auto;flex:0 0 44px;font-size:20px}
+  .tb-col .tm-val{font-size:24px}
+
   .next-round{width:100%;margin-top:18px;padding:15px;font-size:13px}
   .rel-hint{font-size:11px;color:var(--bone-dim);margin-top:8px;font-style:italic}
 
