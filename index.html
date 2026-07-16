@@ -313,19 +313,50 @@
   .help-note{background:rgba(229,30,57,.08);border-left:2px solid var(--crimson);padding:9px 12px;
     font-size:12.5px;color:var(--bone-dim);margin-top:12px}
 
+  .hero-stats{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .hs-title{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brass);margin-bottom:9px;font-style:italic}
+  .hs-row{display:flex;align-items:center;gap:18px}
+  .hs{display:flex;align-items:baseline;gap:7px}
+  .hs b{font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;color:var(--crimson);line-height:1}
+  .hs span{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--bone-dim)}
+  .hs-sep{width:1px;height:18px;background:var(--line-2)}
+  .hero-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;padding-top:12px;
+    border-top:1px solid var(--line)}
+  .hero-links a{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--brass);text-decoration:none}
+  .hero-links a:hover{color:var(--crimson);text-decoration:none}
+
+  /* tournament entrants */
+  .entrants{display:flex;flex-wrap:wrap;gap:7px}
+  .ent{display:inline-flex;align-items:center;gap:7px;background:var(--coal-2);
+    border:1px solid var(--line-2);color:var(--bone);font-family:'Barlow',sans-serif;font-size:13px;
+    padding:6px 11px;cursor:pointer;transition:.14s;-webkit-tap-highlight-color:transparent}
+  .ent:hover{border-color:var(--brass-dim)}
+  .ent.out{opacity:.4;text-decoration:line-through;border-style:dashed}
+  .ent-seed{font-family:'Oswald',sans-serif;font-size:10px;color:var(--bone-dim);
+    min-width:12px;text-align:right}
+  .ent-pts{font-family:'Oswald',sans-serif;font-size:11px;color:var(--brass);font-weight:600}
+  .ent.out .ent-pts{color:var(--bone-dim)}
+
+  /* snake seeding illustration in the help box */
+  .snake-demo{background:var(--coal);border:1px solid var(--line);padding:11px 13px;margin:10px 0 12px}
+  .sd-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .sd-row:last-child{margin-bottom:0}
+  .sd-lab{font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--bone-dim);width:60px;flex:0 0 auto}
+  .sd-row b,.sd-row i{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;font-style:normal;
+    padding:3px 8px;border:1px solid var(--line-2);min-width:38px;text-align:center}
+  .sd-row b{color:var(--crimson);border-color:var(--crimson)}
+  .sd-row i{color:var(--bone-dim)}
+
   /* ---- home hero ---- */
   .hero{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brass);
     padding:22px;margin-bottom:18px}
   .hero-h{font-family:'Oswald',sans-serif;font-weight:700;font-size:24px;letter-spacing:.06em;
     text-transform:uppercase;margin:0 0 8px;color:var(--bone)}
   .hero-p{color:var(--bone-dim);font-size:14.5px;line-height:1.6;margin:0;max-width:620px}
-  .hero-stats{display:flex;align-items:center;gap:18px;margin-top:16px;padding-top:14px;
-    border-top:1px solid var(--line)}
-  .hs{display:flex;align-items:baseline;gap:7px}
-  .hs b{font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;color:var(--crimson);line-height:1}
-  .hs span{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
-    color:var(--bone-dim)}
-  .hs-sep{width:1px;height:18px;background:var(--line-2)}
   @media(max-width:620px){
     .hero{padding:15px}
     .hero-h{font-size:19px}
@@ -392,14 +423,21 @@
 
   /* "At a glance" — a grid of label/value pairs. Two columns on desktop,
      one on a phone, and each pair stays together either way. */
-  .glance{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-bottom:16px}
-  .gl{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
-    padding:8px 0;border-bottom:1px solid var(--line)}
+  /* Two columns of label/value pairs. They need real air between them or the
+     value of the left column reads as the label of the right. */
+  .glance{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;margin-bottom:16px;position:relative}
+  .glance::before{content:'';position:absolute;left:50%;top:4px;bottom:4px;width:1px;
+    background:var(--line);transform:translateX(-50%)}
+  .gl{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+    padding:9px 0;border-bottom:1px solid var(--line);min-height:38px}
   .gl span{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.09em;
     text-transform:uppercase;color:var(--bone-dim);flex:0 0 auto}
   .gl b{color:var(--bone);font-size:13.5px;text-align:right;font-weight:500}
   .gl b i{color:var(--bone-dim);font-weight:400;font-size:12px;font-style:normal;display:block}
-  @media(max-width:620px){.glance{grid-template-columns:1fr;gap:0}}
+  @media(max-width:620px){
+    .glance{grid-template-columns:1fr;gap:0}
+    .glance::before{display:none}
+  }
 
   /* Collapsible sections. Native <details> — no JS, works with keyboard and
      screen readers for free. Reference material you consult once per game
@@ -430,9 +468,15 @@
   .rules-doc table.spec.act td:nth-child(even){color:var(--bone);font-family:'Barlow',sans-serif;
     font-size:13.5px;letter-spacing:0;text-transform:none;white-space:normal}
   .rules-doc table.spec.act th{font-size:10px}
+  /* The AP number is Oswald and the description is Barlow — different fonts, so
+     vertical-align:top lines up the boxes but not the text. Align on the first
+     baseline instead, and nudge the label column to match. */
+  .rules-doc table.spec.act td{vertical-align:baseline;padding-top:11px}
   .rules-doc table.spec.act td.ap,.rules-doc table.spec.act th.ap{width:44px;text-align:center;
-    font-family:'Oswald',sans-serif;font-weight:600;color:var(--brass)}
-  .rules-doc table.spec.act td:first-child{width:78px;white-space:nowrap}
+    font-family:'Oswald',sans-serif;font-weight:600;color:var(--brass);font-size:15px}
+  .rules-doc table.spec.act td:first-child{width:78px;white-space:nowrap;
+    font-family:'Oswald',sans-serif;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
+  .rules-doc table.spec.act td:first-child b{font-weight:600}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:700px){.two-col{grid-template-columns:1fr;gap:0}}
   .rules-doc ol{margin:0 0 11px;padding-left:20px;font-size:14.5px;line-height:1.7}
@@ -631,7 +675,7 @@
               <b>Player</b><span>Join leagues, log your own matches, track your stats</span>
             </div>
             <div class="roleopt" data-role="organizer">
-              <b>Organizer</b><span>Create leagues, run nights, manage results &amp; tournaments</span>
+              <b>Organizer</b><span>Create leagues, run events, manage results &amp; tournaments</span>
             </div>
           </div>
         </div>
@@ -1254,27 +1298,41 @@ async function renderBrowse(){
   const list=$('browse-list');
   list.innerHTML = `<div class="empty"><span class="spinner"></span> Loading leagues…</div>`;
   cache.leagues = await fetchPublicLeagues();
+  // Battles = events + tournaments. Counted with head:true so we get the number
+  // without pulling the rows themselves.
+  try{
+    const {count} = await sb.from('tournaments').select('*',{count:'exact',head:true});
+    cache.tourneyCount = count||0;
+  }catch(e){ cache.tourneyCount = 0; }
   paintHero();
   paintBrowse();
 }
 
-// Welcome block + live counts. The numbers come from the directory view we've
-// already fetched, so this costs no extra query.
+// Welcome block + live counts. League and event counts come from the directory
+// view we've already fetched; the tournament count is one extra small query.
 function paintHero(){
   const hero=$('hero');
   if(!hero) return;
   const leagues = cache.leagues.length;
-  const nights  = cache.leagues.reduce((a,l)=>a+(l.session_count||0), 0);
+  const events  = cache.leagues.reduce((a,l)=>a+(l.session_count||0), 0);
+  const battles = events + (cache.tourneyCount||0);
   hero.innerHTML = `
     <div class="hero">
       <h1 class="hero-h">Welcome, Seeker</h1>
-      <p class="hero-p">A free, unofficial tracker for local Malediction leagues. Log your game
-      nights, watch the standings build over the month, see which Seekers actually win — then let
-      it seed your end-of-month tournament.</p>
+      <p class="hero-p">A free, unofficial tracker for local Malediction leagues. Log your events,
+      watch the standings build over the month, see which Seekers actually win — and battle in
+      monthly showdowns!</p>
       <div class="hero-stats">
-        <div class="hs"><b>${leagues}</b><span>${leagues===1?'league':'leagues'}</span></div>
-        <div class="hs-sep"></div>
-        <div class="hs"><b>${nights}</b><span>${nights===1?'event':'events'} logged</span></div>
+        <div class="hs-title">The Malediction is growing…</div>
+        <div class="hs-row">
+          <div class="hs"><b>${leagues}</b><span>total ${leagues===1?'league':'leagues'}</span></div>
+          <div class="hs-sep"></div>
+          <div class="hs"><b>${battles}</b><span>total ${battles===1?'battle':'battles'}</span></div>
+        </div>
+      </div>
+      <div class="hero-links">
+        <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>
+        <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Find official events ↗</a>
       </div>
     </div>`;
 }
@@ -1826,7 +1884,7 @@ function paintMine(){
       <p class="hint" style="margin:0 0 14px">You'll get a join code to share with your players.</p>
       <div class="row">
         <label class="field"><span>League name</span>
-          <input type="text" id="nl-name" placeholder="Milan Malediction Nights"></label>
+          <input type="text" id="nl-name" placeholder="Milan Malediction League"></label>
         <label class="field"><span>Venue / location</span>
           <input type="text" id="nl-loc" placeholder="Dice &amp; Dragons Game Store"></label>
       </div>
@@ -1934,7 +1992,7 @@ async function renderLeague(){
       </div>
       <div style="flex:0 0 auto;text-align:right">
         ${admin?`<div class="rolechip organizer" style="margin-bottom:6px">Organizer</div>`
-          :inPlayerView?`<div class="rolechip" style="margin-bottom:6px">Playing tonight</div>`
+          :inPlayerView?`<div class="rolechip" style="margin-bottom:6px">Playing today</div>`
           :member?`<div class="rolechip">Member</div>`:''}
         ${trueAdmin?`<div><button class="ghost ${inPlayerView?'on':''}" onclick="togglePlayerView('${id}')"
           title="Hide the organizer controls so you see what your players see">
@@ -1955,7 +2013,7 @@ async function renderLeague(){
     </div>
   </div>`;
 
-  const tabs=[{id:'standings',label:'Standings'},{id:'nights',label:'Events'},{id:'meta',label:'Meta'},{id:'tournament',label:'Tournament'}];
+  const tabs=[{id:'standings',label:'Standings'},{id:'events',label:'Events'},{id:'meta',label:'Meta'},{id:'tournament',label:'Tournament'}];
   if(admin) tabs.push({id:'manage',label:'Manage'});
   // if the Manage tab vanished under us (player view), fall back gracefully
   const cur = tabs.find(t=>t.id===route.tab)?route.tab:'standings';
@@ -1964,7 +2022,7 @@ async function renderLeague(){
 
   const body=$('league-body');
   if(cur==='standings')  body.innerHTML = paintStandings(league, sessions, matches, members);
-  if(cur==='nights')     body.innerHTML = paintNights(league, sessions, matches, members, admin, member);
+  if(cur==='events')     body.innerHTML = paintEvents(league, sessions, matches, members, admin, member);
   if(cur==='meta')       body.innerHTML = `<div class="panel plain">${renderMeta(matches)}</div>`;
   if(cur==='tournament') await paintTournament(league, sessions, matches, members, admin);
   if(cur==='manage')     body.innerHTML = paintManage(league, members);
@@ -2002,7 +2060,7 @@ function paintStandings(league, sessions, matches, members){
   return h;
 }
 
-function paintNights(league, sessions, matches, members, admin, member){
+function paintEvents(league, sessions, matches, members, admin, member){
   let h='';
   if(admin){
     h += `<div class="panel">
@@ -2010,7 +2068,7 @@ function paintNights(league, sessions, matches, members, admin, member){
       <p class="hint">Create the event, then players can check in and log their own matches.</p>
       <div class="row">
         <label class="field"><span>Date</span><input type="date" id="ns-date" value="${today()}"></label>
-        <label class="field"><span>Notes (optional)</span><input type="text" id="ns-notes" placeholder="Casual night, 6 tables"></label>
+        <label class="field"><span>Notes (optional)</span><input type="text" id="ns-notes" placeholder="Casual event, 6 tables"></label>
         <label class="field"><span>Event link (optional)</span>
           <input type="url" id="ns-event" placeholder="https://malediction.gg/events/..."></label>
         <label class="field" style="display:flex;align-items:flex-end">
@@ -2025,6 +2083,7 @@ function paintNights(league, sessions, matches, members, admin, member){
     const ms=matches.filter(m=>m.session_id===s.id);
     const iAmIn = me && att.includes(me.id);
     const canLog = me && (admin || iAmIn);
+    const editing = window._editEvent === s.id;
     return `<div class="panel plain">
       <div class="flex-between">
         <div>
@@ -2038,9 +2097,24 @@ function paintNights(league, sessions, matches, members, admin, member){
           ${me&&member?(iAmIn
             ? `<button class="ghost" onclick="checkOut('${s.id}')">Check out</button>`
             : `<button class="ghost" onclick="checkIn('${s.id}')">I'm here</button>`):''}
+          ${admin?`<button class="ghost ${editing?'on':''}" onclick="toggleEditEvent('${s.id}')">${editing?'Cancel':'Edit'}</button>`:''}
           ${admin?`<span class="del" onclick="delSession('${s.id}')" title="Delete event">×</span>`:''}
         </div>
       </div>
+      ${editing?`<div class="pane" style="margin-top:14px">
+        <div class="row">
+          <label class="field"><span>Date</span>
+            <input type="date" id="ed-date-${s.id}" value="${esc(s.date)}"></label>
+          <label class="field"><span>Notes</span>
+            <input type="text" id="ed-notes-${s.id}" value="${esc(s.notes||'')}" placeholder="Casual event, 6 tables"></label>
+        </div>
+        <div class="row">
+          <label class="field"><span>Event link</span>
+            <input type="url" id="ed-url-${s.id}" value="${esc(s.event_url||'')}" placeholder="https://play.malediction.gg/..."></label>
+          <label class="field" style="display:flex;align-items:flex-end;max-width:160px">
+            <button class="act" style="width:100%" onclick="saveEvent('${s.id}')">Save changes</button></label>
+        </div>
+      </div>`:''}
       ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
         att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}</span>`).join('') + `</div>`:''}
 
@@ -2129,6 +2203,25 @@ async function createSession(){
   if(error) return toast(error.message);
   toast('Event created', true); renderLeague();
 }
+function toggleEditEvent(id){
+  window._editEvent = (window._editEvent===id) ? null : id;
+  renderLeague();
+}
+async function saveEvent(id){
+  const date=$('ed-date-'+id).value;
+  if(!date) return toast('Pick a date');
+  const url=$('ed-url-'+id).value.trim();
+  if(url && !safeUrl(url)) return toast('Event link must be a valid http(s) URL');
+  const {error} = await sb.from('sessions').update({
+    date,
+    notes:$('ed-notes-'+id).value.trim()||null,
+    event_url:safeUrl(url)
+  }).eq('id',id);
+  if(error) return toast(error.message);
+  window._editEvent=null;
+  toast('Event updated', true);
+  renderLeague();
+}
 async function delSession(id){
   if(!confirm('Delete this event and all its matches?')) return;
   const {error} = await sb.from('sessions').delete().eq('id',id);
@@ -2216,7 +2309,7 @@ function paintManage(league, members){
 
   <div class="panel plain">
     <h2>Members</h2>
-    <p class="hint">Promote a trusted player to co-organizer so they can run nights too.</p>
+    <p class="hint">Promote a trusted player to co-organizer so they can run events too.</p>
     <table><thead><tr><th>Player</th><th>Account role</th><th>In this league</th><th></th></tr></thead><tbody>
       ${members.map(m=>`<tr>
         <td class="${me&&m.id===me.id?'me':''}">${esc(m.display_name)}${me&&m.id===me.id?' (you)':''}</td>
@@ -2231,7 +2324,7 @@ function paintManage(league, members){
 
   <div class="panel">
     <h2>Danger zone</h2>
-    <p class="hint">Deleting the league removes every night, match and result. Cannot be undone.</p>
+    <p class="hint">Deleting the league removes every event, match and result. Cannot be undone.</p>
     <button class="ghost" style="border-color:var(--crimson);color:var(--crimson)" onclick="deleteLeague()">Delete league</button>
   </div>`;
 }
@@ -2261,7 +2354,7 @@ async function toggleAdmin(uid, mk){
   cache.myLeagues=[]; renderLeague();
 }
 async function deleteLeague(){
-  if(!confirm('Delete this league permanently? All nights and matches will be lost.')) return;
+  if(!confirm('Delete this league permanently? All events and matches will be lost.')) return;
   const {error} = await sb.from('leagues').delete().eq('id',cache.league.id);
   if(error) return toast(error.message);
   cache.myLeagues=[]; toast('League deleted', true); go('mine');
@@ -2276,26 +2369,40 @@ async function deleteLeague(){
 let tourneyHelp = false;
 function toggleTourneyHelp(){ tourneyHelp = !tourneyHelp; renderLeague(); }
 
+// Dropping an entrant is a pre-generate decision, held in memory. It doesn't
+// touch their league standing — they simply aren't in this tournament.
+function toggleDrop(uid){
+  if(!window._tDropped) window._tDropped = new Set();
+  window._tDropped.has(uid) ? window._tDropped.delete(uid) : window._tDropped.add(uid);
+  renderLeague();
+}
+
 const TOURNEY_HELP = `
   <div class="help-box">
     <h4>How the tournament is built</h4>
-    <p><b>1. Standings become seeds.</b> Everyone who played that month is ranked by league points.
-    Nobody is excluded — a low seed still gets a place.</p>
+    <p><b>1. Standings become seeds.</b> Everyone with at least one result that month is ranked by
+    league points. You can drop anyone who isn't coming before you generate.</p>
 
-    <p><b>2. Groups are snake-seeded.</b> With 2 groups and 8 players, seeds go
-    A-B-B-A-A-B-B-A rather than 1234/5678. This stops one group from collecting all the strong
-    players. Group placement here is <i>from the league standings</i> — it doesn't require playing
-    group matches on the day, though you can if you want.</p>
+    <p><b>2. Groups are snake-seeded.</b> "Snake" (or serpentine) means the seeds zig-zag across the
+    groups instead of filling one at a time. With 8 players and 2 groups:</p>
+    <div class="snake-demo">
+      <div class="sd-row"><span class="sd-lab">Group A</span>
+        <b>1st</b><i>4th</i><b>5th</b><i>8th</i></div>
+      <div class="sd-row"><span class="sd-lab">Group B</span>
+        <i>2nd</i><b>3rd</b><i>6th</i><b>7th</b></div>
+    </div>
+    <p>Straight filling would put 1-2-3-4 in one group and 5-6-7-8 in the other — one group of
+    sharks, one of minnows. Snaking gives each group a comparable mix.</p>
 
-    <p><b>3. The bracket takes the qualifiers.</b> Whoever finishes in the top N of each group goes
-    through, re-seeded by points. Pairings follow the standard bracket: <b>1 v 8, 4 v 5, 2 v 7,
-    3 v 6</b>, so the top seed meets the weakest and seeds 1 and 2 can only meet in the final.</p>
+    <p><b>3. The bracket takes the qualifiers.</b> The top N of each group go through, re-seeded by
+    points. Pairings follow the standard bracket: <b>1 v 8, 4 v 5, 2 v 7, 3 v 6</b> — the top seed
+    meets the weakest, and seeds 1 and 2 can only meet in the final.</p>
 
-    <p><b>4. Byes go to the top.</b> If the field isn't a power of two — say 5 or 6 qualifiers —
+    <p><b>4. Byes go to the top.</b> If the field isn't a power of two — 5 or 6 qualifiers, say —
     the highest seeds skip the first round automatically.</p>
 
-    <p><b>5. Tap a name to advance them.</b> The bracket is yours to run: click the winner of each
-    match. Clicking again undoes it, and anything downstream resets.</p>
+    <p><b>5. Tap a name to advance them.</b> Click the winner of each match. Clicking again undoes
+    it, and anything downstream resets.</p>
 
     <div class="help-note">Regenerating for the same month overwrites the bracket and loses any
     progress. Generate once the month's results are final.</div>
@@ -2308,6 +2415,14 @@ async function paintTournament(league, sessions, matches, members, admin){
   const {data:saved} = await sb.from('tournaments')
     .select('*').eq('league_id',league.id).eq('month',sel).maybeSingle();
   cache.tourney = saved;
+
+  // Who could play: everyone with a result that month. The organizer can drop
+  // anyone who isn't turning up — kept in memory only, it's a pre-generate
+  // choice and shouldn't outlive the page.
+  if(!window._tDropped) window._tDropped = new Set();
+  const dropped = window._tDropped;
+  const entrants = admin ? computeStandings(league, sessions, matches, sel) : [];
+  const playing = entrants.filter(r=>!dropped.has(r.id)).length;
 
   let h='';
   if(admin){
@@ -2322,7 +2437,7 @@ async function paintTournament(league, sessions, matches, members, admin){
       ${tourneyHelp?TOURNEY_HELP:''}
       <div class="row" style="margin-top:14px">
         <label class="field"><span>Month</span>
-          <select id="t-month" onchange="window._tMonth=this.value;renderLeague()">
+          <select id="t-month" onchange="window._tMonth=this.value;window._tDropped=new Set();renderLeague()">
             ${months.map(m=>`<option value="${m}"${m===sel?' selected':''}>${monthLabel(m)}</option>`).join('')||'<option value="">— no months —</option>'}
           </select></label>
         <label class="field"><span>Groups</span><select id="t-groups">
@@ -2333,7 +2448,20 @@ async function paintTournament(league, sessions, matches, members, admin){
           <button class="act gold" style="width:100%" onclick="generateTournament()">
             ${saved?'Regenerate':'Generate'}</button></label>
       </div>
-      ${saved?`<p class="hint" style="margin:0;font-size:12.5px">Regenerating resets bracket progress for ${monthLabel(sel)}.</p>`:''}
+      ${entrants.length?`
+        <div class="tm-label" style="margin-top:6px">Who's playing
+          <span class="rel-count">${playing} of ${entrants.length} in</span></div>
+        <div class="entrants">
+          ${entrants.map((r,i)=>{
+            const out = dropped.has(r.id);
+            return `<button class="ent ${out?'out':''}" onclick="toggleDrop('${r.id}')"
+              title="${out?'Not playing — click to add back':'Playing — click to drop'}">
+              <span class="ent-seed">${i+1}</span>${esc(nameOf(r.id))}
+              <span class="ent-pts">${r.pts}</span></button>`;
+          }).join('')}
+        </div>
+        <div class="rel-hint">Drop anyone who isn't coming. Seeds renumber automatically.</div>`:''}
+      ${saved?`<p class="hint" style="margin:12px 0 0;font-size:12.5px">Regenerating resets bracket progress for ${monthLabel(sel)}.</p>`:''}
     </div>`;
   }else if(months.length){
     h += `<div class="panel plain"><div class="flex-between">
@@ -2435,8 +2563,11 @@ async function generateTournament(){
   const mk=$('t-month').value;
   if(!mk) return toast('No month available');
   const nGroups=+$('t-groups').value, qual=+$('t-qual').value;
-  const rows=computeStandings(cache.league, cache.sessions, cache.matches, mk);
-  if(rows.length<2) return toast('Need at least 2 players with results');
+  const dropped = window._tDropped || new Set();
+  const rows = computeStandings(cache.league, cache.sessions, cache.matches, mk)
+    .filter(r => !dropped.has(r.id));
+  if(rows.length<2) return toast('Need at least 2 players in the tournament');
+  if(rows.length < nGroups) return toast(`Only ${rows.length} playing — too few for ${nGroups} groups`);
   const groups=seedGroups(rows,nGroups);
   const qs=[];
   groups.forEach(g=>g.slice(0,qual).forEach(p=>qs.push(p)));
