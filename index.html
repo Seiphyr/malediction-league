@@ -148,6 +148,122 @@
   .cc-copy{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--bone-dim);opacity:.55;transition:.15s}
 
+  .dl{font-size:11px;color:var(--brass);margin-left:6px;font-family:'Oswald',sans-serif;
+    letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .dl:hover{color:var(--crimson)}
+  .ev-link{display:inline-block;margin-top:5px;font-size:12px;color:var(--brass);
+    font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase}
+  .opt{color:var(--line-2);font-size:9px;letter-spacing:.06em}
+
+  /* ---- live tracker ---- */
+  .round-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;
+    padding-top:14px;border-top:1px solid var(--line)}
+  .round-bar button.ghost.rnd{width:32px;height:32px;padding:0;font-size:16px;line-height:1}
+  .round-n{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--bone-dim);min-width:74px;text-align:center}
+  .round-n b{color:var(--bone);font-size:16px}
+  .round-hint{font-size:11.5px;color:var(--bone-dim);font-style:italic}
+
+  .trk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.trk-grid{grid-template-columns:1fr}}
+  .trk-player{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--line-2);
+    padding:18px;transition:.2s}
+  .trk-player.won{border-top-color:var(--crimson);box-shadow:0 0 0 1px var(--crimson) inset}
+  .trk-name{background:transparent;border:0;border-bottom:1px solid var(--line-2);
+    font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;letter-spacing:.06em;
+    color:var(--bone);padding:0 0 7px;margin-bottom:16px;text-transform:uppercase}
+  .trk-name:focus{border-bottom-color:var(--crimson);box-shadow:none}
+  .tm-label{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--bone-dim);margin-bottom:7px;display:flex;justify-content:space-between;align-items:baseline}
+  .rel-count{color:var(--brass);letter-spacing:.06em}
+  .tm-row{display:flex;align-items:stretch;gap:8px}
+  .tm-btn{flex:0 0 auto;width:46px;background:var(--coal-2);border:1px solid var(--line-2);
+    color:var(--bone);font-size:22px;line-height:1;cursor:pointer;transition:.12s;
+    -webkit-user-select:none;user-select:none}
+  .tm-btn:hover{border-color:var(--crimson);color:var(--crimson)}
+  .tm-btn:active{background:var(--crimson);color:#fff}
+  .tm-val{flex:1;text-align:center;font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;
+    color:var(--bone);background:var(--coal-2);border:1px solid var(--line-2);padding:4px 0;
+    font-variant-numeric:tabular-nums}
+  .tm-val.echo{font-size:24px;color:var(--brass)}
+  .tm-bar{height:4px;background:var(--coal-2);border:1px solid var(--line);margin-top:9px;overflow:hidden}
+  .tm-fill{height:100%;background:var(--crimson);transition:width .35s ease}
+  .tm-goal{font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--bone-dim);margin-top:5px;text-align:right}
+
+  .rel-row{display:flex;gap:8px}
+  .rel{flex:1;aspect-ratio:1;max-height:60px;background:var(--coal-2);border:1px solid var(--line-2);
+    color:var(--line-2);font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+    transition:.15s;-webkit-user-select:none;user-select:none}
+  .rel:hover{border-color:var(--brass-dim);color:var(--bone-dim)}
+  .rel.on{background:var(--brass);border-color:var(--brass);color:var(--coal);
+    box-shadow:0 0 12px rgba(200,165,104,.35)}
+  .rel-hint{font-size:11px;color:var(--bone-dim);margin-top:7px;font-style:italic}
+
+  /* ---- rules ---- */
+  .link-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .doc-card{display:block;background:var(--coal-2);border:1px solid var(--line);
+    border-left:3px solid var(--brass);padding:14px;text-decoration:none;transition:.15s}
+  .doc-card:hover{border-left-color:var(--crimson);background:var(--surface-2);text-decoration:none}
+  .doc-title{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--bone);margin-bottom:5px}
+  .doc-title .ext{color:var(--bone-dim);font-size:11px;font-weight:400}
+  .doc-card:hover .doc-title{color:var(--crimson)}
+  .doc-desc{color:var(--bone-dim);font-size:13px;line-height:1.45}
+
+  .rules-doc{max-width:760px}
+  .rules-doc h3{font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--brass);margin:26px 0 10px}
+  .rules-doc h3:first-child{margin-top:0}
+  .rules-doc p{margin:0 0 11px;font-size:15px;line-height:1.6}
+  .rules-doc b{color:var(--bone)}
+  .rules-doc ul{margin:0 0 11px;padding-left:20px;font-size:15px;line-height:1.7}
+  .rules-doc li{margin-bottom:3px}
+
+  .rule-cards{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0 22px}
+  .rule-card{flex:1;min-width:130px;background:var(--coal-2);border:1px solid var(--line);
+    border-top:2px solid var(--crimson);padding:14px;display:flex;align-items:center;gap:12px}
+  .rc-num{font-family:'Oswald',sans-serif;font-size:32px;font-weight:700;color:var(--crimson);line-height:1}
+  .rc-label{font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--bone);line-height:1.5}
+  .rc-label span{color:var(--bone-dim);font-size:9.5px}
+
+  .phase-list{margin:14px 0 6px}
+  .phase{display:flex;gap:14px;margin-bottom:16px}
+  .ph-n{flex:0 0 auto;width:30px;height:30px;border:1px solid var(--brass-dim);color:var(--brass);
+    font-family:'Oswald',sans-serif;font-weight:600;display:flex;align-items:center;justify-content:center;
+    font-size:14px}
+  .ph-body{flex:1}
+  .ph-body > b{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--bone);display:block;margin-bottom:4px;padding-top:5px}
+  .ph-body p{margin:0 0 6px;font-size:14.5px}
+  .ph-body ul{font-size:14.5px;margin-bottom:6px}
+  .rules-note{background:rgba(200,165,104,.07);border-left:2px solid var(--brass-dim);
+    padding:11px 14px;font-size:13.5px;color:var(--bone-dim);margin-top:16px}
+
+  /* spec tables inside the rules docs */
+  .rules-doc table.spec{width:100%;border-collapse:collapse;margin:0 0 14px}
+  .rules-doc table.spec td{padding:7px 10px;border-bottom:1px solid var(--line);font-size:13.5px;
+    vertical-align:top;line-height:1.5}
+  .rules-doc table.spec td:nth-child(odd){color:var(--bone-dim);font-family:'Oswald',sans-serif;
+    font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;padding-top:9px}
+  .rules-doc table.spec td:nth-child(even){color:var(--bone)}
+  .rules-doc table.spec tr:last-child td{border-bottom:0}
+  .rules-doc table.spec.act td:nth-child(odd),
+  .rules-doc table.spec.act td:nth-child(even){color:var(--bone);font-family:'Barlow',sans-serif;
+    font-size:13.5px;letter-spacing:0;text-transform:none;white-space:normal}
+  .rules-doc table.spec.act th{font-size:10px}
+  .rules-doc table.spec.act td.ap,.rules-doc table.spec.act th.ap{width:44px;text-align:center;
+    font-family:'Oswald',sans-serif;font-weight:600;color:var(--brass)}
+  .rules-doc table.spec.act td:first-child{width:78px;white-space:nowrap}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:700px){.two-col{grid-template-columns:1fr;gap:0}}
+  .rules-doc ol{margin:0 0 11px;padding-left:20px;font-size:14.5px;line-height:1.7}
+  .rules-doc ol.flow{font-size:15px}
+  .rules-doc ol li{margin-bottom:4px}
+  .ph-note{font-family:'Barlow',sans-serif;font-size:11px;letter-spacing:0;text-transform:none;
+    color:var(--brass);font-weight:400;font-style:italic;margin-left:6px}
+
   /* per-side log sections */
   .log-side{border-left:2px solid var(--line-2);padding-left:14px;margin-bottom:6px;position:relative}
   .log-side:first-of-type{border-left-color:var(--win)}
@@ -258,7 +374,7 @@
       <div class="flex-between" style="margin-bottom:14px">
         <div>
           <h2>League Directory</h2>
-          <p class="hint" style="margin:0">Every public league running Malediction game nights.</p>
+          <p class="hint" style="margin:0">Every public league running Malediction game nights. Find one near you, or start your own.</p>
         </div>
         <div style="display:flex;gap:8px;flex:0 0 auto">
           <select id="browse-sort" style="width:auto">
@@ -278,6 +394,16 @@
     <div id="league-header"></div>
     <nav class="tabs" id="league-tabs" style="margin-top:0"></nav>
     <div id="league-body"></div>
+  </section>
+
+  <!-- ================= RULES ================= -->
+  <section class="view" id="rules">
+    <div id="rules-body"></div>
+  </section>
+
+  <!-- ================= TRACKER ================= -->
+  <section class="view" id="tracker">
+    <div id="tracker-body"></div>
   </section>
 
   <!-- ================= META BREAKDOWN ================= -->
@@ -496,6 +622,17 @@ function timeAgo(d){
   if(days<30) return days+'d ago';
   if(days<365) return Math.floor(days/30)+'mo ago';
   return Math.floor(days/365)+'y ago';
+}
+// Only ever emit http/https into an href. A raw user string in a link is an
+// XSS vector — "javascript:..." in an href runs on click.
+function safeUrl(u){
+  if(!u) return null;
+  const t=String(u).trim();
+  if(!t) return null;
+  try{
+    const p=new URL(t);
+    return (p.protocol==='http:'||p.protocol==='https:') ? p.href : null;
+  }catch(e){ return null; }
 }
 function genCode(){
   const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no confusable chars
@@ -900,8 +1037,10 @@ function renderChrome(){
     ub.innerHTML = `<button class="ghost" onclick="go('auth')">Sign in</button>`;
   }
   const tabs = [
-    {id:'browse', label:'Directory'},
-    {id:'meta',   label:'Meta Breakdown'},
+    {id:'browse',  label:'Home'},
+    {id:'rules',   label:'Rules'},
+    {id:'tracker', label:'Tracker'},
+    {id:'meta',    label:'Meta Breakdown'},
   ];
   if(me){
     tabs.push({id:'mine', label:'My Leagues'});
@@ -931,6 +1070,8 @@ async function render(){
   v.classList.add('active');
 
   if(route.view==='browse')  return renderBrowse();
+  if(route.view==='rules')   return renderRules();
+  if(route.view==='tracker') return renderTracker();
   if(route.view==='meta')    return renderMetaView();
   if(route.view==='mine')    return renderMine();
   if(route.view==='profile') return renderProfile();
@@ -975,8 +1116,364 @@ function paintBrowse(){
 }
 
 /* ============================================================
-   META VIEW (global or per-league)
+   RULES
+   Official documents live on malediction.gg — we link to the pages
+   rather than to specific PDF files, because Loot Studios revises them
+   and a direct file link would rot on the next update.
    ============================================================ */
+const OFFICIAL_LINKS = [
+  {title:'Complete Rulebook', url:'https://malediction.gg/game/',
+   desc:'The full rules. Everything is in here — this is the authority when a table disagrees.'},
+  {title:'Rules FAQ', url:'https://malediction.gg/game/',
+   desc:'Official answers to the edge cases. Updated alongside rules revisions.'},
+  {title:'Tournament Guide', url:'https://malediction.gg/game/',
+   desc:'How organized play works: formats, pairings, tiebreakers, byes.'},
+  {title:'Designer commentary', url:'https://malediction.gg/designer-commentary-tidying-up-the-house/',
+   desc:'Why the rules changed, in the designers\' own words. Worth reading after a revision.'},
+];
+
+let rulesTab = 'setup';
+
+function renderRules(){
+  const body=$('rules-body');
+  body.innerHTML = `
+    <div class="panel">
+      <h2>Official documents</h2>
+      <p class="hint">Always the source of truth. Downloads live on malediction.gg.</p>
+      <div class="link-grid">
+        ${OFFICIAL_LINKS.map(l=>`
+          <a class="doc-card" href="${l.url}" target="_blank" rel="noopener noreferrer">
+            <div class="doc-title">${esc(l.title)} <span class="ext">↗</span></div>
+            <div class="doc-desc">${esc(l.desc)}</div>
+          </a>`).join('')}
+      </div>
+      <p class="hint" style="margin:14px 0 0;font-size:12.5px">
+        Rules get revised — if something here disagrees with the official PDF, the PDF wins.</p>
+    </div>
+
+    <div class="panel plain">
+      <div class="flex-between" style="margin-bottom:14px">
+        <div>
+          <h2 style="margin:0">Quick reference</h2>
+          <p class="hint" style="margin:0">Written by our players from the official rulebook. Handy at the table — the rulebook is still the authority.</p>
+        </div>
+        <div style="display:flex;gap:6px;flex:0 0 auto">
+          <button class="ghost ${rulesTab==='setup'?'on':''}" onclick="rulesTab='setup';renderRules()">Setup checklist</button>
+          <button class="ghost ${rulesTab==='turn'?'on':''}" onclick="rulesTab='turn';renderRules()">Turns &amp; actions</button>
+        </div>
+      </div>
+      ${rulesTab==='setup'?RULES_SETUP:RULES_TURN}
+    </div>`;
+}
+
+/* --- Community quick-reference content ---------------------------------
+   Written from the public rulebook and designer commentary. Anything here
+   that contradicts the official documents is a mistake on our side.
+   ---------------------------------------------------------------------- */
+/* --- Community quick reference -----------------------------------------
+   Translated from the Italian reference sheets written by our own players,
+   which were in turn built from the official rulebook. Community work, not
+   official: where this disagrees with the rulebook PDF, the PDF wins.
+   ---------------------------------------------------------------------- */
+const RULES_SETUP = `
+  <div class="rules-doc">
+    <h3>At a glance — standard 2-player game</h3>
+    <table class="spec"><tbody>
+      <tr><td>Players</td><td>2</td><td>Min. husk spacing</td><td>10"</td></tr>
+      <tr><td>Battlefield</td><td>30" × 30" (≈76 × 76 cm)</td><td>Terrain per player</td><td>1 large, 1 medium, 2 small</td></tr>
+      <tr><td>Deployment zone</td><td>quarter circle, 6" from corner</td><td>Mastery to win</td><td>40</td></tr>
+      <tr><td>Husks on field</td><td>4</td><td>Relic display</td><td>15 cards (4 face up)</td></tr>
+      <tr><td>Opening hand</td><td>7 cards (mulligan up to 5×, −1 each)</td><td>Starting round</td><td>1, Mastery at 0</td></tr>
+    </tbody></table>
+
+    <h3>Before the game — what to bring</h3>
+    <p>Each player brings their own warband: <b>1 Seeker</b>, its matching <b>Legacy</b>, <b>1 terrain card</b>
+    with its terrain set, and a deck of <b>30–50 cards</b> (units, spells and non-relic attachments).</p>
+    <p>Agree on a shared <b>15-card Relic deck</b>.</p>
+    <p>Have ready: dice, rulers, Echo/Mastery/Round markers, initiative token, 4 husk markers.</p>
+
+    <h3>Battlefield setup — seven steps, in order</h3>
+    <div class="phase-list">
+      <div class="phase"><div class="ph-n">1</div><div class="ph-body"><b>Define the battlefield</b>
+        <p>Prepare a flat 30" × 30" surface (≈76 × 76 cm).</p></div></div>
+
+      <div class="phase"><div class="ph-n">2</div><div class="ph-body"><b>Place terrain</b>
+        <p>Roll a die: the winner places first. Alternate pieces, going from the largest to the
+        smallest of your own set. Each player places 4 pieces (1 large, 1 medium, 2 small).</p>
+        <p>Every piece must sit entirely within the field, outside all four deployment zones, and at
+        least 3" from other terrain. If both players agree a piece won't fit, the phase ends even
+        with pieces unplaced.</p></div></div>
+
+      <div class="phase"><div class="ph-n">3</div><div class="ph-body"><b>Place husks</b>
+        <p>Alternate, starting with whoever placed terrain second. Place 4 husks in total.</p>
+        <p>Each husk goes outside the deployment zones and clear of obstacles, with at least 10"
+        between husks.</p></div></div>
+
+      <div class="phase"><div class="ph-n">4</div><div class="ph-body"><b>Build the relic display</b>
+        <p>Shuffle the 15-card Relic deck and set it face down beside the field. Draw the top 4 and
+        lay them face up in a row next to the deck.</p></div></div>
+
+      <div class="phase"><div class="ph-n">5</div><div class="ph-body"><b>Set Echo, Mastery and Round</b>
+        <p>Starting Echo: the value printed on your Legacy card. Mastery: 0. Round tracker: 1.</p></div></div>
+
+      <div class="phase"><div class="ph-n">6</div><div class="ph-body"><b>Opening hand</b>
+        <p>Shuffle your deck and draw 7 cards. Mulligan is optional: reshuffle and redraw one card
+        fewer each time. Maximum 5 mulligans, and you must start with at least 1 card in hand.</p></div></div>
+
+      <div class="phase"><div class="ph-n">7</div><div class="ph-body"><b>Setup bid</b>
+        <p>Both players pick a card from hand and place it face down on the field, then reveal.
+        Highest cost wins; on a tie, roll a die.</p>
+        <p>The winner chooses first: <b>deployment zone</b> or <b>initiative token</b> for round 1. If they
+        take the zone, the opponent's zone is the diagonally opposite one. Cards used to bid are
+        <b>banished</b>.</p></div></div>
+    </div>
+
+    <h3>How initiative works</h3>
+    <table class="spec"><tbody>
+      <tr><td style="width:130px">Deploy Phase</td><td>The player with initiative chooses to deploy first, or to defer — in which case the opponent deploys first. Then the other player completes their deployment.</td></tr>
+      <tr><td>Action Phase</td><td>The player with initiative chooses who activates the first unit: themselves, or defer to the opponent, who must then activate first. After that, alternate one unit at a time.</td></tr>
+    </tbody></table>
+  </div>`;
+
+const RULES_TURN = `
+  <div class="rules-doc">
+    <h3>Round structure — four phases</h3>
+    <div class="phase-list">
+      <div class="phase"><div class="ph-n">1</div><div class="ph-body">
+        <b>Refresh Phase <span class="ph-note">skipped on round 1</span></b>
+        <ol>
+          <li>Ready your exhausted units.</li>
+          <li>Advance the round tracker by 1.</li>
+          <li>Draw 2 cards — <b>an empty deck means you lose</b> — and gain Echo equal to
+            <b>2× the round</b> (capped at round 5: 10 Echo). Echo is cumulative.</li>
+          <li>Initiative bid: the player without initiative bids first, then the one who has it;
+            compare the costs of the face-down cards.</li>
+        </ol></div></div>
+
+      <div class="phase"><div class="ph-n">2</div><div class="ph-body"><b>Deploy Phase</b>
+        <p>Whoever has initiative chooses to deploy first or defer. Pay the Echo cost (1 item per
+        unit, tucked under its card; equip on a unit being deployed or one that isn't engaged).
+        No limit beyond your Echo.</p>
+        <p><b>Standard:</b> place the unit entirely within your own deployment zone (quarter circle,
+        6" from the corner).</p>
+        <p><b>Reinforcement</b> (from round 2): place within 1" of one of your unengaged units that
+        has been on the field since a previous round. A unit deployed this round can't call
+        reinforcements.</p></div></div>
+
+      <div class="phase"><div class="ph-n">3</div><div class="ph-body"><b>Action Phase</b>
+        <p>Whoever has initiative chooses who activates first, then players alternate one unit at a
+        time. Activating means <b>exhausting the card</b> → the unit gets <b>2 AP</b> to spend on actions.
+        The phase ends when nobody has refreshed units left.</p></div></div>
+
+      <div class="phase"><div class="ph-n">4</div><div class="ph-body"><b>End Phase</b>
+        <p>Whoever has initiative chooses who claims a relic first, then the other; alternate.</p>
+        <p><b>Claim:</b> +10 Mastery, husk removed, new relic into the display. Then check for victory
+        (40 Mastery), or start a new round.</p></div></div>
+    </div>
+
+    <h3>Activation flow</h3>
+    <ol class="flow">
+      <li>Pick a refreshed unit and exhaust it.</li>
+      <li>It gets <b>2 AP</b>.</li>
+      <li>You may play a <b>Channel spell</b>.</li>
+      <li>Declare and resolve actions — repeatable while you have AP; one action must resolve before
+        starting another.</li>
+      <li>A second chance for a Channel spell (between the 1st and 2nd action), only if you haven't
+        already cast one this activation.</li>
+      <li>Pass the turn: <b>unspent AP are lost</b>.</li>
+    </ol>
+
+    <h3>Standard actions</h3>
+    <table class="spec act"><thead><tr><th>Action</th><th class="ap">AP</th><th>Effect</th></tr></thead><tbody>
+      <tr><td><b>Move</b></td><td class="ap">1</td><td>Move up to the unit's Speed. May curve around obstacles, but can't pass through models, husks or high terrain, nor through gaps narrower than its base. <b>Provokes retaliation.</b></td></tr>
+      <tr><td><b>Attack</b></td><td class="ap">1</td><td>Roll 1d20 + Accuracy vs the target's Defense. ≥ Defense = hit (full damage); &lt; = graze (reduced damage). Melee (enemy within 1" + LoE) or Ranged (within Range + LoS).</td></tr>
+      <tr><td><b>Charge</b></td><td class="ap">2</td><td>Move up to 2× Speed toward an unengaged enemy (needs LoS), then make a melee attack. The base must not leave the LoS path. <b>Provokes retaliation.</b></td></tr>
+      <tr><td><b>Shift</b></td><td class="ap">2</td><td>A single move up to Speed, in a straight line with clear LoS (no obstacles). <b>Does not provoke retaliation</b>; can pass through gaps narrower than the base.</td></tr>
+    </tbody></table>
+
+    <h3>Combat &amp; stats</h3>
+    <div class="two-col">
+      <table class="spec"><tbody>
+        <tr><td>Formula</td><td>1d20 + Accuracy vs target's Defense</td></tr>
+        <tr><td>Hit</td><td>Total ≥ Defense → full damage (left number of Power)</td></tr>
+        <tr><td>Graze</td><td>Total &lt; Defense → reduced damage (right number of Power)</td></tr>
+        <tr><td>Critical (nat. 20)</td><td>Critical hit: sum Power's hit + graze (before bonuses)</td></tr>
+        <tr><td>Fumble (nat. 1)</td><td>Critical graze: a flat 1 damage, no Power bonuses</td></tr>
+        <tr><td>Melee</td><td>Enemy within 1" + LoE = engaged</td></tr>
+        <tr><td>Ranged</td><td>Target within Range (&gt; 0) + LoS</td></tr>
+        <tr><td>Defeat</td><td>Damage ≥ Max Health → removed from the field</td></tr>
+      </tbody></table>
+      <table class="spec"><tbody>
+        <tr><td>Accuracy</td><td>Bonus to the attack roll</td></tr>
+        <tr><td>Power</td><td>Damage: full / reduced (e.g. 3/1)</td></tr>
+        <tr><td>Range</td><td>Reach in inches (0 = melee only)</td></tr>
+        <tr><td>Speed</td><td>Inches per move action</td></tr>
+        <tr><td>Defense</td><td>Threshold the attack must reach</td></tr>
+        <tr><td>Max Health</td><td>Damage taken before defeat</td></tr>
+        <tr><td>Stat "–" (null)</td><td>The unit can't use that stat (treated as 0)</td></tr>
+        <tr><td>Retaliation</td><td>Free melee attack when an engaged enemy moves/charges/shoots; resolved before the provoking action</td></tr>
+      </tbody></table>
+    </div>
+
+    <h3>Claiming a relic (End Phase)</h3>
+    <p>You claim if all three are true:</p>
+    <ul>
+      <li>near a husk (within 1")</li>
+      <li>not engaged</li>
+      <li>no enemy near the husk (within 1")</li>
+    </ul>
+    <p>Pick a relic from the display (then replace it) or draw the top card of the deck. Equip it
+    under the unit, remove the husk, and gain <b>+10 Mastery</b>.</p>
+  </div>`;
+/* ============================================================
+   LIVE TRACKER
+   A scratchpad for the table: Echo, Mastery, relic toggles. Deliberately
+   NOT saved to the database — it's for the game in front of you, and it
+   resets when you're done. State lives in localStorage so a refresh or an
+   accidental tab close doesn't wipe the board mid-game.
+   ============================================================ */
+const TRK_KEY = 'mlt.tracker';
+const TRK_DEFAULT = () => ({
+  target: 40,                       // 40 duel, 50 team play
+  players: [
+    {name:'', echo:0, mastery:0, relics:[false,false,false,false]},
+    {name:'', echo:0, mastery:0, relics:[false,false,false,false]},
+  ],
+  round: 1,
+});
+let trk = null;
+
+function trkLoad(){
+  try{
+    const raw=localStorage.getItem(TRK_KEY);
+    trk = raw ? JSON.parse(raw) : TRK_DEFAULT();
+    if(!Array.isArray(trk.players) || trk.players.length!==2) trk = TRK_DEFAULT();
+    trk.players.forEach(p=>{ if(!Array.isArray(p.relics)||p.relics.length!==4) p.relics=[false,false,false,false]; });
+  }catch(e){ trk = TRK_DEFAULT(); }
+}
+function trkSave(){ try{ localStorage.setItem(TRK_KEY, JSON.stringify(trk)); }catch(e){} }
+function trkAdj(i, field, delta){
+  const p=trk.players[i];
+  p[field] = Math.max(0, (p[field]||0) + delta);
+  trkSave(); paintTracker();
+}
+function trkSet(i, field, val){
+  const n = parseInt(val,10);
+  trk.players[i][field] = isNaN(n) ? 0 : Math.max(0,n);
+  trkSave(); paintTracker();
+}
+function trkName(i, val){ trk.players[i].name = val; trkSave(); }
+function trkTarget(v){ trk.target = parseInt(v,10)||40; trkSave(); paintTracker(); }
+
+// A relic is worth 10 Mastery while held. Toggling on adds 10, off removes 10 —
+// one counter holds the total, so kill points and relic points live together.
+function trkRelic(i, r){
+  const p=trk.players[i];
+  const had=p.relics[r];
+  p.relics[r]=!had;
+  p.mastery = Math.max(0, (p.mastery||0) + (had ? -10 : 10));
+  trkSave(); paintTracker();
+}
+function trkRound(delta){
+  trk.round = Math.max(1, (trk.round||1)+delta);
+  trkSave(); paintTracker();
+}
+// Echo generated at the start of a round: 2× the round number up to 5, then 10.
+function echoForRound(r){ return r<=5 ? r*2 : 10; }
+function trkGrantEcho(){
+  const gain = echoForRound(trk.round);
+  trk.players.forEach(p=>{ p.echo = (p.echo||0) + gain; });
+  trkSave(); paintTracker();
+  toast(`+${gain} Echo each — round ${trk.round}`, true);
+}
+function trkReset(){
+  if(!confirm('Clear the tracker and start a fresh game?')) return;
+  const names = trk.players.map(p=>p.name);
+  trk = TRK_DEFAULT();
+  trk.players.forEach((p,i)=>p.name=names[i]);   // keep names, drop the numbers
+  trkSave(); paintTracker();
+  toast('Tracker cleared', true);
+}
+
+function renderTracker(){
+  if(!trk) trkLoad();
+  paintTracker();
+}
+function paintTracker(){
+  const body=$('tracker-body');
+  if(!body) return;
+  const winner = trk.players.findIndex(p=>(p.mastery||0) >= trk.target);
+
+  body.innerHTML = `
+    <div class="panel">
+      <div class="flex-between">
+        <div>
+          <h2 style="margin:0">Live tracker</h2>
+          <p class="hint" style="margin:0">A scratchpad for the game in front of you. Nothing here is saved to the league.</p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex:0 0 auto;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:7px;margin:0">
+            <span style="font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.12em;
+              text-transform:uppercase;color:var(--bone-dim)">To win</span>
+            <select style="width:auto" onchange="trkTarget(this.value)">
+              <option value="40"${trk.target===40?' selected':''}>40 — duel</option>
+              <option value="50"${trk.target===50?' selected':''}>50 — team</option>
+            </select>
+          </label>
+          <button class="ghost" onclick="trkReset()">New game</button>
+        </div>
+      </div>
+      <div class="round-bar">
+        <button class="ghost rnd" onclick="trkRound(-1)">−</button>
+        <div class="round-n">Round <b>${trk.round}</b></div>
+        <button class="ghost rnd" onclick="trkRound(1)">+</button>
+        <button class="act" style="padding:8px 14px;font-size:11px" onclick="trkGrantEcho()">
+          Grant +${echoForRound(trk.round)} Echo to both</button>
+        <span class="round-hint">${trk.round<=5?'round × 2':'10 from round 6 on'}</span>
+      </div>
+    </div>
+
+    <div class="trk-grid">
+      ${trk.players.map((p,i)=>{
+        const won = winner===i;
+        const held = p.relics.filter(Boolean).length;
+        return `<div class="trk-player ${won?'won':''}">
+          <input class="trk-name" type="text" placeholder="Player ${i+1}"
+                 value="${esc(p.name||'')}" oninput="trkName(${i},this.value)">
+          <div class="tm-label">Mastery</div>
+          <div class="tm-row">
+            <button class="tm-btn" onclick="trkAdj(${i},'mastery',-1)">−</button>
+            <input class="tm-val" type="text" inputmode="numeric" value="${p.mastery||0}"
+                   onchange="trkSet(${i},'mastery',this.value)">
+            <button class="tm-btn" onclick="trkAdj(${i},'mastery',1)">+</button>
+          </div>
+          <div class="tm-bar"><div class="tm-fill" style="width:${Math.min(100,(p.mastery||0)/trk.target*100)}%"></div></div>
+          <div class="tm-goal">${p.mastery||0} / ${trk.target}${won?' — wins':''}</div>
+
+          <div class="tm-label" style="margin-top:16px">Relics held
+            <span class="rel-count">${held}/4 · ${held*10} Mastery</span></div>
+          <div class="rel-row">
+            ${p.relics.map((on,r)=>`
+              <button class="rel ${on?'on':''}" onclick="trkRelic(${i},${r})"
+                title="${on?'Lost — removes 10 Mastery':'Claimed — adds 10 Mastery'}">${r+1}</button>`).join('')}
+          </div>
+          <div class="rel-hint">Each relic moves Mastery by 10. Add kill points by hand.</div>
+
+          <div class="tm-label" style="margin-top:16px">Echo</div>
+          <div class="tm-row">
+            <button class="tm-btn" onclick="trkAdj(${i},'echo',-1)">−</button>
+            <input class="tm-val echo" type="text" inputmode="numeric" value="${p.echo||0}"
+                   onchange="trkSet(${i},'echo',this.value)">
+            <button class="tm-btn" onclick="trkAdj(${i},'echo',1)">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${winner>=0?`<div class="champion" style="margin-top:8px">
+      ${esc(trk.players[winner].name||'Player '+(winner+1))} reaches ${trk.target} Mastery</div>`:''}`;
+}
+
 async function renderMetaView(){
   const scope=$('meta-scope');
   if(!scope.dataset.filled){
@@ -1235,6 +1732,8 @@ function paintNights(league, sessions, matches, members, admin, member){
       <div class="row">
         <label class="field"><span>Date</span><input type="date" id="ns-date" value="${today()}"></label>
         <label class="field"><span>Notes (optional)</span><input type="text" id="ns-notes" placeholder="Casual night, 6 tables"></label>
+        <label class="field"><span>Event link (optional)</span>
+          <input type="url" id="ns-event" placeholder="https://malediction.gg/events/..."></label>
         <label class="field" style="display:flex;align-items:flex-end">
           <button class="act gold" style="width:100%" onclick="createSession()">Create night</button></label>
       </div>
@@ -1252,6 +1751,7 @@ function paintNights(league, sessions, matches, members, admin, member){
         <div>
           <h2 style="margin:0">${fmtDate(s.date)}</h2>
           ${s.notes?`<p class="hint" style="margin:2px 0 0">${esc(s.notes)}</p>`:''}
+          ${safeUrl(s.event_url)?`<a class="ev-link" href="${esc(safeUrl(s.event_url))}" target="_blank" rel="noopener noreferrer">Official event page ↗</a>`:''}
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="pill">${att.length} present</span>
@@ -1276,6 +1776,8 @@ function paintNights(league, sessions, matches, members, admin, member){
               <select id="mws-${s.id}">${seekerOpts()}</select></label>
             <label class="field"><span>Terrain set brought</span>
               <select id="mwt-${s.id}">${terrainOpts()}</select></label>
+            <label class="field"><span>Decklist <span class="opt">optional</span></span>
+              <input type="url" id="mwd-${s.id}" placeholder="https://..."></label>
           </div>
         </div>
         <div class="log-side">
@@ -1287,6 +1789,8 @@ function paintNights(league, sessions, matches, members, admin, member){
               <select id="mls-${s.id}">${seekerOpts()}</select></label>
             <label class="field"><span>Terrain set brought</span>
               <select id="mlt-${s.id}">${terrainOpts()}</select></label>
+            <label class="field"><span>Decklist <span class="opt">optional</span></span>
+              <input type="url" id="mld-${s.id}" placeholder="https://..."></label>
           </div>
         </div>
         <div class="row tight" style="margin-top:4px">
@@ -1299,9 +1803,11 @@ function paintNights(league, sessions, matches, members, admin, member){
         <tr>
           <td><span class="pill win">${esc(nameOf(m.winner_id))}</span>
             ${m.winner_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.winner_seeker)}</span>`:''}
+            ${safeUrl(m.winner_decklist)?`<a class="dl" href="${esc(safeUrl(m.winner_decklist))}" target="_blank" rel="noopener noreferrer" title="Winner's decklist">deck ↗</a>`:''}
             <span style="color:var(--bone-dim)"> beat </span>
             ${esc(nameOf(m.loser_id))}
             ${m.loser_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.loser_seeker)}</span>`:''}
+            ${safeUrl(m.loser_decklist)?`<a class="dl" href="${esc(safeUrl(m.loser_decklist))}" target="_blank" rel="noopener noreferrer" title="Loser's decklist">deck ↗</a>`:''}
             ${(m.winner_terrain||m.loser_terrain)?`<br><span style="color:var(--bone-dim);font-size:12px">
               ${[m.winner_terrain,m.loser_terrain].filter(Boolean).map(esc).join(' &nbsp;·&nbsp; ')}</span>`:''}
           </td>
@@ -1336,8 +1842,11 @@ function terrainOpts(){
 async function createSession(){
   const date=$('ns-date').value;
   if(!date) return toast('Pick a date');
+  const ev=$('ns-event').value.trim();
+  if(ev && !safeUrl(ev)) return toast('Event link must be a valid http(s) URL');
   const {error} = await sb.from('sessions').insert({
-    league_id:cache.league.id, date, notes:$('ns-notes').value.trim()||null, created_by:me.id});
+    league_id:cache.league.id, date, notes:$('ns-notes').value.trim()||null,
+    event_url:safeUrl(ev), created_by:me.id});
   if(error) return toast(error.message);
   toast('Night created', true); renderLeague();
 }
@@ -1368,11 +1877,16 @@ async function logMatch(sid){
   // Both players bring a set — the meta stats are only meaningful with both.
   const wt=$('mwt-'+sid).value, lt=$('mlt-'+sid).value;
   if(!wt||!lt) return toast('Pick the terrain set each player brought');
+  // Decklists are optional here; invalid URLs are rejected rather than stored.
+  const wdRaw=$('mwd-'+sid).value.trim(), ldRaw=$('mld-'+sid).value.trim();
+  if(wdRaw && !safeUrl(wdRaw)) return toast('Winner decklist must be a valid http(s) link');
+  if(ldRaw && !safeUrl(ldRaw)) return toast('Loser decklist must be a valid http(s) link');
   const {error} = await sb.from('matches').insert({
     session_id:sid, league_id:cache.league.id,
     winner_id:w, loser_id:l,
     winner_seeker:ws, loser_seeker:ls,
     winner_terrain:wt, loser_terrain:lt,
+    winner_decklist:safeUrl(wdRaw), loser_decklist:safeUrl(ldRaw),
     reported_by:me.id,
     confirmed:admin
   });
