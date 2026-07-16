@@ -148,6 +148,13 @@
   .cc-copy{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.1em;
     text-transform:uppercase;color:var(--bone-dim);opacity:.55;transition:.15s}
 
+  /* per-side log sections */
+  .log-side{border-left:2px solid var(--line-2);padding-left:14px;margin-bottom:6px;position:relative}
+  .log-side:first-of-type{border-left-color:var(--win)}
+  .log-tag{font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--bone-dim);margin-bottom:6px}
+  .log-tag.win{color:var(--win)}
+
   /* player-view notice + matrix icons */
   .pv-note{background:rgba(200,165,104,.08);border-left:2px solid var(--brass);
     padding:9px 13px;margin-top:14px;font-size:13px;color:var(--bone-dim)}
@@ -720,18 +727,39 @@ function factionStats(matches){
   })).sort((a,b)=>b.picks-a.picks);
 }
 
+// Terrain stats. Both players bring a set, so each match puts two on the table.
+// Two questions worth separating:
+//   presence — how often a set is on the table at all, and how the factions do
+//              when it's there (either player could have brought it)
+//   brought  — does bringing your own set actually help you win with it?
 function terrainStats(matches){
   const t = {};
-  matches.forEach(m=>{
-    if(!m.terrain) return;
-    const r = t[m.terrain] = t[m.terrain] || {name:m.terrain, games:0, byFaction:{}};
-    r.games++;
-    const fw=seekerFaction(m.winner_seeker);
-    if(fw){ r.byFaction[fw] = r.byFaction[fw] || {w:0,n:0}; r.byFaction[fw].w++; r.byFaction[fw].n++; }
-    const fl=seekerFaction(m.loser_seeker);
-    if(fl){ r.byFaction[fl] = r.byFaction[fl] || {w:0,n:0}; r.byFaction[fl].n++; }
+  const ensure = name => (t[name] = t[name] || {
+    name, games:0, byFaction:{},
+    broughtW:0, broughtN:0        // record of the player who brought this set
   });
-  return Object.values(t).sort((a,b)=>b.games-a.games);
+
+  matches.forEach(m=>{
+    const wt=m.winner_terrain, lt=m.loser_terrain;
+    const fw=seekerFaction(m.winner_seeker), fl=seekerFaction(m.loser_seeker);
+
+    // Sets on the table this match (deduped: both may bring the same one)
+    const onTable = [...new Set([wt,lt].filter(Boolean))];
+    onTable.forEach(name=>{
+      const r=ensure(name);
+      r.games++;
+      if(fw){ r.byFaction[fw]=r.byFaction[fw]||{w:0,n:0}; r.byFaction[fw].w++; r.byFaction[fw].n++; }
+      if(fl){ r.byFaction[fl]=r.byFaction[fl]||{w:0,n:0}; r.byFaction[fl].n++; }
+    });
+
+    // Did bringing it help? Count each bringer separately.
+    if(wt){ const r=ensure(wt); r.broughtW++; r.broughtN++; }
+    if(lt){ const r=ensure(lt); r.broughtN++; }
+  });
+
+  return Object.values(t)
+    .map(r=>({...r, broughtWr: r.broughtN ? r.broughtW/r.broughtN : null}))
+    .sort((a,b)=>b.games-a.games);
 }
 
 // Head-to-head faction matchup matrix: row faction's win rate vs column faction.
@@ -769,7 +797,7 @@ function renderMeta(matches){
 
   const sk = seekerStats(withSeeker);
   const fc = factionStats(withSeeker);
-  const tr = terrainStats(withSeeker.filter(m=>m.terrain));
+  const tr = terrainStats(withSeeker.filter(m=>m.winner_terrain||m.loser_terrain));
   const {names, M} = matchupMatrix(withSeeker);
   const maxPick = Math.max(...sk.map(s=>s.pick), 0.01);
 
@@ -831,18 +859,29 @@ function renderMeta(matches){
   // --- Terrain ---
   if(tr.length){
     h += `<h3>Terrain impact</h3><table><thead><tr>
-      <th>Terrain</th><th class="num">Games</th>` +
+      <th>Terrain</th><th class="num">On table</th>
+      <th class="num" title="Win rate of the player who brought this set">Own set</th>` +
       Object.keys(FACTIONS).map(f=>`<th class="num" style="font-size:9.5px">${esc(f.split(' ').slice(-1)[0])}</th>`).join('') +
       `</tr></thead><tbody>` +
-      tr.map(t=>`<tr><td>${esc(t.name)}</td><td class="num">${t.games}</td>` +
-        Object.keys(FACTIONS).map(f=>{
-          const c=t.byFaction[f];
-          if(!c||!c.n) return `<td class="num" style="color:var(--line-2)">·</td>`;
-          const wr=c.w/c.n;
-          return `<td class="num" style="color:${wrColor(wr,c.n)}" title="${c.w}/${c.n}">${pct(wr)}</td>`;
-        }).join('') + `</tr>`).join('') +
+      tr.map(t=>{
+        const own = t.broughtWr===null ? `<td class="num" style="color:var(--line-2)">·</td>`
+          : `<td class="num" style="color:${wrColor(t.broughtWr,t.broughtN)}"
+               title="${t.broughtW} wins in ${t.broughtN} matches where a player brought this set">
+               ${pct(t.broughtWr)}<span style="color:var(--bone-dim);font-size:10px"> · ${t.broughtN}n</span></td>`;
+        return `<tr><td>${esc(t.name)}</td><td class="num">${t.games}</td>${own}` +
+          Object.keys(FACTIONS).map(f=>{
+            const c=t.byFaction[f];
+            if(!c||!c.n) return `<td class="num" style="color:var(--line-2)">·</td>`;
+            const wr=c.w/c.n;
+            return `<td class="num" style="color:${wrColor(wr,c.n)}" title="${c.w}/${c.n}">${pct(wr)}</td>`;
+          }).join('') + `</tr>`;
+      }).join('') +
       `</tbody></table>
-      <p class="hint" style="margin-top:10px;font-size:12.5px">Faction win rate on each terrain. Big swings suggest terrain favours certain factions.</p>`;
+      <p class="hint" style="margin-top:10px;font-size:12.5px">
+        <b>On table</b>: matches where this set was in play, brought by either player.
+        <b>Own set</b>: how often the player who brought it went on to win — above 50% suggests
+        the set rewards knowing it. The faction columns show each faction's win rate when this
+        set was on the table.</p>`;
   }
 
   return h;
@@ -1123,7 +1162,7 @@ async function renderLeague(){
           :member?`<div class="rolechip">Member</div>`:''}
         ${trueAdmin?`<div><button class="ghost ${inPlayerView?'on':''}" onclick="togglePlayerView('${id}')"
           title="Hide the organizer controls so you see what your players see">
-          ${inPlayerView?"↩ Back to organizing":"I&rsquo;m also a player"}</button></div>`:''}
+          ${inPlayerView?"↩ Back to organizing":"Switch to player view"}</button></div>`:''}
         ${!member&&me?`<button class="ghost" onclick="go('mine')">Join with code</button>`:''}
         ${!me?`<button class="ghost" onclick="go('auth')">Sign in to join</button>`:''}
       </div>
@@ -1228,25 +1267,31 @@ function paintNights(league, sessions, matches, members, admin, member){
 
       ${canLog?`<div class="divider"></div>
         <h3 style="margin-top:0">Log a match</h3>
-        <div class="row tight">
-          <label class="field"><span>Winner</span>
-            <select id="mw-${s.id}">${playerOpts(att, admin?null:me.id)}</select></label>
-          <label class="field"><span>Winner's Seeker</span>
-            <select id="mws-${s.id}">${seekerOpts()}</select></label>
+        <div class="log-side">
+          <div class="log-tag win">Winner</div>
+          <div class="row tight">
+            <label class="field"><span>Player</span>
+              <select id="mw-${s.id}">${playerOpts(att, admin?null:me.id)}</select></label>
+            <label class="field"><span>Seeker</span>
+              <select id="mws-${s.id}">${seekerOpts()}</select></label>
+            <label class="field"><span>Terrain set brought</span>
+              <select id="mwt-${s.id}">${terrainOpts()}</select></label>
+          </div>
         </div>
-        <div class="row tight">
-          <label class="field"><span>Loser</span>
-            <select id="ml-${s.id}">${playerOpts(att)}</select></label>
-          <label class="field"><span>Loser's Seeker</span>
-            <select id="mls-${s.id}">${seekerOpts()}</select></label>
+        <div class="log-side">
+          <div class="log-tag">Loser</div>
+          <div class="row tight">
+            <label class="field"><span>Player</span>
+              <select id="ml-${s.id}">${playerOpts(att)}</select></label>
+            <label class="field"><span>Seeker</span>
+              <select id="mls-${s.id}">${seekerOpts()}</select></label>
+            <label class="field"><span>Terrain set brought</span>
+              <select id="mlt-${s.id}">${terrainOpts()}</select></label>
+          </div>
         </div>
-        <div class="row tight">
-          <label class="field"><span>Terrain</span>
-            <select id="mt-${s.id}"><option value="">— not recorded —</option>
-              ${TERRAINS.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select></label>
-          <label class="field" style="display:flex;align-items:flex-end">
+        <div class="row tight" style="margin-top:4px">
+          <label class="field" style="display:flex;align-items:flex-end;max-width:220px">
             <button class="act" style="width:100%" onclick="logMatch('${s.id}')">Log match</button></label>
-        </div>
         ${!admin?`<p class="hint" style="font-size:12.5px;margin:0">You can only log matches you played in.</p>`:''}
         `:''}
 
@@ -1257,7 +1302,8 @@ function paintNights(league, sessions, matches, members, admin, member){
             <span style="color:var(--bone-dim)"> beat </span>
             ${esc(nameOf(m.loser_id))}
             ${m.loser_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.loser_seeker)}</span>`:''}
-            ${m.terrain?`<br><span style="color:var(--bone-dim);font-size:12px">on ${esc(m.terrain)}</span>`:''}
+            ${(m.winner_terrain||m.loser_terrain)?`<br><span style="color:var(--bone-dim);font-size:12px">
+              ${[m.winner_terrain,m.loser_terrain].filter(Boolean).map(esc).join(' &nbsp;·&nbsp; ')}</span>`:''}
           </td>
           <td style="text-align:right;white-space:nowrap">
             ${!m.confirmed?`<span class="pill pending" title="Awaiting organizer confirmation">unconfirmed</span>`:''}
@@ -1274,11 +1320,16 @@ function playerOpts(ids, forceMe){
   return `<option value="">— select —</option>` +
     list.map(i=>`<option value="${i}">${esc(nameOf(i))}${me&&i===me.id?' (you)':''}</option>`).join('');
 }
+// Flat, alphabetical list. Factions still live in the data and drive the meta
+// stats — they're just not shown here, where the player only needs their name.
 function seekerOpts(){
-  return `<option value="">— not recorded —</option>` +
-    Object.keys(FACTIONS).map(f=>`<optgroup label="${esc(f)}">` +
-      SEEKERS.filter(s=>s.faction===f).map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('') +
-      `</optgroup>`).join('');
+  return `<option value="">— select —</option>` +
+    [...SEEKERS].sort((a,b)=>a.name.localeCompare(b.name))
+      .map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
+}
+function terrainOpts(){
+  return `<option value="">— select —</option>` +
+    TERRAINS.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
 }
 
 /* ---------- league actions ---------- */
@@ -1312,12 +1363,16 @@ async function logMatch(sid){
   if(w===l) return toast('A player cannot beat themselves');
   const admin=isAdminOf(cache.league);
   if(!admin && w!==me.id && l!==me.id) return toast('You can only log matches you played in');
+  const ws=$('mws-'+sid).value, ls=$('mls-'+sid).value;
+  if(!ws||!ls) return toast('Pick both Seekers');
+  // Both players bring a set — the meta stats are only meaningful with both.
+  const wt=$('mwt-'+sid).value, lt=$('mlt-'+sid).value;
+  if(!wt||!lt) return toast('Pick the terrain set each player brought');
   const {error} = await sb.from('matches').insert({
     session_id:sid, league_id:cache.league.id,
     winner_id:w, loser_id:l,
-    winner_seeker:$('mws-'+sid).value||null,
-    loser_seeker:$('mls-'+sid).value||null,
-    terrain:$('mt-'+sid).value||null,
+    winner_seeker:ws, loser_seeker:ls,
+    winner_terrain:wt, loser_terrain:lt,
     reported_by:me.id,
     confirmed:admin
   });
