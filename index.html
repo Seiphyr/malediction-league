@@ -157,6 +157,11 @@
 
   /* ---- live tracker (single player, thumb-friendly) ---- */
   .trk-single{max-width:520px;margin:0 auto}
+  .trk-top{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .trk-top .fmt{flex:1;min-width:0}
+  .trk-top .fmt-custom{flex:0 0 72px;text-align:center;font-family:'Oswald',sans-serif;
+    font-weight:600;color:var(--brass);font-size:16px}
+  .trk-top .ghost{flex:0 0 auto;white-space:nowrap}
   .tm-label{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
     color:var(--bone-dim);margin-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
   .tm-of,.rel-count{color:var(--brass);letter-spacing:.06em;font-size:10px}
@@ -169,7 +174,12 @@
   .tm-btn{flex:0 0 auto;width:58px;background:var(--surface);border:1px solid var(--line-2);
     color:var(--bone);font-size:26px;line-height:1;cursor:pointer;transition:.1s;
     -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-  .tm-btn:hover{border-color:var(--crimson);color:var(--crimson)}
+  /* Touch devices latch :hover after a tap. Because paintTracker() rebuilds the
+     DOM, the latched hover lands on whatever button ends up under the finger —
+     tapping Echo would light up Mastery's −. Confine hover to real pointers. */
+  @media(hover:hover) and (pointer:fine){
+    .tm-btn:hover{border-color:var(--crimson);color:var(--crimson)}
+  }
   .tm-btn:active{background:var(--crimson);border-color:var(--crimson);color:#fff;transform:scale(.96)}
   .tm-val{flex:1;text-align:center;font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;
     color:var(--bone);background:var(--surface);border:1px solid var(--line-2);padding:6px 0;
@@ -185,7 +195,9 @@
   .rel{flex:1;aspect-ratio:1;max-height:76px;background:var(--coal-2);border:1px solid var(--line-2);
     color:var(--line-2);font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;cursor:pointer;
     transition:.15s;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-  .rel:hover{border-color:var(--brass-dim);color:var(--bone-dim)}
+  @media(hover:hover) and (pointer:fine){
+    .rel:hover{border-color:var(--brass-dim);color:var(--bone-dim)}
+  }
   .rel:active{transform:scale(.94)}
   .rel.on{background:var(--brass);border-color:var(--brass);color:var(--coal);
     box-shadow:0 0 14px rgba(200,165,104,.4)}
@@ -286,15 +298,66 @@
     .matrix table{min-width:420px}
   }
 
+  /* ---- help button + box ---- */
+  .help-btn{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:transparent;
+    border:1px solid var(--line-2);color:var(--bone-dim);font-family:'Oswald',sans-serif;
+    font-size:15px;font-weight:600;cursor:pointer;transition:.15s;line-height:1;padding:0;
+    -webkit-tap-highlight-color:transparent}
+  .help-btn:hover{border-color:var(--brass);color:var(--brass)}
+  .help-box{background:var(--coal-2);border:1px solid var(--line);border-left:2px solid var(--brass);
+    padding:16px;margin-top:14px;animation:slide .2s ease}
+  .help-box h4{font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--brass);margin:0 0 12px}
+  .help-box p{font-size:13.5px;line-height:1.6;color:var(--bone-dim);margin:0 0 10px}
+  .help-box b{color:var(--bone)}
+  .help-note{background:rgba(229,30,57,.08);border-left:2px solid var(--crimson);padding:9px 12px;
+    font-size:12.5px;color:var(--bone-dim);margin-top:12px}
+
+  /* ---- home hero ---- */
+  .hero{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--brass);
+    padding:22px;margin-bottom:18px}
+  .hero-h{font-family:'Oswald',sans-serif;font-weight:700;font-size:24px;letter-spacing:.06em;
+    text-transform:uppercase;margin:0 0 8px;color:var(--bone)}
+  .hero-p{color:var(--bone-dim);font-size:14.5px;line-height:1.6;margin:0;max-width:620px}
+  .hero-stats{display:flex;align-items:center;gap:18px;margin-top:16px;padding-top:14px;
+    border-top:1px solid var(--line)}
+  .hs{display:flex;align-items:baseline;gap:7px}
+  .hs b{font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;color:var(--crimson);line-height:1}
+  .hs span{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--bone-dim)}
+  .hs-sep{width:1px;height:18px;background:var(--line-2)}
+  @media(max-width:620px){
+    .hero{padding:15px}
+    .hero-h{font-size:19px}
+    .hero-p{font-size:13.5px}
+  }
+
+  /* Standalone fold (outside .rules-doc) — same look, used for the docs list */
+  details.fold.docs-fold{border-top:0}
+  details.fold.docs-fold summary{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--bone);padding:2px 0 12px;cursor:pointer;
+    list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    -webkit-tap-highlight-color:transparent}
+  details.fold.docs-fold summary::-webkit-details-marker{display:none}
+  details.fold.docs-fold summary::after{content:'+';font-size:18px;color:var(--bone-dim);
+    font-weight:400;transition:.2s;flex:0 0 auto;line-height:1}
+  details.fold.docs-fold[open] summary::after{content:'−';color:var(--crimson)}
+  .sum-note{font-family:'Barlow',sans-serif;font-size:12px;letter-spacing:0;text-transform:none;
+    color:var(--bone-dim);font-weight:400;margin-left:auto;margin-right:8px}
+
   /* ---- rules ---- */
   .link-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
   .doc-card{display:block;background:var(--coal-2);border:1px solid var(--line);
     border-left:3px solid var(--brass);padding:14px;text-decoration:none;transition:.15s}
-  .doc-card:hover{border-left-color:var(--crimson);background:var(--surface-2);text-decoration:none}
+  @media(hover:hover) and (pointer:fine){
+    .doc-card:hover{border-left-color:var(--crimson);background:var(--surface-2);text-decoration:none}
+  }
   .doc-title{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.06em;
     text-transform:uppercase;color:var(--bone);margin-bottom:5px}
   .doc-title .ext{color:var(--bone-dim);font-size:11px;font-weight:400}
-  .doc-card:hover .doc-title{color:var(--crimson)}
+  @media(hover:hover) and (pointer:fine){
+    .doc-card:hover .doc-title{color:var(--crimson)}
+  }
   .doc-desc{color:var(--bone-dim);font-size:13px;line-height:1.45}
 
   .rules-doc{max-width:760px}
@@ -484,11 +547,12 @@
 
   <!-- ================= BROWSE (public, no login) ================= -->
   <section class="view" id="browse">
+    <div id="hero"></div>
     <div class="panel plain">
       <div class="flex-between" style="margin-bottom:14px">
         <div>
           <h2>League Directory</h2>
-          <p class="hint" style="margin:0">Every public league running Malediction game nights. Find one near you, or start your own.</p>
+          <p class="hint" style="margin:0">Every public league running Malediction events. Find one near you, or start your own.</p>
         </div>
         <div style="display:flex;gap:8px;flex:0 0 auto">
           <select id="browse-sort" style="width:auto">
@@ -904,8 +968,7 @@ function isMemberOf(leagueId){
    ============================================================ */
 function computeStandings(league, sessions, matches, monthK){
   const cfg = {
-    attend:+league.pts_attend, win:+league.pts_win,
-    loss:+league.pts_loss, sweep:+league.pts_sweep
+    attend:+league.pts_attend, win:+league.pts_win, loss:+league.pts_loss
   };
   const inMonth = s => !monthK || monthK==='all' || monthKey(s.date)===monthK;
   const sess = sessions.filter(inMonth);
@@ -917,23 +980,14 @@ function computeStandings(league, sessions, matches, monthK){
     (s.attendance||[]).forEach(a=>{ const r=ensure(a.user_id); r.att++; r.pts+=cfg.attend; });
   });
 
-  const byNight = {};
-  matches.filter(m=>sessIds.has(m.session_id) && m.confirmed!==false || sessIds.has(m.session_id))
+  // Every match in the month's sessions counts, confirmed or not — the
+  // confirmed flag is a review tool for organizers, not a gate on scoring.
+  matches.filter(m => sessIds.has(m.session_id))
     .forEach(m=>{
       const rw=ensure(m.winner_id), rl=ensure(m.loser_id);
       rw.w++; rw.pts+=cfg.win;
       rl.l++; rl.pts+=cfg.loss;
-      const n = byNight[m.session_id] = byNight[m.session_id] || {};
-      n[m.winner_id] = n[m.winner_id] || {w:0,l:0};
-      n[m.loser_id]  = n[m.loser_id]  || {w:0,l:0};
-      n[m.winner_id].w++; n[m.loser_id].l++;
     });
-
-  Object.values(byNight).forEach(night=>{
-    Object.entries(night).forEach(([uid,g])=>{
-      if(g.w+g.l>=2 && g.l===0 && rows[uid]) rows[uid].pts += cfg.sweep;
-    });
-  });
 
   return Object.values(rows)
     .map(r=>({...r, pts:Math.round(r.pts*100)/100}))
@@ -1200,7 +1254,29 @@ async function renderBrowse(){
   const list=$('browse-list');
   list.innerHTML = `<div class="empty"><span class="spinner"></span> Loading leagues…</div>`;
   cache.leagues = await fetchPublicLeagues();
+  paintHero();
   paintBrowse();
+}
+
+// Welcome block + live counts. The numbers come from the directory view we've
+// already fetched, so this costs no extra query.
+function paintHero(){
+  const hero=$('hero');
+  if(!hero) return;
+  const leagues = cache.leagues.length;
+  const nights  = cache.leagues.reduce((a,l)=>a+(l.session_count||0), 0);
+  hero.innerHTML = `
+    <div class="hero">
+      <h1 class="hero-h">Welcome, Seeker</h1>
+      <p class="hero-p">A free, unofficial tracker for local Malediction leagues. Log your game
+      nights, watch the standings build over the month, see which Seekers actually win — then let
+      it seed your end-of-month tournament.</p>
+      <div class="hero-stats">
+        <div class="hs"><b>${leagues}</b><span>${leagues===1?'league':'leagues'}</span></div>
+        <div class="hs-sep"></div>
+        <div class="hs"><b>${nights}</b><span>${nights===1?'event':'events'} logged</span></div>
+      </div>
+    </div>`;
 }
 function paintBrowse(){
   const q=($('browse-search').value||'').toLowerCase();
@@ -1223,7 +1299,7 @@ function paintBrowse(){
       ${l.description?`<div class="desc">${esc(l.description).slice(0,120)}${l.description.length>120?'…':''}</div>`:''}
       <div class="meta">
         <span>${l.member_count||0} players</span>
-        <span>${l.session_count||0} nights</span>
+        <span>${l.session_count||0} events</span>
         <span>Last: ${timeAgo(l.last_session)}</span>
       </div>
     </div>`).join('') + `</div>`;
@@ -1252,17 +1328,20 @@ function renderRules(){
   const body=$('rules-body');
   body.innerHTML = `
     <div class="panel">
-      <h2>Official documents</h2>
-      <p class="hint">Always the source of truth. Downloads live on malediction.gg.</p>
-      <div class="link-grid">
-        ${OFFICIAL_LINKS.map(l=>`
-          <a class="doc-card" href="${l.url}" target="_blank" rel="noopener noreferrer">
-            <div class="doc-title">${esc(l.title)} <span class="ext">↗</span></div>
-            <div class="doc-desc">${esc(l.desc)}</div>
-          </a>`).join('')}
-      </div>
-      <p class="hint" style="margin:14px 0 0;font-size:12.5px">
-        Rules get revised — if something here disagrees with the official PDF, the PDF wins.</p>
+      <details class="fold docs-fold">
+        <summary>Official documents <span class="sum-note">on malediction.gg</span></summary>
+        <div class="fold-in">
+          <div class="link-grid">
+            ${OFFICIAL_LINKS.map(l=>`
+              <a class="doc-card" href="${l.url}" target="_blank" rel="noopener noreferrer">
+                <div class="doc-title">${esc(l.title)} <span class="ext">↗</span></div>
+                <div class="doc-desc">${esc(l.desc)}</div>
+              </a>`).join('')}
+          </div>
+          <p class="hint" style="margin:14px 0 0;font-size:12.5px">
+            Rules get revised — if something here disagrees with the official PDF, the PDF wins.</p>
+        </div>
+      </details>
     </div>
 
     <div class="panel plain">
@@ -1485,6 +1564,15 @@ const RULES_TURN = `
    doesn't wipe the board.
    ============================================================ */
 const TRK_KEY = 'mlt.tracker';
+
+// Game formats. Only the duel (40) and team (50) thresholds are confirmed in
+// the rulebook. The demo and any other format aren't documented in a source I
+// could verify, so rather than invent a number there's a Custom option — set
+// whatever your table is playing. If you find the official values, add them here.
+const TRK_FORMATS = [
+  {v:40, label:'40 — duel (1v1)'},
+  {v:50, label:'50 — team (2v2)'},
+];
 const TRK_DEFAULT = () => ({
   target: 40,                    // 40 duel, 50 team play
   mastery: 0,
@@ -1508,16 +1596,61 @@ function trkLoad(){
 }
 function trkSave(){ try{ localStorage.setItem(TRK_KEY, JSON.stringify(trk)); }catch(e){} }
 
+// Update the numbers in place rather than re-rendering. Rebuilding the DOM on
+// every tap destroys the button you just touched, and the browser re-applies
+// :hover to whatever lands under the pointer — which is how tapping Echo used
+// to light up Mastery's − button. Patching values also keeps focus and avoids
+// a flash on every press.
+function trkPatch(){
+  const set = (sel, val) => { const e=document.querySelector(sel); if(e && e.value!==String(val)) e.value=val; };
+  set('#trk-mastery', trk.mastery||0);
+  set('#trk-echo', trk.echo||0);
+  set('#trk-round', trk.round||1);
+
+  const held = trk.relics.filter(Boolean).length;
+  const pctDone = Math.min(100, (trk.mastery||0)/trk.target*100);
+  const reached = (trk.mastery||0) >= trk.target;
+
+  const fill=document.querySelector('.tm-fill');       if(fill) fill.style.width = pctDone+'%';
+  const of=document.querySelector('.tm-of');
+  if(of) of.textContent = `${trk.mastery||0} of ${trk.target}${reached?' — target reached':''}`;
+  const blk=document.querySelector('.mastery-block');  if(blk) blk.classList.toggle('reached', reached);
+  const rc=document.querySelector('.rel-count');       if(rc) rc.textContent = `${held}/4 · ${held*10} Mastery`;
+  document.querySelectorAll('.rel').forEach((b,i)=>{
+    b.classList.toggle('on', !!trk.relics[i]);
+    b.title = trk.relics[i] ? 'Lost — removes 10 Mastery' : 'Claimed — adds 10 Mastery';
+  });
+  const nr=document.querySelector('.next-round');
+  if(nr) nr.textContent = `Next round → +${echoForRound((trk.round||1)+1)} Echo`;
+}
+function trkTouch(){ trkSave(); trkPatch(); }
+
 function trkAdj(field, delta){
   trk[field] = Math.max(0, (trk[field]||0) + delta);
-  trkSave(); paintTracker();
+  trkTouch();
 }
 function trkSet(field, val){
   const n = parseInt(val,10);
   trk[field] = isNaN(n) ? 0 : Math.max(0,n);
+  if(field==='round') trk.round = Math.max(1, trk.round);
+  trkTouch();
+}
+function trkTarget(v){
+  const n=parseInt(v,10);
+  trk.target = (isNaN(n)||n<1) ? 40 : n;
   trkSave(); paintTracker();
 }
-function trkTarget(v){ trk.target = parseInt(v,10)||40; trkSave(); paintTracker(); }
+// Format switching. A target that isn't one of the presets IS custom — no extra
+// flag to keep in sync. Picking Custom nudges the number off the presets so the
+// input appears.
+function trkFormat(v){
+  if(v==='custom'){
+    if(TRK_FORMATS.some(f=>f.v===trk.target)) trk.target = trk.target + 1;
+  }else{
+    trk.target = parseInt(v,10)||40;
+  }
+  trkSave(); paintTracker();
+}
 
 // A relic is worth 10 Mastery while held. Toggling on adds 10, off removes 10 —
 // one counter holds the total, so kill points and relic points live together.
@@ -1525,11 +1658,11 @@ function trkRelic(r){
   const had = trk.relics[r];
   trk.relics[r] = !had;
   trk.mastery = Math.max(0, (trk.mastery||0) + (had ? -10 : 10));
-  trkSave(); paintTracker();
+  trkTouch();
 }
 function trkRound(delta){
   trk.round = Math.max(1, (trk.round||1)+delta);
-  trkSave(); paintTracker();
+  trkTouch();
 }
 // Echo gained at the start of a round: 2× the round number, capped at 10 from round 5.
 function echoForRound(r){ return r<=5 ? r*2 : 10; }
@@ -1537,7 +1670,7 @@ function trkNextRound(){
   trk.round = (trk.round||1)+1;
   const gain = echoForRound(trk.round);
   trk.echo = (trk.echo||0) + gain;     // Echo is cumulative
-  trkSave(); paintTracker();
+  trkTouch();
   toast(`Round ${trk.round} — +${gain} Echo`, true);
 }
 function trkReset(){
@@ -1559,35 +1692,32 @@ function paintTracker(){
   const held = trk.relics.filter(Boolean).length;
   const pctDone = Math.min(100, (trk.mastery||0)/trk.target*100);
   const reached = (trk.mastery||0) >= trk.target;
+  const preset = TRK_FORMATS.some(f=>f.v===trk.target) ? trk.target : 'custom';
 
   body.innerHTML = `
     <div class="panel trk-single">
-      <div class="flex-between" style="margin-bottom:4px">
-        <div>
-          <h2 style="margin:0">Your board</h2>
-          <p class="hint" style="margin:0">Just your side of the table. Nothing here is saved to the league.</p>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex:0 0 auto">
-          <select style="width:auto" onchange="trkTarget(this.value)">
-            <option value="40"${trk.target===40?' selected':''}>40 — duel</option>
-            <option value="50"${trk.target===50?' selected':''}>50 — team</option>
-          </select>
-          <button class="ghost" onclick="trkReset()">New game</button>
-        </div>
+      <div class="trk-top">
+        <select class="fmt" onchange="trkFormat(this.value)">
+          ${TRK_FORMATS.map(f=>`<option value="${f.v}"${preset===f.v?' selected':''}>${esc(f.label)}</option>`).join('')}
+          <option value="custom"${preset==='custom'?' selected':''}>Custom…</option>
+        </select>
+        ${preset==='custom'?`<input class="fmt-custom" type="text" inputmode="numeric" value="${trk.target}"
+          onchange="trkTarget(this.value)" title="Mastery needed to win">`:''}
+        <button class="ghost" onclick="trkReset()">New game</button>
       </div>
 
       <div class="mastery-block ${reached?'reached':''}">
         <div class="tm-label">Mastery <span class="tm-of">${trk.mastery||0} of ${trk.target}${reached?' — target reached':''}</span></div>
         <div class="tm-row big">
           <button class="tm-btn" onclick="trkAdj('mastery',-1)">−</button>
-          <input class="tm-val" type="text" inputmode="numeric" value="${trk.mastery||0}"
+          <input class="tm-val" id="trk-mastery" type="text" inputmode="numeric" value="${trk.mastery||0}"
                  onchange="trkSet('mastery',this.value)">
           <button class="tm-btn" onclick="trkAdj('mastery',1)">+</button>
         </div>
         <div class="tm-bar"><div class="tm-fill" style="width:${pctDone}%"></div></div>
       </div>
 
-      <div class="tm-label" style="margin-top:22px">Relics held
+      <div class="tm-label" style="margin-top:20px">Relics held
         <span class="rel-count">${held}/4 · ${held*10} Mastery</span></div>
       <div class="rel-row">
         ${trk.relics.map((on,r)=>`
@@ -1601,7 +1731,7 @@ function paintTracker(){
           <div class="tm-label">Echo</div>
           <div class="tm-row">
             <button class="tm-btn" onclick="trkAdj('echo',-1)">−</button>
-            <input class="tm-val echo" type="text" inputmode="numeric" value="${trk.echo||0}"
+            <input class="tm-val echo" id="trk-echo" type="text" inputmode="numeric" value="${trk.echo||0}"
                    onchange="trkSet('echo',this.value)">
             <button class="tm-btn" onclick="trkAdj('echo',1)">+</button>
           </div>
@@ -1610,7 +1740,7 @@ function paintTracker(){
           <div class="tm-label">Round</div>
           <div class="tm-row">
             <button class="tm-btn" onclick="trkRound(-1)">−</button>
-            <input class="tm-val round" type="text" inputmode="numeric" value="${trk.round||1}"
+            <input class="tm-val round" id="trk-round" type="text" inputmode="numeric" value="${trk.round||1}"
                    onchange="trkSet('round',this.value)">
             <button class="tm-btn" onclick="trkRound(1)">+</button>
           </div>
@@ -1620,7 +1750,7 @@ function paintTracker(){
       <button class="act next-round" onclick="trkNextRound()">
         Next round → +${echoForRound((trk.round||1)+1)} Echo</button>
       <div class="rel-hint" style="text-align:center">
-        Echo is 2× the round, capped at 10 from round 5. Refresh Phase is skipped on round 1.</div>
+        Echo is 2× the round, capped at 10 from round 5.</div>
     </div>`;
 }
 async function renderMetaView(){
@@ -1819,13 +1949,13 @@ async function renderLeague(){
     </div>`:''}
     <div class="stat-strip" style="margin-top:16px;margin-bottom:0">
       <div class="stat"><b>${members.length}</b><small>Players</small></div>
-      <div class="stat"><b>${sessions.length}</b><small>Game nights</small></div>
+      <div class="stat"><b>${sessions.length}</b><small>Events</small></div>
       <div class="stat"><b>${matches.length}</b><small>Matches</small></div>
-      <div class="stat"><b>${sessions[0]?timeAgo(sessions[0].date):'—'}</b><small>Last night</small></div>
+      <div class="stat"><b>${sessions[0]?timeAgo(sessions[0].date):'—'}</b><small>Last event</small></div>
     </div>
   </div>`;
 
-  const tabs=[{id:'standings',label:'Standings'},{id:'nights',label:'Game Nights'},{id:'meta',label:'Meta'},{id:'tournament',label:'Tournament'}];
+  const tabs=[{id:'standings',label:'Standings'},{id:'nights',label:'Events'},{id:'meta',label:'Meta'},{id:'tournament',label:'Tournament'}];
   if(admin) tabs.push({id:'manage',label:'Manage'});
   // if the Manage tab vanished under us (player view), fall back gracefully
   const cur = tabs.find(t=>t.id===route.tab)?route.tab:'standings';
@@ -1856,7 +1986,7 @@ function paintStandings(league, sessions, matches, members){
     </div>`;
   if(!rows.length) h += `<div class="empty">No results recorded yet.</div>`;
   else h += `<table><thead><tr><th class="rank">#</th><th>Player</th>
-      <th class="num">Nights</th><th class="num">W</th><th class="num">L</th>
+      <th class="num">Events</th><th class="num">W</th><th class="num">L</th>
       <th class="num">Win%</th><th class="num">Points</th></tr></thead><tbody>` +
     rows.map((r,i)=>{
       const g=r.w+r.l, wr=g?Math.round(r.w/g*100):0;
@@ -1867,8 +1997,8 @@ function paintStandings(league, sessions, matches, members){
         <td class="num">${wr}%</td>
         <td class="num" style="color:var(--brass);font-weight:600">${r.pts}</td></tr>`;
     }).join('') + `</tbody></table>`;
-  h += `<p class="hint" style="margin-top:14px;font-size:12.5px">Scoring: ${league.pts_attend} per night attended,
-    ${league.pts_win} per win, ${league.pts_loss} per loss, +${league.pts_sweep} clean-sweep bonus.</p></div>`;
+  h += `<p class="hint" style="margin-top:14px;font-size:12.5px">Scoring: ${league.pts_attend} per event attended,
+    ${league.pts_win} per win, ${league.pts_loss} per loss.</p></div>`;
   return h;
 }
 
@@ -1876,19 +2006,19 @@ function paintNights(league, sessions, matches, members, admin, member){
   let h='';
   if(admin){
     h += `<div class="panel">
-      <h2>New game night</h2>
-      <p class="hint">Create the night, then players can check in and log their own matches.</p>
+      <h2>New event</h2>
+      <p class="hint">Create the event, then players can check in and log their own matches.</p>
       <div class="row">
         <label class="field"><span>Date</span><input type="date" id="ns-date" value="${today()}"></label>
         <label class="field"><span>Notes (optional)</span><input type="text" id="ns-notes" placeholder="Casual night, 6 tables"></label>
         <label class="field"><span>Event link (optional)</span>
           <input type="url" id="ns-event" placeholder="https://malediction.gg/events/..."></label>
         <label class="field" style="display:flex;align-items:flex-end">
-          <button class="act gold" style="width:100%" onclick="createSession()">Create night</button></label>
+          <button class="act gold" style="width:100%" onclick="createSession()">Create event</button></label>
       </div>
     </div>`;
   }
-  if(!sessions.length) return h + `<div class="panel plain"><div class="empty">No game nights yet.</div></div>`;
+  if(!sessions.length) return h + `<div class="panel plain"><div class="empty">No events yet.</div></div>`;
 
   h += sessions.map(s=>{
     const att=(s.attendance||[]).map(a=>a.user_id);
@@ -1908,7 +2038,7 @@ function paintNights(league, sessions, matches, members, admin, member){
           ${me&&member?(iAmIn
             ? `<button class="ghost" onclick="checkOut('${s.id}')">Check out</button>`
             : `<button class="ghost" onclick="checkIn('${s.id}')">I'm here</button>`):''}
-          ${admin?`<span class="del" onclick="delSession('${s.id}')" title="Delete night">×</span>`:''}
+          ${admin?`<span class="del" onclick="delSession('${s.id}')" title="Delete event">×</span>`:''}
         </div>
       </div>
       ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
@@ -1997,13 +2127,13 @@ async function createSession(){
     league_id:cache.league.id, date, notes:$('ns-notes').value.trim()||null,
     event_url:safeUrl(ev), created_by:me.id});
   if(error) return toast(error.message);
-  toast('Night created', true); renderLeague();
+  toast('Event created', true); renderLeague();
 }
 async function delSession(id){
-  if(!confirm('Delete this night and all its matches?')) return;
+  if(!confirm('Delete this event and all its matches?')) return;
   const {error} = await sb.from('sessions').delete().eq('id',id);
   if(error) return toast(error.message);
-  toast('Night deleted', true); renderLeague();
+  toast('Event deleted', true); renderLeague();
 }
 async function checkIn(sid){
   const {error} = await sb.from('attendance').insert({session_id:sid, user_id:me.id});
@@ -2080,7 +2210,6 @@ function paintManage(league, members){
       <label class="field"><span>Points per attendance</span><input type="number" step="0.5" id="cf-att" value="${league.pts_attend}"></label>
       <label class="field"><span>Points per win</span><input type="number" step="0.5" id="cf-win" value="${league.pts_win}"></label>
       <label class="field"><span>Points per loss</span><input type="number" step="0.5" id="cf-loss" value="${league.pts_loss}"></label>
-      <label class="field"><span>Clean sweep bonus</span><input type="number" step="0.5" id="cf-sweep" value="${league.pts_sweep}"></label>
     </div>
     <button class="act" onclick="saveScoring()">Save rules</button>
   </div>
@@ -2119,7 +2248,7 @@ async function rerollCode(){
 async function saveScoring(){
   const {error} = await sb.from('leagues').update({
     pts_attend:+$('cf-att').value||0, pts_win:+$('cf-win').value||0,
-    pts_loss:+$('cf-loss').value||0, pts_sweep:+$('cf-sweep').value||0
+    pts_loss:+$('cf-loss').value||0
   }).eq('id',cache.league.id);
   if(error) return toast(error.message);
   toast('Rules saved', true); renderLeague();
@@ -2141,6 +2270,37 @@ async function deleteLeague(){
 /* ============================================================
    TOURNAMENT
    ============================================================ */
+/* ============================================================
+   TOURNAMENT
+   ============================================================ */
+let tourneyHelp = false;
+function toggleTourneyHelp(){ tourneyHelp = !tourneyHelp; renderLeague(); }
+
+const TOURNEY_HELP = `
+  <div class="help-box">
+    <h4>How the tournament is built</h4>
+    <p><b>1. Standings become seeds.</b> Everyone who played that month is ranked by league points.
+    Nobody is excluded — a low seed still gets a place.</p>
+
+    <p><b>2. Groups are snake-seeded.</b> With 2 groups and 8 players, seeds go
+    A-B-B-A-A-B-B-A rather than 1234/5678. This stops one group from collecting all the strong
+    players. Group placement here is <i>from the league standings</i> — it doesn't require playing
+    group matches on the day, though you can if you want.</p>
+
+    <p><b>3. The bracket takes the qualifiers.</b> Whoever finishes in the top N of each group goes
+    through, re-seeded by points. Pairings follow the standard bracket: <b>1 v 8, 4 v 5, 2 v 7,
+    3 v 6</b>, so the top seed meets the weakest and seeds 1 and 2 can only meet in the final.</p>
+
+    <p><b>4. Byes go to the top.</b> If the field isn't a power of two — say 5 or 6 qualifiers —
+    the highest seeds skip the first round automatically.</p>
+
+    <p><b>5. Tap a name to advance them.</b> The bracket is yours to run: click the winner of each
+    match. Clicking again undoes it, and anything downstream resets.</p>
+
+    <div class="help-note">Regenerating for the same month overwrites the bracket and loses any
+    progress. Generate once the month's results are final.</div>
+  </div>`;
+
 async function paintTournament(league, sessions, matches, members, admin){
   const body=$('league-body');
   const months=[...new Set(sessions.map(s=>monthKey(s.date)))].sort().reverse();
@@ -2152,9 +2312,15 @@ async function paintTournament(league, sessions, matches, members, admin){
   let h='';
   if(admin){
     h += `<div class="panel">
-      <h2>Generate the monthly tournament</h2>
-      <p class="hint">Takes the month's standings, snake-seeds the groups and builds the finals bracket.</p>
-      <div class="row">
+      <div class="flex-between" style="margin-bottom:2px">
+        <div>
+          <h2 style="margin:0">Generate the monthly tournament</h2>
+          <p class="hint" style="margin:0">Takes the month's standings, snake-seeds the groups and builds the finals bracket.</p>
+        </div>
+        <button class="help-btn" onclick="toggleTourneyHelp()" title="How does this work?">?</button>
+      </div>
+      ${tourneyHelp?TOURNEY_HELP:''}
+      <div class="row" style="margin-top:14px">
         <label class="field"><span>Month</span>
           <select id="t-month" onchange="window._tMonth=this.value;renderLeague()">
             ${months.map(m=>`<option value="${m}"${m===sel?' selected':''}>${monthLabel(m)}</option>`).join('')||'<option value="">— no months —</option>'}
@@ -2179,7 +2345,7 @@ async function paintTournament(league, sessions, matches, members, admin){
 
   if(!saved){
     h += `<div class="panel plain"><div class="empty">
-      ${months.length?`No tournament generated for ${sel?monthLabel(sel):'this month'} yet.`:'No game nights recorded yet.'}
+      ${months.length?`No tournament generated for ${sel?monthLabel(sel):'this month'} yet.`:'No events recorded yet.'}
     </div></div>`;
     body.innerHTML=h; return;
   }
