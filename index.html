@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Malediction League Tracker</title>
+<title>Seekers League — Malediction league tracker</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@600;700&display=swap');
 
   :root{
     --coal:#1C1C1C; --coal-2:#141414; --surface:#232323; --surface-2:#2b2b2b;
@@ -28,11 +28,13 @@
   /* ---- masthead ---- */
   header.masthead{display:flex;justify-content:space-between;align-items:center;gap:16px;
     padding:20px 0;border-bottom:2px solid var(--crimson);flex-wrap:wrap}
-  .brand{display:flex;flex-direction:column;align-items:flex-start;gap:5px;cursor:pointer}
-  .brand img.logo{height:38px;width:auto;display:block}
-  .brand .tagline{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.26em;
+  .brand{display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer}
+  .brand .wordmark{font-family:'Cinzel',Georgia,serif;font-weight:700;font-size:26px;line-height:1;
+    margin:0;letter-spacing:.02em;color:var(--bone);display:flex;align-items:baseline;gap:9px}
+  .brand .wordmark span{color:var(--crimson);font-weight:600}
+  .brand .tagline{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.24em;
     text-transform:uppercase;color:var(--bone-dim);padding-left:2px}
-  @media(max-width:520px){ .brand img.logo{height:30px} }
+  @media(max-width:520px){ .brand .wordmark{font-size:21px} }
   /* faction icons, used in the meta breakdown */
   img.fic{height:16px;width:auto;vertical-align:-3px;margin-right:7px}
   img.fic.sm{height:13px;vertical-align:-2px;margin-right:5px}
@@ -240,8 +242,8 @@
     /* Header on one line: logo left, account right. The tagline and the
        role chip are decoration — they go. */
     header.masthead{padding:11px 0;gap:8px;flex-wrap:nowrap}
-    .brand{flex-direction:row;align-items:center;gap:9px}
-    .brand img.logo{height:26px}
+    .brand{flex-direction:column;align-items:flex-start;gap:2px}
+    .brand .wordmark{font-size:19px}
     .brand .tagline{display:none}
     .userbox{font-size:13px;gap:7px}
     .userbox .rolechip{display:none}
@@ -307,6 +309,33 @@
     .bar-label{width:82px;font-size:11.5px}
     .bar-val{width:70px;font-size:10px}
     .matrix table{min-width:420px}
+  }
+
+  /* saved decks */
+  .deck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .deck-card{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:var(--coal-2);border:1px solid var(--line);border-left:2px solid var(--brass);padding:11px 13px}
+  .dk-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--bone)}
+  .dk-fac{font-size:11px;color:var(--bone-dim);margin-top:3px;display:flex;align-items:center}
+  .dk-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+  .dk-open{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--brass);white-space:nowrap}
+  .dk-open:hover{color:var(--crimson)}
+  .dk-del{color:var(--line-2);cursor:pointer;font-size:15px;line-height:1}
+  .dk-del:hover{color:var(--crimson)}
+  .deck-pick{margin-top:6px;width:100%;font-size:12px;padding:5px 8px;color:var(--bone-dim)}
+
+  /* organizer check-in for others */
+  .check-others{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .co-label{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--bone-dim);flex:0 0 auto}
+  .check-others select{width:auto;min-width:190px;font-size:14px;padding:7px 10px}
+  .att-x{color:var(--line-2);cursor:pointer;margin-left:5px;font-size:13px;line-height:1;
+    -webkit-tap-highlight-color:transparent}
+  .att-x:hover{color:var(--crimson)}
+  @media(max-width:620px){
+    .check-others{gap:7px}
+    .check-others select{flex:1;min-width:0}
   }
 
   /* ---- help button + box ---- */
@@ -592,8 +621,10 @@
 
   <header class="masthead">
     <div class="brand" onclick="go('browse')">
-      <img class="logo" id="brand-logo" alt="Malediction">
-      <div class="tagline">League Tracker</div>
+      <div class="brand-mark">
+        <h1 class="wordmark">Seekers<span>League</span></h1>
+        <div class="tagline">Malediction league tracker</div>
+      </div>
     </div>
     <div class="userbox" id="userbox"></div>
   </header>
@@ -707,8 +738,9 @@
 
   <footer>
     <div class="disclaimer">
-      <p><b>Unofficial community tool.</b> Brand assets used with permission under the
-      Malediction Herald program. Not endorsed or sponsored by Loot Studios.</p>
+      <p><b>Seekers League is an unofficial community tool for Malediction, a game by Loot Studios.</b>
+      Brand assets used with permission under the Malediction Herald program. Not created, endorsed or
+      sponsored by Loot Studios.</p>
       <p>Malediction and all related names, logos, characters, factions, Seekers, terrain and imagery are
       trademarks and/or registered trademarks of Loot Studios. All rights reserved by their respective
       owners. This tool is a free, non-commercial utility made by and for the local player community, and
@@ -1991,6 +2023,7 @@ async function renderLeague(){
   ]);
   if(!league){ $('league-header').innerHTML=`<div class="banner">League not found, or it's private.</div>`; return; }
   if(me) cache.myLeagues = cache.myLeagues.length?cache.myLeagues:await fetchMyLeagues();
+  if(me && !cache.myDecks) cache.myDecks = await fetchMyDecks();
   cache.league=league; cache.members=members; cache.sessions=sessions; cache.matches=matches;
 
   const trueAdmin = isAdminOf(league);            // what you actually are
@@ -2099,6 +2132,10 @@ function paintEvents(league, sessions, matches, members, admin, member){
     const iAmIn = me && att.includes(me.id);
     const canLog = me && (admin || iAmIn);
     const editing = window._editEvent === s.id;
+    // League members not yet marked present — an organizer can check them in for
+    // the ones who forgot, or who don't have their phone out.
+    const absent = admin ? members.filter(m=>!att.includes(m.id))
+      .sort((a,b)=>a.display_name.localeCompare(b.display_name)) : [];
     return `<div class="panel plain">
       <div class="flex-between">
         <div>
@@ -2131,7 +2168,17 @@ function paintEvents(league, sessions, matches, members, admin, member){
         </div>
       </div>`:''}
       ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
-        att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}</span>`).join('') + `</div>`:''}
+        att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}
+          ${admin?`<span class="att-x" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
+        </span>`).join('') + `</div>`:''}
+
+      ${admin && absent.length?`<div class="check-others">
+        <span class="co-label">Check someone in</span>
+        <select id="ci-${s.id}" onchange="checkInOther('${s.id}', this.value); this.value='';">
+          <option value="">— pick a player —</option>
+          ${absent.map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join('')}
+        </select>
+      </div>`:''}
 
       ${canLog?`<div class="divider"></div>
         <h3 style="margin-top:0">Log a match</h3>
@@ -2145,7 +2192,8 @@ function paintEvents(league, sessions, matches, members, admin, member){
             <label class="field"><span>Terrain set brought</span>
               <select id="mwt-${s.id}">${terrainOpts()}</select></label>
             <label class="field"><span>Decklist <span class="opt">optional</span></span>
-              <input type="url" id="mwd-${s.id}" placeholder="https://..."></label>
+              <input type="url" id="mwd-${s.id}" placeholder="https://...">
+              ${myDeckPicker('mwd-'+s.id)}</label>
           </div>
         </div>
         <div class="log-side">
@@ -2158,7 +2206,8 @@ function paintEvents(league, sessions, matches, members, admin, member){
             <label class="field"><span>Terrain set brought</span>
               <select id="mlt-${s.id}">${terrainOpts()}</select></label>
             <label class="field"><span>Decklist <span class="opt">optional</span></span>
-              <input type="url" id="mld-${s.id}" placeholder="https://..."></label>
+              <input type="url" id="mld-${s.id}" placeholder="https://...">
+              ${myDeckPicker('mld-'+s.id)}</label>
           </div>
         </div>
         <div class="row tight" style="margin-top:4px">
@@ -2247,6 +2296,27 @@ async function checkIn(sid){
   const {error} = await sb.from('attendance').insert({session_id:sid, user_id:me.id});
   if(error) return toast(error.message);
   toast('Checked in', true); renderLeague();
+}
+
+// Organizers can mark others present — for the player who forgot, or who isn't
+// holding their phone. The database policy already allows it for league admins.
+async function checkInOther(sid, uid){
+  if(!uid) return;
+  const {error} = await sb.from('attendance').insert({session_id:sid, user_id:uid});
+  if(error) return toast(error.message);
+  toast(`${nameOf(uid)} checked in`, true); renderLeague();
+}
+async function checkOutOther(sid, uid){
+  // Their matches would be left behind pointing at an absent player, so say so.
+  const theirs = cache.matches.filter(m =>
+    m.session_id===sid && (m.winner_id===uid || m.loser_id===uid)).length;
+  const warn = theirs
+    ? `${nameOf(uid)} has ${theirs} match${theirs===1?'':'es'} logged for this event. Removing them from the attendance list won't delete those matches. Continue?`
+    : `Remove ${nameOf(uid)} from this event?`;
+  if(!confirm(warn)) return;
+  const {error} = await sb.from('attendance').delete().eq('session_id',sid).eq('user_id',uid);
+  if(error) return toast(error.message);
+  toast(`${nameOf(uid)} removed`, true); renderLeague();
 }
 async function checkOut(sid){
   const {error} = await sb.from('attendance').delete().eq('session_id',sid).eq('user_id',me.id);
@@ -2614,6 +2684,7 @@ async function renderProfile(){
   const body=$('profile-body');
   body.innerHTML=`<div class="empty"><span class="spinner"></span> Loading your stats…</div>`;
   const all = await fetchAllMatches();
+  cache.myDecks = await fetchMyDecks();
   const mine = all.filter(m=>m.winner_id===me.id||m.loser_id===me.id);
   const w=mine.filter(m=>m.winner_id===me.id).length, l=mine.length-w;
 
@@ -2671,14 +2742,94 @@ async function renderProfile(){
       `</tbody></table></div>`;
   }
   if(!mine.length) h+=`<div class="panel plain"><div class="empty">No matches recorded yet. Join a league and start playing.</div></div>`;
+
+  // --- Saved decks ---
+  h += `<div class="panel plain">
+    <div class="flex-between">
+      <div>
+        <h2 style="margin:0">My decks</h2>
+        <p class="hint" style="margin:0">Save a deck once, then pick it when you log a match. Links point to the
+          <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer" style="color:var(--brass)">official builder ↗</a>.</p>
+      </div>
+      <button class="ghost ${window._addDeck?'on':''}" onclick="toggleAddDeck()">${window._addDeck?'✕ Close':'+ Add deck'}</button>
+    </div>
+    ${window._addDeck?`<div class="pane" style="margin-top:14px">
+      <div class="row">
+        <label class="field"><span>Deck name</span>
+          <input type="text" id="nd-name" placeholder="Order aggro" maxlength="60"></label>
+        <label class="field"><span>Faction (optional)</span>
+          <select id="nd-faction"><option value="">—</option>
+            ${Object.keys(FACTIONS).map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('')}</select></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Link to the deck</span>
+          <input type="url" id="nd-url" placeholder="https://play.malediction.gg/decks/..."></label>
+        <label class="field" style="display:flex;align-items:flex-end;max-width:150px">
+          <button class="act" style="width:100%" onclick="saveDeck()">Save deck</button></label>
+      </div>
+    </div>`:''}
+    ${cache.myDecks.length?`<div class="deck-grid" style="margin-top:14px">
+      ${cache.myDecks.map(d=>`<div class="deck-card">
+        <div class="dk-main">
+          <div class="dk-name">${esc(d.name)}</div>
+          ${d.faction?`<div class="dk-fac">${fIcon(d.faction,true)}${esc(d.faction)}</div>`:''}
+        </div>
+        <div class="dk-actions">
+          ${safeUrl(d.url)?`<a class="dk-open" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}
+          <span class="dk-del" onclick="deleteDeck('${d.id}','${esc(d.name)}')" title="Delete deck">×</span>
+        </div>
+      </div>`).join('')}
+    </div>`:(window._addDeck?'':`<div class="empty" style="margin-top:12px">No decks saved yet.</div>`)}
+  </div>`;
+
   body.innerHTML=h;
+}
+
+/* ============================================================
+   DECKS — a player's saved decks (name + link to official builder)
+   ============================================================ */
+// A quick-pick for your saved decks next to a decklist field. Selecting one
+// drops its URL into the input; you can still type a one-off link by hand.
+function myDeckPicker(targetId){
+  const decks = (cache.myDecks || []).filter(d=>d.url);
+  if(!decks.length) return '';
+  return `<select class="deck-pick" onchange="if(this.value){document.getElementById('${targetId}').value=this.value;} this.selectedIndex=0;">
+    <option value="">↧ my decks</option>
+    ${decks.map(d=>`<option value="${esc(d.url)}">${esc(d.name)}</option>`).join('')}
+  </select>`;
+}
+async function fetchMyDecks(){
+  if(!me) return [];
+  const {data,error} = await sb.from('decks').select('*').eq('user_id',me.id).order('created_at');
+  if(error){ console.error(error); return []; }
+  return data||[];
+}
+function toggleAddDeck(){ window._addDeck = !window._addDeck; renderProfile(); }
+async function saveDeck(){
+  const name=$('nd-name').value.trim();
+  if(!name) return toast('Give the deck a name');
+  const url=$('nd-url').value.trim();
+  if(url && !safeUrl(url)) return toast('Link must be a valid http(s) URL');
+  const {error} = await sb.from('decks').insert({
+    user_id:me.id, name, url:safeUrl(url), faction:$('nd-faction').value||null
+  });
+  if(error) return toast(error.message);
+  window._addDeck=false;
+  toast('Deck saved', true);
+  renderProfile();
+}
+async function deleteDeck(id, name){
+  if(!confirm(`Delete "${name}"? This won't affect matches you've already logged with it.`)) return;
+  const {error} = await sb.from('decks').delete().eq('id',id);
+  if(error) return toast(error.message);
+  toast('Deck deleted', true);
+  renderProfile();
 }
 
 /* ============================================================
    INIT
    ============================================================ */
 (async function init(){
-  $('brand-logo').src = ASSETS.logo;
   route = parseHash();
   if(configured){
     await initAuth();
