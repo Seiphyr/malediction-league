@@ -937,18 +937,26 @@ window.addEventListener('popstate', ()=>{ route=parseHash(); render(); });
    ============================================================ */
 async function initAuth(){
   if(!sb) return;
+  // A reset link lands here with the recovery token in the URL hash
+  // (#...type=recovery). Supabase turns it into a session and fires
+  // PASSWORD_RECOVERY — but that can happen before this listener is attached,
+  // so we ALSO check the URL directly. Either path shows the new-password form.
+  const hash = window.location.hash || '';
+  const isRecovery = hash.includes('type=recovery');
+
   const {data} = await sb.auth.getSession();
   session = data.session;
   if(session) await loadMe();
+
   sb.auth.onAuthStateChange(async (_e, s)=>{
     session = s;
     if(s) await loadMe(); else me = null;
-    // Arriving from a reset link: Supabase signs them in with a recovery
-    // session and fires this event. Show the "set a new password" form instead
-    // of dropping them into the app as if nothing happened.
     if(_e === 'PASSWORD_RECOVERY'){ showSetNewPassword(); return; }
     renderChrome(); render();
   });
+
+  // Caught it from the URL rather than the event: same outcome.
+  if(isRecovery){ showSetNewPassword(); return true; }
 }
 async function loadMe(){
   if(!session) return;
@@ -995,23 +1003,29 @@ async function sendReset(){
   toast('Check your email for a reset link', true);
 }
 
-// Password reset, step 2: they've clicked the link and returned. Supabase fires
-// a PASSWORD_RECOVERY event; we show a small form to set the new password.
+// Password reset, step 2: they've clicked the link and returned. Show a form
+// to set the new password. The auth section's DOM is static (always present),
+// so we can configure it directly — no timeout guesswork.
 function showSetNewPassword(){
-  go('auth');
-  setTimeout(()=>{
-    setAuthMode('signin');
-    $('auth-title').textContent = 'Set a new password';
-    $('auth-sub').textContent = 'Enter a new password for your account.';
-    $('signup-only').style.display='none';
-    $('au-email').closest('.field').style.display='none';
-    $('au-pass').value='';
-    $('au-pass').placeholder='New password';
-    $('au-submit').textContent='Update password';
-    $('au-switch-text').parentElement.style.display='none';
-    $('au-forgot-row').style.display='none';
-    $('au-submit').onclick = updatePassword;
-  }, 40);
+  route = {view:'auth'};
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const sec=document.getElementById('auth');
+  if(sec) sec.classList.add('active');
+  renderChrome();
+
+  authMode='signin';
+  $('auth-title').textContent = 'Set a new password';
+  $('auth-sub').textContent = 'Enter a new password for your account, then you\'re in.';
+  $('signup-only').style.display='none';
+  $('au-email').closest('.field').style.display='none';
+  $('au-pass').value='';
+  $('au-pass').placeholder='New password';
+  $('au-submit').textContent='Update password';
+  $('au-switch-text').parentElement.style.display='none';
+  $('au-forgot-row').style.display='none';
+  $('au-submit').onclick = updatePassword;
+  $('au-pass').onkeydown = e=>{ if(e.key==='Enter') updatePassword(); };
+  $('au-pass').focus();
 }
 async function updatePassword(){
   const pass=$('au-pass').value;
@@ -1021,9 +1035,13 @@ async function updatePassword(){
   btn.disabled=false; btn.textContent='Update password';
   if(error) return toast(error.message);
   toast('Password updated — you\'re signed in', true);
-  // restore the normal form for next time and go home
+  // Clear the recovery token from the URL so a refresh doesn't re-trigger this,
+  // restore the normal sign-in form, and go home.
+  history.replaceState(null, '', window.location.pathname);
   $('au-email').closest('.field').style.display='';
+  $('au-pass').onkeydown = e=>{ if(e.key==='Enter') doAuth(); };
   $('au-submit').onclick = doAuth;
+  setAuthMode('signin');
   go('browse');
 }
 function setAuthMode(m){
@@ -2899,8 +2917,9 @@ async function deleteDeck(id, name){
 (async function init(){
   const bl=$('brand-logo'); if(bl) bl.src=ASSETS.brandLogo;
   route = parseHash();
+  let inRecovery = false;
   if(configured){
-    await initAuth();
+    inRecovery = await initAuth();
   }
   document.querySelectorAll('.roleopt').forEach(el=>{
     el.onclick = ()=>{
@@ -2908,15 +2927,25 @@ async function deleteDeck(id, name){
       el.classList.add('sel'); signupRole=el.dataset.role;
     };
   });
-  $('au-submit').onclick = doAuth;
-  $('au-switch').onclick = ()=> setAuthMode(authMode==='signup'?'signin':'signup');
-  $('au-forgot').onclick = sendReset;
-  $('au-pass').onkeydown = e=>{ if(e.key==='Enter') doAuth(); };
+  // These default bindings would clobber the recovery form's handlers
+  // (au-submit → updatePassword), so skip them when we're in recovery.
+  if(!inRecovery){
+    $('au-submit').onclick = doAuth;
+    $('au-switch').onclick = ()=> setAuthMode(authMode==='signup'?'signin':'signup');
+    $('au-forgot').onclick = sendReset;
+    $('au-pass').onkeydown = e=>{ if(e.key==='Enter') doAuth(); };
+  } else {
+    // still wire the parts the recovery form doesn't own
+    $('au-switch').onclick = ()=> setAuthMode(authMode==='signup'?'signin':'signup');
+    $('au-forgot').onclick = sendReset;
+  }
   $('browse-search').oninput = paintBrowse;
   $('browse-sort').onchange = paintBrowse;
   $('meta-scope').onchange = renderMetaView;
   $('meta-window').onchange = renderMetaView;
-  render();
+  // In recovery, initAuth already showed the new-password form — a render()
+  // here would paint over it. Skip it just this once.
+  if(!inRecovery) render();
 })();
 </script>
 </body>
