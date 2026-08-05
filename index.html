@@ -935,28 +935,45 @@ window.addEventListener('popstate', ()=>{ route=parseHash(); render(); });
 /* ============================================================
    AUTH
    ============================================================ */
+let recoveryPending = false;
+
 async function initAuth(){
   if(!sb) return;
-  // A reset link lands here with the recovery token in the URL hash
-  // (#...type=recovery). Supabase turns it into a session and fires
-  // PASSWORD_RECOVERY — but that can happen before this listener is attached,
-  // so we ALSO check the URL directly. Either path shows the new-password form.
-  const hash = window.location.hash || '';
-  const isRecovery = hash.includes('type=recovery');
+  // A reset link lands here with a recovery token. Supabase may consume the URL
+  // hash during createClient — before this code runs — so by now the hash can
+  // already be empty. We therefore rely on the AUTH EVENT as the source of
+  // truth, registering the listener FIRST, and keep the URL check only as a
+  // best-effort fallback for the case where the hash is still present.
+  const rawHash = window.location.hash || '';
+  const urlLooksRecovery = rawHash.includes('type=recovery') || rawHash.includes('recovery');
+
+  sb.auth.onAuthStateChange(async (_e, s)=>{
+    session = s;
+    if(s) await loadMe(); else me = null;
+    if(_e === 'PASSWORD_RECOVERY'){
+      recoveryPending = true;
+      showSetNewPassword();
+      return;
+    }
+    // Ignore the initial SIGNED_IN that a recovery link produces — otherwise it
+    // would paint the app over the password form. If a recovery is pending,
+    // don't let a plain re-render clear it.
+    if(recoveryPending) return;
+    renderChrome(); render();
+  });
 
   const {data} = await sb.auth.getSession();
   session = data.session;
   if(session) await loadMe();
 
-  sb.auth.onAuthStateChange(async (_e, s)=>{
-    session = s;
-    if(s) await loadMe(); else me = null;
-    if(_e === 'PASSWORD_RECOVERY'){ showSetNewPassword(); return; }
-    renderChrome(); render();
-  });
-
-  // Caught it from the URL rather than the event: same outcome.
-  if(isRecovery){ showSetNewPassword(); return true; }
+  // Give the auth event a moment to fire (it's async and may land just after
+  // getSession). If either the event or the URL says recovery, show the form.
+  await new Promise(r=>setTimeout(r, 60));
+  if(recoveryPending || urlLooksRecovery){
+    recoveryPending = true;
+    showSetNewPassword();
+    return true;
+  }
 }
 async function loadMe(){
   if(!session) return;
@@ -1035,6 +1052,7 @@ async function updatePassword(){
   btn.disabled=false; btn.textContent='Update password';
   if(error) return toast(error.message);
   toast('Password updated — you\'re signed in', true);
+  recoveryPending = false;
   // Clear the recovery token from the URL so a refresh doesn't re-trigger this,
   // restore the normal sign-in form, and go home.
   history.replaceState(null, '', window.location.pathname);
