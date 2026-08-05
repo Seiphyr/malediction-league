@@ -389,6 +389,21 @@
   .sd-row b{color:var(--crimson);border-color:var(--crimson)}
   .sd-row i{color:var(--bone-dim)}
 
+  /* On phones, wide data tables (standings, meta matrix) would push the whole
+     page sideways. Let each panel scroll its own overflow horizontally instead,
+     so the page itself never scrolls sideways. */
+  @media(max-width:620px){
+    #league-body .panel, #league-body .panel.plain{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    #league-body table{min-width:0}
+    .matrix{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  }
+
+  /* demo league marker */
+  .league-card.is-demo{border-left:3px solid var(--brass)}
+  .demo-badge{display:inline-block;margin-left:8px;font-family:'Oswald',sans-serif;font-size:9px;
+    font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--coal);
+    background:var(--brass);padding:2px 7px;vertical-align:middle}
+
   /* ---- home hero ---- */
   .hero-centered{text-align:center;display:flex;flex-direction:column;align-items:center}
   .hero-logo{width:auto;height:120px;max-width:90%;margin:6px 0 18px;
@@ -856,6 +871,78 @@ const TERRAINS = [
   'Deathshroud Mire',
 ];
 
+/* ============================================================
+   DEMO LEAGUE — read-only showcase, no database
+   A fake league with a month of results so newcomers (and screenshots) can see
+   a populated app without touching Supabase. Everything here is invented and
+   never written anywhere. To remove the demo entirely, delete this block, the
+   `id==='demo'` guards in renderLeague / fetchLeague, and the DEMO_LEAGUE push
+   in fetchPublicLeagues.
+   ============================================================ */
+const DEMO_ID = 'demo';
+const DEMO_LEAGUE = {
+  id: DEMO_ID, name: 'DEMO LEAGUE',
+  location: 'The Sample Tavern', city: 'Everwood', country: 'Demo',
+  description: 'A read-only example league. Browse the standings, events, meta and a finished tournament — nothing here is real, and nothing you tap is saved.',
+  join_code: 'DEMO', owner_id: 'demo-u1', is_public: true,
+  pts_attend: 1, pts_win: 2, pts_loss: 0.5, pts_sweep: 0,
+  member_count: 6, session_count: 4, created_at: '2026-06-01',
+  last_session: '2026-06-26',
+};
+const DEMO_MEMBERS = [
+  {id:'demo-u1', display_name:'Aldric',  role:'organizer', is_admin:true},
+  {id:'demo-u2', display_name:'Bryn',    role:'player',    is_admin:false},
+  {id:'demo-u3', display_name:'Corvin',  role:'player',    is_admin:false},
+  {id:'demo-u4', display_name:'Delia',   role:'player',    is_admin:false},
+  {id:'demo-u5', display_name:'Eowyn',   role:'player',    is_admin:false},
+  {id:'demo-u6', display_name:'Faramond',role:'player',    is_admin:false},
+];
+// Four weekly events across June, each with attendance and a handful of matches.
+const DEMO_SESSIONS = [
+  {id:'demo-s1', league_id:DEMO_ID, date:'2026-06-05', notes:'Opening night', event_url:null,
+   attendance:['demo-u1','demo-u2','demo-u3','demo-u4'].map(u=>({user_id:u}))},
+  {id:'demo-s2', league_id:DEMO_ID, date:'2026-06-12', notes:'Week two', event_url:null,
+   attendance:['demo-u1','demo-u2','demo-u3','demo-u5','demo-u6'].map(u=>({user_id:u}))},
+  {id:'demo-s3', league_id:DEMO_ID, date:'2026-06-19', notes:'Week three', event_url:null,
+   attendance:['demo-u1','demo-u3','demo-u4','demo-u5','demo-u6'].map(u=>({user_id:u}))},
+  {id:'demo-s4', league_id:DEMO_ID, date:'2026-06-26', notes:'Month finale', event_url:null,
+   attendance:['demo-u1','demo-u2','demo-u4','demo-u5','demo-u6'].map(u=>({user_id:u}))},
+];
+// Helper to keep the match list readable. w/l = user ids, ws/ls = seeker names.
+const _dm = (id, sid, w, l, ws, ls, wt, lt) => ({
+  id, session_id:sid, league_id:DEMO_ID,
+  winner_id:w, loser_id:l, winner_seeker:ws, loser_seeker:ls,
+  winner_terrain:wt, loser_terrain:lt, winner_decklist:null, loser_decklist:null,
+  reported_by:w, confirmed:true,
+});
+const DEMO_MATCHES = [
+  // s1
+  _dm('demo-m1','demo-s1','demo-u1','demo-u2','Auric Evenhand','Thundersteps','Starcast Halls','Deathshroud Mire'),
+  _dm('demo-m2','demo-s1','demo-u3','demo-u4','Polinore, Prime Archivist','Vorendal, the Dreadheart','Astarian Pathways','Noxious Fleshgardens'),
+  _dm('demo-m3','demo-s1','demo-u1','demo-u3','Auric Evenhand','Londriel, Spellwarden','Starcast Halls','Astarian Pathways'),
+  // s2
+  _dm('demo-m4','demo-s2','demo-u2','demo-u6','InGor, the Spiritbound','Countess Morrida Umberland','Noxious Fleshgardens','Deathshroud Mire'),
+  _dm('demo-m5','demo-s2','demo-u1','demo-u5','Sigrith Andravos','Polinore, Prime Archivist','Starcast Halls','Astarian Pathways'),
+  _dm('demo-m6','demo-s2','demo-u3','demo-u2','Londriel, Spellwarden','Thundersteps','Astarian Pathways','Deathshroud Mire'),
+  _dm('demo-m7','demo-s2','demo-u6','demo-u5','Vorendal, the Dreadheart','Polinore, Prime Archivist','Deathshroud Mire','Starcast Halls'),
+  // s3
+  _dm('demo-m8','demo-s3','demo-u5','demo-u4','Polinore, Prime Archivist','Countess Morrida Umberland','Astarian Pathways','Noxious Fleshgardens'),
+  _dm('demo-m9','demo-s3','demo-u1','demo-u6','Auric Evenhand','Vorendal, the Dreadheart','Starcast Halls','Deathshroud Mire'),
+  _dm('demo-m10','demo-s3','demo-u3','demo-u5','Londriel, Spellwarden','Polinore, Prime Archivist','Astarian Pathways','Starcast Halls'),
+  _dm('demo-m11','demo-s3','demo-u4','demo-u6','InGor, the Spiritbound','Countess Morrida Umberland','Noxious Fleshgardens','Deathshroud Mire'),
+  // s4
+  _dm('demo-m12','demo-s4','demo-u1','demo-u2','Auric Evenhand','Thundersteps','Starcast Halls','Noxious Fleshgardens'),
+  _dm('demo-m13','demo-s4','demo-u5','demo-u6','Polinore, Prime Archivist','Vorendal, the Dreadheart','Astarian Pathways','Deathshroud Mire'),
+  _dm('demo-m14','demo-s4','demo-u4','demo-u1','Sigrith Andravos','Auric Evenhand','Noxious Fleshgardens','Starcast Halls'),
+  _dm('demo-m15','demo-s4','demo-u2','demo-u5','InGor, the Spiritbound','Londriel, Spellwarden','Deathshroud Mire','Astarian Pathways'),
+];
+const DEMO_TOURNEY = {
+  id:'demo-t1', league_id:DEMO_ID, month:'2026-06',
+  payload: {"groups":[[{"id":"demo-u1","pts":14.5,"w":5,"l":1},{"id":"demo-u2","pts":8.5,"w":2,"l":3},{"id":"demo-u4","pts":8,"w":2,"l":2}],[{"id":"demo-u3","pts":9.5,"w":3,"l":1},{"id":"demo-u5","pts":9,"w":2,"l":4},{"id":"demo-u6","pts":7,"w":1,"l":4}]],"qual":2,"bracket":[[{"a":{"id":"demo-u1","att":4,"w":5,"l":1,"pts":14.5},"b":{"id":"demo-u2","att":3,"w":2,"l":3,"pts":8.5},"winner":"a"},{"a":{"id":"demo-u3","att":3,"w":3,"l":1,"pts":9.5},"b":{"id":"demo-u5","att":3,"w":2,"l":4,"pts":9},"winner":"a"}],[{"a":{"id":"demo-u1","att":4,"w":5,"l":1,"pts":14.5},"b":{"id":"demo-u3","att":3,"w":3,"l":1,"pts":9.5},"winner":"a"}]]}
+};
+function isDemo(id){ return id === DEMO_ID; }
+
+
 const seekerFaction = n => (SEEKERS.find(s=>s.name===n)||{}).faction || null;
 const factionColor  = f => (FACTIONS[f]||{}).color || 'var(--line-2)';
 
@@ -1086,8 +1173,11 @@ function setAuthMode(m){
    ============================================================ */
 async function fetchPublicLeagues(){
   const {data,error} = await sb.from('public_leagues').select('*');
-  if(error){ console.error(error); return []; }
-  return data||[];
+  const real = error ? [] : (data||[]);
+  if(error) console.error(error);
+  // The demo always leads the directory so newcomers meet a populated league
+  // first. It's not in the database — it lives entirely in the code above.
+  return [DEMO_LEAGUE, ...real];
 }
 async function fetchMyLeagues(){
   if(!me) return [];
@@ -1459,8 +1549,11 @@ async function renderBrowse(){
 function paintHero(){
   const hero=$('hero');
   if(!hero) return;
-  const leagues = cache.leagues.length;
-  const events  = cache.leagues.reduce((a,l)=>a+(l.session_count||0), 0);
+  // The demo is a showcase, not a real league — leave it out of the "growing"
+  // counters so they reflect genuine activity.
+  const realLeagues = cache.leagues.filter(l=>!isDemo(l.id));
+  const leagues = realLeagues.length;
+  const events  = realLeagues.reduce((a,l)=>a+(l.session_count||0), 0);
   const battles = events + (cache.tourneyCount||0);
   hero.innerHTML = `
     <div class="hero hero-centered">
@@ -1497,8 +1590,8 @@ function paintBrowse(){
     return;
   }
   list.innerHTML = `<div class="league-grid">` + rows.map(l=>`
-    <div class="league-card" onclick="go('league',{leagueId:'${l.id}',tab:'standings'})">
-      <h4>${esc(l.name)}</h4>
+    <div class="league-card${isDemo(l.id)?' is-demo':''}" onclick="go('league',{leagueId:'${l.id}',tab:'standings'})">
+      <h4>${esc(l.name)}${isDemo(l.id)?'<span class="demo-badge">Demo</span>':''}</h4>
       <div class="loc">${esc(l.location)}${l.city?' · '+esc(l.city):''}${l.country?', '+esc(l.country):''}</div>
       ${l.description?`<div class="desc">${esc(l.description).slice(0,120)}${l.description.length>120?'…':''}</div>`:''}
       <div class="meta">
@@ -2121,18 +2214,28 @@ async function renderLeague(){
   $('league-header').innerHTML = `<div class="empty"><span class="spinner"></span> Loading league…</div>`;
   $('league-tabs').innerHTML=''; $('league-body').innerHTML='';
 
-  const [league, members, sessions, matches] = await Promise.all([
-    fetchLeague(id), fetchMembers(id), fetchSessions(id), fetchMatches(id)
-  ]);
+  // Demo league: use the invented data, never hit the database. Everything
+  // downstream (standings, meta, tournament) works the same on this data.
+  let league, members, sessions, matches;
+  if(isDemo(id)){
+    league=DEMO_LEAGUE; members=DEMO_MEMBERS; sessions=DEMO_SESSIONS; matches=DEMO_MATCHES;
+  } else {
+    [league, members, sessions, matches] = await Promise.all([
+      fetchLeague(id), fetchMembers(id), fetchSessions(id), fetchMatches(id)
+    ]);
+  }
   if(!league){ $('league-header').innerHTML=`<div class="banner">League not found, or it's private.</div>`; return; }
   if(me) cache.myLeagues = cache.myLeagues.length?cache.myLeagues:await fetchMyLeagues();
   if(me && !cache.myDecks) cache.myDecks = await fetchMyDecks();
   cache.league=league; cache.members=members; cache.sessions=sessions; cache.matches=matches;
 
-  const trueAdmin = isAdminOf(league);            // what you actually are
-  const admin = showAsAdmin(league);              // what the UI shows you as
-  const member = isMemberOf(id);
-  const inPlayerView = trueAdmin && isPlayerView(id);
+  const demo = isDemo(id);
+  // The demo is strictly read-only: no admin controls, no membership actions,
+  // so a visitor never triggers a write that would fail against the database.
+  const trueAdmin = demo ? false : isAdminOf(league);
+  const admin = demo ? false : showAsAdmin(league);
+  const member = demo ? false : isMemberOf(id);
+  const inPlayerView = demo ? false : (trueAdmin && isPlayerView(id));
 
   $('league-header').innerHTML = `<div class="panel">
     <div class="flex-between">
@@ -2600,8 +2703,10 @@ async function paintTournament(league, sessions, matches, members, admin){
   const body=$('league-body');
   const months=[...new Set(sessions.map(s=>monthKey(s.date)))].sort().reverse();
   const sel = window._tMonth || months[0] || '';
-  const {data:saved} = await sb.from('tournaments')
-    .select('*').eq('league_id',league.id).eq('month',sel).maybeSingle();
+  // Demo tournament is pre-generated and frozen — no database, no regenerate.
+  const saved = isDemo(league.id)
+    ? DEMO_TOURNEY
+    : (await sb.from('tournaments').select('*').eq('league_id',league.id).eq('month',sel).maybeSingle()).data;
   cache.tourney = saved;
 
   // Who could play: everyone with a result that month. The organizer can drop
