@@ -481,23 +481,32 @@
   .rules-note{background:rgba(200,165,104,.07);border-left:2px solid var(--brass-dim);
     padding:11px 14px;font-size:13.5px;color:var(--bone-dim);margin-top:16px}
 
-  /* "At a glance" — a grid of label/value pairs. Two columns on desktop,
-     one on a phone, and each pair stays together either way. */
-  /* Two columns of label/value pairs. They need real air between them or the
-     value of the left column reads as the label of the right. */
-  .glance{display:grid;grid-template-columns:1fr 1fr;gap:0 48px;margin-bottom:16px;position:relative}
-  .glance::before{content:'';position:absolute;left:50%;top:4px;bottom:4px;width:1px;
-    background:var(--line);transform:translateX(-50%)}
-  .gl{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
-    padding:9px 0;border-bottom:1px solid var(--line);min-height:38px}
-  .gl span{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--bone-dim);flex:0 0 auto}
-  .gl b{color:var(--bone);font-size:13.5px;text-align:right;font-weight:500}
-  .gl b i{color:var(--bone-dim);font-weight:400;font-size:12px;font-style:normal;display:block}
-  @media(max-width:620px){
-    .glance{grid-template-columns:1fr;gap:0}
-    .glance::before{display:none}
-  }
+  /* "At a glance" — three theme-grouped cards. Side by side on desktop,
+     stacked on mobile. Grouping by meaning beats a flat 10-row grid: you look
+     where you expect the fact to be. */
+  .glance-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+  @media(max-width:820px){.glance-cards{grid-template-columns:1fr}}
+  .gcard{background:var(--coal-2);border:1px solid var(--line);border-top:2px solid var(--brass-dim);
+    padding:16px 18px}
+  .gcard-title{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--brass);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .gcard-title::before{content:'';width:5px;height:5px;background:var(--crimson);flex:0 0 auto}
+  .grow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;
+    padding:9px 0;border-bottom:1px solid var(--line)}
+  .grow:last-child{border-bottom:0;padding-bottom:0}
+  .grow:first-of-type{padding-top:0}
+  .grow .k{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--bone-dim);flex:0 0 auto}
+  .grow .v{color:var(--bone);font-size:15px;font-weight:500;text-align:right}
+  .grow .v i{display:block;color:var(--bone-dim);font-weight:400;font-size:12px;font-style:normal;margin-top:1px}
+
+  /* bullet lists in the rules docs */
+  ul.bring{margin:4px 0 12px;padding-left:0;list-style:none}
+  ul.bring li{position:relative;padding-left:20px;margin-bottom:7px;font-size:14.5px;line-height:1.55;
+    color:var(--bone-dim)}
+  ul.bring li::before{content:'';position:absolute;left:2px;top:9px;width:5px;height:5px;
+    background:var(--brass);transform:rotate(45deg)}
+  ul.bring li b{color:var(--bone)}
 
   /* Collapsible sections. Native <details> — no JS, works with keyboard and
      screen readers for free. Reference material you consult once per game
@@ -1668,26 +1677,45 @@ function renderRules(){
 const RULES_SETUP = `
   <div class="rules-doc">
     <h3>At a glance — standard 2-player game</h3>
-    <div class="glance">
-      <div class="gl"><span>Players</span><b>2</b></div>
-      <div class="gl"><span>Min. husk spacing</span><b>10"</b></div>
-      <div class="gl"><span>Battlefield</span><b>30" × 30" <i>(≈76 × 76 cm)</i></b></div>
-      <div class="gl"><span>Terrain per player</span><b>1 large, 1 medium, 2 small</b></div>
-      <div class="gl"><span>Deployment zone</span><b>quarter circle, 6" from corner</b></div>
-      <div class="gl"><span>Mastery to win</span><b>40</b></div>
-      <div class="gl"><span>Husks on field</span><b>4</b></div>
-      <div class="gl"><span>Relic display</span><b>15 cards <i>(4 face up)</i></b></div>
-      <div class="gl"><span>Opening hand</span><b>7 cards <i>(mulligan up to 5×, −1 each)</i></b></div>
-      <div class="gl"><span>Starting round</span><b>1, Mastery at 0</b></div>
+    <div class="glance-cards">
+      <div class="gcard">
+        <div class="gcard-title">The battlefield</div>
+        <div class="grow"><span class="k">Battlefield</span><span class="v">30" × 30"<i>≈76 × 76 cm</i></span></div>
+        <div class="grow"><span class="k">Deployment zone</span><span class="v">quarter circle<i>6" from corner</i></span></div>
+        <div class="grow"><span class="k">Husks on field</span><span class="v">4</span></div>
+        <div class="grow"><span class="k">Min. husk spacing</span><span class="v">10"</span></div>
+        <div class="grow"><span class="k">Terrain per player</span><span class="v">1 large, 1 medium<i>2 small</i></span></div>
+      </div>
+      <div class="gcard">
+        <div class="gcard-title">The cards</div>
+        <div class="grow"><span class="k">Opening hand</span><span class="v">7 cards<i>mulligan up to 5×, −1 each</i></span></div>
+        <div class="grow"><span class="k">Player deck</span><span class="v">30–50 cards</span></div>
+        <div class="grow"><span class="k">Relic deck</span><span class="v">15 cards</span></div>
+        <div class="grow"><span class="k">Relic display</span><span class="v">4 face up</span></div>
+      </div>
+      <div class="gcard">
+        <div class="gcard-title">Winning &amp; pace</div>
+        <div class="grow"><span class="k">Players</span><span class="v">2</span></div>
+        <div class="grow"><span class="k">Mastery to win</span><span class="v">40</span></div>
+        <div class="grow"><span class="k">Starting round</span><span class="v">1</span></div>
+        <div class="grow"><span class="k">Starting mastery</span><span class="v">0</span></div>
+      </div>
     </div>
 
     <details class="fold">
       <summary>Before the game — what to bring</summary>
       <div class="fold-in">
-        <p>Each player brings their own warband: <b>1 Seeker</b>, its matching <b>Legacy</b>, <b>1 terrain card</b>
-        with its terrain set, and a deck of <b>30–50 cards</b> (units, spells and non-relic attachments).</p>
-        <p>Agree on a shared <b>15-card Relic deck</b>.</p>
-        <p>Have ready: dice, rulers, Echo/Mastery/Round markers, initiative token, 4 husk markers.</p>
+        <p>Each player brings their own warband:</p>
+        <ul class="bring">
+          <li><b>1 Seeker</b> and its matching <b>Legacy</b> card</li>
+          <li><b>1 terrain card</b> with its terrain set</li>
+          <li>a deck of <b>30–50 cards</b> — units, spells and non-relic attachments</li>
+        </ul>
+        <p>Then, together:</p>
+        <ul class="bring">
+          <li>agree on a shared <b>15-card Relic deck</b></li>
+          <li>have ready: dice, rulers, Echo / Mastery / Round markers, initiative token, 4 husk markers</li>
+        </ul>
       </div>
     </details>
 
