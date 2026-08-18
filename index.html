@@ -21,7 +21,11 @@
   html,body{margin:0}
   body{background:var(--coal);color:var(--bone);font-family:'Barlow',system-ui,sans-serif;
     font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100vh}
-  .wrap{max-width:1100px;margin:0 auto;padding:0 20px 80px}
+  /* Content width. The reading text (hero copy, rules docs) is capped
+     separately, so widening the shell lets the directory grid and data tables
+     use the space without stretching prose into unreadable long lines. */
+  .wrap{max-width:1280px;margin:0 auto;padding:0 24px 80px}
+  @media(min-width:1600px){ .wrap{max-width:1440px} }
   a{color:var(--crimson);text-decoration:none}
   a:hover{text-decoration:underline}
 
@@ -76,6 +80,11 @@
   .row > *{flex:1;min-width:150px}
   .row.tight > *{min-width:110px}
 
+  /* Button hierarchy — keep it to one strong action per context:
+     .act.gold  = the game-day fast lane (check in, log/save a match)
+     .act       = form & manage submissions (sign in, save, create)
+     .ghost     = secondary (cancel, back, navigation)
+     .link      = tertiary inline actions */
   button.act{background:var(--crimson);color:#fff;border:0;font-family:'Oswald',sans-serif;
     letter-spacing:.12em;text-transform:uppercase;font-size:13px;font-weight:600;
     padding:11px 20px;cursor:pointer;transition:.15s}
@@ -315,6 +324,8 @@
     background:var(--coal-2);border:1px solid var(--line);border-left:2px solid var(--brass);padding:11px 13px}
   .dk-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.04em;color:var(--bone)}
   .dk-fac{font-size:11px;color:var(--bone-dim);margin-top:3px;display:flex;align-items:center}
+  .dk-wr{font-size:12px;color:var(--bone-dim);margin-top:4px}
+  .dk-wr b{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.03em}
   .dk-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto}
   .dk-open{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--brass);white-space:nowrap}
@@ -403,6 +414,61 @@
   .demo-badge{display:inline-block;margin-left:8px;font-family:'Oswald',sans-serif;font-size:9px;
     font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--coal);
     background:var(--brass);padding:2px 7px;vertical-align:middle}
+
+  /* ---- match wizard: three small steps ---- */
+  .wiz{background:var(--coal-2);border:1px solid var(--line);padding:16px 18px;margin-top:4px}
+  .wz-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .wz-step{display:flex;align-items:center;gap:7px;font-family:'Oswald',sans-serif;font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim)}
+  .wz-step b{width:20px;height:20px;border-radius:50%;border:1px solid var(--line-2);
+    display:inline-flex;align-items:center;justify-content:center;font-size:11px;
+    color:var(--bone-dim);font-weight:600;flex:0 0 auto}
+  .wz-step.on{color:var(--bone)}
+  .wz-step.on b{border-color:var(--crimson);color:var(--crimson)}
+  .wz-step.done{color:var(--brass)}
+  .wz-step.done b{border-color:var(--brass);color:var(--brass)}
+  .wz-line{flex:0 0 18px;height:1px;background:var(--line-2)}
+  .wz-side{margin-bottom:10px}
+  .wz-foot{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+  .wz-sum{font-size:15px;color:var(--bone);margin:0 0 14px;line-height:1.6}
+  .wz-sum span{color:var(--bone-dim);font-size:13px}
+  .wz-ter{color:var(--bone-dim);font-size:12.5px}
+  @media(max-width:620px){ .wz-foot .act{flex:1} }
+
+  /* keyboard focus, visible everywhere (a11y) */
+  button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{
+    outline:2px solid var(--brass);outline-offset:2px}
+
+  /* ---- "Today" — the game-day fast lane on Home ---- */
+  .today-card{background:var(--coal-2);border:1px solid var(--line);border-left:3px solid var(--crimson);
+    padding:18px 20px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;
+    gap:16px;flex-wrap:wrap}
+  .tc-head{display:flex;align-items:center;gap:13px}
+  .tc-live{width:9px;height:9px;border-radius:50%;background:var(--crimson);flex:0 0 auto;
+    animation:tcpulse 1.8s infinite}
+  @keyframes tcpulse{0%{box-shadow:0 0 0 0 rgba(229,30,57,.45)}70%{box-shadow:0 0 0 9px rgba(229,30,57,0)}100%{box-shadow:0 0 0 0 rgba(229,30,57,0)}}
+  .tc-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--bone)}
+  .tc-sub{font-size:13px;color:var(--bone-dim);margin-top:2px}
+  .tc-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tc-in{font-size:13px;color:var(--brass);white-space:nowrap}
+  .today-slim{color:var(--bone-dim);font-size:13.5px;margin:0 0 16px;padding:10px 14px;
+    background:var(--coal-2);border:1px solid var(--line)}
+  .today-slim .link{font-size:13.5px}
+  @media(max-width:620px){
+    .today-card{flex-direction:column;align-items:stretch;padding:15px 16px}
+    .tc-actions{width:100%}
+    .tc-actions .act{flex:1}
+  }
+
+  /* slim stats strip shown to signed-in players instead of the big hero */
+  .hero-slim{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+    color:var(--bone-dim);font-size:13px;margin:2px 0 18px}
+  .hero-slim b{color:var(--crimson);font-family:'Oswald',sans-serif;font-size:15px}
+  .hero-slim .dot{width:3px;height:3px;background:var(--line-2);border-radius:50%}
+  .hero-slim a{font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--brass)}
+  .hero-slim a:hover{color:var(--crimson)}
 
   /* ---- home hero ---- */
   .hero-centered{text-align:center;display:flex;flex-direction:column;align-items:center}
@@ -663,6 +729,8 @@
   <!-- ================= BROWSE (public, no login) ================= -->
   <section class="view" id="browse">
     <div id="hero"></div>
+    <div id="home-today"></div>
+    <div id="home-mine"></div>
     <div class="panel plain">
       <div class="flex-between" style="margin-bottom:14px">
         <div>
@@ -721,10 +789,6 @@
   </section>
 
   <!-- ================= MY LEAGUES ================= -->
-  <section class="view" id="mine">
-    <div id="mine-body"></div>
-  </section>
-
   <!-- ================= PROFILE / STATS ================= -->
   <section class="view" id="profile">
     <div id="profile-body"></div>
@@ -908,7 +972,7 @@ const DEMO_MEMBERS = [
 ];
 // Four weekly events across June, each with attendance and a handful of matches.
 const DEMO_SESSIONS = [
-  {id:'demo-s1', league_id:DEMO_ID, date:'2026-06-05', notes:'Opening night', event_url:null,
+  {id:'demo-s1', league_id:DEMO_ID, date:'2026-06-05', notes:'Opening event', event_url:null,
    attendance:['demo-u1','demo-u2','demo-u3','demo-u4'].map(u=>({user_id:u}))},
   {id:'demo-s2', league_id:DEMO_ID, date:'2026-06-12', notes:'Week two', event_url:null,
    attendance:['demo-u1','demo-u2','demo-u3','demo-u5','demo-u6'].map(u=>({user_id:u}))},
@@ -1095,7 +1159,7 @@ async function doAuth(){
       if(error) throw error;
     }
     await loadMe();
-    go('mine');
+    go('browse');
   }catch(e){ toast(e.message||'Auth failed'); }
   finally{ btn.disabled=false; btn.textContent = authMode==='signup'?'Create account':'Sign in'; }
 }
@@ -1497,11 +1561,10 @@ function renderChrome(){
     {id:'browse',  label:'Home'},
     {id:'rules',   label:'Rules'},
     {id:'tracker', label:'Tracker'},
-    {id:'meta',    label:'Meta Breakdown'},
+    {id:'meta',    label:'Meta'},
   ];
   if(me){
-    tabs.push({id:'mine', label:'My Leagues'});
-    tabs.push({id:'profile', label:'My Stats'});
+    tabs.push({id:'profile', label:'Profile'});
   }
   $('tabs').innerHTML = tabs.map(t=>
     `<button data-tab="${t.id}" class="${route.view===t.id?'active':''}" onclick="go('${t.id}')">${t.label}</button>`
@@ -1521,6 +1584,8 @@ async function render(){
       Full steps are in <code>SETUP.md</code>.</div>`;
     return;
   }
+  // "My Leagues" was folded into Home; old links keep working.
+  if(route.view==='mine') route.view='browse';
   renderChrome();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const v = $(route.view) || $('browse');
@@ -1530,7 +1595,6 @@ async function render(){
   if(route.view==='rules')   return renderRules();
   if(route.view==='tracker') return renderTracker();
   if(route.view==='meta')    return renderMetaView();
-  if(route.view==='mine')    return renderMine();
   if(route.view==='profile') return renderProfile();
   if(route.view==='league')  return renderLeague();
   if(route.view==='auth')    return setAuthMode(authMode);
@@ -1549,8 +1613,74 @@ async function renderBrowse(){
     const {count} = await sb.from('tournaments').select('*',{count:'exact',head:true});
     cache.tourneyCount = count||0;
   }catch(e){ cache.tourneyCount = 0; }
+  if(me){
+    cache.myLeagues = await fetchMyLeagues();
+    cache.todaySessions = await fetchTodaySessions(cache.myLeagues.map(l=>l.id));
+  }
   paintHero();
+  paintToday();
+  paintMine();
   paintBrowse();
+}
+
+function todayStr(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+// Only the events dated today, across the leagues the player belongs to.
+async function fetchTodaySessions(ids){
+  if(!ids || !ids.length) return [];
+  const {data,error} = await sb.from('sessions')
+    .select('*, attendance(user_id)').in('league_id', ids).eq('date', todayStr());
+  if(error){ console.error(error); return []; }
+  return data||[];
+}
+
+/* The one-tap flow for game day: if one of your leagues has an event dated
+   today, Home leads with it — check in, log a match, see standings, without
+   digging through tabs. Time-of-day neutral on purpose: people play at any
+   hour, so it's "Today", never "tonight". */
+function paintToday(){
+  const el=$('home-today'); if(!el) return;
+  if(!me){ el.innerHTML=''; return; }
+  const sess = cache.todaySessions||[];
+  let h='';
+  sess.forEach(sn=>{
+    const lg=(cache.myLeagues||[]).find(l=>l.id===sn.league_id); if(!lg) return;
+    const att=(sn.attendance||[]).map(a=>a.user_id);
+    const inNow = att.includes(me.id);
+    h += `<div class="today-card">
+      <div class="tc-head">
+        <span class="tc-live"></span>
+        <div>
+          <div class="tc-title">Today at ${esc(lg.name)}</div>
+          <div class="tc-sub">${att.length} checked in${sn.notes?` · ${esc(sn.notes)}`:''}</div>
+        </div>
+      </div>
+      <div class="tc-actions">
+        ${inNow
+          ? `<span class="tc-in">✓ You're checked in</span>
+             <button class="act gold" onclick="window._autoWiz='${sn.id}';go('league',{leagueId:'${lg.id}',tab:'events'})">Log a match</button>`
+          : `<button class="act gold" onclick="homeCheckIn('${sn.id}')">Check in</button>`}
+        <button class="ghost" onclick="go('league',{leagueId:'${lg.id}',tab:'standings'})">Standings</button>
+      </div>
+    </div>`;
+  });
+  if(!sess.length){
+    // Organizers get a one-tap path to open today's event.
+    const adminLg=(cache.myLeagues||[]).filter(l=>l.owner_id===me.id||l.is_admin);
+    if(adminLg.length){
+      h = `<div class="today-slim">No event today in ${esc(adminLg[0].name)}.
+        <button class="link" onclick="go('league',{leagueId:'${adminLg[0].id}',tab:'events'})">Create one →</button></div>`;
+    }
+  }
+  el.innerHTML=h;
+}
+async function homeCheckIn(sid){
+  const {error} = await sb.from('attendance').insert({session_id:sid, user_id:me.id});
+  if(error) return toast(error.message);
+  toast('Checked in', true);
+  renderBrowse();
 }
 
 // Welcome block + live counts. League and event counts come from the directory
@@ -1564,6 +1694,19 @@ function paintHero(){
   const leagues = realLeagues.length;
   const events  = realLeagues.reduce((a,l)=>a+(l.session_count||0), 0);
   const battles = events + (cache.tourneyCount||0);
+  // Signed-in players know the app — they get a slim stats strip and the page
+  // leads with Today + their leagues. The full welcome hero is for visitors.
+  if(me){
+    hero.innerHTML = `<div class="hero-slim">
+      <span><b>${leagues}</b> ${leagues===1?'league':'leagues'}</span>
+      <span class="dot"></span>
+      <span><b>${battles}</b> ${battles===1?'battle':'battles'}</span>
+      <span class="dot"></span>
+      <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>
+      <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Official events ↗</a>
+    </div>`;
+    return;
+  }
   hero.innerHTML = `
     <div class="hero hero-centered">
       <img class="hero-logo" src="${ASSETS.brandLogo}" alt="Seekers League">
@@ -2111,23 +2254,17 @@ function togglePane(which){
   }
 }
 
-async function renderMine(){
-  if(!me) return go('auth');
-  const body=$('mine-body');
-  body.innerHTML = `<div class="empty"><span class="spinner"></span> Loading…</div>`;
-  cache.myLeagues = await fetchMyLeagues();
-  paintMine();
-}
-
 function paintMine(){
-  const body=$('mine-body');
+  const body=$('home-mine');
+  if(!body) return;
+  if(!me){ body.innerHTML=''; return; }
   const isOrg = me.role==='organizer';
   const leagues = cache.myLeagues;
 
   // ---- action bar: compact buttons, forms expand underneath ----
   let h = `<div class="panel plain" style="padding-bottom:${openPane?'22px':'16px'}">
     <div class="flex-between" style="${openPane?'margin-bottom:18px':''}">
-      <h2 style="margin:0">My leagues</h2>
+      <h2 style="margin:0">Your leagues</h2>
       <div style="display:flex;gap:8px;flex:0 0 auto">
         <button class="ghost ${openPane==='join'?'on':''}" onclick="togglePane('join')">
           ${openPane==='join'?'✕ Close':'+ Join with code'}</button>
@@ -2279,7 +2416,7 @@ async function renderLeague(){
         ${trueAdmin?`<div><button class="ghost ${inPlayerView?'on':''}" onclick="togglePlayerView('${id}')"
           title="Hide the organizer controls so you see what your players see">
           ${inPlayerView?"↩ Back to organizing":"Switch to player view"}</button></div>`:''}
-        ${!member&&me?`<button class="ghost" onclick="go('mine')">Join with code</button>`:''}
+        ${!member&&me?`<button class="ghost" onclick="go('browse')">Join with code</button>`:''}
         ${!me?`<button class="ghost" onclick="go('auth')">Sign in to join</button>`:''}
       </div>
     </div>
@@ -2324,7 +2461,8 @@ function paintStandings(league, sessions, matches, members){
         ${months.map(m=>`<option value="${m}"${sel===m?' selected':''}>${monthLabel(m)}</option>`).join('')}
       </select>
     </div>`;
-  if(!rows.length) h += `<div class="empty">No results recorded yet.</div>`;
+  if(!rows.length) h += `<div class="empty">No results yet.
+    <button class="link" onclick="go('league',{leagueId:'${league.id}',tab:'events'})">Log the first match from Events →</button></div>`;
   else h += `<table><thead><tr><th class="rank">#</th><th>Player</th>
       <th class="num">Events</th><th class="num">W</th><th class="num">L</th>
       <th class="num">Win%</th><th class="num">Points</th></tr></thead><tbody>` +
@@ -2358,7 +2496,7 @@ function paintEvents(league, sessions, matches, members, admin, member){
       </div>
     </div>`;
   }
-  if(!sessions.length) return h + `<div class="panel plain"><div class="empty">No events yet.</div></div>`;
+  if(!sessions.length) return h + `<div class="panel plain"><div class="empty">No events yet.${admin?' Create the first one above.':' Your organizer will schedule the first one.'}</div></div>`;
 
   h += sessions.map(s=>{
     const att=(s.attendance||[]).map(a=>a.user_id);
@@ -2366,6 +2504,8 @@ function paintEvents(league, sessions, matches, members, admin, member){
     const iAmIn = me && att.includes(me.id);
     const canLog = me && (admin || iAmIn);
     const editing = window._editEvent === s.id;
+    // Arriving from Home's "Log a match": open the wizard on this event directly.
+    if(window._autoWiz===s.id && canLog){ window._autoWiz=null; window._logWiz={sid:s.id, step:1, d:{}}; }
     // League members not yet marked present — an organizer can check them in for
     // the ones who forgot, or who don't have their phone out.
     const absent = admin ? members.filter(m=>!att.includes(m.id))
@@ -2403,7 +2543,7 @@ function paintEvents(league, sessions, matches, members, admin, member){
       </div>`:''}
       ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
         att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}
-          ${admin?`<span class="att-x" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
+          ${admin?`<span class="att-x" role="button" aria-label="Remove from event" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
         </span>`).join('') + `</div>`:''}
 
       ${admin && absent.length?`<div class="check-others">
@@ -2415,40 +2555,7 @@ function paintEvents(league, sessions, matches, members, admin, member){
       </div>`:''}
 
       ${canLog?`<div class="divider"></div>
-        <h3 style="margin-top:0">Log a match</h3>
-        <div class="log-side">
-          <div class="log-tag win">Winner</div>
-          <div class="row tight">
-            <label class="field"><span>Player</span>
-              <select id="mw-${s.id}">${playerOpts(att, admin?null:me.id)}</select></label>
-            <label class="field"><span>Seeker</span>
-              <select id="mws-${s.id}">${seekerOpts()}</select></label>
-            <label class="field"><span>Terrain set brought</span>
-              <select id="mwt-${s.id}">${terrainOpts()}</select></label>
-            <label class="field"><span>Decklist <span class="opt">optional</span></span>
-              <input type="url" id="mwd-${s.id}" placeholder="https://...">
-              ${myDeckPicker('mwd-'+s.id)}</label>
-          </div>
-        </div>
-        <div class="log-side">
-          <div class="log-tag">Loser</div>
-          <div class="row tight">
-            <label class="field"><span>Player</span>
-              <select id="ml-${s.id}">${playerOpts(att)}</select></label>
-            <label class="field"><span>Seeker</span>
-              <select id="mls-${s.id}">${seekerOpts()}</select></label>
-            <label class="field"><span>Terrain set brought</span>
-              <select id="mlt-${s.id}">${terrainOpts()}</select></label>
-            <label class="field"><span>Decklist <span class="opt">optional</span></span>
-              <input type="url" id="mld-${s.id}" placeholder="https://...">
-              ${myDeckPicker('mld-'+s.id)}</label>
-          </div>
-        </div>
-        <div class="row tight" style="margin-top:4px">
-          <label class="field" style="display:flex;align-items:flex-end;max-width:220px">
-            <button class="act" style="width:100%" onclick="logMatch('${s.id}')">Log match</button></label>
-        ${!admin?`<p class="hint" style="font-size:12.5px;margin:0">You can only log matches you played in.</p>`:''}
-        `:''}
+        <div id="wiz-${s.id}">${wizHtml(s.id)}</div>`:''}
 
       ${ms.length?`<div class="divider"></div>` + `<table><tbody>` + ms.map(m=>`
         <tr>
@@ -2465,28 +2572,28 @@ function paintEvents(league, sessions, matches, members, admin, member){
           <td style="text-align:right;white-space:nowrap">
             ${!m.confirmed?`<span class="pill pending" title="Awaiting organizer confirmation">unconfirmed</span>`:''}
             ${admin&&!m.confirmed?`<button class="ghost" onclick="confirmMatch('${m.id}')">Confirm</button>`:''}
-            ${(admin||(me&&m.reported_by===me.id&&!m.confirmed))?`<span class="del" onclick="delMatch('${m.id}')">×</span>`:''}
+            ${(admin||(me&&m.reported_by===me.id&&!m.confirmed))?`<span class="del" role="button" aria-label="Delete match" onclick="delMatch('${m.id}')">×</span>`:''}
           </td>
         </tr>`).join('') + `</tbody></table>`:''}
     </div>`;
   }).join('');
   return h;
 }
-function playerOpts(ids, forceMe){
+function playerOpts(ids, forceMe, sel){
   const list = forceMe ? ids.filter(i=>i===forceMe).concat(ids.filter(i=>i!==forceMe)) : ids;
   return `<option value="">— select —</option>` +
-    list.map(i=>`<option value="${i}">${esc(nameOf(i))}${me&&i===me.id?' (you)':''}</option>`).join('');
+    list.map(i=>`<option value="${i}" ${sel===i?'selected':''}>${esc(nameOf(i))}${me&&i===me.id?' (you)':''}</option>`).join('');
 }
 // Flat, alphabetical list. Factions still live in the data and drive the meta
 // stats — they're just not shown here, where the player only needs their name.
-function seekerOpts(){
+function seekerOpts(sel){
   return `<option value="">— select —</option>` +
     [...SEEKERS].sort((a,b)=>a.name.localeCompare(b.name))
-      .map(s=>`<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
+      .map(s=>`<option value="${esc(s.name)}" ${sel===s.name?'selected':''}>${esc(s.name)}</option>`).join('');
 }
-function terrainOpts(){
+function terrainOpts(sel){
   return `<option value="">— select —</option>` +
-    TERRAINS.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    TERRAINS.map(t=>`<option value="${esc(t)}" ${sel===t?'selected':''}>${esc(t)}</option>`).join('');
 }
 
 /* ---------- league actions ---------- */
@@ -2557,31 +2664,127 @@ async function checkOut(sid){
   if(error) return toast(error.message);
   renderLeague();
 }
-async function logMatch(sid){
-  const w=$('mw-'+sid).value, l=$('ml-'+sid).value;
-  if(!w||!l) return toast('Pick winner and loser');
-  if(w===l) return toast('A player cannot beat themselves');
+/* ============================================================
+   MATCH WIZARD — logging a result in three small steps
+   1 Players → 2 Loadouts → 3 Confirm. One question at a time beats one dense
+   form, especially standing at a table with a phone. State lives in
+   window._logWiz so Back never loses what you picked.
+   ============================================================ */
+function wizGetAtt(sid){
+  const sn=(cache.sessions||[]).find(x=>x.id===sid);
+  return sn ? (sn.attendance||[]).map(a=>a.user_id) : [];
+}
+function wizHtml(sid){
+  const W=window._logWiz;
+  if(!W || W.sid!==sid)
+    return `<button class="act gold" onclick="openLogWiz('${sid}')">+ Log a match</button>`;
   const admin=isAdminOf(cache.league);
-  if(!admin && w!==me.id && l!==me.id) return toast('You can only log matches you played in');
-  const ws=$('mws-'+sid).value, ls=$('mls-'+sid).value;
-  if(!ws||!ls) return toast('Pick both Seekers');
-  // Both players bring a set — the meta stats are only meaningful with both.
-  const wt=$('mwt-'+sid).value, lt=$('mlt-'+sid).value;
-  if(!wt||!lt) return toast('Pick the terrain set each player brought');
-  // Decklists are optional here; invalid URLs are rejected rather than stored.
-  const wdRaw=$('mwd-'+sid).value.trim(), ldRaw=$('mld-'+sid).value.trim();
-  if(wdRaw && !safeUrl(wdRaw)) return toast('Winner decklist must be a valid http(s) link');
-  if(ldRaw && !safeUrl(ldRaw)) return toast('Loser decklist must be a valid http(s) link');
+  const att=wizGetAtt(sid);
+  const d=W.d;
+  const steps=['Players','Loadouts','Confirm'];
+  let h=`<div class="wiz"><div class="wz-head">`+
+    steps.map((n,i)=>{const st=i+1;
+      return `<span class="wz-step ${W.step===st?'on':W.step>st?'done':''}"><b>${W.step>st?'✓':st}</b>${n}</span>`;
+    }).join('<span class="wz-line"></span>')+`</div>`;
+  if(W.step===1){
+    h+=`<div class="wz-body">
+      <div class="row tight">
+        <label class="field"><span>Winner</span>
+          <select id="wz-w-${sid}">${playerOpts(att, admin?null:me.id, d.w)}</select></label>
+        <label class="field"><span>Loser</span>
+          <select id="wz-l-${sid}">${playerOpts(att, null, d.l)}</select></label>
+      </div>
+      ${!admin?`<p class="hint" style="font-size:12.5px;margin:6px 0 0">You can only log matches you played in.</p>`:''}
+    </div>
+    <div class="wz-foot">
+      <button class="ghost" onclick="cancelLogWiz('${sid}')">Cancel</button>
+      <button class="act gold" onclick="wizNext('${sid}')">Next →</button>
+    </div>`;
+  }
+  if(W.step===2){
+    h+=`<div class="wz-body">
+      <div class="wz-side"><div class="log-tag win">Winner — ${esc(nameOf(d.w))}</div>
+        <div class="row tight">
+          <label class="field"><span>Seeker</span><select id="wz-ws-${sid}">${seekerOpts(d.ws)}</select></label>
+          <label class="field"><span>Terrain set brought</span><select id="wz-wt-${sid}">${terrainOpts(d.wt)}</select></label>
+        </div></div>
+      <div class="wz-side"><div class="log-tag">Loser — ${esc(nameOf(d.l))}</div>
+        <div class="row tight">
+          <label class="field"><span>Seeker</span><select id="wz-ls-${sid}">${seekerOpts(d.ls)}</select></label>
+          <label class="field"><span>Terrain set brought</span><select id="wz-lt-${sid}">${terrainOpts(d.lt)}</select></label>
+        </div></div>
+    </div>
+    <div class="wz-foot">
+      <button class="ghost" onclick="wizBack('${sid}')">← Back</button>
+      <button class="act gold" onclick="wizNext('${sid}')">Next →</button>
+    </div>`;
+  }
+  if(W.step===3){
+    h+=`<div class="wz-body">
+      <p class="wz-sum"><b>${esc(nameOf(d.w))}</b> <span>(${esc(d.ws)})</span> beat
+        <b>${esc(nameOf(d.l))}</b> <span>(${esc(d.ls)})</span><br>
+        <span class="wz-ter">${esc(d.wt)} · ${esc(d.lt)}</span></p>
+      <div class="row tight">
+        <label class="field"><span>Winner decklist <span class="opt">optional</span></span>
+          <input type="url" id="wz-wd-${sid}" placeholder="https://..." value="${esc(d.wd||'')}">
+          ${myDeckPicker('wz-wd-'+sid)}</label>
+        <label class="field"><span>Loser decklist <span class="opt">optional</span></span>
+          <input type="url" id="wz-ld-${sid}" placeholder="https://..." value="${esc(d.ld||'')}">
+          ${myDeckPicker('wz-ld-'+sid)}</label>
+      </div>
+    </div>
+    <div class="wz-foot">
+      <button class="ghost" onclick="wizBack('${sid}')">← Back</button>
+      <button class="act gold" onclick="wizSave('${sid}')">Save match</button>
+    </div>`;
+  }
+  return h+`</div>`;
+}
+function paintWiz(sid){ const el=$('wiz-'+sid); if(el) el.innerHTML=wizHtml(sid); }
+function openLogWiz(sid){ window._logWiz={sid, step:1, d:{}}; paintWiz(sid); }
+function cancelLogWiz(sid){ window._logWiz=null; paintWiz(sid); }
+// Capture the current step's inputs into state — called before any move, so
+// going Back and forward again never loses a choice.
+function wzCap(sid){
+  const W=window._logWiz; if(!W) return;
+  const g=id=>{const e=$(id+'-'+sid); return e?e.value:undefined};
+  if(W.step===1){ W.d.w=g('wz-w'); W.d.l=g('wz-l'); }
+  if(W.step===2){ W.d.ws=g('wz-ws'); W.d.wt=g('wz-wt'); W.d.ls=g('wz-ls'); W.d.lt=g('wz-lt'); }
+  if(W.step===3){ W.d.wd=(g('wz-wd')||'').trim(); W.d.ld=(g('wz-ld')||'').trim(); }
+}
+function wizNext(sid){
+  const W=window._logWiz; if(!W) return;
+  wzCap(sid); const d=W.d;
+  if(W.step===1){
+    if(!d.w||!d.l) return toast('Pick winner and loser');
+    if(d.w===d.l) return toast('A player cannot beat themselves');
+    if(!isAdminOf(cache.league) && d.w!==me.id && d.l!==me.id)
+      return toast('You can only log matches you played in');
+  }
+  if(W.step===2){
+    if(!d.ws||!d.ls) return toast('Pick both Seekers');
+    if(!d.wt||!d.lt) return toast('Pick the terrain set each player brought');
+  }
+  W.step++; paintWiz(sid);
+}
+function wizBack(sid){ wzCap(sid); window._logWiz.step--; paintWiz(sid); }
+async function wizSave(sid){
+  const W=window._logWiz; if(!W) return;
+  wzCap(sid); const d=W.d;
+  if(d.wd && !safeUrl(d.wd)) return toast('Winner decklist must be a valid http(s) link');
+  if(d.ld && !safeUrl(d.ld)) return toast('Loser decklist must be a valid http(s) link');
+  const admin=isAdminOf(cache.league);
   const {error} = await sb.from('matches').insert({
     session_id:sid, league_id:cache.league.id,
-    winner_id:w, loser_id:l,
-    winner_seeker:ws, loser_seeker:ls,
-    winner_terrain:wt, loser_terrain:lt,
-    winner_decklist:safeUrl(wdRaw), loser_decklist:safeUrl(ldRaw),
+    winner_id:d.w, loser_id:d.l,
+    winner_seeker:d.ws, loser_seeker:d.ls,
+    winner_terrain:d.wt, loser_terrain:d.lt,
+    winner_decklist:safeUrl(d.wd), loser_decklist:safeUrl(d.ld),
     reported_by:me.id,
     confirmed:admin
   });
   if(error) return toast(error.message);
+  window._logWiz=null;
   toast(admin?'Match logged':'Match logged — pending confirmation', true);
   renderLeague();
 }
@@ -2676,7 +2879,7 @@ async function deleteLeague(){
   if(!confirm('Delete this league permanently? All events and matches will be lost.')) return;
   const {error} = await sb.from('leagues').delete().eq('id',cache.league.id);
   if(error) return toast(error.message);
-  cache.myLeagues=[]; toast('League deleted', true); go('mine');
+  cache.myLeagues=[]; toast('League deleted', true); go('browse');
 }
 
 /* ============================================================
@@ -2794,7 +2997,7 @@ async function paintTournament(league, sessions, matches, members, admin){
 
   if(!saved){
     h += `<div class="panel plain"><div class="empty">
-      ${months.length?`No tournament generated for ${sel?monthLabel(sel):'this month'} yet.`:'No events recorded yet.'}
+      ${months.length?`No tournament generated for ${sel?monthLabel(sel):'this month'} yet.${admin?' Generate it when the month\'s results are in.':''}`:'No events recorded yet — the tournament is built from a month of results.'}
     </div></div>`;
     body.innerHTML=h; return;
   }
@@ -2985,7 +3188,8 @@ async function renderProfile(){
       <div>
         <h2 style="margin:0">My decks</h2>
         <p class="hint" style="margin:0">Save a deck once, then pick it when you log a match. Links point to the
-          <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer" style="color:var(--brass)">official builder ↗</a>.</p>
+          <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer" style="color:var(--brass)">official builder ↗</a>.
+          Win rates count the matches where the deck link was attached.</p>
       </div>
       <button class="ghost ${window._addDeck?'on':''}" onclick="toggleAddDeck()">${window._addDeck?'✕ Close':'+ Add deck'}</button>
     </div>
@@ -3005,17 +3209,27 @@ async function renderProfile(){
       </div>
     </div>`:''}
     ${cache.myDecks.length?`<div class="deck-grid" style="margin-top:14px">
-      ${cache.myDecks.map(d=>`<div class="deck-card">
+      ${cache.myDecks.map(d=>{
+        // Per-deck record: a win when this deck's link sits on my winning side,
+        // a loss when it sits on my losing side. Only matches logged with the
+        // link count — that's the data we actually have.
+        const dw = d.url ? mine.filter(m=>m.winner_id===me.id && m.winner_decklist===d.url).length : 0;
+        const dl = d.url ? mine.filter(m=>m.loser_id===me.id && m.loser_decklist===d.url).length : 0;
+        const dn = dw+dl;
+        return `<div class="deck-card">
         <div class="dk-main">
           <div class="dk-name">${esc(d.name)}</div>
           ${d.faction?`<div class="dk-fac">${fIcon(d.faction,true)}${esc(d.faction)}</div>`:''}
+          <div class="dk-wr">${dn
+            ? `<b style="color:${wrColor(dw/dn,dn)}">${pct(dw/dn)}</b> · ${dw}W–${dl}L`
+            : `no logged matches yet`}</div>
         </div>
         <div class="dk-actions">
           ${safeUrl(d.url)?`<a class="dk-open" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}
-          <span class="dk-del" onclick="deleteDeck('${d.id}','${esc(d.name)}')" title="Delete deck">×</span>
+          <span class="dk-del" role="button" aria-label="Delete deck" onclick="deleteDeck('${d.id}','${esc(d.name)}')" title="Delete deck">×</span>
         </div>
-      </div>`).join('')}
-    </div>`:(window._addDeck?'':`<div class="empty" style="margin-top:12px">No decks saved yet.</div>`)}
+      </div>`;}).join('')}
+    </div>`:(window._addDeck?'':`<div class="empty" style="margin-top:12px">No decks saved yet — “+ Add deck” keeps your lists one tap away when you log a match.</div>`)}
   </div>`;
 
   body.innerHTML=h;
