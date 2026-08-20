@@ -597,6 +597,12 @@
     font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
     padding:6px 12px;border-radius:999px;cursor:pointer;min-height:32px}
   .fchip.on{background:rgba(229,30,57,.12);border-color:var(--crimson);color:var(--bone)}
+  .owndot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5a9e6f;
+    margin-right:7px;vertical-align:1px;box-shadow:0 0 6px rgba(90,158,111,.5)}
+  .tr-pick{width:auto;font-size:12px;padding:6px 9px;min-height:32px}
+  .fchip.clear{border-color:var(--crimson);color:var(--crimson)}
+  .col-count{font-size:12px;color:var(--bone-dim);margin:2px 0 9px;
+    font-family:'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase}
   .col-row{display:flex;align-items:center;gap:12px;background:var(--coal-2);border:1px solid var(--line);
     border-radius:10px;padding:9px 13px;margin-bottom:7px}
   .col-main{min-width:0;flex:1}
@@ -3793,6 +3799,18 @@ function paintCollection(){
       ${[['','All types'],['U','Units'],['S','Spells'],['A','Attachments'],['T','Terrains'],['G','Legacies']].map(([v,l])=>
         `<button class="fchip ${(window._colT||'')===v?'on':''}" onclick="window._colT='${v}';paintCollection()">${l}</button>`).join('')}
     </div>
+    <div class="chip-row">
+      ${[['','Everything'],['own','Owned'],['miss','Missing']].map(([v,l])=>
+        `<button class="fchip ${(window._colOwn||'')===v?'on':''}" onclick="window._colOwn='${v}';paintCollection()">${l}</button>`).join('')}
+      <select class="tr-pick" onchange="window._colTr=this.value;paintCollection()">
+        <option value="">Any keyword</option>
+        ${[...new Set(CARDS.flatMap(c=>c.tr||[]))].sort().map(t=>
+          `<option value="${esc(t)}" ${(window._colTr||'')===t?'selected':''}>${esc(t)}</option>`).join('')}
+      </select>
+      ${(window._colQ||window._colF||window._colT||window._colOwn||window._colTr)?
+        `<button class="fchip clear" onclick="window._colQ='';window._colF='';window._colT='';window._colOwn='';window._colTr='';paintCollection()">✕ Clear all</button>`:''}
+    </div>
+    <div class="col-count" id="col-count"></div>
     <div id="col-list"></div>
   </div>`;
   paintColList();
@@ -3800,14 +3818,22 @@ function paintCollection(){
 function paintColList(){
   const list=$('col-list'); if(!list) return;
   const q=(window._colQ||'').toLowerCase(), F=window._colF||'', T=window._colT||'';
+  const OWN=window._colOwn||'', TR=window._colTr||'';
   const rows=CARDS.map((c,i)=>({c,i})).filter(({c})=>{
     if(q && !(c.n.toLowerCase().includes(q) || (c.tr||[]).some(t=>t.toLowerCase().includes(q)))) return false;
     if(F==='N'){ if(c.f) return false; }
     else if(F && !cardHasFaction(c,F)) return false;
     if(T && c.t!==T) return false;
+    if(TR && !(c.tr||[]).includes(TR)) return false;
+    if(OWN==='own' && !colRow(c.n).owned) return false;
+    if(OWN==='miss' && colRow(c.n).owned) return false;
     return true;
   });
-  if(!rows.length){ list.innerHTML=`<div class="empty">No cards match.</div>`; return; }
+  const cnt=$('col-count');
+  if(cnt) cnt.textContent = rows.length===CARDS.length
+    ? `${CARDS.length} cards`
+    : `${rows.length} of ${CARDS.length} cards`;
+  if(!rows.length){ list.innerHTML=`<div class="empty">No cards match — ✕ Clear all resets the filters.</div>`; return; }
   list.innerHTML = rows.map(({c,i})=>{
     const r=colRow(c.n);
     const fields=colFields(c);
@@ -3815,7 +3841,7 @@ function paintColList(){
     return `<div class="col-row">
       ${cardThumb(i)}
       <div class="col-main">
-        <div class="col-name">${esc(c.n)}</div>
+        <div class="col-name">${r.owned?'<span class="owndot" title="In your collection"></span>':''}${esc(c.n)}</div>
         <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
       </div>
       <div class="col-facs">${c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join('') : '<span class="fbadge fN" title="Neutral">N</span>'}</div>
