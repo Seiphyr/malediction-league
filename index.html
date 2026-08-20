@@ -664,6 +664,42 @@
     .blk-label{font-size:8.5px}
   }
 
+  /* ---- faction icons + seeker meta + filter disclosure ---- */
+  .ficn{width:20px;height:20px;object-fit:contain;vertical-align:middle}
+  .ficn.sm{width:13px;height:13px;margin-right:5px;vertical-align:-2px}
+  .fs-strip{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--coal-2);
+    border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+  .fs-i{display:flex;align-items:center;gap:7px}
+  .fs-i b{font-family:'Oswald',sans-serif;font-size:14px;color:var(--bone)}
+  .fs-note{font-size:11px;color:var(--bone-dim);margin-left:auto}
+  .sk-row{display:flex;align-items:center;gap:13px;background:var(--coal-2);border:1px solid var(--line);
+    border-radius:12px;padding:11px 15px;margin-bottom:8px;cursor:pointer}
+  .sk-row:hover{border-color:var(--line-2)}
+  .sk-row.plain{cursor:default}
+  .sk-ic{display:flex;gap:4px;flex:0 0 auto;min-width:22px}
+  .sk-ic .ficn{width:22px;height:22px}
+  .sk-ic.big .ficn{width:34px;height:34px}
+  .sk-main{min-width:0;flex:1}
+  .sk-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--bone)}
+  .sk-name.plainname{text-transform:none;letter-spacing:.02em;font-family:'Barlow',sans-serif;font-size:14.5px}
+  .sk-sub{font-size:12px;color:var(--bone-dim);margin-top:2px}
+  .sk-wr{text-align:right;flex:0 0 auto}
+  .sk-wr b{font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;display:block;line-height:1.1}
+  .sk-wr small{font-size:11px;color:var(--bone-dim)}
+  .sk-head{display:flex;align-items:center;gap:14px;margin:10px 0 4px}
+  .col-search-row{display:flex;gap:8px;margin:4px 0 10px}
+  .col-search-row input{flex:1;min-width:0}
+  .filt-btn{display:none;flex:0 0 auto;background:var(--coal-2);border:1px solid var(--line-2);
+    color:var(--bone-dim);font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;padding:0 14px;border-radius:10px;cursor:pointer}
+  .filt-btn.on{border-color:var(--crimson);color:var(--bone)}
+  @media(max-width:760px){
+    .filt-btn{display:block}
+    .col-filters{display:none}
+    .col-filters.open{display:block}
+  }
+
   /* ---- card images: thumbs + lightbox ---- */
   .cimg{width:34px;height:48px;object-fit:cover;object-position:top;border-radius:5px;
     border:1px solid var(--line-2);flex:0 0 auto;cursor:zoom-in;background:var(--coal-2)}
@@ -1078,7 +1114,6 @@
   <section class="view" id="browse">
     <div id="home-head"></div>
     <div id="home-event"></div>
-    <div id="home-quick"></div>
     <div id="home-stats"></div>
     <div id="home-mine"></div>
     <div id="home-find"></div>
@@ -1180,7 +1215,7 @@
       Not created, endorsed or sponsored by Loot Studios.</p>
       <p>Malediction and all related names, logos, characters, factions, Seekers, terrain and imagery are
       trademarks and/or registered trademarks of Loot Studios. All rights reserved by their respective
-      owners. This tool is a free, non-commercial utility made by and for the  player community, and
+      owners. This tool is a free, non-commercial utility made by and for the local player community, and
       claims no ownership over any Malediction intellectual property.</p>
     </div>
   </footer>
@@ -1276,16 +1311,24 @@ function fIcon(f, sm){
   return `<i style="display:inline-block;width:10px;height:10px;background:${factionColor(f)};margin-right:7px"></i>`;
 }
 
+/* Canonical Seeker list, straight from the card catalog — all ten, with
+   dual factions as they really are (f = faction letters). Older matches may
+   carry slightly different spellings; the meta normalises names before
+   aggregating, so history still counts. */
 const SEEKERS = [
-  {name:'Auric Evenhand',            faction:'Order of the Shattered Throne'},
-  {name:'Sigrith Andravos',          faction:'Order of the Shattered Throne'},
-  {name:'Thundersteps',              faction:'Primal Blood'},
-  {name:'InGor, the Spiritbound',    faction:'Primal Blood'},
-  {name:'Polinore, Prime Archivist', faction:'Conclave of the Spheres'},
-  {name:'Londriel, Spellwarden',     faction:'Conclave of the Spheres'},
-  {name:'Vorendal, the Dreadheart',  faction:'Legion of the Fallen'},
-  {name:'Countess Morrida Umberland',faction:'Legion of the Fallen'},
+  {name:'Polinore, Prime Archivist',  f:'C',  faction:'Conclave of the Spheres'},
+  {name:'Londriel, Spellwarden',      f:'CO', faction:'Conclave of the Spheres'},
+  {name:'Vorendal, the Dreadheart',   f:'L',  faction:'Legion of the Fallen'},
+  {name:'Countess Morrida Umberland', f:'LC', faction:'Legion of the Fallen'},
+  {name:'Griza, Lingering Wound',     f:'LO', faction:'Legion of the Fallen'},
+  {name:'Sigrith Andravos',           f:'O',  faction:'Order of the Shattered Throne'},
+  {name:'Auric Evenhand',             f:'OP', faction:'Order of the Shattered Throne'},
+  {name:'Thundersteps',               f:'P',  faction:'Primal Blood'},
+  {name:"In'Gor, the Spiritbound",    f:'PL', faction:'Primal Blood'},
+  {name:'Kar-Mamok',                  f:'PC', faction:'Primal Blood'},
 ];
+function normName(n){ return (n||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+function seekerByNorm(k){ return SEEKERS.find(x=>normName(x.name)===k)||null; }
 
 const TERRAINS = [
   'Starcast Halls',
@@ -1373,6 +1416,11 @@ function isDemo(id){ return id === DEMO_ID; }
    ============================================================ */
 const CARDS=[{n:"Polinore, Prime Archivist",t:"U",f:"C",tr:["Seeker", "Human"]},{n:"Runefold Gauntlet",t:"G",f:"C",tr:["Polinore, Prime Archivist"]},{n:"Londriel, Spellwarden",t:"U",f:"CO",tr:["Seeker", "Erisyr"]},{n:"Ark of Lamentation",t:"G",f:"C",tr:["Londriel, Spellwarden"]},{n:"Spellbound Bahig'udjin",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Scholar",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Gargoyle",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Artillerist",t:"U",f:"C",tr:["Human"]},{n:"Akhenzan Shieldmage",t:"U",f:"C",tr:["Human"]},{n:"Momentum Weaver",t:"U",f:"C",tr:["Human"]},{n:"Virtahn Battlecaster",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Devourer",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Gateway Guardian",t:"U",f:"C",tr:["Construct"]},{n:"Warden's Lancer",t:"U",f:"CO",tr:["Construct"]},{n:"Twin Flames",t:"S",f:"C",tr:["Channel"]},{n:"Shatter",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Stride",t:"S",f:"C",tr:["Channel"]},{n:"Rewrite Destiny",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Discharge",t:"S",f:"C",tr:["Channel"]},{n:"Telekinesis",t:"S",f:"C",tr:["Channel"]},{n:"Dimension Breach",t:"S",f:"C",tr:["Channel"]},{n:"Brewing Fate",t:"S",f:"C",tr:["Swift"]},{n:"Neutralizing Ward",t:"S",f:"C",tr:["Swift"]},{n:"Shifting Winds",t:"S",f:"C",tr:["Swift"]},{n:"Amblis Transposition",t:"S",f:"C",tr:["Channel"]},{n:"Demanifest",t:"S",f:"C",tr:["Channel"]},{n:"Duplicate",t:"S",f:"C",tr:["Channel"]},{n:"Runefold Ward",t:"S",f:"C",tr:["Swift"]},{n:"Reversion",t:"S",f:"CO",tr:["Swift"]},{n:"Resonant Guard",t:"S",f:"CO",tr:["Swift"]},{n:"Arcane Sentinel",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Reckless Researcher",t:"U",f:"C",tr:["Human", "Abomination"]},{n:"Nariev, Master of the Grotesque",t:"U",f:"C",tr:["Erisyr"]},{n:"Mind Harvest",t:"S",f:"C",tr:["Channel"]},{n:"Rippling Potential",t:"S",f:"C",tr:["Channel"]},{n:"Great Shield",t:"A",f:"",tr:["Item"]},{n:"Scout's Boots",t:"A",f:"",tr:["Item"]},{n:"Scoundrel's Blade",t:"A",f:"",tr:["Item"]},{n:"Amulet of Vigor",t:"A",f:"",tr:["Item"]},{n:"Shadow Shroud",t:"A",f:"",tr:["Item"]},{n:"Feral Gauntlets",t:"A",f:"",tr:["Item"]},{n:"Hunter's Bow",t:"A",f:"",tr:["Item"]},{n:"Horned Helmet",t:"A",f:"",tr:["Item"]},{n:"Sacred Prayerbook",t:"A",f:"",tr:["Item"]},{n:"Winged Sandals",t:"A",f:"",tr:["Item"]},{n:"Ring of Vitality",t:"A",f:"",tr:["Item"]},{n:"Reinforced Plate",t:"A",f:"",tr:["Item"]},{n:"Tear of Gold",t:"A",f:"",tr:["Item"]},{n:"Umberland Lantern",t:"A",f:"",tr:["Item"]},{n:"Goredrinker Axe",t:"A",f:"",tr:["Item"]},{n:"Seal of the Nexi",t:"A",f:"",tr:["Item"]},{n:"Vorendal, the Dreadheart",t:"U",f:"L",tr:["Seeker", "Fallen"]},{n:"Heartlock",t:"G",f:"L",tr:["Vorendal, the Dreadheart"]},{n:"Countess Morrida Umberland",t:"U",f:"LC",tr:["Seeker", "Human"]},{n:"Soul-Stitcher",t:"G",f:"L",tr:["Countess Morrida Umberland"]},{n:"Stitched Corpse",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Anush-Vah Disciple",t:"U",f:"L",tr:["Human"]},{n:"Dead-at-Arms",t:"U",f:"L",tr:["Fallen"]},{n:"Deadeye Archer",t:"U",f:"L",tr:["Fallen"]},{n:"Fleshripper",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Soulwhisperer",t:"U",f:"L",tr:["Human"]},{n:"Duskwood Prowler",t:"U",f:"L",tr:["Fallen", "Abomination"]},{n:"Sestinar, the Silent",t:"U",f:"L",tr:["Human"]},{n:"Thrice Murdered",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Umberland Shade",t:"U",f:"LC",tr:["Fallen", "Spirit"]},{n:"Gift of Flesh",t:"S",f:"L",tr:["Channel"]},{n:"Mend the Dead",t:"S",f:"L",tr:["Channel"]},{n:"Corpse Explosion",t:"S",f:"L",tr:["Channel"]},{n:"Forced March",t:"S",f:"L",tr:["Channel"]},{n:"Writhing Pain",t:"S",f:"L",tr:["Channel"]},{n:"Dark Bindings",t:"S",f:"L",tr:["Channel"]},{n:"Curse of Lethargy",t:"S",f:"L",tr:["Swift"]},{n:"Drown in Oblivion",t:"S",f:"L",tr:["Swift"]},{n:"Back for More",t:"S",f:"L",tr:["Swift"]},{n:"Price of Devotion",t:"S",f:"L",tr:["Swift"]},{n:"Brutal Outburst",t:"S",f:"L",tr:["Swift"]},{n:"Entrap the Mind",t:"S",f:"L",tr:["Channel"]},{n:"Death's Call",t:"S",f:"L",tr:["Channel"]},{n:"Unmake",t:"S",f:"L",tr:["Channel"]},{n:"Dreadheart's Presence",t:"S",f:"L",tr:["Swift"]},{n:"Disembody",t:"S",f:"LC",tr:["Swift"]},{n:"Spell Plunder",t:"S",f:"LC",tr:["Channel"]},{n:"Griza, Lingering Wound",t:"U",f:"LO",tr:["Seeker", "Spirit"]},{n:"Ihreniv",t:"G",f:"LO",tr:["Griza, Lingering Wound"]},{n:"Disgraced Kinship",t:"U",f:"L",tr:["Fallen"]},{n:"Tragedy of the Wronged",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Barrow Defiler",t:"U",f:"L",tr:["Abomination"]},{n:"Tragedy of Greed",t:"U",f:"LO",tr:["Spirit"]},{n:"Deadly Bargain",t:"S",f:"L",tr:["Channel"]},{n:"Pact of Demise",t:"S",f:"L",tr:["Channel"]},{n:"Somber Surrender",t:"S",f:"LO",tr:["Swift"]},{n:"Dilemma of Fate",t:"S",f:"LO",tr:["Channel"]},{n:"Sigrith Andravos",t:"U",f:"O",tr:["Seeker", "Human"]},{n:"Andravon",t:"G",f:"O",tr:["Sigrith Andravos"]},{n:"Auric Evenhand",t:"U",f:"OP",tr:["Seeker", "Vulkir"]},{n:"Will of the Forge",t:"G",f:"",tr:["Auric Evenhand"]},{n:"Knight of Astaris",t:"U",f:"O",tr:["Human"]},{n:"Valcarist Priest",t:"U",f:"O",tr:["Human"]},{n:"Armored Revenant",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Citadel Crossbowman",t:"U",f:"O",tr:["Human"]},{n:"Truestone Exemplar",t:"U",f:"O",tr:["Vulkir"]},{n:"Warfront Commander",t:"U",f:"O",tr:["Human"]},{n:"Astaris Battlemaster",t:"U",f:"O",tr:["Vulkir"]},{n:"Herald of Salvation",t:"U",f:"O",tr:["Human", "Hallowed"]},{n:"Rogarth, the Breaker",t:"U",f:"O",tr:["Human"]},{n:"Twinblades Skirmisher",t:"U",f:"OP",tr:["Human"]},{n:"Valorous Command",t:"S",f:"O",tr:["Channel"]},{n:"Healing Light",t:"S",f:"O",tr:["Channel"]},{n:"Answer the Call",t:"S",f:"O",tr:["Channel"]},{n:"Convoke",t:"S",f:"O",tr:["Channel"]},{n:"Barter",t:"S",f:"O",tr:["Channel"]},{n:"Second Wind",t:"S",f:"O",tr:["Channel"]},{n:"Rites of Might",t:"S",f:"O",tr:["Channel"]},{n:"Death Undone",t:"S",f:"O",tr:["Swift"]},{n:"Ward of Valcaris",t:"S",f:"O",tr:["Swift"]},{n:"Rites of Healing",t:"S",f:"O",tr:["Channel"]},{n:"Decree of Valcaris",t:"S",f:"O",tr:["Channel"]},{n:"Shield of Andravos",t:"S",f:"O",tr:["Swift"]},{n:"Enforce Balance",t:"S",f:"O",tr:["Swift"]},{n:"Call to Arms",t:"S",f:"OP",tr:["Channel"]},{n:"Rebounding Throw",t:"S",f:"OP",tr:["Channel"]},{n:"Brighthold Custodian",t:"U",f:"O",tr:["Human"]},{n:"Epher, the Setting Sun",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Revalis Penitent",t:"U",f:"O",tr:["Human"]},{n:"Rush of Salvation",t:"S",f:"O",tr:["Swift"]},{n:"Echo of Sarstan",t:"S",f:"O",tr:["Swift"]},{n:"Thundersteps",t:"U",f:"P",tr:["Seeker", "Tyran"]},{n:"Storm's Eye",t:"G",f:"P",tr:["Thundersteps"]},{n:"In'Gor, the Spiritbound",t:"U",f:"PL",tr:["Seeker", "Oerikan", "Abomination"]},{n:"Effigy of Chaos",t:"G",f:"P",tr:["In'Gor, the Spiritbound"]},{n:"Tarok Beast",t:"U",f:"P",tr:["Beast"]},{n:"Spirit Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Primal Totem",t:"U",f:"P",tr:["Construct"]},{n:"Cabra Mauler",t:"U",f:"P",tr:["Vulkir"]},{n:"Boneclaw Raider",t:"U",f:"P",tr:["Human"]},{n:"Farsight Ambusher",t:"U",f:"P",tr:["Erisyr"]},{n:"Bloodfrenzy Berserker",t:"U",f:"P",tr:["Oerikan"]},{n:"Mugq'Tovor, Bodybreaker",t:"U",f:"P",tr:["Abomination"]},{n:"Bloodfeast Raptor",t:"U",f:"P",tr:["Beast"]},{n:"Cursehost Boar",t:"U",f:"PL",tr:["Beast", "Abomination"]},{n:"Hunter's Sense",t:"S",f:"P",tr:["Channel"]},{n:"Consume Carcass",t:"S",f:"P",tr:["Channel"]},{n:"Heartstab Blast",t:"S",f:"P",tr:["Channel"]},{n:"Nature's Wrath",t:"S",f:"P",tr:["Channel"]},{n:"Adrenaline Rush",t:"S",f:"P",tr:["Channel"]},{n:"Fortune's Favor",t:"S",f:"P",tr:["Swift"]},{n:"Retribution",t:"S",f:"P",tr:["Swift"]},{n:"Diehard",t:"S",f:"P",tr:["Swift"]},{n:"Seize the Initiative",t:"S",f:"P",tr:["Swift"]},{n:"Cataclysmic Blast",t:"S",f:"P",tr:["Channel"]},{n:"Unstoppable Rush",t:"S",f:"P",tr:["Channel"]},{n:"Thunderous Devastation",t:"S",f:"P",tr:["Channel"]},{n:"Endless Rage",t:"S",f:"P",tr:["Swift"]},{n:"Chaotic Bargain",t:"S",f:"PL",tr:["Channel"]},{n:"Ravenous Swarm",t:"S",f:"PL",tr:["Channel"]},{n:"Kar-Mamok",t:"U",f:"PC",tr:["Seeker", "Abomination"]},{n:"Liena, Who Dreams",t:"G",f:"P",tr:["Kar-Mamok"]},{n:"Paxos Gorehorn",t:"U",f:"P",tr:["Shifter"]},{n:"Woe-Caster Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Sek'Takar, Scarred Arsonist",t:"U",f:"P",tr:["Oerikan"]},{n:"Uncaged Experiment",t:"U",f:"PC",tr:["Beast", "Spellbound"]},{n:"Trial of Stone",t:"S",f:"P",tr:["Channel"]},{n:"Choice of Brutality",t:"S",f:"P",tr:["Channel"]},{n:"Arcane Mirroring",t:"S",f:"PC",tr:["Swift"]},{n:"Trample Through",t:"S",f:"PC",tr:["Channel"]},{n:"Tempest Scepter",t:"A",f:"",tr:["Relic"]},{n:"Ring of Time",t:"A",f:"",tr:["Relic"]},{n:"Veilpiercer",t:"A",f:"",tr:["Relic"]},{n:"Everlasting Heart",t:"A",f:"",tr:["Relic"]},{n:"Umbral Cloak",t:"A",f:"",tr:["Relic"]},{n:"Helm of Wrath",t:"A",f:"",tr:["Relic"]},{n:"Everkeep Reliquary",t:"A",f:"",tr:["Relic"]},{n:"Martyr's Vexillum",t:"A",f:"",tr:["Relic"]},{n:"Guardian's Aegis",t:"A",f:"",tr:["Relic"]},{n:"Reaper's Edge",t:"A",f:"",tr:["Relic"]},{n:"Trapjaw Chain",t:"A",f:"",tr:["Relic"]},{n:"Boots of Celerity",t:"A",f:"",tr:["Relic"]},{n:"Fang of the Damned",t:"A",f:"",tr:["Relic"]},{n:"Spelleater Mask",t:"A",f:"",tr:["Relic"]},{n:"Vengeance and Retribution",t:"A",f:"",tr:["Relic"]},{n:"Noxious Fleshgardens",t:"T",f:""},{n:"Starcast Halls",t:"T",f:""},{n:"Deathshroud Mire",t:"T",f:""},{n:"Astarian Pathways",t:"T",f:""},{n:"Behemoth Khuyakine",t:"U",f:"P",tr:["Beast"]},{n:"Murder of Shriekers",t:"U",f:"P",tr:["Beast"]},{n:"Irynia and Aratan",t:"U",f:"P",tr:["Oerikan", "Shifter"]},{n:"Ymirian Rage",t:"S",f:"P",tr:["Channel"]},{n:"Landshift",t:"S",f:"P",tr:["Swift"]},{n:"Raptor's Lift",t:"S",f:"P",tr:["Channel"]},{n:"Thaumite Mercenary",t:"U",f:"C",tr:["Human"]},{n:"Liastrum Accumulator",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Athan, Prime Decimator",t:"U",f:"C",tr:["Human"]},{n:"Liastrum Decimation",t:"S",f:"C",tr:["Channel"]},{n:"Crackling Trap",t:"S",f:"C",tr:["Channel"]},{n:"Salvage",t:"S",f:"C",tr:["Channel"]},{n:"Gilded Sentries",t:"U",f:"O",tr:["Human"]},{n:"Discordant Voice",t:"U",f:"O",tr:["Human"]},{n:"Siro, Hand of Law",t:"U",f:"O",tr:["Vulkir"]},{n:"Triumvirate Liturgy",t:"S",f:"O",tr:["Channel"]},{n:"Demand Confession",t:"S",f:"O",tr:["Channel"]},{n:"Twisted Charity",t:"S",f:"O",tr:["Channel"]},{n:"Masarin Deathsinger",t:"U",f:"L",tr:["Fallen", "Horror"]},{n:"Mashr",t:"U",f:"L",tr:["Human"]},{n:"Champion of Drav",t:"U",f:"L",tr:["Fallen", "Horror"]},{n:"Choice of Malady",t:"S",f:"L",tr:["Channel"]},{n:"Soul Mimicry",t:"S",f:"L",tr:["Channel"]},{n:"Horrific Archery",t:"S",f:"L",tr:["Channel"]},{n:"Myrkosian Magnifier",t:"A",f:"C",tr:["Item"]},{n:"Oskarite Blade",t:"A",f:"L",tr:["Item"]},{n:"Expiatrine Scourge",t:"A",f:"O",tr:["Item"]},{n:"Avakran Flute",t:"A",f:"P",tr:["Item"]}];
 const FNAME={C:'Conclave of the Sphere',O:'Order of the Shattered Throne',L:'Legion of the Fallen',P:'Primal Blood'};
+const LICON={C:ASSETS.conclave,O:ASSETS.order,L:ASSETS.legion,P:ASSETS.primal};
+function fBadges(f){
+  return f ? f.split('').map(l=>`<img class="ficn" src="${LICON[l]}" title="${FNAME[l]}" alt="${FNAME[l]}">`).join('')
+           : '<span class="fbadge fN" title="Neutral">N</span>';
+}
 const TNAME={U:'Unit',G:'Legacy',S:'Spell',A:'Attachment',T:'Terrain'};
 function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
 function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
@@ -1855,105 +1903,111 @@ function wrColor(wr, n){
   return 'var(--crimson)';
 }
 
+/* ============================================================
+   SEEKER META — overview + drill-down.
+   Overview: every Seeker with faction icons, pick rate and win rate,
+   dual factions counted for both sides. Tap one for matchups, the
+   terrain sets brought, and the most used cards in your own decks
+   (decks are private by design, so that slice is yours only).
+   Names are normalised before aggregating, so older spellings in
+   logged matches still count toward the right Seeker.
+   ============================================================ */
+function metaAgg(matches){
+  const agg={};
+  const touch=(name,isW,opp,ter)=>{
+    if(!name) return;
+    const k=normName(name);
+    const info=seekerByNorm(k);
+    const r=agg[k]=agg[k]||{k, name:info?info.name:name, f:info?info.f:'', w:0,l:0, vs:{}, ter:{}};
+    isW?r.w++:r.l++;
+    if(opp){ const ok=normName(opp); const v=r.vs[ok]=r.vs[ok]||{w:0,l:0}; isW?v.w++:v.l++; }
+    if(ter){ const t=r.ter[ter]=r.ter[ter]||{w:0,l:0}; isW?t.w++:t.l++; }
+  };
+  matches.forEach(m=>{
+    touch(m.winner_seeker,true, m.loser_seeker, m.winner_terrain);
+    touch(m.loser_seeker,false, m.winner_seeker, m.loser_terrain);
+  });
+  return agg;
+}
 function renderMeta(matches){
-  const withSeeker = matches.filter(m=>m.winner_seeker||m.loser_seeker);
-  if(withSeeker.length < 3){
-    return `<div class="empty">Not enough data yet. Meta stats appear once players start
-      recording which Seeker and terrain they played.<br><br>
-      <span style="font-size:13px">${withSeeker.length} match${withSeeker.length===1?'':'es'} with meta data so far.</span></div>`;
+  cache.metaMatches = matches;
+  if(!matches.length)
+    return `<div class="empty">Not enough data yet. Meta stats appear once players start logging matches with their Seekers.</div>`;
+  return window._metaSeeker ? metaDetail(matches, window._metaSeeker) : metaOverview(matches);
+}
+function metaOverview(matches){
+  const agg=metaAgg(matches);
+  const rows=Object.values(agg).map(r=>({...r,n:r.w+r.l,wr:r.w/(r.w+r.l)}))
+    .sort((a,b)=>b.n-a.n||b.wr-a.wr);
+  const slots=matches.length*2;
+  let h=`<h2 style="margin:0 0 2px">Seeker meta</h2>
+    <p class="hint" style="margin:0 0 14px">${matches.length} ${matches.length===1?'match':'matches'} analysed.
+      Tap a Seeker for matchups, terrains and deck cards.</p>`;
+  const fs={C:0,O:0,L:0,P:0}; let credited=0;
+  rows.forEach(r=>{ if(r.f){ [...r.f].forEach(l=>fs[l]+=r.n); credited+=r.n; } });
+  if(credited){
+    h+=`<div class="fs-strip">
+      ${['C','O','L','P'].map(l=>`<span class="fs-i">${fBadges(l)}<b>${pct(fs[l]/credited)}</b></span>`).join('')}
+      <span class="fs-note">dual-faction Seekers count for both</span></div>`;
   }
-
-  const sk = seekerStats(withSeeker);
-  const fc = factionStats(withSeeker);
-  const tr = terrainStats(withSeeker.filter(m=>m.winner_terrain||m.loser_terrain));
-  const {names, M} = matchupMatrix(withSeeker);
-  const maxPick = Math.max(...sk.map(s=>s.pick), 0.01);
-
-  let h = `<div class="stat-strip">
-    <div class="stat"><b>${withSeeker.length}</b><small>Matches tracked</small></div>
-    <div class="stat"><b>${sk.length}</b><small>Seekers seen</small></div>
-    <div class="stat"><b>${tr.length}</b><small>Terrains played</small></div>
-    <div class="stat"><b>${pct(sk.length? sk.reduce((a,s)=>a+s.picks,0)/(withSeeker.length*2):0)}</b><small>Meta coverage</small></div>
-  </div>`;
-
-  // --- Seeker pick rate + win rate ---
-  h += `<h3>Seeker pick rate &amp; win rate</h3>`;
-  h += sk.map(s=>`
-    <div class="bar-row">
-      <div class="bar-label">${esc(s.name)}</div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${(s.pick/maxPick*100).toFixed(1)}%;background:${factionColor(s.faction)}"></div>
-      </div>
-      <div class="bar-val">${pct(s.pick)} · <span style="color:${wrColor(s.wr,s.picks)}">${pct(s.wr)} WR</span> · ${s.picks}n</div>
+  h+=rows.map(r=>`<div class="sk-row" onclick="metaOpenSeeker('${r.k}')">
+      <div class="sk-ic">${r.f?fBadges(r.f):''}</div>
+      <div class="sk-main"><div class="sk-name">${esc(r.name)}</div>
+        <div class="sk-sub">picked in ${r.n} of ${slots} slots · ${pct(r.n/slots)} pick rate</div></div>
+      <div class="sk-wr"><b style="color:${wrColor(r.wr,r.n)}">${pct(r.wr)}</b><small>${r.w}–${r.l}</small></div>
     </div>`).join('');
-  h += `<div class="legend">` + Object.entries(FACTIONS).map(([n,f])=>
-    `<span>${fIcon(n,true)}${esc(n)}</span>`).join('') + `</div>`;
-
-  // --- Faction summary ---
-  h += `<h3>Faction share</h3><table><thead><tr>
-    <th>Faction</th><th class="num">Games</th><th class="num">Share</th><th class="num">Win rate</th>
-    </tr></thead><tbody>` +
-    fc.map(f=>`<tr>
-      <td>${fIcon(f.name)}${esc(f.name)}</td>
-      <td class="num">${f.picks}</td>
-      <td class="num">${pct(f.pick)}</td>
-      <td class="num" style="color:${wrColor(f.wr,f.picks)}">${pct(f.wr)}</td>
-    </tr>`).join('') + `</tbody></table>`;
-
-  // --- Matchup matrix ---
-  const anyMatchup = names.some(a=>names.some(b=>a!==b&&M[a][b].n>0));
-  if(anyMatchup){
-    h += `<h3>Faction matchups <span style="text-transform:none;letter-spacing:0;font-family:'Barlow';color:var(--bone-dim);font-weight:400">— row's win rate vs column</span></h3>`;
-    h += `<div class="matrix"><table><thead><tr><th></th>` +
-      names.map(n=>`<th class="vert num">${esc(n.split(' ').slice(-1)[0])}</th>`).join('') +
-      `</tr></thead><tbody>` +
-      names.map(a=>`<tr><td style="font-size:13px">${fIcon(a,true)}${esc(a)}</td>` +
-        names.map(b=>{
-          if(a===b) return `<td class="cell" style="color:var(--line-2)">—</td>`;
-          const c=M[a][b];
-          if(!c.n) return `<td class="cell" style="color:var(--line-2)">·</td>`;
-          const wr=c.w/c.n;
-          const ic=crossIcon(a,b);
-          return `<td class="cell" title="${esc(a)} vs ${esc(b)} — ${c.w} of ${c.n}">
-            ${ic?`<img class="mx-ic" src="${ic}" alt="">`:''}
-            <span style="color:${wrColor(wr,c.n)}">${pct(wr)}</span>
-            <br><span style="font-size:9px;color:var(--bone-dim)">${c.n}n</span></td>`;
-        }).join('') + `</tr>`).join('') +
-      `</tbody></table></div>
-      <p class="hint" style="margin-top:10px;font-size:12.5px">Each glyph shows the row's symbol in the
-      column faction's colours. Cells with fewer than 5 games are greyed — treat them as noise.</p>`;
-  }
-
-  // --- Terrain ---
-  if(tr.length){
-    h += `<h3>Terrain impact</h3><table><thead><tr>
-      <th>Terrain</th><th class="num">On table</th>
-      <th class="num" title="Win rate of the player who brought this set">Own set</th>` +
-      Object.keys(FACTIONS).map(f=>`<th class="num" style="font-size:9.5px">${esc(f.split(' ').slice(-1)[0])}</th>`).join('') +
-      `</tr></thead><tbody>` +
-      tr.map(t=>{
-        const own = t.broughtWr===null ? `<td class="num" style="color:var(--line-2)">·</td>`
-          : `<td class="num" style="color:${wrColor(t.broughtWr,t.broughtN)}"
-               title="${t.broughtW} wins in ${t.broughtN} matches where a player brought this set">
-               ${pct(t.broughtWr)}<span style="color:var(--bone-dim);font-size:10px"> · ${t.broughtN}n</span></td>`;
-        return `<tr><td>${esc(t.name)}</td><td class="num">${t.games}</td>${own}` +
-          Object.keys(FACTIONS).map(f=>{
-            const c=t.byFaction[f];
-            if(!c||!c.n) return `<td class="num" style="color:var(--line-2)">·</td>`;
-            const wr=c.w/c.n;
-            return `<td class="num" style="color:${wrColor(wr,c.n)}" title="${c.w}/${c.n}">${pct(wr)}</td>`;
-          }).join('') + `</tr>`;
-      }).join('') +
-      `</tbody></table>
-      <p class="hint" style="margin-top:10px;font-size:12.5px">
-        <b>On table</b>: matches where this set was in play, brought by either player.
-        <b>Own set</b>: how often the player who brought it went on to win — above 50% suggests
-        the set rewards knowing it. The faction columns show each faction's win rate when this
-        set was on the table.</p>`;
-  }
-
   return h;
 }
+function metaDetail(matches, k){
+  const agg=metaAgg(matches);
+  const r=agg[k];
+  if(!r){ window._metaSeeker=null; return metaOverview(matches); }
+  const n=r.w+r.l, wr=r.w/n;
+  let h=`<button class="link" onclick="metaOpenSeeker(null)">← All Seekers</button>
+    <div class="sk-head">
+      <div class="sk-ic big">${r.f?fBadges(r.f):''}</div>
+      <div><h2 style="margin:0">${esc(r.name)}</h2>
+        <p class="hint" style="margin:2px 0 0">${n} games ·
+          <b style="color:${wrColor(wr,n)}">${pct(wr)}</b> win rate (${r.w}–${r.l})</p></div>
+    </div>`;
+  const vs=Object.keys(r.vs).map(ok=>{const v=r.vs[ok];const info=seekerByNorm(ok);
+    return {name:info?info.name:ok, f:info?info.f:'', ...v, n:v.w+v.l};}).sort((a,b)=>b.n-a.n);
+  h+=`<h3 style="margin:18px 0 8px">Matchups</h3>`+
+    (vs.length?vs.map(v=>`<div class="sk-row plain">
+      <div class="sk-ic">${v.f?fBadges(v.f):''}</div>
+      <div class="sk-main"><div class="sk-name">${esc(v.name)}</div><div class="sk-sub">${v.n} ${v.n===1?'game':'games'}</div></div>
+      <div class="sk-wr"><b style="color:${wrColor(v.w/v.n,v.n)}">${pct(v.w/v.n)}</b><small>${v.w}–${v.l}</small></div>
+    </div>`).join(''):`<div class="empty">No matchup data yet.</div>`);
+  const ter=Object.keys(r.ter).map(t=>({t,...r.ter[t],n:r.ter[t].w+r.ter[t].l})).sort((a,b)=>b.n-a.n);
+  if(ter.length){
+    h+=`<h3 style="margin:18px 0 8px">Terrain sets brought</h3>`+ter.map(v=>`<div class="sk-row plain">
+      <div class="sk-main"><div class="sk-name plainname">${esc(v.t)}</div><div class="sk-sub">${v.n} ${v.n===1?'game':'games'}</div></div>
+      <div class="sk-wr"><b style="color:${wrColor(v.w/v.n,v.n)}">${pct(v.w/v.n)}</b><small>${v.w}–${v.l}</small></div>
+    </div>`).join('');
+  }
+  if(me && cache.myDecks){
+    const dks=(cache.myDecks||[]).filter(d=>d.cards && normName(d.seeker||'')===k);
+    const agg2={};
+    dks.forEach(d=>Object.keys(d.cards).forEach(cn=>{const a2=agg2[cn]=agg2[cn]||{c:0,d:0};a2.c+=d.cards[cn];a2.d++;}));
+    const top=Object.keys(agg2).map(cn=>({cn,...agg2[cn]})).sort((a,b)=>b.c-a.c).slice(0,10);
+    if(top.length){
+      h+=`<h3 style="margin:18px 0 2px">Most used cards in your decks</h3>
+        <p class="hint" style="margin:0 0 8px">From your saved decks for this Seeker — decks are private, so this reflects your builds only.</p>`
+        +top.map(t=>{const i=CARD_IDX[t.cn];const c=CARDS[i];return `<div class="col-row">
+          ${c?cardThumb(i):''}
+          <div class="col-main"><div class="col-name">${esc(t.cn)}</div>
+            <div class="col-sub">${t.c} ${t.c===1?'copy':'copies'} in ${t.d} ${t.d===1?'deck':'decks'}</div></div>
+          <div class="col-facs">${c?fBadges(c.f):''}</div>
+        </div>`;}).join('');
+    }
+  }
+  return h;
+}
+function metaOpenSeeker(k){
+  window._metaSeeker=k;
+  if(window._metaRepaint) window._metaRepaint();
+}
+
 /* ============================================================
    CHROME (header + tabs)
    ============================================================ */
@@ -1999,7 +2053,7 @@ function navModel(){
   }
   nav.push({id:'utilities', label:'Utilities', icon:'✦', group:[
     {id:'ut-tracker', label:'Game tracker', go:"closeSheet();go('tracker')"},
-    {id:'ut-perf',    label:'Performance',  go:"closeSheet();go('meta')"},
+    {id:'ut-perf',    label:'Performance',  go:"closeSheet();window._metaSeeker=null;go('meta')"},
     {id:'ut-rules',   label:'Rules',        go:"closeSheet();go('rules')"},
   ]});
   return nav;
@@ -2036,8 +2090,6 @@ function renderChrome(){
       h+=`<select id="lg-switch" class="lg-switch" onchange="setActiveLeague(this.value)">
         ${ls.map(l=>`<option value="${l.id}" ${l.id===getActiveLeagueId()?'selected':''}>${esc(l.name)}</option>`).join('')}
       </select>`;
-    }else if(me && ls.length===1){
-      h+=`<span class="lg-current-name">${esc(ls[0].name)}</span>`;
     }
     if(me){
       h+=`<button class="avatar" onclick="go('profile')" title="${esc(me.display_name)}" aria-label="Profile">${esc((me.display_name||'?')[0].toUpperCase())}</button>
@@ -2153,7 +2205,6 @@ async function renderBrowse(){
   renderChrome();   // the sidebar's League group depends on myLeagues being loaded
   paintHomeHead();
   paintHomeEvent();
-  paintHomeQuick();
   paintHomeStats();
   paintMine();
   paintHomeFind();
@@ -2237,40 +2288,6 @@ async function homeCheckIn(sid){
   if(error) return toast(error.message);
   toast('Checked in', true);
   renderBrowse();
-}
-
-/* ---- Home: three quick cards ---- */
-function paintHomeQuick(){
-  const el=$('home-quick'); if(!el) return;
-  if(!me){ el.innerHTML=''; return; }
-  const lg=activeLeague();
-  let standing='—', of='join a league to compete';
-  if(lg){
-    const mk=todayStr().slice(0,7);
-    let rows=computeStandings(lg, cache.homeSessions||[], cache.homeMatches||[], mk);
-    if(!rows.some(r=>r.id===me.id)) rows=computeStandings(lg, cache.homeSessions||[], cache.homeMatches||[], 'all');
-    const i=rows.findIndex(r=>r.id===me.id);
-    if(i>=0){ standing=ordinal(i+1); of=`of ${rows.length} players`; }
-    else of='no matches yet';
-  }
-  const decks=(cache.myDecks||[]).length;
-  el.innerHTML=`<div class="quick-grid">
-    <div class="qcard" onclick="${lg?`goLeagueTab('standings')`:`go('browse')`}">
-      <div class="q-label">Your standing</div>
-      <div class="q-big">${standing}</div>
-      <div class="q-sub">${of}</div>
-    </div>
-    <div class="qcard" onclick="go('profile')">
-      <div class="q-label">My decks</div>
-      <div class="q-big dim">${decks}</div>
-      <div class="q-sub">${decks===1?'deck saved':'decks saved'} · manage →</div>
-    </div>
-    <div class="qcard" onclick="go('tracker')">
-      <div class="q-label">Game tracker</div>
-      <div class="q-big dim">▶</div>
-      <div class="q-sub">Mastery, Echo &amp; relics at the table →</div>
-    </div>
-  </div>`;
 }
 
 /* ---- Home: the stats band ---- */
@@ -2732,35 +2749,9 @@ async function renderMetaView(){
   body.innerHTML = `<div class="empty"><span class="spinner"></span> Crunching matches…</div>`;
   let matches = scope.value==='global' ? await fetchAllMatches() : await fetchMatches(scope.value);
   matches = windowFilter(matches, $('meta-window').value);
-  let h = renderMeta(matches);
-  // Most included cards — computed from YOUR saved decks only: decks are
-  // private by design (own-only RLS), so there's no global aggregate to read.
-  if(me){
-    if(!cache.myDecks) cache.myDecks=await fetchMyDecks();
-    await detectCardImgs();
-    const agg={};
-    (cache.myDecks||[]).forEach(d=>{
-      if(!d.cards) return;
-      Object.keys(d.cards).forEach(k=>{
-        const r=agg[k]=agg[k]||{copies:0,decks:0};
-        r.copies+=d.cards[k]; r.decks++;
-      });
-    });
-    const top=Object.keys(agg).map(k=>({k,...agg[k]})).sort((a,b)=>b.copies-a.copies).slice(0,12);
-    if(top.length){
-      h+=`<div class="panel plain" style="margin-top:16px">
-        <h2 style="margin:0 0 2px">Most included cards</h2>
-        <p class="hint" style="margin:0 0 12px">Across your saved decks. Decks are private, so this reflects your builds only.</p>
-        ${top.map(r=>{const c=CARDS[CARD_IDX[r.k]];return `<div class="col-row">
-          ${c?cardThumb(CARD_IDX[r.k]):''}
-          <div class="col-main"><div class="col-name">${esc(r.k)}</div>
-            <div class="col-sub">${c?TNAME[c.t]:''} · ${r.copies} ${r.copies===1?'copy':'copies'} in ${r.decks} ${r.decks===1?'deck':'decks'}</div></div>
-          <div class="col-facs">${c&&c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join(''):''}</div>
-        </div>`;}).join('')}
-      </div>`;
-    }
-  }
-  body.innerHTML = h;
+  if(me){ if(!cache.myDecks) cache.myDecks=await fetchMyDecks(); await detectCardImgs(); }
+  window._metaRepaint = ()=>{ $('meta-body').innerHTML = renderMeta(cache.metaMatches); };
+  body.innerHTML = renderMeta(matches);
 }
 
 function renderTracker(){
@@ -3041,7 +3032,10 @@ async function renderLeague(){
   if(cur==='standings')  body.innerHTML = paintStandings(league, sessions, matches, members);
   if(cur==='events')     body.innerHTML = paintEvents(league, sessions, matches, members, admin, member);
   if(cur==='past')       body.innerHTML = paintPastEvents(league, sessions, matches, members, admin, member);
-  if(cur==='meta')       body.innerHTML = `<div class="panel plain">${renderMeta(matches)}</div>`;
+  if(cur==='meta'){
+    window._metaRepaint = ()=>{ body.innerHTML = `<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`; };
+    body.innerHTML = `<div class="panel plain">${renderMeta(matches)}</div>`;
+  }
   if(cur==='tournament') await paintTournament(league, sessions, matches, members, admin);
   if(cur==='manage')     body.innerHTML = paintManage(league, members);
 }
@@ -3827,11 +3821,17 @@ function paintCollection(){
       <div class="qcard"><div class="q-label">Painted</div><div class="q-big dim">${painted}</div></div>
       <div class="qcard"><div class="q-label">Standees</div><div class="q-big dim">${standee}</div></div>
     </div>
-    <input type="text" id="col-q" placeholder="Search cards…" value="${esc(window._colQ||'')}"
-      oninput="window._colQ=this.value; paintColList();" style="margin:4px 0 10px">
+    <div class="col-search-row">
+      <input type="text" id="col-q" placeholder="Search cards…" value="${esc(window._colQ||'')}"
+        oninput="window._colQ=this.value; paintColList();">
+      <button class="filt-btn ${window._colFO?'on':''}" onclick="window._colFO=!window._colFO;paintCollection()">
+        Filters${(()=>{const n=[window._colF,window._colT,window._colOwn,window._colTr].filter(Boolean).length;return n?` (${n})`:'';})()}
+      </button>
+    </div>
+    <div class="col-filters ${window._colFO?'open':''}">
     <div class="chip-row">
       ${[['','All'],['C','Conclave'],['O','Order'],['L','Legion'],['P','Primal'],['N','Neutral']].map(([v,l])=>
-        `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${l}</button>`).join('')}
+        `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${LICON[v]?`<img class="ficn sm" src="${LICON[v]}" alt="">`:''}${l}</button>`).join('')}
     </div>
     <div class="chip-row">
       ${[['','All types'],['U','Units'],['S','Spells'],['A','Attachments'],['T','Terrains'],['G','Legacies']].map(([v,l])=>
@@ -3847,6 +3847,7 @@ function paintCollection(){
       </select>
       ${(window._colQ||window._colF||window._colT||window._colOwn||window._colTr)?
         `<button class="fchip clear" onclick="window._colQ='';window._colF='';window._colT='';window._colOwn='';window._colTr='';paintCollection()">✕ Clear all</button>`:''}
+    </div>
     </div>
     <div class="col-count" id="col-count"></div>
     <div id="col-list"></div>
@@ -3882,7 +3883,7 @@ function paintColList(){
         <div class="col-name">${r.owned?'<span class="owndot" title="In your collection"></span>':''}${esc(c.n)}</div>
         <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
       </div>
-      <div class="col-facs">${c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join('') : '<span class="fbadge fN" title="Neutral">N</span>'}</div>
+      <div class="col-facs">${fBadges(c.f)}</div>
       <div class="col-tog">
         ${fields.map(f=>`<button class="ctog ${r[f]?'on':''}" onclick="colToggle(${i},'${f}')"
           title="${labels[f]}${f==='standee'?' (standee)':''}">${labels[f]}</button>`).join('')}
@@ -4028,7 +4029,7 @@ function paintBldPool(){
         <div class="col-name">${esc(c.n)}${bldOwned(c.n)?'':' <span class="notown" title="Not in your collection">◇</span>'}</div>
         <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
       </div>
-      <div class="col-facs">${c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join('') : '<span class="fbadge fN" title="Neutral">N</span>'}</div>
+      <div class="col-facs">${fBadges(c.f)}</div>
       <div class="bld-step">
         <button class="stp" onclick="bldSub(${i})" ${n?'':'disabled'}>−</button>
         <span class="stp-n" id="bldn-${i}">${n}</span>
