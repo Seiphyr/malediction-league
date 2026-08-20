@@ -620,6 +620,17 @@
     .col-tog{order:3;width:100%;justify-content:flex-end}
   }
 
+  /* ---- card images: thumbs + lightbox ---- */
+  .cimg{width:34px;height:48px;object-fit:cover;object-position:top;border-radius:5px;
+    border:1px solid var(--line-2);flex:0 0 auto;cursor:zoom-in;background:var(--coal-2)}
+  .cimg.off{display:none}
+  .card-light{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.78);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:zoom-out}
+  .card-light img{max-width:min(92vw,420px);max-height:78vh;border-radius:14px;
+    box-shadow:0 18px 60px rgba(0,0,0,.6)}
+  .cl-name{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--bone)}
+
   /* ---- deckbuilder ---- */
   .bld-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;margin-top:12px}
   @media(max-width:900px){ .bld-grid{grid-template-columns:minmax(0,1fr)} }
@@ -1323,6 +1334,47 @@ function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
 function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
 // Units and terrains are physical pieces: 4 statuses. Everything else: owned.
 function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','printed','painted','standee'] : ['owned']; }
+
+/* Card images live as separate files in the repo (cards/<slug>.webp) —
+   embedding 212 images would bloat the single file beyond use. Every img
+   has an onerror fallback, so the app is complete with zero, some or all
+   images uploaded. */
+function cardSlug(n){
+  return n.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/['\u2019]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'');
+}
+function cardImg(n){ return 'cards/'+cardSlug(n)+'.webp'; }
+// One cheap probe decides whether the cards/ folder exists at all: before the
+// images are uploaded the app stays cleanly text-only instead of showing 212
+// empty slots. Per-file misses (stragglers) still fall back via onerror.
+let CARD_IMGS_ON = null;
+async function detectCardImgs(){
+  if(CARD_IMGS_ON!==null) return CARD_IMGS_ON;
+  try{ const r=await fetch(cardImg('Polinore, Prime Archivist'),{method:'HEAD'}); CARD_IMGS_ON=!!r.ok; }
+  catch(e){ CARD_IMGS_ON=false; }
+  return CARD_IMGS_ON;
+}
+function cardThumb(i){
+  const c=CARDS[i]; if(!c || CARD_IMGS_ON===false) return '';
+  return `<img class="cimg" loading="lazy" src="${cardImg(c.n)}" alt=""
+    onclick="event.stopPropagation();showCard(${i})" onerror="this.classList.add('off')">`;
+}
+function showCard(i){
+  const c=CARDS[i]; if(!c) return;
+  let ov=$('card-light');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='card-light'; ov.className='card-light';
+    ov.onclick=()=>ov.remove();
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML=`<img src="${cardImg(c.n)}" alt="${esc(c.n)}"
+    onerror="document.getElementById('card-light').remove();toast('No image for this card yet')">
+    <div class="cl-name">${esc(c.n)}</div>`;
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const o=$('card-light'); if(o) o.remove(); }});
 
 
 const seekerFaction = n => (SEEKERS.find(s=>s.name===n)||{}).faction || null;
@@ -2641,6 +2693,7 @@ async function renderMetaView(){
   // private by design (own-only RLS), so there's no global aggregate to read.
   if(me){
     if(!cache.myDecks) cache.myDecks=await fetchMyDecks();
+    await detectCardImgs();
     const agg={};
     (cache.myDecks||[]).forEach(d=>{
       if(!d.cards) return;
@@ -2655,6 +2708,7 @@ async function renderMetaView(){
         <h2 style="margin:0 0 2px">Most included cards</h2>
         <p class="hint" style="margin:0 0 12px">Across your saved decks. Decks are private, so this reflects your builds only.</p>
         ${top.map(r=>{const c=CARDS[CARD_IDX[r.k]];return `<div class="col-row">
+          ${c?cardThumb(CARD_IDX[r.k]):''}
           <div class="col-main"><div class="col-name">${esc(r.k)}</div>
             <div class="col-sub">${c?TNAME[c.t]:''} · ${r.copies} ${r.copies===1?'copy':'copies'} in ${r.decks} ${r.decks===1?'deck':'decks'}</div></div>
           <div class="col-facs">${c&&c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join(''):''}</div>
@@ -3710,6 +3764,7 @@ async function renderCollection(){
   if(error){ body.innerHTML=`<div class="banner">${esc(error.message)}</div>`; return; }
   cache.collection={};
   (data||[]).forEach(r=>cache.collection[r.card_key]=r);
+  await detectCardImgs();
   paintCollection();
 }
 function colRow(key){ return cache.collection[key]||{owned:false,printed:false,painted:false,standee:false}; }
@@ -3758,6 +3813,7 @@ function paintColList(){
     const fields=colFields(c);
     const labels={owned:'Own',printed:'Print',painted:'Paint',standee:'Base'};
     return `<div class="col-row">
+      ${cardThumb(i)}
       <div class="col-main">
         <div class="col-name">${esc(c.n)}</div>
         <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
@@ -3820,6 +3876,7 @@ async function renderBuilder(){
     cache.collection={}; (data||[]).forEach(r=>cache.collection[r.card_key]=r);
   }
   const d = route.deckId ? (cache.myDecks.find(x=>x.id===route.deckId)||null) : null;
+  await detectCardImgs();
   window._bld = {
     id:d?d.id:null, name:d?d.name:'', seeker:d?(d.seeker||''):'',
     url:d?(d.url||''):'', cards:(d&&d.cards)?{...d.cards}:{},
@@ -3902,6 +3959,7 @@ function paintBldPool(){
   list.innerHTML=rows.map(({c,i})=>{
     const n=B.cards[c.n]||0;
     return `<div class="col-row bld-row" id="bldrow-${i}">
+      ${cardThumb(i)}
       <div class="col-main">
         <div class="col-name">${esc(c.n)}${bldOwned(c.n)?'':' <span class="notown" title="Not in your collection">◇</span>'}</div>
         <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
