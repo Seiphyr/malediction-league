@@ -666,6 +666,9 @@
 
   /* ---- faction icons + seeker meta + filter disclosure ---- */
   .ficn{width:20px;height:20px;object-fit:contain;vertical-align:middle}
+  .ficn.dual{width:24px;height:24px}
+  .sk-ic .ficn.dual{width:26px;height:26px}
+  .sk-ic.big .ficn.dual{width:40px;height:40px}
   .ficn.sm{width:13px;height:13px;margin-right:5px;vertical-align:-2px}
   .fs-strip{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--coal-2);
     border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px}
@@ -1417,9 +1420,34 @@ function isDemo(id){ return id === DEMO_ID; }
 const CARDS=[{n:"Polinore, Prime Archivist",t:"U",f:"C",tr:["Seeker", "Human"]},{n:"Runefold Gauntlet",t:"G",f:"C",tr:["Polinore, Prime Archivist"]},{n:"Londriel, Spellwarden",t:"U",f:"CO",tr:["Seeker", "Erisyr"]},{n:"Ark of Lamentation",t:"G",f:"C",tr:["Londriel, Spellwarden"]},{n:"Spellbound Bahig'udjin",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Scholar",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Gargoyle",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Artillerist",t:"U",f:"C",tr:["Human"]},{n:"Akhenzan Shieldmage",t:"U",f:"C",tr:["Human"]},{n:"Momentum Weaver",t:"U",f:"C",tr:["Human"]},{n:"Virtahn Battlecaster",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Devourer",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Gateway Guardian",t:"U",f:"C",tr:["Construct"]},{n:"Warden's Lancer",t:"U",f:"CO",tr:["Construct"]},{n:"Twin Flames",t:"S",f:"C",tr:["Channel"]},{n:"Shatter",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Stride",t:"S",f:"C",tr:["Channel"]},{n:"Rewrite Destiny",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Discharge",t:"S",f:"C",tr:["Channel"]},{n:"Telekinesis",t:"S",f:"C",tr:["Channel"]},{n:"Dimension Breach",t:"S",f:"C",tr:["Channel"]},{n:"Brewing Fate",t:"S",f:"C",tr:["Swift"]},{n:"Neutralizing Ward",t:"S",f:"C",tr:["Swift"]},{n:"Shifting Winds",t:"S",f:"C",tr:["Swift"]},{n:"Amblis Transposition",t:"S",f:"C",tr:["Channel"]},{n:"Demanifest",t:"S",f:"C",tr:["Channel"]},{n:"Duplicate",t:"S",f:"C",tr:["Channel"]},{n:"Runefold Ward",t:"S",f:"C",tr:["Swift"]},{n:"Reversion",t:"S",f:"CO",tr:["Swift"]},{n:"Resonant Guard",t:"S",f:"CO",tr:["Swift"]},{n:"Arcane Sentinel",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Reckless Researcher",t:"U",f:"C",tr:["Human", "Abomination"]},{n:"Nariev, Master of the Grotesque",t:"U",f:"C",tr:["Erisyr"]},{n:"Mind Harvest",t:"S",f:"C",tr:["Channel"]},{n:"Rippling Potential",t:"S",f:"C",tr:["Channel"]},{n:"Great Shield",t:"A",f:"",tr:["Item"]},{n:"Scout's Boots",t:"A",f:"",tr:["Item"]},{n:"Scoundrel's Blade",t:"A",f:"",tr:["Item"]},{n:"Amulet of Vigor",t:"A",f:"",tr:["Item"]},{n:"Shadow Shroud",t:"A",f:"",tr:["Item"]},{n:"Feral Gauntlets",t:"A",f:"",tr:["Item"]},{n:"Hunter's Bow",t:"A",f:"",tr:["Item"]},{n:"Horned Helmet",t:"A",f:"",tr:["Item"]},{n:"Sacred Prayerbook",t:"A",f:"",tr:["Item"]},{n:"Winged Sandals",t:"A",f:"",tr:["Item"]},{n:"Ring of Vitality",t:"A",f:"",tr:["Item"]},{n:"Reinforced Plate",t:"A",f:"",tr:["Item"]},{n:"Tear of Gold",t:"A",f:"",tr:["Item"]},{n:"Umberland Lantern",t:"A",f:"",tr:["Item"]},{n:"Goredrinker Axe",t:"A",f:"",tr:["Item"]},{n:"Seal of the Nexi",t:"A",f:"",tr:["Item"]},{n:"Vorendal, the Dreadheart",t:"U",f:"L",tr:["Seeker", "Fallen"]},{n:"Heartlock",t:"G",f:"L",tr:["Vorendal, the Dreadheart"]},{n:"Countess Morrida Umberland",t:"U",f:"LC",tr:["Seeker", "Human"]},{n:"Soul-Stitcher",t:"G",f:"L",tr:["Countess Morrida Umberland"]},{n:"Stitched Corpse",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Anush-Vah Disciple",t:"U",f:"L",tr:["Human"]},{n:"Dead-at-Arms",t:"U",f:"L",tr:["Fallen"]},{n:"Deadeye Archer",t:"U",f:"L",tr:["Fallen"]},{n:"Fleshripper",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Soulwhisperer",t:"U",f:"L",tr:["Human"]},{n:"Duskwood Prowler",t:"U",f:"L",tr:["Fallen", "Abomination"]},{n:"Sestinar, the Silent",t:"U",f:"L",tr:["Human"]},{n:"Thrice Murdered",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Umberland Shade",t:"U",f:"LC",tr:["Fallen", "Spirit"]},{n:"Gift of Flesh",t:"S",f:"L",tr:["Channel"]},{n:"Mend the Dead",t:"S",f:"L",tr:["Channel"]},{n:"Corpse Explosion",t:"S",f:"L",tr:["Channel"]},{n:"Forced March",t:"S",f:"L",tr:["Channel"]},{n:"Writhing Pain",t:"S",f:"L",tr:["Channel"]},{n:"Dark Bindings",t:"S",f:"L",tr:["Channel"]},{n:"Curse of Lethargy",t:"S",f:"L",tr:["Swift"]},{n:"Drown in Oblivion",t:"S",f:"L",tr:["Swift"]},{n:"Back for More",t:"S",f:"L",tr:["Swift"]},{n:"Price of Devotion",t:"S",f:"L",tr:["Swift"]},{n:"Brutal Outburst",t:"S",f:"L",tr:["Swift"]},{n:"Entrap the Mind",t:"S",f:"L",tr:["Channel"]},{n:"Death's Call",t:"S",f:"L",tr:["Channel"]},{n:"Unmake",t:"S",f:"L",tr:["Channel"]},{n:"Dreadheart's Presence",t:"S",f:"L",tr:["Swift"]},{n:"Disembody",t:"S",f:"LC",tr:["Swift"]},{n:"Spell Plunder",t:"S",f:"LC",tr:["Channel"]},{n:"Griza, Lingering Wound",t:"U",f:"LO",tr:["Seeker", "Spirit"]},{n:"Ihreniv",t:"G",f:"LO",tr:["Griza, Lingering Wound"]},{n:"Disgraced Kinship",t:"U",f:"L",tr:["Fallen"]},{n:"Tragedy of the Wronged",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Barrow Defiler",t:"U",f:"L",tr:["Abomination"]},{n:"Tragedy of Greed",t:"U",f:"LO",tr:["Spirit"]},{n:"Deadly Bargain",t:"S",f:"L",tr:["Channel"]},{n:"Pact of Demise",t:"S",f:"L",tr:["Channel"]},{n:"Somber Surrender",t:"S",f:"LO",tr:["Swift"]},{n:"Dilemma of Fate",t:"S",f:"LO",tr:["Channel"]},{n:"Sigrith Andravos",t:"U",f:"O",tr:["Seeker", "Human"]},{n:"Andravon",t:"G",f:"O",tr:["Sigrith Andravos"]},{n:"Auric Evenhand",t:"U",f:"OP",tr:["Seeker", "Vulkir"]},{n:"Will of the Forge",t:"G",f:"",tr:["Auric Evenhand"]},{n:"Knight of Astaris",t:"U",f:"O",tr:["Human"]},{n:"Valcarist Priest",t:"U",f:"O",tr:["Human"]},{n:"Armored Revenant",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Citadel Crossbowman",t:"U",f:"O",tr:["Human"]},{n:"Truestone Exemplar",t:"U",f:"O",tr:["Vulkir"]},{n:"Warfront Commander",t:"U",f:"O",tr:["Human"]},{n:"Astaris Battlemaster",t:"U",f:"O",tr:["Vulkir"]},{n:"Herald of Salvation",t:"U",f:"O",tr:["Human", "Hallowed"]},{n:"Rogarth, the Breaker",t:"U",f:"O",tr:["Human"]},{n:"Twinblades Skirmisher",t:"U",f:"OP",tr:["Human"]},{n:"Valorous Command",t:"S",f:"O",tr:["Channel"]},{n:"Healing Light",t:"S",f:"O",tr:["Channel"]},{n:"Answer the Call",t:"S",f:"O",tr:["Channel"]},{n:"Convoke",t:"S",f:"O",tr:["Channel"]},{n:"Barter",t:"S",f:"O",tr:["Channel"]},{n:"Second Wind",t:"S",f:"O",tr:["Channel"]},{n:"Rites of Might",t:"S",f:"O",tr:["Channel"]},{n:"Death Undone",t:"S",f:"O",tr:["Swift"]},{n:"Ward of Valcaris",t:"S",f:"O",tr:["Swift"]},{n:"Rites of Healing",t:"S",f:"O",tr:["Channel"]},{n:"Decree of Valcaris",t:"S",f:"O",tr:["Channel"]},{n:"Shield of Andravos",t:"S",f:"O",tr:["Swift"]},{n:"Enforce Balance",t:"S",f:"O",tr:["Swift"]},{n:"Call to Arms",t:"S",f:"OP",tr:["Channel"]},{n:"Rebounding Throw",t:"S",f:"OP",tr:["Channel"]},{n:"Brighthold Custodian",t:"U",f:"O",tr:["Human"]},{n:"Epher, the Setting Sun",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Revalis Penitent",t:"U",f:"O",tr:["Human"]},{n:"Rush of Salvation",t:"S",f:"O",tr:["Swift"]},{n:"Echo of Sarstan",t:"S",f:"O",tr:["Swift"]},{n:"Thundersteps",t:"U",f:"P",tr:["Seeker", "Tyran"]},{n:"Storm's Eye",t:"G",f:"P",tr:["Thundersteps"]},{n:"In'Gor, the Spiritbound",t:"U",f:"PL",tr:["Seeker", "Oerikan", "Abomination"]},{n:"Effigy of Chaos",t:"G",f:"P",tr:["In'Gor, the Spiritbound"]},{n:"Tarok Beast",t:"U",f:"P",tr:["Beast"]},{n:"Spirit Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Primal Totem",t:"U",f:"P",tr:["Construct"]},{n:"Cabra Mauler",t:"U",f:"P",tr:["Vulkir"]},{n:"Boneclaw Raider",t:"U",f:"P",tr:["Human"]},{n:"Farsight Ambusher",t:"U",f:"P",tr:["Erisyr"]},{n:"Bloodfrenzy Berserker",t:"U",f:"P",tr:["Oerikan"]},{n:"Mugq'Tovor, Bodybreaker",t:"U",f:"P",tr:["Abomination"]},{n:"Bloodfeast Raptor",t:"U",f:"P",tr:["Beast"]},{n:"Cursehost Boar",t:"U",f:"PL",tr:["Beast", "Abomination"]},{n:"Hunter's Sense",t:"S",f:"P",tr:["Channel"]},{n:"Consume Carcass",t:"S",f:"P",tr:["Channel"]},{n:"Heartstab Blast",t:"S",f:"P",tr:["Channel"]},{n:"Nature's Wrath",t:"S",f:"P",tr:["Channel"]},{n:"Adrenaline Rush",t:"S",f:"P",tr:["Channel"]},{n:"Fortune's Favor",t:"S",f:"P",tr:["Swift"]},{n:"Retribution",t:"S",f:"P",tr:["Swift"]},{n:"Diehard",t:"S",f:"P",tr:["Swift"]},{n:"Seize the Initiative",t:"S",f:"P",tr:["Swift"]},{n:"Cataclysmic Blast",t:"S",f:"P",tr:["Channel"]},{n:"Unstoppable Rush",t:"S",f:"P",tr:["Channel"]},{n:"Thunderous Devastation",t:"S",f:"P",tr:["Channel"]},{n:"Endless Rage",t:"S",f:"P",tr:["Swift"]},{n:"Chaotic Bargain",t:"S",f:"PL",tr:["Channel"]},{n:"Ravenous Swarm",t:"S",f:"PL",tr:["Channel"]},{n:"Kar-Mamok",t:"U",f:"PC",tr:["Seeker", "Abomination"]},{n:"Liena, Who Dreams",t:"G",f:"P",tr:["Kar-Mamok"]},{n:"Paxos Gorehorn",t:"U",f:"P",tr:["Shifter"]},{n:"Woe-Caster Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Sek'Takar, Scarred Arsonist",t:"U",f:"P",tr:["Oerikan"]},{n:"Uncaged Experiment",t:"U",f:"PC",tr:["Beast", "Spellbound"]},{n:"Trial of Stone",t:"S",f:"P",tr:["Channel"]},{n:"Choice of Brutality",t:"S",f:"P",tr:["Channel"]},{n:"Arcane Mirroring",t:"S",f:"PC",tr:["Swift"]},{n:"Trample Through",t:"S",f:"PC",tr:["Channel"]},{n:"Tempest Scepter",t:"A",f:"",tr:["Relic"]},{n:"Ring of Time",t:"A",f:"",tr:["Relic"]},{n:"Veilpiercer",t:"A",f:"",tr:["Relic"]},{n:"Everlasting Heart",t:"A",f:"",tr:["Relic"]},{n:"Umbral Cloak",t:"A",f:"",tr:["Relic"]},{n:"Helm of Wrath",t:"A",f:"",tr:["Relic"]},{n:"Everkeep Reliquary",t:"A",f:"",tr:["Relic"]},{n:"Martyr's Vexillum",t:"A",f:"",tr:["Relic"]},{n:"Guardian's Aegis",t:"A",f:"",tr:["Relic"]},{n:"Reaper's Edge",t:"A",f:"",tr:["Relic"]},{n:"Trapjaw Chain",t:"A",f:"",tr:["Relic"]},{n:"Boots of Celerity",t:"A",f:"",tr:["Relic"]},{n:"Fang of the Damned",t:"A",f:"",tr:["Relic"]},{n:"Spelleater Mask",t:"A",f:"",tr:["Relic"]},{n:"Vengeance and Retribution",t:"A",f:"",tr:["Relic"]},{n:"Noxious Fleshgardens",t:"T",f:""},{n:"Starcast Halls",t:"T",f:""},{n:"Deathshroud Mire",t:"T",f:""},{n:"Astarian Pathways",t:"T",f:""},{n:"Behemoth Khuyakine",t:"U",f:"P",tr:["Beast"]},{n:"Murder of Shriekers",t:"U",f:"P",tr:["Beast"]},{n:"Irynia and Aratan",t:"U",f:"P",tr:["Oerikan", "Shifter"]},{n:"Ymirian Rage",t:"S",f:"P",tr:["Channel"]},{n:"Landshift",t:"S",f:"P",tr:["Swift"]},{n:"Raptor's Lift",t:"S",f:"P",tr:["Channel"]},{n:"Thaumite Mercenary",t:"U",f:"C",tr:["Human"]},{n:"Liastrum Accumulator",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Athan, Prime Decimator",t:"U",f:"C",tr:["Human"]},{n:"Liastrum Decimation",t:"S",f:"C",tr:["Channel"]},{n:"Crackling Trap",t:"S",f:"C",tr:["Channel"]},{n:"Salvage",t:"S",f:"C",tr:["Channel"]},{n:"Gilded Sentries",t:"U",f:"O",tr:["Human"]},{n:"Discordant Voice",t:"U",f:"O",tr:["Human"]},{n:"Siro, Hand of Law",t:"U",f:"O",tr:["Vulkir"]},{n:"Triumvirate Liturgy",t:"S",f:"O",tr:["Channel"]},{n:"Demand Confession",t:"S",f:"O",tr:["Channel"]},{n:"Twisted Charity",t:"S",f:"O",tr:["Channel"]},{n:"Masarin Deathsinger",t:"U",f:"L",tr:["Fallen", "Horror"]},{n:"Mashr",t:"U",f:"L",tr:["Human"]},{n:"Champion of Drav",t:"U",f:"L",tr:["Fallen", "Horror"]},{n:"Choice of Malady",t:"S",f:"L",tr:["Channel"]},{n:"Soul Mimicry",t:"S",f:"L",tr:["Channel"]},{n:"Horrific Archery",t:"S",f:"L",tr:["Channel"]},{n:"Myrkosian Magnifier",t:"A",f:"C",tr:["Item"]},{n:"Oskarite Blade",t:"A",f:"L",tr:["Item"]},{n:"Expiatrine Scourge",t:"A",f:"O",tr:["Item"]},{n:"Avakran Flute",t:"A",f:"P",tr:["Item"]}];
 const FNAME={C:'Conclave of the Sphere',O:'Order of the Shattered Throne',L:'Legion of the Fallen',P:'Primal Blood'};
 const LICON={C:ASSETS.conclave,O:ASSETS.order,L:ASSETS.legion,P:ASSETS.primal};
+const SHORTF={C:'Conclave',O:'Order',L:'Legion',P:'Primal'};
+// Dual factions are factions in their own right: Order–Primal is one thing,
+// not "a bit of Order and a bit of Primal". Labels and badges follow suit.
+function factionLabel(f){
+  if(!f) return 'Neutral';
+  if(f.length===1) return SHORTF[f];
+  return SHORTF[f[0]]+'–'+SHORTF[f[1]];
+}
+/* One badge per faction identity. Duals get a composed diamond in the style
+   of the official card badge — top symbol upright, bottom symbol inverted.
+   If official dual icon files land in ASSETS later (ASSETS['dual_'+pair]),
+   they take over automatically. */
+function dualIcon(f){
+  const off=ASSETS['dual_'+f];
+  if(off) return `<img class="ficn dual" src="${off}" title="${factionLabel(f)}" alt="${factionLabel(f)}">`;
+  const [a,b]=f.split('');
+  return `<svg class="ficn dual" viewBox="0 0 40 40" role="img" aria-label="${factionLabel(f)}">
+    <title>${factionLabel(f)}</title>
+    <rect x="7.5" y="7.5" width="25" height="25" transform="rotate(45 20 20)"
+      fill="#efe9dc" stroke="#26221c" stroke-width="2.4"/>
+    <image href="${LICON[a]}" x="13" y="6.8" width="14" height="14"/>
+    <image href="${LICON[b]}" x="13" y="19.4" width="14" height="14" transform="rotate(180 20 26.4)"/>
+  </svg>`;
+}
 function fBadges(f){
-  return f ? f.split('').map(l=>`<img class="ficn" src="${LICON[l]}" title="${FNAME[l]}" alt="${FNAME[l]}">`).join('')
-           : '<span class="fbadge fN" title="Neutral">N</span>';
+  if(!f) return '<span class="fbadge fN" title="Neutral">N</span>';
+  if(f.length===1) return `<img class="ficn" src="${LICON[f]}" title="${FNAME[f]}" alt="${FNAME[f]}">`;
+  return dualIcon(f);
 }
 const TNAME={U:'Unit',G:'Legacy',S:'Spell',A:'Attachment',T:'Terrain'};
 function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
@@ -1943,12 +1971,15 @@ function metaOverview(matches){
   let h=`<h2 style="margin:0 0 2px">Seeker meta</h2>
     <p class="hint" style="margin:0 0 14px">${matches.length} ${matches.length===1?'match':'matches'} analysed.
       Tap a Seeker for matchups, terrains and deck cards.</p>`;
-  const fs={C:0,O:0,L:0,P:0}; let credited=0;
-  rows.forEach(r=>{ if(r.f){ [...r.f].forEach(l=>fs[l]+=r.n); credited+=r.n; } });
+  // Every Seeker credits exactly its own faction identity — Order–Primal is
+  // a faction of its own, not a split between Order and Primal.
+  const fs={}; let credited=0;
+  rows.forEach(r=>{ if(r.f){ fs[r.f]=(fs[r.f]||0)+r.n; credited+=r.n; } });
+  const fkeys=Object.keys(fs).sort((a,b)=>fs[b]-fs[a]);
   if(credited){
     h+=`<div class="fs-strip">
-      ${['C','O','L','P'].map(l=>`<span class="fs-i">${fBadges(l)}<b>${pct(fs[l]/credited)}</b></span>`).join('')}
-      <span class="fs-note">dual-faction Seekers count for both</span></div>`;
+      ${fkeys.map(f=>`<span class="fs-i" title="${factionLabel(f)}">${fBadges(f)}<b>${pct(fs[f]/credited)}</b></span>`).join('')}
+    </div>`;
   }
   h+=rows.map(r=>`<div class="sk-row" onclick="metaOpenSeeker('${r.k}')">
       <div class="sk-ic">${r.f?fBadges(r.f):''}</div>
@@ -3830,8 +3861,12 @@ function paintCollection(){
     </div>
     <div class="col-filters ${window._colFO?'open':''}">
     <div class="chip-row">
-      ${[['','All'],['C','Conclave'],['O','Order'],['L','Legion'],['P','Primal'],['N','Neutral']].map(([v,l])=>
-        `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${LICON[v]?`<img class="ficn sm" src="${LICON[v]}" alt="">`:''}${l}</button>`).join('')}
+      ${(()=>{
+        const ids=[...new Set(CARDS.map(c=>c.f).filter(Boolean))].sort((a,b)=>a.length-b.length||a.localeCompare(b));
+        const chips=[['','All'], ...ids.map(f=>[f,factionLabel(f)]), ['N','Neutral']];
+        return chips.map(([v,l])=>
+          `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${v&&v!=='N'?(v.length===1?`<img class="ficn sm" src="${LICON[v]}" alt="">`:''):''}${l}</button>`).join('');
+      })()}
     </div>
     <div class="chip-row">
       ${[['','All types'],['U','Units'],['S','Spells'],['A','Attachments'],['T','Terrains'],['G','Legacies']].map(([v,l])=>
@@ -3861,7 +3896,7 @@ function paintColList(){
   const rows=CARDS.map((c,i)=>({c,i})).filter(({c})=>{
     if(q && !(c.n.toLowerCase().includes(q) || (c.tr||[]).some(t=>t.toLowerCase().includes(q)))) return false;
     if(F==='N'){ if(c.f) return false; }
-    else if(F && !cardHasFaction(c,F)) return false;
+    else if(F && c.f!==F) return false;   // exact identity: duals are their own faction
     if(T && c.t!==T) return false;
     if(TR && !(c.tr||[]).includes(TR)) return false;
     if(OWN==='own' && !colRow(c.n).owned) return false;
@@ -3966,7 +4001,7 @@ function paintBuilder(){
       <label class="field"><span>Seeker</span>
         <select onchange="window._bld.seeker=this.value;paintBuilder()">
           <option value="">— pick a Seeker —</option>
-          ${seekerList().map(c=>`<option value="${esc(c.n)}" ${B.seeker===c.n?'selected':''}>${esc(c.n)} (${[...c.f].map(l=>FNAME[l].split(' ')[0]).join(' / ')})</option>`).join('')}
+          ${seekerList().map(c=>`<option value="${esc(c.n)}" ${B.seeker===c.n?'selected':''}>${esc(c.n)} (${factionLabel(c.f)})</option>`).join('')}
         </select></label>
       <label class="field"><span>Link (optional)</span>
         <input type="url" value="${esc(B.url)}" oninput="window._bld.url=this.value" placeholder="https://play.malediction.gg/decks/..."></label>
