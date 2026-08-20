@@ -753,6 +753,16 @@
   :root{ --echo:#6fa8c8; --echo-border:#38566a; }
   .tk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
   .tk-desc{margin:3px 0 0}
+  .gear{width:40px;height:40px;border-radius:10px;background:var(--coal-2);border:1px solid var(--line-2);
+    color:var(--bone-dim);font-size:17px;cursor:pointer;flex:0 0 auto}
+  .gear.on{border-color:var(--brass);color:var(--brass)}
+  .tk-settings{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;background:var(--coal-2);
+    border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:14px}
+  .ghost.danger{border-color:#5a2430;color:var(--crimson)}
+  .pencil{flex:0 0 auto;width:28px;height:28px;border-radius:7px;background:transparent;
+    border:1px dashed var(--line-2);color:var(--bone-dim);font-size:12px;cursor:pointer}
+  .pencil:hover{border-color:var(--brass);color:var(--brass)}
+  .next-round{font-size:14.5px;padding:14px 22px}
   .tk-mode{width:auto;max-width:100%;font-size:13.5px}
   .tk-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
   .tk-count{display:flex;gap:6px}
@@ -2726,6 +2736,7 @@ function tNextRound(){
   toast(`Round ${trk.round} — everyone +${gain} Echo`, true);
 }
 function tName(i,v){ trk.p[i].name=v.slice(0,24); trkSave(); }   // no repaint: you're typing in it
+function tFocusName(i){ const e=$('tk-name-'+i); if(e){ e.focus(); e.select(); } }
 
 /* ---- structural changes: full repaint ---- */
 function tMode(id){
@@ -2735,7 +2746,7 @@ function tMode(id){
 }
 function tPlayers(n){ trk.players=Math.min(4,Math.max(1,n)); trkSave(); paintTracker(); }
 function tReset(){
-  if(!confirm('Clear the tracker and start a fresh game?')) return;
+  if(!confirm('Reset the tracker? Scores, Echo and relics go back to zero (names stay).')) return;
   const {mode,target,players}=trk;
   const names=trk.p.map(x=>x.name);
   trk=TRK_DEFAULT();
@@ -2798,16 +2809,24 @@ function paintTracker(){
   <div class="panel tk-panel">
     <div class="tk-head">
       <div><h2 style="margin:0">Game tracker</h2>
-        <p class="hint tk-desc">${esc(mode.desc)}</p></div>
-      <select class="tk-mode" onchange="tMode(this.value)">
-        ${TRK_MODES.map(m=>`<option value="${m.id}"${trk.mode===m.id?' selected':''}>${esc(m.label)}</option>`).join('')}
-      </select>
+        <p class="hint tk-desc">${esc(mode.desc)} · ${trk.players} ${trk.players===1?'player':'players'}</p></div>
+      <button class="gear ${window._tkSet?'on':''}" onclick="window._tkSet=!window._tkSet;paintTracker()"
+        aria-label="Tracker settings" title="Game mode, players, reset">⚙</button>
     </div>
 
+    ${window._tkSet?`<div class="tk-settings">
+      <label class="field" style="min-width:200px"><span>Game mode</span>
+        <select class="tk-mode" onchange="tMode(this.value)">
+          ${TRK_MODES.map(m=>`<option value="${m.id}"${trk.mode===m.id?' selected':''}>${esc(m.label)}</option>`).join('')}
+        </select></label>
+      <div class="field"><span class="tm-label" style="margin:0 0 6px;display:block">Players</span>
+        <div class="tk-count" role="group" aria-label="Players">
+          ${[1,2,3,4].map(n=>`<button class="pcount ${trk.players===n?'on':''}" onclick="tPlayers(${n})">${n}</button>`).join('')}
+        </div></div>
+      <button class="ghost danger" style="align-self:flex-end" onclick="tReset()">Reset tracker</button>
+    </div>`:''}
+
     <div class="tk-controls">
-      <div class="tk-count" role="group" aria-label="Players">
-        ${[1,2,3,4].map(n=>`<button class="pcount ${trk.players===n?'on':''}" onclick="tPlayers(${n})">${n}</button>`).join('')}
-      </div>
       <div class="tk-roundbar">
         <span class="tm-label" style="margin:0">Round</span>
         <button class="tm-btn sm" onclick="tRound(-1)">−</button>
@@ -2816,7 +2835,6 @@ function paintTracker(){
         <button class="tm-btn sm" onclick="tRound(1)">+</button>
       </div>
       <button class="act next-round" onclick="tNextRound()">Next round → everyone +${echoForRound(trk.round+1)} Echo</button>
-      <button class="ghost" onclick="tReset()">New game</button>
     </div>
 
     <div class="tk-grid p${trk.players}">
@@ -2825,8 +2843,9 @@ function paintTracker(){
         return `<div class="tk-card ${tWon(i)?'win':''}" id="tk-card-${i}">
         <div class="win-badge">${trk.target} — wins</div>
         <div class="tk-name-row">
-          <input class="tk-name" value="${esc(pl.name)}" maxlength="24"
+          <input class="tk-name" id="tk-name-${i}" value="${esc(pl.name)}" maxlength="24"
             oninput="tName(${i},this.value)" aria-label="Player name">
+          <button class="pencil" onclick="tFocusName(${i})" aria-label="Edit player name" title="Edit name">✎</button>
           ${team?`<span class="team-chip">Team ${i<2?'A':'B'}</span>`:''}
         </div>
         <div class="tk-twin">
@@ -2941,17 +2960,11 @@ function paintMine(){
       return `<div class="league-card" onclick="go('league',{leagueId:'${l.id}',tab:'standings'})">
         <h4>${esc(l.name)}</h4>
         <div class="loc">${esc(l.location)}${l.city?' · '+esc(l.city):''}</div>
-        <div class="meta" style="margin-bottom:${admin&&l.join_code?'10px':'0'}">
+        <div class="meta" style="margin-bottom:0">
           <span style="${admin?'color:var(--brass)':''}">${roleLabel}</span>
           ${!l.is_public?'<span>Private</span>':''}
         </div>
-        ${admin&&l.join_code?`
-          <div class="card-code" onclick="event.stopPropagation();copyCode('${esc(l.join_code)}')"
-               title="Click to copy the join code">
-            <span class="cc-label">Code</span>
-            <span class="cc-val">${esc(l.join_code)}</span>
-            <span class="cc-copy">copy</span>
-          </div>`:''}
+        
       </div>`;
     }).join('') + `</div>`;
   }
@@ -3123,6 +3136,10 @@ function sessionCard(s, league, matches, members, admin, member, current){
     .sort((a,b)=>a.display_name.localeCompare(b.display_name)) : [];
   const myMs = me ? ms.filter(m=>m.winner_id===me.id||m.loser_id===me.id) : [];
   const isToday = s.date===todayStr();
+  // Past events are an archive. Only the last 7 days keep a discreet door
+  // for late updates (a match logged the morning after, a missed check-in).
+  const late = !current && (new Date(todayStr()) - new Date(s.date)) <= 7*86400*1000;
+  const lateOpen = late && window._lateOpen === s.id;
 
   // --- the 4-step checklist (current event, signed-in members) ---
   let checklist='';
@@ -3168,10 +3185,7 @@ function sessionCard(s, league, matches, members, admin, member, current){
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span class="pill">${att.length} present</span>
         <span class="pill">${ms.length} matches</span>
-        ${(!current && me && member)?(iAmIn
-          ? `<button class="ghost" onclick="checkOut('${s.id}')">Check out</button>`
-          : `<button class="ghost" onclick="checkIn('${s.id}')">I'm here</button>`):''}
-        ${admin?`<button class="ghost ${editing?'on':''}" onclick="toggleEditEvent('${s.id}')">${editing?'Cancel':'Edit'}</button>`:''}
+        ${(admin&&current)?`<button class="ghost ${editing?'on':''}" onclick="toggleEditEvent('${s.id}')">${editing?'Cancel':'Edit'}</button>`:''}
         ${admin?`<span class="del" role="button" aria-label="Delete event" onclick="delSession('${s.id}')" title="Delete event">×</span>`:''}
       </div>
     </div>
@@ -3193,10 +3207,15 @@ function sessionCard(s, league, matches, members, admin, member, current){
     ${actions}
     ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
       att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}
-        ${admin?`<span class="att-x" role="button" aria-label="Remove from event" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
+        ${(admin&&(current||lateOpen))?`<span class="att-x" role="button" aria-label="Remove from event" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
       </span>`).join('') + `</div>`:''}
 
-    ${admin && absent.length?`<div class="check-others">
+    ${(!current && late && (canLog||admin))?`<div style="margin-top:10px">
+      <button class="co-link" onclick="window._lateOpen = window._lateOpen==='${s.id}' ? null : '${s.id}'; renderLeague()">${lateOpen?'✕ Close late updates':'+ Late updates'}</button>
+      ${lateOpen?'':'<span class="hint" style="font-size:11.5px;margin-left:8px">log a forgotten result or fix attendance — open for 7 days</span>'}
+    </div>`:''}
+
+    ${admin && absent.length && (current || lateOpen)?`<div class="check-others">
       <span class="co-label">Check someone in</span>
       <select id="ci-${s.id}" onchange="checkInOther('${s.id}', this.value); this.value='';">
         <option value="">— pick a player —</option>
@@ -3204,7 +3223,7 @@ function sessionCard(s, league, matches, members, admin, member, current){
       </select>
     </div>`:''}
 
-    ${(!current && canLog)?`<div class="divider"></div>
+    ${(!current && canLog && lateOpen)?`<div class="divider"></div>
       <div id="wiz-${s.id}">${wizHtml(s.id)}</div>`:''}
 
     ${ms.length?`<div class="divider"></div>` + `<table><tbody>` + ms.map(m=>`
@@ -3961,7 +3980,11 @@ function bldInPool(c, seekerF){
   if((c.tr||[]).includes('Seeker')) return false;      // the Seeker is brought separately
   if((c.tr||[]).includes('Relic')) return false;       // relics live in the shared deck
   if(!c.f) return true;                                // neutral: any deck
-  return [...c.f].some(l=>seekerF.includes(l));
+  // Dual-faction cards are legal ONLY with the matching dual Seeker
+  // (Order–Primal card → Order–Primal Seeker). Mono cards are legal for
+  // any Seeker whose identity includes that faction, duals included.
+  if(c.f.length===2) return c.f===seekerF;
+  return seekerF.includes(c.f);
 }
 function bldCount(){ return Object.values(window._bld.cards).reduce((a,b)=>a+b,0); }
 function bldOwned(name){ const r=cache.collection&&cache.collection[name]; return !!(r&&r.owned); }
@@ -4023,7 +4046,7 @@ function paintBuilder(){
       </div>
       <div id="bld-side"></div>
     </div>`
-    :`<div class="empty" style="margin-top:8px">Pick a Seeker — the pool is built from their faction${'s'}, dual-faction cards included, plus neutrals.</div>`}
+    :`<div class="empty" style="margin-top:8px">Pick a Seeker — the pool follows deck legality: their faction's cards, their exact dual-faction cards, and neutrals.</div>`}
   </div>`;
   paintBldBar(); if(B.seeker){ paintBldPool(); paintBldSide(); }
 }
