@@ -415,6 +415,266 @@
     font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--coal);
     background:var(--brass);padding:2px 7px;vertical-align:middle}
 
+
+  /* ============================================================
+     PHASE-1 REDESIGN SHELL — sidebar (desktop), bottom bar (mobile),
+     design tokens (radii, gradients), Home components.
+     ============================================================ */
+  body{background:linear-gradient(160deg,#191919,#1c1c1c) fixed}
+  header.top{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:16px;
+    padding:10px 18px;background:rgba(24,24,24,.94);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line)}
+  header.top .brand{cursor:pointer;display:flex;align-items:center}
+  header.top .logo{height:34px;width:auto;display:block}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .lg-switch{width:auto;font-size:13px;padding:6px 9px}
+  .lg-current-name{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--bone-dim)}
+  .avatar{width:34px;height:34px;border-radius:50%;border:1px solid var(--brass-dim);
+    background:var(--surface);color:var(--brass);font-family:'Oswald',sans-serif;
+    font-weight:600;font-size:14px;cursor:pointer;flex:0 0 auto}
+  .avatar:hover{border-color:var(--brass)}
+  .shell{display:flex;align-items:stretch}
+  .side{flex:0 0 218px;background:#181818;border-right:1px solid var(--line);
+    padding:16px 10px;position:sticky;top:55px;height:calc(100vh - 55px);overflow-y:auto}
+  .maincol{flex:1;min-width:0}
+  .sn-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;
+    color:var(--bone-dim);font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.07em;
+    text-transform:uppercase;padding:10px 12px;border-radius:10px;cursor:pointer;min-height:42px}
+  .sn-item i{font-style:normal;width:16px;text-align:center;opacity:.85}
+  .sn-item:hover{color:var(--bone);background:rgba(255,255,255,.03)}
+  .sn-item.on{color:var(--bone);background:rgba(229,30,57,.09);box-shadow:inset 3px 0 0 var(--crimson)}
+  .sn-item .chev{margin-left:auto;font-size:10px;color:var(--line-2)}
+  .sn-kids{margin:2px 0 6px}
+  .sn-item.kid{padding:8px 12px 8px 38px;min-height:38px;text-transform:none;letter-spacing:.02em;
+    font-family:'Barlow',sans-serif;font-size:14px}
+  .bbar{display:none}
+  .sheet{position:fixed;inset:0;z-index:80}
+  .sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+  .sheet-card{position:absolute;left:10px;right:10px;bottom:76px;background:var(--surface);
+    border:1px solid var(--line-2);border-radius:14px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .sheet-title{font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--bone-dim);padding:6px 10px}
+  .sheet-item{display:block;width:100%;text-align:left;background:none;border:0;color:var(--bone);
+    font-size:15px;padding:13px 12px;border-radius:10px;cursor:pointer;min-height:48px}
+  .sheet-item:hover,.sheet-item.on{background:rgba(229,30,57,.1)}
+  @media(max-width:760px){
+    .side{display:none}
+    .bbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:70;background:#181818;
+      border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+    .bb-tab{flex:1;background:none;border:0;color:var(--bone-dim);display:flex;flex-direction:column;
+      align-items:center;gap:3px;font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:.08em;
+      text-transform:uppercase;padding:6px 2px;min-height:48px;cursor:pointer}
+    .bb-tab i{font-style:normal;font-size:17px}
+    .bb-tab.on{color:var(--crimson)}
+    .maincol .wrap{padding-bottom:96px}
+  }
+
+  /* design tokens: radii on existing components */
+  .panel,.pane{border-radius:14px}
+  button.act,button.ghost,input,select,textarea{border-radius:10px}
+  .ev-card,.today-card,.gcard,.deck-card,.league-card,.wiz,.qcard,.stats-band,.find-row,.banner,.today-slim{border-radius:12px}
+  .pill,.demo-badge,.mem-badge{border-radius:999px}
+
+  /* home: greeting */
+  .home-greet{margin:6px 0 18px}
+  .home-greet h1{font-family:'Oswald',sans-serif;font-size:24px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;margin:0;color:var(--bone)}
+  .home-greet p{margin:4px 0 0;color:var(--bone-dim);font-size:14px}
+
+  /* home: event card */
+  .ev-card{background:var(--coal-2);border:1px solid var(--line);border-top:3px solid var(--line-2);
+    padding:18px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;
+    gap:16px;flex-wrap:wrap}
+  .ev-card.live{border-top-color:var(--crimson)}
+  .ev-head{display:flex;align-items:center;gap:13px}
+  .ev-title{font-family:'Oswald',sans-serif;font-size:16px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--bone)}
+  .ev-sub{font-size:13px;color:var(--bone-dim);margin-top:2px}
+  .ev-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  @media(max-width:620px){
+    .ev-card{flex-direction:column;align-items:stretch;padding:15px 16px}
+    .ev-actions{width:100%}
+    .ev-actions .act{flex:1}
+  }
+
+  /* home: quick cards */
+  .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+  .qcard{background:var(--surface);border:1px solid var(--line);padding:16px 18px;cursor:pointer}
+  .qcard:hover{border-color:var(--line-2)}
+  .q-label{font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--bone-dim)}
+  .q-big{font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;color:var(--crimson);
+    line-height:1.15;margin-top:6px}
+  .q-big.dim{color:var(--bone)}
+  .q-sub{font-size:12.5px;color:var(--bone-dim);margin-top:2px}
+  @media(max-width:760px){ .quick-grid{grid-template-columns:1fr} }
+
+  /* home: the stats band */
+  .stats-band{position:relative;overflow:hidden;background:linear-gradient(135deg,#2a1418,#232323 45%);
+    border:1px solid #5a2430;border-left:3px solid var(--crimson);padding:20px 22px;margin-bottom:16px}
+  .stats-band::before,.stats-band::after{content:'';position:absolute;right:-40px;top:50%;
+    width:150px;height:150px;border:1px solid rgba(229,30,57,.25);
+    transform:translateY(-50%) rotate(45deg);pointer-events:none}
+  .stats-band::after{width:104px;height:104px;border-color:rgba(200,165,104,.25)}
+  .sb-title{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--bone);margin-bottom:14px}
+  .sb-row{display:flex;gap:34px;flex-wrap:wrap}
+  .sb-stat b{font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;color:var(--crimson);
+    display:block;line-height:1;text-shadow:0 0 24px rgba(229,30,57,.35)}
+  .sb-stat small{color:var(--brass);letter-spacing:.12em;text-transform:uppercase;font-size:10px;
+    font-family:'Oswald',sans-serif}
+  @media(max-width:760px){ .sb-row{gap:22px} }
+
+  /* home: find a league */
+  .find-panel input{margin-bottom:12px}
+  .find-row{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--coal-2);
+    border:1px solid var(--line);padding:13px 16px;margin-bottom:9px;cursor:pointer}
+  .find-row:hover{border-color:var(--line-2)}
+  .fr-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--bone);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .fr-loc{font-size:12.5px;color:var(--brass);margin-top:2px}
+  .fr-side{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+  .fr-count{font-size:12px;color:var(--bone-dim);white-space:nowrap}
+  .mem-badge{display:inline-block;font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);border:1px solid var(--line-2);
+    padding:2px 8px}
+  @media(max-width:760px){ .fr-side .fr-view{display:none} }
+
+  /* ---- current event: 4-step checklist ---- */
+  .ck-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+  @media(max-width:760px){ .ck-grid{grid-template-columns:1fr 1fr} }
+  .ck-card{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--coal-2)}
+  .ck-n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line-2);display:flex;
+    align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:11px;
+    font-weight:600;color:var(--bone-dim);margin-bottom:8px}
+  .ck-t{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--bone)}
+  .ck-d{font-size:11.5px;color:var(--bone-dim);margin-top:3px;line-height:1.45}
+  .ck-d b{color:var(--brass);font-weight:600}
+  .ck-card.done{border-color:#39543f}
+  .ck-card.done .ck-n{color:#5a9e6f;border-color:#39543f}
+  .ck-card.cur{border-color:var(--brass-dim);background:rgba(200,165,104,.05)}
+  .ck-card.cur .ck-n{color:var(--brass);border-color:var(--brass-dim)}
+
+  /* current event: actions row + kicker */
+  .cur-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+  .wiz-slot{display:contents}
+  .cur-actions .wiz{flex:1 1 100%;margin-top:4px}
+  .co-link{background:none;border:0;color:var(--bone-dim);text-decoration:underline;
+    font-size:12.5px;cursor:pointer;padding:6px}
+  .co-link:hover{color:var(--crimson)}
+  .ev-kicker{display:flex;align-items:center;gap:8px;font-family:'Oswald',sans-serif;font-size:10px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--crimson);margin-bottom:4px}
+  .new-ev-row{margin-bottom:12px;display:flex;justify-content:flex-end}
+  @media(max-width:620px){ .cur-actions .act{flex:1 1 auto} }
+
+  /* wizard: winner side gets the green edge */
+  .wz-side{border-left:2px solid transparent;padding-left:12px}
+  .wz-side.win{border-left-color:#5a9e6f}
+
+  /* ---- standings as rows ---- */
+  .st-row{display:flex;align-items:center;gap:14px;background:var(--coal-2);border:1px solid var(--line);
+    border-radius:12px;padding:11px 16px;margin-bottom:8px}
+  .st-row.self{border-color:var(--brass-dim)}
+  .st-rank{font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;color:var(--bone-dim);
+    width:26px;text-align:center;flex:0 0 auto}
+  .st-rank.lead{color:var(--crimson);font-size:18px}
+  .st-main{min-width:0}
+  .st-name{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--bone)}
+  .st-row.self .st-name{color:var(--brass)}
+  .st-you{color:var(--bone-dim);font-weight:400;text-transform:none;letter-spacing:0;
+    font-family:'Barlow',sans-serif;font-size:12.5px}
+  .st-sub{font-size:12.5px;color:var(--bone-dim);margin-top:2px}
+  .st-pts{margin-left:auto;font-family:'Oswald',sans-serif;font-size:17px;font-weight:600;color:var(--brass)}
+
+  /* ---- collection ---- */
+  .col-stats{margin-bottom:6px}
+  .q-of{font-size:15px;color:var(--bone-dim);font-weight:400;margin-left:3px}
+  .chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+  .fchip{background:var(--coal-2);border:1px solid var(--line-2);color:var(--bone-dim);
+    font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    padding:6px 12px;border-radius:999px;cursor:pointer;min-height:32px}
+  .fchip.on{background:rgba(229,30,57,.12);border-color:var(--crimson);color:var(--bone)}
+  .col-row{display:flex;align-items:center;gap:12px;background:var(--coal-2);border:1px solid var(--line);
+    border-radius:10px;padding:9px 13px;margin-bottom:7px}
+  .col-main{min-width:0;flex:1}
+  .col-name{font-size:14.5px;font-weight:600;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .col-sub{font-size:11.5px;color:var(--bone-dim);margin-top:1px}
+  .col-facs{display:flex;gap:4px;flex:0 0 auto}
+  .fbadge{width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+    font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;border:1px solid var(--line-2);color:var(--bone-dim)}
+  .fbadge.fC{border-color:#4a6f8a;color:#7fb0d4}
+  .fbadge.fO{border-color:#8a7a4a;color:#d8c07a}
+  .fbadge.fL{border-color:#5d4a8a;color:#a98fd8}
+  .fbadge.fP{border-color:#7a4a4a;color:#d88f8f}
+  .col-tog{display:flex;gap:5px;flex:0 0 auto}
+  .ctog{background:var(--coal-2);border:1px dashed var(--line-2);color:var(--bone-dim);
+    font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    padding:0 9px;height:30px;border-radius:8px;cursor:pointer}
+  .ctog.on{background:rgba(200,165,104,.14);border:1px solid var(--brass);color:var(--brass)}
+  @media(max-width:620px){
+    .col-row{flex-wrap:wrap}
+    .col-facs{order:2}
+    .col-tog{order:3;width:100%;justify-content:flex-end}
+  }
+
+  /* ---- game tracker: modes + multi-player cards ---- */
+  :root{ --echo:#6fa8c8; --echo-border:#38566a; }
+  .tk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  .tk-desc{margin:3px 0 0}
+  .tk-mode{width:auto;max-width:100%;font-size:13.5px}
+  .tk-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .tk-count{display:flex;gap:6px}
+  .pcount{width:40px;height:40px;background:var(--coal-2);border:1px solid var(--line-2);color:var(--bone-dim);
+    font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;cursor:pointer;border-radius:10px}
+  .pcount.on{background:var(--crimson);border-color:var(--crimson);color:#fff}
+  .tk-roundbar{display:flex;align-items:center;gap:8px}
+  .tm-btn.sm{width:40px;height:40px;font-size:18px}
+  .tm-val.sm{width:56px;flex:0 0 auto;font-size:20px;height:40px;padding:0}
+  .tk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .tk-grid.p1{grid-template-columns:minmax(0,1fr);max-width:560px}
+  @media(max-width:760px){ .tk-grid{grid-template-columns:minmax(0,1fr)} }
+  .tk-card{position:relative;background:var(--coal-2);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+  .tk-card.win{border-color:var(--crimson);box-shadow:0 0 0 1px var(--crimson)}
+  .win-badge{display:none;position:absolute;top:-10px;right:12px;background:var(--crimson);color:#fff;
+    font-family:'Oswald',sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+    padding:3px 9px;border-radius:999px}
+  .tk-card.win .win-badge{display:block}
+  .tk-name-row{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .tk-name{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed var(--line-2);
+    border-radius:0;color:var(--bone);font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;
+    letter-spacing:.05em;text-transform:uppercase;padding:4px 2px}
+  .tk-name:focus{border-bottom-color:var(--brass);outline:none}
+  .team-chip{flex:0 0 auto;font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--brass);border:1px solid var(--brass-dim);padding:2px 8px;border-radius:999px}
+  .tk-twin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+  .blk{border-radius:10px;padding:10px 11px}
+  .blk .tm-btn{width:auto;flex:0 0 42px;height:52px;font-size:22px}
+  .blk .tm-val{min-width:0;width:100%;font-size:28px;height:52px;padding:0}
+  .blk-label{font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--bone-dim);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .blk-label i{font-style:normal;opacity:.8;text-transform:none;letter-spacing:.02em}
+  .blk.mast{background:rgba(229,30,57,.06);border:1px solid #5a2430}
+  .blk.mast .tm-val{color:var(--crimson)}
+  .blk.echo{background:rgba(111,168,200,.07);border:1px solid var(--echo-border)}
+  .blk.echo .tm-val{color:var(--echo)}
+  .blk-of{color:var(--bone-dim);letter-spacing:.04em}
+  .echo-hint{color:var(--echo);opacity:.85;letter-spacing:.04em;text-transform:none}
+  .blk-bar{height:5px;background:#2a1418;border-radius:999px;margin-top:9px;overflow:hidden}
+  .blk-fill{height:100%;background:var(--crimson);border-radius:999px;transition:width .18s}
+  .tk-relics{display:flex;align-items:center;gap:7px;margin-top:12px}
+  .rel-lab{font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);margin-right:2px}
+  .tkrel{width:30px;height:30px;border-radius:8px;background:var(--coal-2);border:1px dashed var(--line-2);
+    color:var(--bone-dim);font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
+  .tkrel.on{background:rgba(200,165,104,.14);border:1px solid var(--brass);color:var(--brass)}
+  @media(max-width:420px){ .tk-twin{grid-template-columns:minmax(0,1fr)} }
+  @media(hover:hover) and (pointer:fine){
+    .tm-btn:hover{border-color:var(--crimson);color:var(--crimson)}
+    .tkrel:hover{border-color:var(--brass)}
+  }
+
   /* ---- match wizard: three small steps ---- */
   .wiz{background:var(--coal-2);border:1px solid var(--line);padding:16px 18px;margin-top:4px}
   .wz-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
@@ -712,42 +972,26 @@
 </style>
 </head>
 <body>
+<header class="top" id="topbar">
+  <div class="brand" onclick="go('browse')">
+    <img class="logo" id="brand-logo" alt="Seekers League">
+  </div>
+  <div class="top-right" id="top-right"></div>
+</header>
+
+<div class="shell">
+<aside class="side" id="sidebar"></aside>
+<main class="maincol">
 <div class="wrap">
 
-  <header class="masthead">
-    <div class="brand" onclick="go('browse')">
-      <div class="brand-mark">
-        <img class="logo" id="brand-logo" alt="Seekers League">
-        <div class="tagline">Malediction league tracker</div>
-      </div>
-    </div>
-    <div class="userbox" id="userbox"></div>
-  </header>
-
-  <nav class="tabs" id="tabs"></nav>
-
-  <!-- ================= BROWSE (public, no login) ================= -->
+  <!-- ================= HOME ================= -->
   <section class="view" id="browse">
-    <div id="hero"></div>
-    <div id="home-today"></div>
+    <div id="home-head"></div>
+    <div id="home-event"></div>
+    <div id="home-quick"></div>
+    <div id="home-stats"></div>
     <div id="home-mine"></div>
-    <div class="panel plain">
-      <div class="flex-between" style="margin-bottom:14px">
-        <div>
-          <h2>League Directory</h2>
-          <p class="hint" style="margin:0">Every public league running Malediction events. Find one near you, or start your own.</p>
-        </div>
-        <div style="display:flex;gap:8px;flex:0 0 auto">
-          <select id="browse-sort" style="width:auto">
-            <option value="recent">Sort: Most recent</option>
-            <option value="location">Sort: Location</option>
-            <option value="active">Sort: Most active</option>
-          </select>
-        </div>
-      </div>
-      <input type="text" id="browse-search" placeholder="Search by name, city or country…" style="margin-bottom:14px">
-      <div id="browse-list"></div>
-    </div>
+    <div id="home-find"></div>
   </section>
 
   <!-- ================= LEAGUE PUBLIC PAGE ================= -->
@@ -795,6 +1039,10 @@
   </section>
 
   <!-- ================= AUTH ================= -->
+  <section class="view" id="collection">
+    <div id="collection-body"></div>
+  </section>
+
   <section class="view" id="auth">
     <div class="gate">
       <div class="panel">
@@ -842,6 +1090,14 @@
       claims no ownership over any Malediction intellectual property.</p>
     </div>
   </footer>
+</div>
+</main>
+</div>
+
+<nav class="bbar" id="bbar"></nav>
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-bg" onclick="closeSheet()"></div>
+  <div class="sheet-card" id="sheet-card"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1014,6 +1270,20 @@ const DEMO_TOURNEY = {
   payload: {"groups":[[{"id":"demo-u1","pts":14.5,"w":5,"l":1},{"id":"demo-u2","pts":8.5,"w":2,"l":3},{"id":"demo-u4","pts":8,"w":2,"l":2}],[{"id":"demo-u3","pts":9.5,"w":3,"l":1},{"id":"demo-u5","pts":9,"w":2,"l":4},{"id":"demo-u6","pts":7,"w":1,"l":4}]],"qual":2,"bracket":[[{"a":{"id":"demo-u1","att":4,"w":5,"l":1,"pts":14.5},"b":{"id":"demo-u2","att":3,"w":2,"l":3,"pts":8.5},"winner":"a"},{"a":{"id":"demo-u3","att":3,"w":3,"l":1,"pts":9.5},"b":{"id":"demo-u5","att":3,"w":2,"l":4,"pts":9},"winner":"a"}],[{"a":{"id":"demo-u1","att":4,"w":5,"l":1,"pts":14.5},"b":{"id":"demo-u3","att":3,"w":3,"l":1,"pts":9.5},"winner":"a"}]]}
 };
 function isDemo(id){ return id === DEMO_ID; }
+
+/* ============================================================
+   CARD CATALOG — names, types and factions only (no card text, no
+   rulings). t: U unit · G legacy · S spell · A attachment · T terrain.
+   f: faction letters (C Conclave · O Order · L Legion · P Primal),
+   two letters = dual-faction, empty = neutral. tr: traits.
+   ============================================================ */
+const CARDS=[{n:"Polinore, Prime Archivist",t:"U",f:"C",tr:["Seeker", "Human"]},{n:"Runefold Gauntlet",t:"G",f:"C",tr:["Polinore, Prime Archivist"]},{n:"Londriel, Spellwarden",t:"U",f:"CO",tr:["Seeker", "Erisyr"]},{n:"Ark of Lamentation",t:"G",f:"C",tr:["Londriel, Spellwarden"]},{n:"Spellbound Bahig'udjin",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Scholar",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Gargoyle",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Artillerist",t:"U",f:"C",tr:["Human"]},{n:"Akhenzan Shieldmage",t:"U",f:"C",tr:["Human"]},{n:"Momentum Weaver",t:"U",f:"C",tr:["Human"]},{n:"Virtahn Battlecaster",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Devourer",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Gateway Guardian",t:"U",f:"C",tr:["Construct"]},{n:"Warden's Lancer",t:"U",f:"CO",tr:["Construct"]},{n:"Twin Flames",t:"S",f:"C",tr:["Channel"]},{n:"Shatter",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Stride",t:"S",f:"C",tr:["Channel"]},{n:"Rewrite Destiny",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Discharge",t:"S",f:"C",tr:["Channel"]},{n:"Telekinesis",t:"S",f:"C",tr:["Channel"]},{n:"Dimension Breach",t:"S",f:"C",tr:["Channel"]},{n:"Brewing Fate",t:"S",f:"C",tr:["Swift"]},{n:"Neutralizing Ward",t:"S",f:"C",tr:["Swift"]},{n:"Shifting Winds",t:"S",f:"C",tr:["Swift"]},{n:"Amblis Transposition",t:"S",f:"C",tr:["Channel"]},{n:"Demanifest",t:"S",f:"C",tr:["Channel"]},{n:"Duplicate",t:"S",f:"C",tr:["Channel"]},{n:"Runefold Ward",t:"S",f:"C",tr:["Swift"]},{n:"Reversion",t:"S",f:"CO",tr:["Swift"]},{n:"Resonant Guard",t:"S",f:"CO",tr:["Swift"]},{n:"Arcane Sentinel",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Reckless Researcher",t:"U",f:"C",tr:["Human", "Abomination"]},{n:"Nariev, Master of the Grotesque",t:"U",f:"C",tr:["Erisyr"]},{n:"Mind Harvest",t:"S",f:"C",tr:["Channel"]},{n:"Rippling Potential",t:"S",f:"C",tr:["Channel"]},{n:"Great Shield",t:"A",f:"",tr:["Item"]},{n:"Scout's Boots",t:"A",f:"",tr:["Item"]},{n:"Scoundrel's Blade",t:"A",f:"",tr:["Item"]},{n:"Amulet of Vigor",t:"A",f:"",tr:["Item"]},{n:"Shadow Shroud",t:"A",f:"",tr:["Item"]},{n:"Feral Gauntlets",t:"A",f:"",tr:["Item"]},{n:"Hunter's Bow",t:"A",f:"",tr:["Item"]},{n:"Horned Helmet",t:"A",f:"",tr:["Item"]},{n:"Sacred Prayerbook",t:"A",f:"",tr:["Item"]},{n:"Winged Sandals",t:"A",f:"",tr:["Item"]},{n:"Ring of Vitality",t:"A",f:"",tr:["Item"]},{n:"Reinforced Plate",t:"A",f:"",tr:["Item"]},{n:"Tear of Gold",t:"A",f:"",tr:["Item"]},{n:"Umberland Lantern",t:"A",f:"",tr:["Item"]},{n:"Goredrinker Axe",t:"A",f:"",tr:["Item"]},{n:"Seal of the Nexi",t:"A",f:"",tr:["Item"]},{n:"Vorendal, the Dreadheart",t:"U",f:"L",tr:["Seeker", "Fallen"]},{n:"Heartlock",t:"G",f:"L",tr:["Vorendal, the Dreadheart"]},{n:"Countess Morrida Umberland",t:"U",f:"LC",tr:["Seeker", "Human"]},{n:"Soul-Stitcher",t:"G",f:"L",tr:["Countess Morrida Umberland"]},{n:"Stitched Corpse",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Anush-Vah Disciple",t:"U",f:"L",tr:["Human"]},{n:"Dead-at-Arms",t:"U",f:"L",tr:["Fallen"]},{n:"Deadeye Archer",t:"U",f:"L",tr:["Fallen"]},{n:"Fleshripper",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Soulwhisperer",t:"U",f:"L",tr:["Human"]},{n:"Duskwood Prowler",t:"U",f:"L",tr:["Fallen", "Abomination"]},{n:"Sestinar, the Silent",t:"U",f:"L",tr:["Human"]},{n:"Thrice Murdered",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Umberland Shade",t:"U",f:"LC",tr:["Fallen", "Spirit"]},{n:"Gift of Flesh",t:"S",f:"L",tr:["Channel"]},{n:"Mend the Dead",t:"S",f:"L",tr:["Channel"]},{n:"Corpse Explosion",t:"S",f:"L",tr:["Channel"]},{n:"Forced March",t:"S",f:"L",tr:["Channel"]},{n:"Writhing Pain",t:"S",f:"L",tr:["Channel"]},{n:"Dark Bindings",t:"S",f:"L",tr:["Channel"]},{n:"Curse of Lethargy",t:"S",f:"L",tr:["Swift"]},{n:"Drown in Oblivion",t:"S",f:"L",tr:["Swift"]},{n:"Back for More",t:"S",f:"L",tr:["Swift"]},{n:"Price of Devotion",t:"S",f:"L",tr:["Swift"]},{n:"Brutal Outburst",t:"S",f:"L",tr:["Swift"]},{n:"Entrap the Mind",t:"S",f:"L",tr:["Channel"]},{n:"Death's Call",t:"S",f:"L",tr:["Channel"]},{n:"Unmake",t:"S",f:"L",tr:["Channel"]},{n:"Dreadheart's Presence",t:"S",f:"L",tr:["Swift"]},{n:"Disembody",t:"S",f:"LC",tr:["Swift"]},{n:"Spell Plunder",t:"S",f:"LC",tr:["Channel"]},{n:"Griza, Lingering Wound",t:"U",f:"LO",tr:["Seeker", "Spirit"]},{n:"Ihreniv",t:"G",f:"LO",tr:["Griza, Lingering Wound"]},{n:"Disgraced Kinship",t:"U",f:"L",tr:["Fallen"]},{n:"Tragedy of the Wronged",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Barrow Defiler",t:"U",f:"L",tr:["Abomination"]},{n:"Tragedy of Greed",t:"U",f:"LO",tr:["Spirit"]},{n:"Deadly Bargain",t:"S",f:"L",tr:["Channel"]},{n:"Pact of Demise",t:"S",f:"L",tr:["Channel"]},{n:"Somber Surrender",t:"S",f:"LO",tr:["Swift"]},{n:"Dilemma of Fate",t:"S",f:"LO",tr:["Channel"]},{n:"Sigrith Andravos",t:"U",f:"O",tr:["Seeker", "Human"]},{n:"Andravon",t:"G",f:"O",tr:["Sigrith Andravos"]},{n:"Auric Evenhand",t:"U",f:"OP",tr:["Seeker", "Vulkir"]},{n:"Will of the Forge",t:"G",f:"",tr:["Auric Evenhand"]},{n:"Knight of Astaris",t:"U",f:"O",tr:["Human"]},{n:"Valcarist Priest",t:"U",f:"O",tr:["Human"]},{n:"Armored Revenant",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Citadel Crossbowman",t:"U",f:"O",tr:["Human"]},{n:"Truestone Exemplar",t:"U",f:"O",tr:["Vulkir"]},{n:"Warfront Commander",t:"U",f:"O",tr:["Human"]},{n:"Astaris Battlemaster",t:"U",f:"O",tr:["Vulkir"]},{n:"Herald of Salvation",t:"U",f:"O",tr:["Human", "Hallowed"]},{n:"Rogarth, the Breaker",t:"U",f:"O",tr:["Human"]},{n:"Twinblades Skirmisher",t:"U",f:"OP",tr:["Human"]},{n:"Valorous Command",t:"S",f:"O",tr:["Channel"]},{n:"Healing Light",t:"S",f:"O",tr:["Channel"]},{n:"Answer the Call",t:"S",f:"O",tr:["Channel"]},{n:"Convoke",t:"S",f:"O",tr:["Channel"]},{n:"Barter",t:"S",f:"O",tr:["Channel"]},{n:"Second Wind",t:"S",f:"O",tr:["Channel"]},{n:"Rites of Might",t:"S",f:"O",tr:["Channel"]},{n:"Death Undone",t:"S",f:"O",tr:["Swift"]},{n:"Ward of Valcaris",t:"S",f:"O",tr:["Swift"]},{n:"Rites of Healing",t:"S",f:"O",tr:["Channel"]},{n:"Decree of Valcaris",t:"S",f:"O",tr:["Channel"]},{n:"Shield of Andravos",t:"S",f:"O",tr:["Swift"]},{n:"Enforce Balance",t:"S",f:"O",tr:["Swift"]},{n:"Call to Arms",t:"S",f:"OP",tr:["Channel"]},{n:"Rebounding Throw",t:"S",f:"OP",tr:["Channel"]},{n:"Brighthold Custodian",t:"U",f:"O",tr:["Human"]},{n:"Epher, the Setting Sun",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Revalis Penitent",t:"U",f:"O",tr:["Human"]},{n:"Rush of Salvation",t:"S",f:"O",tr:["Swift"]},{n:"Echo of Sarstan",t:"S",f:"O",tr:["Swift"]},{n:"Thundersteps",t:"U",f:"P",tr:["Seeker", "Tyran"]},{n:"Storm's Eye",t:"G",f:"P",tr:["Thundersteps"]},{n:"In'Gor, the Spiritbound",t:"U",f:"PL",tr:["Seeker", "Oerikan", "Abomination"]},{n:"Effigy of Chaos",t:"G",f:"P",tr:["In'Gor, the Spiritbound"]},{n:"Tarok Beast",t:"U",f:"P",tr:["Beast"]},{n:"Spirit Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Primal Totem",t:"U",f:"P",tr:["Construct"]},{n:"Cabra Mauler",t:"U",f:"P",tr:["Vulkir"]},{n:"Boneclaw Raider",t:"U",f:"P",tr:["Human"]},{n:"Farsight Ambusher",t:"U",f:"P",tr:["Erisyr"]},{n:"Bloodfrenzy Berserker",t:"U",f:"P",tr:["Oerikan"]},{n:"Mugq'Tovor, Bodybreaker",t:"U",f:"P",tr:["Abomination"]},{n:"Bloodfeast Raptor",t:"U",f:"P",tr:["Beast"]},{n:"Cursehost Boar",t:"U",f:"PL",tr:["Beast", "Abomination"]},{n:"Hunter's Sense",t:"S",f:"P",tr:["Channel"]},{n:"Consume Carcass",t:"S",f:"P",tr:["Channel"]},{n:"Heartstab Blast",t:"S",f:"P",tr:["Channel"]},{n:"Nature's Wrath",t:"S",f:"P",tr:["Channel"]},{n:"Adrenaline Rush",t:"S",f:"P",tr:["Channel"]},{n:"Fortune's Favor",t:"S",f:"P",tr:["Swift"]},{n:"Retribution",t:"S",f:"P",tr:["Swift"]},{n:"Diehard",t:"S",f:"P",tr:["Swift"]},{n:"Seize the Initiative",t:"S",f:"P",tr:["Swift"]},{n:"Cataclysmic Blast",t:"S",f:"P",tr:["Channel"]},{n:"Unstoppable Rush",t:"S",f:"P",tr:["Channel"]},{n:"Thunderous Devastation",t:"S",f:"P",tr:["Channel"]},{n:"Endless Rage",t:"S",f:"P",tr:["Swift"]},{n:"Chaotic Bargain",t:"S",f:"PL",tr:["Channel"]},{n:"Ravenous Swarm",t:"S",f:"PL",tr:["Channel"]},{n:"Kar-Mamok",t:"U",f:"PC",tr:["Seeker", "Abomination"]},{n:"Liena, Who Dreams",t:"G",f:"P",tr:["Kar-Mamok"]},{n:"Paxos Gorehorn",t:"U",f:"P",tr:["Shifter"]},{n:"Woe-Caster Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Sek'Takar, Scarred Arsonist",t:"U",f:"P",tr:["Oerikan"]},{n:"Uncaged Experiment",t:"U",f:"PC",tr:["Beast", "Spellbound"]},{n:"Trial of Stone",t:"S",f:"P",tr:["Channel"]},{n:"Choice of Brutality",t:"S",f:"P",tr:["Channel"]},{n:"Arcane Mirroring",t:"S",f:"PC",tr:["Swift"]},{n:"Trample Through",t:"S",f:"PC",tr:["Channel"]},{n:"Tempest Scepter",t:"A",f:"",tr:["Relic"]},{n:"Ring of Time",t:"A",f:"",tr:["Relic"]},{n:"Veilpiercer",t:"A",f:"",tr:["Relic"]},{n:"Everlasting Heart",t:"A",f:"",tr:["Relic"]},{n:"Umbral Cloak",t:"A",f:"",tr:["Relic"]},{n:"Helm of Wrath",t:"A",f:"",tr:["Relic"]},{n:"Everkeep Reliquary",t:"A",f:"",tr:["Relic"]},{n:"Martyr's Vexillum",t:"A",f:"",tr:["Relic"]},{n:"Guardian's Aegis",t:"A",f:"",tr:["Relic"]},{n:"Reaper's Edge",t:"A",f:"",tr:["Relic"]},{n:"Trapjaw Chain",t:"A",f:"",tr:["Relic"]},{n:"Boots of Celerity",t:"A",f:"",tr:["Relic"]},{n:"Fang of the Damned",t:"A",f:"",tr:["Relic"]},{n:"Spelleater Mask",t:"A",f:"",tr:["Relic"]},{n:"Vengeance and Retribution",t:"A",f:"",tr:["Relic"]},{n:"Noxious Fleshgardens",t:"T",f:""},{n:"Starcast Halls",t:"T",f:""},{n:"Deathshroud Mire",t:"T",f:""},{n:"Astarian Pathways",t:"T",f:""},{n:"Behemoth Khuyakine",t:"U",f:"P",tr:["Beast"]},{n:"Murder of Shriekers",t:"U",f:"P",tr:["Beast"]},{n:"Irynia and Aratan",t:"U",f:"P",tr:["Oerikan", "Shifter"]},{n:"Ymirian Rage",t:"S",f:"P",tr:["Channel"]},{n:"Landshift",t:"S",f:"P",tr:["Swift"]},{n:"Raptor's Lift",t:"S",f:"P",tr:["Channel"]},{n:"Thaumite Mercenary",t:"U",f:"C",tr:["Human"]},{n:"Liastrum Accumulator",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Athan, Prime Decimator",t:"U",f:"C",tr:["Human"]},{n:"Liastrum Decimation",t:"S",f:"C",tr:["Channel"]},{n:"Crackling Trap",t:"S",f:"C",tr:["Channel"]},{n:"Salvage",t:"S",f:"C",tr:["Channel"]},{n:"Gilded Sentries",t:"U",f:"O",tr:["Human"]},{n:"Discordant Voice",t:"U",f:"O",tr:["Human"]},{n:"Siro, Hand of Law",t:"U",f:"O",tr:["Vulkir"]},{n:"Triumvirate Liturgy",t:"S",f:"O",tr:["Channel"]},{n:"Demand Confession",t:"S",f:"O",tr:["Channel"]},{n:"Twisted Charity",t:"S",f:"O",tr:["Channel"]},{n:"Masarin Deathsinger",t:"U",f:"L",tr:["Fallen", "Horror"]},{n:"Mashr",t:"U",f:"L",tr:["Human"]},{n:"Champion of Drav",t:"U",f:"L",tr:["Fallen", "Horror"]},{n:"Choice of Malady",t:"S",f:"L",tr:["Channel"]},{n:"Soul Mimicry",t:"S",f:"L",tr:["Channel"]},{n:"Horrific Archery",t:"S",f:"L",tr:["Channel"]},{n:"Myrkosian Magnifier",t:"A",f:"C",tr:["Item"]},{n:"Oskarite Blade",t:"A",f:"L",tr:["Item"]},{n:"Expiatrine Scourge",t:"A",f:"O",tr:["Item"]},{n:"Avakran Flute",t:"A",f:"P",tr:["Item"]}];
+const FNAME={C:'Conclave of the Sphere',O:'Order of the Shattered Throne',L:'Legion of the Fallen',P:'Primal Blood'};
+const TNAME={U:'Unit',G:'Legacy',S:'Spell',A:'Attachment',T:'Terrain'};
+function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
+function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
+// Units and terrains are physical pieces: 4 statuses. Everything else: owned.
+function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','printed','painted','standee'] : ['owned']; }
 
 
 const seekerFaction = n => (SEEKERS.find(s=>s.name===n)||{}).faction || null;
@@ -1547,29 +1817,140 @@ function renderMeta(matches){
 /* ============================================================
    CHROME (header + tabs)
    ============================================================ */
-function renderChrome(){
-  const ub=$('userbox');
-  if(!configured){ ub.innerHTML=''; $('tabs').innerHTML=''; return; }
-  if(me){
-    ub.innerHTML = `<span class="rolechip ${me.role==='organizer'?'organizer':''}">${me.role}</span>
-      <span>${esc(me.display_name)}</span>
-      <button class="ghost" onclick="signOut()">Sign out</button>`;
-  }else{
-    ub.innerHTML = `<button class="ghost" onclick="go('auth')">Sign in</button>`;
-  }
-  const tabs = [
-    {id:'browse',  label:'Home'},
-    {id:'rules',   label:'Rules'},
-    {id:'tracker', label:'Tracker'},
-    {id:'meta',    label:'Meta'},
-  ];
-  if(me){
-    tabs.push({id:'profile', label:'Profile'});
-  }
-  $('tabs').innerHTML = tabs.map(t=>
-    `<button data-tab="${t.id}" class="${route.view===t.id?'active':''}" onclick="go('${t.id}')">${t.label}</button>`
-  ).join('');
+/* ============================================================
+   NAVIGATION SHELL — desktop sidebar with expandable groups,
+   mobile 4-tab bottom bar where group tabs open a sheet menu.
+   The active league (header switcher) drives the League group.
+   ============================================================ */
+function myLeaguesSafe(){ return (cache.myLeagues||[]); }
+function getActiveLeagueId(){
+  const ls = myLeaguesSafe();
+  if(!ls.length) return null;
+  const saved = localStorage.getItem('sl-active-league');
+  return ls.some(l=>l.id===saved) ? saved : ls[0].id;
 }
+function setActiveLeague(id){
+  localStorage.setItem('sl-active-league', id);
+  renderChrome();
+  if(route.view==='browse') renderBrowse();
+}
+function goLeagueTab(tab){
+  const id=getActiveLeagueId();
+  if(!id) return toast('Join a league first — find one on Home');
+  closeSheet();
+  go('league',{leagueId:id, tab});
+}
+function navModel(){
+  const nav=[{id:'home', label:'Home', icon:'⌂', go:"go('browse')"}];
+  if(me && myLeaguesSafe().length){
+    nav.push({id:'league', label:'League', icon:'⚔', group:[
+      {id:'lg-current',   label:'Current event', go:"goLeagueTab('events')"},
+      {id:'lg-standings', label:'Standings',     go:"goLeagueTab('standings')"},
+      {id:'lg-past',      label:'Past events',   go:"goLeagueTab('past')"},
+      {id:'lg-tourney',   label:'Tournament',    go:"goLeagueTab('tournament')"},
+      {id:'lg-meta',      label:'League meta',   go:"goLeagueTab('meta')"},
+    ]});
+  }
+  if(me){
+    nav.push({id:'collection', label:'Collection', icon:'▤', group:[
+      {id:'col-cards', label:'Collection', go:"closeSheet();go('collection')"},
+      {id:'col-decks', label:'My decks', go:"closeSheet();go('profile')"},
+    ]});
+  }
+  nav.push({id:'utilities', label:'Utilities', icon:'✦', group:[
+    {id:'ut-tracker', label:'Game tracker', go:"closeSheet();go('tracker')"},
+    {id:'ut-perf',    label:'Performance',  go:"closeSheet();go('meta')"},
+    {id:'ut-rules',   label:'Rules',        go:"closeSheet();go('rules')"},
+  ]});
+  return nav;
+}
+// Which sidebar item matches the current route (for highlighting).
+function activeNavItem(){
+  if(route.view==='browse') return 'home';
+  if(route.view==='tracker') return 'ut-tracker';
+  if(route.view==='meta') return 'ut-perf';
+  if(route.view==='rules') return 'ut-rules';
+  if(route.view==='profile') return 'col-decks';
+  if(route.view==='collection') return 'col-cards';
+  if(route.view==='league' && route.leagueId===getActiveLeagueId()){
+    if(route.tab==='standings') return 'lg-standings';
+    if(route.tab==='past') return 'lg-past';
+    if(route.tab==='tournament') return 'lg-tourney';
+    if(route.tab==='meta') return 'lg-meta';
+    return 'lg-current';
+  }
+  return null;
+}
+function renderChrome(){
+  const tr=$('top-right'), sb_=$('sidebar'), bb=$('bbar');
+  if(!configured){ if(tr)tr.innerHTML=''; if(sb_)sb_.innerHTML=''; if(bb)bb.innerHTML=''; return; }
+  const act=activeNavItem();
+  const nav=navModel();
+
+  // ---- header right: league switcher + directory + avatar / sign in ----
+  if(tr){
+    let h='';
+    const ls=myLeaguesSafe();
+    if(me && ls.length>1){
+      h+=`<select id="lg-switch" class="lg-switch" onchange="setActiveLeague(this.value)">
+        ${ls.map(l=>`<option value="${l.id}" ${l.id===getActiveLeagueId()?'selected':''}>${esc(l.name)}</option>`).join('')}
+      </select>`;
+    }else if(me && ls.length===1){
+      h+=`<span class="lg-current-name">${esc(ls[0].name)}</span>`;
+    }
+    if(me){
+      h+=`<button class="avatar" onclick="go('profile')" title="${esc(me.display_name)}" aria-label="Profile">${esc((me.display_name||'?')[0].toUpperCase())}</button>
+          <button class="ghost top-out" onclick="signOut()">Sign out</button>`;
+    }else{
+      h+=`<button class="ghost" onclick="go('auth')">Sign in</button>`;
+    }
+    tr.innerHTML=h;
+  }
+
+  // ---- desktop sidebar ----
+  if(sb_){
+    const openG = new Set(JSON.parse(localStorage.getItem('sl-nav-open')||'["league","collection","utilities"]'));
+    window._openGroups = openG;
+    sb_.innerHTML = nav.map(n=>{
+      if(!n.group){
+        return `<button class="sn-item top-lvl ${act===n.id?'on':''}" onclick="${n.go}"><i>${n.icon}</i>${n.label}</button>`;
+      }
+      const open=openG.has(n.id);
+      const kidOn=n.group.some(g=>g.id===act);
+      return `<div class="sn-group ${open?'open':''}">
+        <button class="sn-item top-lvl ${kidOn&&!open?'on':''}" onclick="toggleNavGroup('${n.id}')">
+          <i>${n.icon}</i>${n.label}<span class="chev">${open?'▾':'▸'}</span></button>
+        ${open?`<div class="sn-kids">`+n.group.map(g=>
+          `<button class="sn-item kid ${act===g.id?'on':''}" onclick="${g.go}">${g.label}</button>`).join('')+`</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // ---- mobile bottom bar ----
+  if(bb){
+    bb.innerHTML = nav.map(n=>{
+      const kidOn=n.group && n.group.some(g=>g.id===act);
+      const on = act===n.id || kidOn;
+      const click = n.group ? `openSheet('${n.id}')` : n.go;
+      return `<button class="bb-tab ${on?'on':''}" onclick="${click}"><i>${n.icon}</i><span>${n.label}</span></button>`;
+    }).join('');
+  }
+}
+function toggleNavGroup(id){
+  const g=window._openGroups||new Set();
+  g.has(id)?g.delete(id):g.add(id);
+  localStorage.setItem('sl-nav-open', JSON.stringify([...g]));
+  renderChrome();
+}
+function openSheet(groupId){
+  const n=navModel().find(x=>x.id===groupId);
+  if(!n||!n.group) return;
+  const act=activeNavItem();
+  $('sheet-card').innerHTML = `<div class="sheet-title">${n.label}</div>`+
+    n.group.map(g=>`<button class="sheet-item ${act===g.id?'on':''}" onclick="${g.go}">${g.label}</button>`).join('');
+  $('sheet').hidden=false;
+}
+function closeSheet(){ const sh=$('sheet'); if(sh) sh.hidden=true; }
 
 /* ============================================================
    RENDER ROUTER
@@ -1578,12 +1959,13 @@ async function render(){
   if(!configured){
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     $('browse').classList.add('active');
-    $('browse-list').innerHTML = `<div class="banner warn">
+    $('home-find').innerHTML = `<div class="banner warn">
       <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and
       anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.
       Full steps are in <code>SETUP.md</code>.</div>`;
     return;
   }
+  closeSheet();
   // "My Leagues" was folded into Home; old links keep working.
   if(route.view==='mine') route.view='browse';
   renderChrome();
@@ -1596,6 +1978,7 @@ async function render(){
   if(route.view==='tracker') return renderTracker();
   if(route.view==='meta')    return renderMetaView();
   if(route.view==='profile') return renderProfile();
+  if(route.view==='collection') return renderCollection();
   if(route.view==='league')  return renderLeague();
   if(route.view==='auth')    return setAuthMode(authMode);
 }
@@ -1604,75 +1987,106 @@ async function render(){
    BROWSE (public directory)
    ============================================================ */
 async function renderBrowse(){
-  const list=$('browse-list');
-  list.innerHTML = `<div class="empty"><span class="spinner"></span> Loading leagues…</div>`;
+  const find=$('home-find');
+  if(find) find.innerHTML = `<div class="empty"><span class="spinner"></span> Loading…</div>`;
   cache.leagues = await fetchPublicLeagues();
-  // Battles = events + tournaments. Counted with head:true so we get the number
-  // without pulling the rows themselves.
+  // App-wide counters for the stats band. head:true = numbers only, no rows.
   try{
     const {count} = await sb.from('tournaments').select('*',{count:'exact',head:true});
     cache.tourneyCount = count||0;
   }catch(e){ cache.tourneyCount = 0; }
+  try{
+    const {count} = await sb.from('matches').select('*',{count:'exact',head:true});
+    cache.matchCount = count||0;
+  }catch(e){ cache.matchCount = 0; }
   if(me){
     cache.myLeagues = await fetchMyLeagues();
-    cache.todaySessions = await fetchTodaySessions(cache.myLeagues.map(l=>l.id));
+    if(!cache.myDecks) cache.myDecks = await fetchMyDecks();
+    const aid=getActiveLeagueId();
+    if(aid){
+      const [asess, amatch] = await Promise.all([fetchSessions(aid), fetchMatches(aid)]);
+      cache.homeSessions=asess; cache.homeMatches=amatch;
+    }else{ cache.homeSessions=[]; cache.homeMatches=[]; }
   }
-  paintHero();
-  paintToday();
+  renderChrome();   // the sidebar's League group depends on myLeagues being loaded
+  paintHomeHead();
+  paintHomeEvent();
+  paintHomeQuick();
+  paintHomeStats();
   paintMine();
-  paintBrowse();
+  paintHomeFind();
 }
 
 function todayStr(){
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
 }
-// Only the events dated today, across the leagues the player belongs to.
-async function fetchTodaySessions(ids){
-  if(!ids || !ids.length) return [];
-  const {data,error} = await sb.from('sessions')
-    .select('*, attendance(user_id)').in('league_id', ids).eq('date', todayStr());
-  if(error){ console.error(error); return []; }
-  return data||[];
-}
+function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function activeLeague(){ const id=getActiveLeagueId(); return myLeaguesSafe().find(l=>l.id===id)||null; }
 
-/* The one-tap flow for game day: if one of your leagues has an event dated
-   today, Home leads with it — check in, log a match, see standings, without
-   digging through tabs. Time-of-day neutral on purpose: people play at any
-   hour, so it's "Today", never "tonight". */
-function paintToday(){
-  const el=$('home-today'); if(!el) return;
-  if(!me){ el.innerHTML=''; return; }
-  const sess = cache.todaySessions||[];
-  let h='';
-  sess.forEach(sn=>{
-    const lg=(cache.myLeagues||[]).find(l=>l.id===sn.league_id); if(!lg) return;
-    const att=(sn.attendance||[]).map(a=>a.user_id);
-    const inNow = att.includes(me.id);
-    h += `<div class="today-card">
-      <div class="tc-head">
-        <span class="tc-live"></span>
-        <div>
-          <div class="tc-title">Today at ${esc(lg.name)}</div>
-          <div class="tc-sub">${att.length} checked in${sn.notes?` · ${esc(sn.notes)}`:''}</div>
-        </div>
-      </div>
-      <div class="tc-actions">
-        ${inNow
-          ? `<span class="tc-in">✓ You're checked in</span>
-             <button class="act gold" onclick="window._autoWiz='${sn.id}';go('league',{leagueId:'${lg.id}',tab:'events'})">Log a match</button>`
-          : `<button class="act gold" onclick="homeCheckIn('${sn.id}')">Check in</button>`}
-        <button class="ghost" onclick="go('league',{leagueId:'${lg.id}',tab:'standings'})">Standings</button>
+/* ---- Home: greeting ---- */
+function paintHomeHead(){
+  const el=$('home-head'); if(!el) return;
+  if(!me){
+    el.innerHTML=`<div class="hero hero-centered">
+      <img class="hero-logo" src="${ASSETS.brandLogo}" alt="Seekers League">
+      <p class="hero-p">A free, unofficial tracker for local Malediction leagues. Log your events,
+      watch the standings build over the month, see which Seekers actually win — and battle in
+      monthly showdowns!</p>
+      <div class="hero-links">
+        <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>
+        <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Find official events ↗</a>
       </div>
     </div>`;
-  });
-  if(!sess.length){
-    // Organizers get a one-tap path to open today's event.
-    const adminLg=(cache.myLeagues||[]).filter(l=>l.owner_id===me.id||l.is_admin);
-    if(adminLg.length){
-      h = `<div class="today-slim">No event today in ${esc(adminLg[0].name)}.
-        <button class="link" onclick="go('league',{leagueId:'${adminLg[0].id}',tab:'events'})">Create one →</button></div>`;
-    }
+    return;
+  }
+  const lg=activeLeague();
+  el.innerHTML=`<div class="home-greet">
+    <h1>Welcome back, ${esc(me.display_name)}</h1>
+    <p>${lg?`${esc(lg.name)} · ${esc(lg.location)}${lg.city?' · '+esc(lg.city):''}`:'No league yet — find one below, or join with a code.'}</p>
+  </div>`;
+}
+
+/* ---- Home: the event card. Live today > next scheduled > none. ---- */
+function paintHomeEvent(){
+  const el=$('home-event'); if(!el) return;
+  const lg=me?activeLeague():null;
+  if(!lg){ el.innerHTML=''; return; }
+  const t=todayStr();
+  const sess=(cache.homeSessions||[]);
+  const todayS = sess.find(x=>x.date===t);
+  const next = sess.filter(x=>x.date>t).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const isAdm = lg.owner_id===me.id||lg.is_admin;
+  let h='';
+  if(todayS){
+    const att=(todayS.attendance||[]).map(a=>a.user_id);
+    const inNow=att.includes(me.id);
+    h=`<div class="ev-card live">
+      <div class="ev-head"><span class="tc-live"></span>
+        <div><div class="ev-title">Event in progress — ${fmtDate(todayS.date)}</div>
+        <div class="ev-sub">${esc(lg.name)} · ${att.length} checked in${todayS.notes?` · ${esc(todayS.notes)}`:''}</div></div></div>
+      <div class="ev-actions">
+        ${inNow
+          ? `<span class="tc-in">✓ You're checked in</span>
+             <button class="act gold" onclick="window._autoWiz='${todayS.id}';go('league',{leagueId:'${lg.id}',tab:'events'})">Log a match</button>`
+          : `<button class="act gold" onclick="homeCheckIn('${todayS.id}')">Check in</button>`}
+        <button class="ghost" onclick="go('league',{leagueId:'${lg.id}',tab:'events'})">Event page</button>
+      </div>
+    </div>`;
+  }else if(next){
+    h=`<div class="ev-card">
+      <div class="ev-head"><div><div class="ev-title">Next event — ${fmtDate(next.date)}</div>
+        <div class="ev-sub">${esc(lg.name)}${next.notes?` · ${esc(next.notes)}`:''}</div></div></div>
+      <div class="ev-actions"><button class="ghost" onclick="go('league',{leagueId:'${lg.id}',tab:'events'})">Event page</button></div>
+    </div>`;
+  }else{
+    h=`<div class="ev-card">
+      <div class="ev-head"><div><div class="ev-title">No upcoming events</div>
+        <div class="ev-sub">${esc(lg.name)}</div></div></div>
+      <div class="ev-actions">${isAdm
+        ?`<button class="act" onclick="go('league',{leagueId:'${lg.id}',tab:'events'})">Create one</button>`
+        :`<button class="ghost" onclick="go('league',{leagueId:'${lg.id}',tab:'events'})">Event page</button>`}</div>
+    </div>`;
   }
   el.innerHTML=h;
 }
@@ -1683,75 +2097,88 @@ async function homeCheckIn(sid){
   renderBrowse();
 }
 
-// Welcome block + live counts. League and event counts come from the directory
-// view we've already fetched; the tournament count is one extra small query.
-function paintHero(){
-  const hero=$('hero');
-  if(!hero) return;
-  // The demo is a showcase, not a real league — leave it out of the "growing"
-  // counters so they reflect genuine activity.
-  const realLeagues = cache.leagues.filter(l=>!isDemo(l.id));
-  const leagues = realLeagues.length;
-  const events  = realLeagues.reduce((a,l)=>a+(l.session_count||0), 0);
-  const battles = events + (cache.tourneyCount||0);
-  // Signed-in players know the app — they get a slim stats strip and the page
-  // leads with Today + their leagues. The full welcome hero is for visitors.
-  if(me){
-    hero.innerHTML = `<div class="hero-slim">
-      <span><b>${leagues}</b> ${leagues===1?'league':'leagues'}</span>
-      <span class="dot"></span>
-      <span><b>${battles}</b> ${battles===1?'battle':'battles'}</span>
-      <span class="dot"></span>
-      <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>
-      <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Official events ↗</a>
-    </div>`;
-    return;
+/* ---- Home: three quick cards ---- */
+function paintHomeQuick(){
+  const el=$('home-quick'); if(!el) return;
+  if(!me){ el.innerHTML=''; return; }
+  const lg=activeLeague();
+  let standing='—', of='join a league to compete';
+  if(lg){
+    const mk=todayStr().slice(0,7);
+    let rows=computeStandings(lg, cache.homeSessions||[], cache.homeMatches||[], mk);
+    if(!rows.some(r=>r.id===me.id)) rows=computeStandings(lg, cache.homeSessions||[], cache.homeMatches||[], 'all');
+    const i=rows.findIndex(r=>r.id===me.id);
+    if(i>=0){ standing=ordinal(i+1); of=`of ${rows.length} players`; }
+    else of='no matches yet';
   }
-  hero.innerHTML = `
-    <div class="hero hero-centered">
-      <img class="hero-logo" src="${ASSETS.brandLogo}" alt="Seekers League">
-      <p class="hero-p">A free, unofficial tracker for local Malediction leagues. Log your events,
-      watch the standings build over the month, see which Seekers actually win — and battle in
-      monthly showdowns!</p>
-      <div class="hero-stats">
-        <div class="hs-title">The Malediction is growing…</div>
-        <div class="hs-row">
-          <div class="hs"><b>${leagues}</b><span>total ${leagues===1?'league':'leagues'}</span></div>
-          <div class="hs-sep"></div>
-          <div class="hs"><b>${battles}</b><span>total ${battles===1?'battle':'battles'}</span></div>
-        </div>
-      </div>
-      <div class="hero-links">
-        <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>
-        <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Find official events ↗</a>
-      </div>
-    </div>`;
+  const decks=(cache.myDecks||[]).length;
+  el.innerHTML=`<div class="quick-grid">
+    <div class="qcard" onclick="${lg?`goLeagueTab('standings')`:`go('browse')`}">
+      <div class="q-label">Your standing</div>
+      <div class="q-big">${standing}</div>
+      <div class="q-sub">${of}</div>
+    </div>
+    <div class="qcard" onclick="go('profile')">
+      <div class="q-label">My decks</div>
+      <div class="q-big dim">${decks}</div>
+      <div class="q-sub">${decks===1?'deck saved':'decks saved'} · manage →</div>
+    </div>
+    <div class="qcard" onclick="go('tracker')">
+      <div class="q-label">Game tracker</div>
+      <div class="q-big dim">▶</div>
+      <div class="q-sub">Mastery, Echo &amp; relics at the table →</div>
+    </div>
+  </div>`;
 }
-function paintBrowse(){
-  const q=($('browse-search').value||'').toLowerCase();
-  const sort=$('browse-sort').value;
-  let rows = cache.leagues.filter(l =>
-    !q || [l.name,l.location,l.city,l.country].some(x=>(x||'').toLowerCase().includes(q)));
-  if(sort==='location') rows.sort((a,b)=>(a.country||'').localeCompare(b.country||'')||(a.city||'').localeCompare(b.city||'')||a.name.localeCompare(b.name));
-  else if(sort==='active') rows.sort((a,b)=>(b.session_count||0)-(a.session_count||0));
-  else rows.sort((a,b)=> new Date(b.last_session||b.created_at) - new Date(a.last_session||a.created_at));
 
-  const list=$('browse-list');
-  if(!rows.length){
-    list.innerHTML = `<div class="empty">${q?'No leagues match that search.':'No public leagues yet. If you\'re an organizer, create the first one.'}</div>`;
+/* ---- Home: the stats band ---- */
+function paintHomeStats(){
+  const el=$('home-stats'); if(!el) return;
+  const real=cache.leagues.filter(l=>!isDemo(l.id));
+  const leagues=real.length;
+  const events=real.reduce((a,l)=>a+(l.session_count||0),0);
+  const st=[[leagues,'Leagues created'],[events,'Events played'],[cache.tourneyCount||0,'Tournaments'],[cache.matchCount||0,'Matches logged']];
+  el.innerHTML=`<div class="stats-band">
+    <div class="sb-title">The Malediction is growing…</div>
+    <div class="sb-row">${st.map(([n,l])=>`<div class="sb-stat"><b>${n}</b><small>${l}</small></div>`).join('')}</div>
+  </div>`;
+}
+
+/* ---- Home: find a league. 3 rows idle, up to 7 while searching. ---- */
+function paintHomeFind(){
+  const el=$('home-find'); if(!el) return;
+  el.innerHTML=`<div class="panel plain find-panel">
+    <h2 style="margin:0 0 2px">Find a league</h2>
+    <p class="hint" style="margin:0 0 12px">Search by league name, town, or venue.</p>
+    <input type="text" id="browse-search" placeholder="Search leagues…" value="${esc(window._findQ||'')}"
+      oninput="window._findQ=this.value; paintFindList();">
+    <div id="find-list"></div>
+  </div>`;
+  paintFindList();
+}
+function paintFindList(){
+  const list=$('find-list'); if(!list) return;
+  const q=(window._findQ||'').toLowerCase();
+  let rows=cache.leagues.filter(l=>!q||[l.name,l.location,l.city,l.country].some(x=>(x||'').toLowerCase().includes(q)));
+  rows.sort((a,b)=> (isDemo(b.id)?1:0)-(isDemo(a.id)?1:0) ||
+    new Date(b.last_session||b.created_at)-new Date(a.last_session||a.created_at));
+  const shown=rows.slice(0, q?7:3);
+  if(!shown.length){
+    list.innerHTML=`<div class="empty">No leagues match — start your own from “Your leagues” above.</div>`;
     return;
   }
-  list.innerHTML = `<div class="league-grid">` + rows.map(l=>`
-    <div class="league-card${isDemo(l.id)?' is-demo':''}" onclick="go('league',{leagueId:'${l.id}',tab:'standings'})">
-      <h4>${esc(l.name)}${isDemo(l.id)?'<span class="demo-badge">Demo</span>':''}</h4>
-      <div class="loc">${esc(l.location)}${l.city?' · '+esc(l.city):''}${l.country?', '+esc(l.country):''}</div>
-      ${l.description?`<div class="desc">${esc(l.description).slice(0,120)}${l.description.length>120?'…':''}</div>`:''}
-      <div class="meta">
-        <span>${l.member_count||0} players</span>
-        <span>${l.session_count||0} events</span>
-        <span>Last: ${timeAgo(l.last_session)}</span>
+  list.innerHTML = shown.map(l=>{
+    const mineB=myLeaguesSafe().some(x=>x.id===l.id);
+    return `<div class="find-row" onclick="go('league',{leagueId:'${l.id}',tab:'standings'})">
+      <div class="fr-main">
+        <div class="fr-name">${esc(l.name)}
+          ${isDemo(l.id)?'<span class="demo-badge">Demo</span>':''}
+          ${mineB?'<span class="mem-badge">Member</span>':''}</div>
+        <div class="fr-loc">${esc(l.location)}${l.city?' · '+esc(l.city):''}</div>
       </div>
-    </div>`).join('') + `</div>`;
+      <div class="fr-side"><span class="fr-count">${l.member_count||0} players</span>
+      <button class="ghost fr-view">View</button></div>
+    </div>`;}).join('');
 }
 
 /* ============================================================
@@ -2028,29 +2455,30 @@ const RULES_TURN = `
     </details>
   </div>`;
 /* ============================================================
-   LIVE TRACKER
-   Tracks ONE player — your own board. Everyone at the table has a phone,
-   and a single column keeps the numbers big enough to hit with a thumb
-   mid-game. Deliberately not saved to the league: this is a scratchpad for
-   the game in front of you. State sits in localStorage so a stray refresh
-   doesn't wipe the board.
-   ============================================================ */
-const TRK_KEY = 'mlt.tracker';
+   GAME TRACKER — multi-player, with game modes.
+   Everything at the table: Mastery (red), Echo (cool blue — deliberately a
+   different colour so the two counters never get confused), relics, rounds.
+   Modes set the player count and the Mastery target. Allegiance shares
+   Mastery per team. State persists in localStorage.
 
-// Game formats. Only the duel (40) and team (50) thresholds are confirmed in
-// the rulebook. The demo and any other format aren't documented in a source I
-// could verify, so rather than invent a number there's a Custom option — set
-// whatever your table is playing. If you find the official values, add them here.
-const TRK_FORMATS = [
-  {v:40, label:'40 — duel (1v1)'},
-  {v:50, label:'50 — team (2v2)'},
+   Rendering discipline (hard-won): rebuild the DOM only on STRUCTURAL
+   changes (mode, player count, reset). Value taps go through tPatch(),
+   which updates numbers/classes in place — rebuilding on every tap
+   destroys the button under your finger and re-applies :hover to whatever
+   lands there.
+   ============================================================ */
+const TRK_KEY = 'sl.tracker.2';
+const TRK_MODES = [
+  {id:'clash',      label:'Clash (Standard Duel)', players:2, target:40, desc:'Standard duel — first to 40 Mastery wins'},
+  {id:'demo',       label:'Demo Game',             players:2, target:25, desc:'Short intro game — first to 25 Mastery'},
+  {id:'allegiance', label:'Allegiance 2v2',        players:4, target:50, desc:'Team battle — first team to 50 shared Mastery'},
+  {id:'nemesis',    label:'Nemesis 2v1',           players:3, target:50, desc:'One against two — first to 50 Mastery'},
+  {id:'dominion',   label:'Dominion FFA',          players:3, target:40, desc:'Free-for-all, 3–4 players — first to 40 Mastery'},
 ];
 const TRK_DEFAULT = () => ({
-  target: 40,                    // 40 duel, 50 team play
-  mastery: 0,
-  echo: 0,
-  relics: [false,false,false,false],
-  round: 1,
+  mode:'clash', target:40, players:2, round:1,
+  teamMastery:[0,0],
+  p:[1,2,3,4].map(n=>({name:'Player '+n, mastery:0, echo:0, relics:[false,false,false,false]})),
 });
 let trk = null;
 
@@ -2058,173 +2486,98 @@ function trkLoad(){
   try{
     const raw=localStorage.getItem(TRK_KEY);
     trk = raw ? JSON.parse(raw) : TRK_DEFAULT();
-    // an older version stored a two-player shape — start clean if we see it
-    if(trk.players || !Array.isArray(trk.relics) || trk.relics.length!==4) trk = TRK_DEFAULT();
-    trk.mastery = Math.max(0, +trk.mastery||0);
-    trk.echo    = Math.max(0, +trk.echo||0);
-    trk.round   = Math.max(1, +trk.round||1);
-    trk.target  = +trk.target||40;
+    if(!trk.p || !Array.isArray(trk.p) || trk.p.length!==4) trk = TRK_DEFAULT();
+    trk.round=Math.max(1,+trk.round||1);
+    trk.players=Math.min(4,Math.max(1,+trk.players||2));
+    trk.target=+trk.target||40;
+    if(!Array.isArray(trk.teamMastery)||trk.teamMastery.length!==2) trk.teamMastery=[0,0];
+    trk.p.forEach(pl=>{ pl.mastery=Math.max(0,+pl.mastery||0); pl.echo=Math.max(0,+pl.echo||0);
+      if(!Array.isArray(pl.relics)||pl.relics.length!==4) pl.relics=[false,false,false,false]; });
   }catch(e){ trk = TRK_DEFAULT(); }
 }
 function trkSave(){ try{ localStorage.setItem(TRK_KEY, JSON.stringify(trk)); }catch(e){} }
 
-// Update the numbers in place rather than re-rendering. Rebuilding the DOM on
-// every tap destroys the button you just touched, and the browser re-applies
-// :hover to whatever lands under the pointer — which is how tapping Echo used
-// to light up Mastery's − button. Patching values also keeps focus and avoids
-// a flash on every press.
-function trkPatch(){
-  const set = (sel, val) => { const e=document.querySelector(sel); if(e && e.value!==String(val)) e.value=val; };
-  set('#trk-mastery', trk.mastery||0);
-  set('#trk-echo', trk.echo||0);
-  set('#trk-round', trk.round||1);
-
-  const held = trk.relics.filter(Boolean).length;
-  const pctDone = Math.min(100, (trk.mastery||0)/trk.target*100);
-  const reached = (trk.mastery||0) >= trk.target;
-
-  const fill=document.querySelector('.tm-fill');       if(fill) fill.style.width = pctDone+'%';
-  const of=document.querySelector('.tm-of');
-  if(of) of.textContent = `${trk.mastery||0} of ${trk.target}${reached?' — target reached':''}`;
-  const blk=document.querySelector('.mastery-block');  if(blk) blk.classList.toggle('reached', reached);
-  const rc=document.querySelector('.rel-count');       if(rc) rc.textContent = `${held}/4 · ${held*10} Mastery`;
-  document.querySelectorAll('.rel').forEach((b,i)=>{
-    b.classList.toggle('on', !!trk.relics[i]);
-    b.title = trk.relics[i] ? 'Lost — removes 10 Mastery' : 'Claimed — adds 10 Mastery';
-  });
-  const nr=document.querySelector('.next-round');
-  if(nr) nr.textContent = `Next round → +${echoForRound((trk.round||1)+1)} Echo`;
-}
-function trkTouch(){ trkSave(); trkPatch(); }
-
-function trkAdj(field, delta){
-  trk[field] = Math.max(0, (trk[field]||0) + delta);
-  trkTouch();
-}
-function trkSet(field, val){
-  const n = parseInt(val,10);
-  trk[field] = isNaN(n) ? 0 : Math.max(0,n);
-  if(field==='round') trk.round = Math.max(1, trk.round);
-  trkTouch();
-}
-function trkTarget(v){
-  const n=parseInt(v,10);
-  trk.target = (isNaN(n)||n<1) ? 40 : n;
-  trkSave(); paintTracker();
-}
-// Format switching. A target that isn't one of the presets IS custom — no extra
-// flag to keep in sync. Picking Custom nudges the number off the presets so the
-// input appears.
-function trkFormat(v){
-  if(v==='custom'){
-    if(TRK_FORMATS.some(f=>f.v===trk.target)) trk.target = trk.target + 1;
-  }else{
-    trk.target = parseInt(v,10)||40;
-  }
-  trkSave(); paintTracker();
-}
-
-// A relic is worth 10 Mastery while held. Toggling on adds 10, off removes 10 —
-// one counter holds the total, so kill points and relic points live together.
-function trkRelic(r){
-  const had = trk.relics[r];
-  trk.relics[r] = !had;
-  trk.mastery = Math.max(0, (trk.mastery||0) + (had ? -10 : 10));
-  trkTouch();
-}
-function trkRound(delta){
-  trk.round = Math.max(1, (trk.round||1)+delta);
-  trkTouch();
-}
-// Echo gained at the start of a round: 2× the round number, capped at 10 from round 5.
+function tIsTeam(){ return trk.mode==='allegiance' && trk.players===4; }
+function tTeamOf(i){ return i<2?0:1; }
+function tMasteryOf(i){ return tIsTeam() ? trk.teamMastery[tTeamOf(i)] : trk.p[i].mastery; }
+function tWon(i){ return tMasteryOf(i) >= trk.target; }
+// Echo gained entering a round: 2× the round number, capped at 10 from round 5.
 function echoForRound(r){ return r<=5 ? r*2 : 10; }
-function trkNextRound(){
-  trk.round = (trk.round||1)+1;
-  const gain = echoForRound(trk.round);
-  trk.echo = (trk.echo||0) + gain;     // Echo is cumulative
-  trkTouch();
-  toast(`Round ${trk.round} — +${gain} Echo`, true);
+
+/* ---- value taps: state + in-place patch, never a rebuild ---- */
+function tTouch(){ trkSave(); tPatch(); }
+function tAdjM(i,d){
+  if(tIsTeam()){ const t=tTeamOf(i); trk.teamMastery[t]=Math.max(0,trk.teamMastery[t]+d); }
+  else trk.p[i].mastery=Math.max(0,trk.p[i].mastery+d);
+  tTouch();
 }
-function trkReset(){
-  if(!confirm('Clear the tracker and start a fresh game?')) return;
-  const target = trk.target;           // keep the format you were playing
-  trk = TRK_DEFAULT();
-  trk.target = target;
+function tSetM(i,v){
+  const n=Math.max(0,parseInt(v,10)||0);
+  if(tIsTeam()) trk.teamMastery[tTeamOf(i)]=n; else trk.p[i].mastery=n;
+  tTouch();
+}
+function tAdjE(i,d){ trk.p[i].echo=Math.max(0,trk.p[i].echo+d); tTouch(); }
+function tSetE(i,v){ trk.p[i].echo=Math.max(0,parseInt(v,10)||0); tTouch(); }
+// A relic is worth 10 Mastery while held — toggling on adds 10, off removes 10.
+function tRelic(i,r){
+  const had=trk.p[i].relics[r];
+  trk.p[i].relics[r]=!had;
+  const d=had?-10:10;
+  if(tIsTeam()){ const t=tTeamOf(i); trk.teamMastery[t]=Math.max(0,trk.teamMastery[t]+d); }
+  else trk.p[i].mastery=Math.max(0,trk.p[i].mastery+d);
+  tTouch();
+}
+function tRound(d){ trk.round=Math.max(1,trk.round+d); tTouch(); }
+function tNextRound(){
+  trk.round++;
+  const gain=echoForRound(trk.round);
+  for(let i=0;i<trk.players;i++) trk.p[i].echo+=gain;   // Echo is cumulative, everyone gains
+  tTouch();
+  toast(`Round ${trk.round} — everyone +${gain} Echo`, true);
+}
+function tName(i,v){ trk.p[i].name=v.slice(0,24); trkSave(); }   // no repaint: you're typing in it
+
+/* ---- structural changes: full repaint ---- */
+function tMode(id){
+  const m=TRK_MODES.find(x=>x.id===id)||TRK_MODES[0];
+  trk.mode=m.id; trk.target=m.target; trk.players=m.players;
   trkSave(); paintTracker();
-  toast('Tracker cleared', true);
+}
+function tPlayers(n){ trk.players=Math.min(4,Math.max(1,n)); trkSave(); paintTracker(); }
+function tReset(){
+  if(!confirm('Clear the tracker and start a fresh game?')) return;
+  const {mode,target,players}=trk;
+  const names=trk.p.map(x=>x.name);
+  trk=TRK_DEFAULT();
+  trk.mode=mode; trk.target=target; trk.players=players;
+  trk.p.forEach((x,i)=>x.name=names[i]);
+  trkSave(); paintTracker();
 }
 
-function renderTracker(){
-  if(!trk) trkLoad();
-  paintTracker();
+/* ---- in-place patch of every live value ---- */
+function tPatch(){
+  const set=(id,val)=>{const e=document.getElementById(id); if(e&&e.value!==String(val)) e.value=val;};
+  set('tk-round', trk.round);
+  const nr=document.querySelector('.next-round');
+  if(nr) nr.textContent=`Next round → everyone +${echoForRound(trk.round+1)} Echo`;
+  for(let i=0;i<trk.players;i++){
+    const pm=tMasteryOf(i);
+    set('tk-m-'+i, pm);
+    set('tk-e-'+i, trk.p[i].echo);
+    const card=document.getElementById('tk-card-'+i);
+    if(card) card.classList.toggle('win', tWon(i));
+    const fill=document.querySelector('#tk-card-'+i+' .blk-fill');
+    if(fill) fill.style.width=Math.min(100,pm/trk.target*100)+'%';
+    const of=document.querySelector('#tk-card-'+i+' .blk-of');
+    if(of) of.textContent=`${pm} of ${trk.target}`;
+    const eh=document.querySelector('#tk-card-'+i+' .echo-hint');
+    if(eh) eh.textContent=`+${echoForRound(trk.round+1)} next round`;
+    document.querySelectorAll('#tk-card-'+i+' .tkrel').forEach((b,r)=>{
+      b.classList.toggle('on', !!trk.p[i].relics[r]);
+    });
+  }
 }
-function paintTracker(){
-  const body=$('tracker-body');
-  if(!body) return;
-  const held = trk.relics.filter(Boolean).length;
-  const pctDone = Math.min(100, (trk.mastery||0)/trk.target*100);
-  const reached = (trk.mastery||0) >= trk.target;
-  const preset = TRK_FORMATS.some(f=>f.v===trk.target) ? trk.target : 'custom';
 
-  body.innerHTML = `
-    <div class="panel trk-single">
-      <div class="trk-top">
-        <select class="fmt" onchange="trkFormat(this.value)">
-          ${TRK_FORMATS.map(f=>`<option value="${f.v}"${preset===f.v?' selected':''}>${esc(f.label)}</option>`).join('')}
-          <option value="custom"${preset==='custom'?' selected':''}>Custom…</option>
-        </select>
-        ${preset==='custom'?`<input class="fmt-custom" type="text" inputmode="numeric" value="${trk.target}"
-          onchange="trkTarget(this.value)" title="Mastery needed to win">`:''}
-        <button class="ghost" onclick="trkReset()">New game</button>
-      </div>
-
-      <div class="mastery-block ${reached?'reached':''}">
-        <div class="tm-label">Mastery <span class="tm-of">${trk.mastery||0} of ${trk.target}${reached?' — target reached':''}</span></div>
-        <div class="tm-row big">
-          <button class="tm-btn" onclick="trkAdj('mastery',-1)">−</button>
-          <input class="tm-val" id="trk-mastery" type="text" inputmode="numeric" value="${trk.mastery||0}"
-                 onchange="trkSet('mastery',this.value)">
-          <button class="tm-btn" onclick="trkAdj('mastery',1)">+</button>
-        </div>
-        <div class="tm-bar"><div class="tm-fill" style="width:${pctDone}%"></div></div>
-      </div>
-
-      <div class="tm-label" style="margin-top:20px">Relics held
-        <span class="rel-count">${held}/4 · ${held*10} Mastery</span></div>
-      <div class="rel-row">
-        ${trk.relics.map((on,r)=>`
-          <button class="rel ${on?'on':''}" onclick="trkRelic(${r})"
-            title="${on?'Lost — removes 10 Mastery':'Claimed — adds 10 Mastery'}">${r+1}</button>`).join('')}
-      </div>
-      <div class="rel-hint">Each relic moves Mastery by 10. Add kill points with the ± above.</div>
-
-      <div class="trk-bottom">
-        <div class="tb-col">
-          <div class="tm-label">Echo</div>
-          <div class="tm-row">
-            <button class="tm-btn" onclick="trkAdj('echo',-1)">−</button>
-            <input class="tm-val echo" id="trk-echo" type="text" inputmode="numeric" value="${trk.echo||0}"
-                   onchange="trkSet('echo',this.value)">
-            <button class="tm-btn" onclick="trkAdj('echo',1)">+</button>
-          </div>
-        </div>
-        <div class="tb-col">
-          <div class="tm-label">Round</div>
-          <div class="tm-row">
-            <button class="tm-btn" onclick="trkRound(-1)">−</button>
-            <input class="tm-val round" id="trk-round" type="text" inputmode="numeric" value="${trk.round||1}"
-                   onchange="trkSet('round',this.value)">
-            <button class="tm-btn" onclick="trkRound(1)">+</button>
-          </div>
-        </div>
-      </div>
-
-      <button class="act next-round" onclick="trkNextRound()">
-        Next round → +${echoForRound((trk.round||1)+1)} Echo</button>
-      <div class="rel-hint" style="text-align:center">
-        Echo is 2× the round, capped at 10 from round 5.</div>
-    </div>`;
-}
 async function renderMetaView(){
   const scope=$('meta-scope');
   if(!scope.dataset.filled){
@@ -2238,6 +2591,81 @@ async function renderMetaView(){
   let matches = scope.value==='global' ? await fetchAllMatches() : await fetchMatches(scope.value);
   matches = windowFilter(matches, $('meta-window').value);
   body.innerHTML = renderMeta(matches);
+}
+
+function renderTracker(){
+  if(!trk) trkLoad();
+  paintTracker();
+}
+function paintTracker(){
+  const body=$('tracker-body');
+  if(!body) return;
+  const mode=TRK_MODES.find(x=>x.id===trk.mode)||TRK_MODES[0];
+  const team=tIsTeam();
+  body.innerHTML=`
+  <div class="panel tk-panel">
+    <div class="tk-head">
+      <div><h2 style="margin:0">Game tracker</h2>
+        <p class="hint tk-desc">${esc(mode.desc)}</p></div>
+      <select class="tk-mode" onchange="tMode(this.value)">
+        ${TRK_MODES.map(m=>`<option value="${m.id}"${trk.mode===m.id?' selected':''}>${esc(m.label)}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="tk-controls">
+      <div class="tk-count" role="group" aria-label="Players">
+        ${[1,2,3,4].map(n=>`<button class="pcount ${trk.players===n?'on':''}" onclick="tPlayers(${n})">${n}</button>`).join('')}
+      </div>
+      <div class="tk-roundbar">
+        <span class="tm-label" style="margin:0">Round</span>
+        <button class="tm-btn sm" onclick="tRound(-1)">−</button>
+        <input class="tm-val sm" id="tk-round" type="text" inputmode="numeric" value="${trk.round}"
+          onchange="trk.round=Math.max(1,parseInt(this.value,10)||1);tTouch();">
+        <button class="tm-btn sm" onclick="tRound(1)">+</button>
+      </div>
+      <button class="act next-round" onclick="tNextRound()">Next round → everyone +${echoForRound(trk.round+1)} Echo</button>
+      <button class="ghost" onclick="tReset()">New game</button>
+    </div>
+
+    <div class="tk-grid p${trk.players}">
+      ${trk.p.slice(0,trk.players).map((pl,i)=>{
+        const pm=tMasteryOf(i);
+        return `<div class="tk-card ${tWon(i)?'win':''}" id="tk-card-${i}">
+        <div class="win-badge">${trk.target} — wins</div>
+        <div class="tk-name-row">
+          <input class="tk-name" value="${esc(pl.name)}" maxlength="24"
+            oninput="tName(${i},this.value)" aria-label="Player name">
+          ${team?`<span class="team-chip">Team ${i<2?'A':'B'}</span>`:''}
+        </div>
+        <div class="tk-twin">
+          <div class="blk mast">
+            <div class="blk-label">Mastery${team?' <i>(team)</i>':''} <span class="blk-of">${pm} of ${trk.target}</span></div>
+            <div class="tm-row">
+              <button class="tm-btn" onclick="tAdjM(${i},-1)">−</button>
+              <input class="tm-val" id="tk-m-${i}" type="text" inputmode="numeric" value="${pm}"
+                onchange="tSetM(${i},this.value)">
+              <button class="tm-btn" onclick="tAdjM(${i},1)">+</button>
+            </div>
+            <div class="blk-bar"><div class="blk-fill" style="width:${Math.min(100,pm/trk.target*100)}%"></div></div>
+          </div>
+          <div class="blk echo">
+            <div class="blk-label">Echo <span class="echo-hint">+${echoForRound(trk.round+1)} next round</span></div>
+            <div class="tm-row">
+              <button class="tm-btn" onclick="tAdjE(${i},-1)">−</button>
+              <input class="tm-val" id="tk-e-${i}" type="text" inputmode="numeric" value="${pl.echo}"
+                onchange="tSetE(${i},this.value)">
+              <button class="tm-btn" onclick="tAdjE(${i},1)">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="tk-relics">
+          <span class="rel-lab">Relics</span>
+          ${pl.relics.map((on,r)=>`<button class="tkrel ${on?'on':''}" onclick="tRelic(${i},${r})"
+            title="${on?'Lost — removes 10 Mastery':'Claimed — adds 10 Mastery'}" aria-label="Relic ${r+1}">${r+1}</button>`).join('')}
+        </div>
+      </div>`;}).join('')}
+    </div>
+  </div>`;
 }
 
 /* ============================================================
@@ -2432,7 +2860,7 @@ async function renderLeague(){
     </div>
   </div>`;
 
-  const tabs=[{id:'standings',label:'Standings'},{id:'events',label:'Events'},{id:'meta',label:'Meta'},{id:'tournament',label:'Tournament'}];
+  const tabs=[{id:'events',label:'Current event'},{id:'standings',label:'Standings'},{id:'past',label:'Past events'},{id:'tournament',label:'Tournament'},{id:'meta',label:'Meta'}];
   if(admin) tabs.push({id:'manage',label:'Manage'});
   // if the Manage tab vanished under us (player view), fall back gracefully
   const cur = tabs.find(t=>t.id===route.tab)?route.tab:'standings';
@@ -2442,6 +2870,7 @@ async function renderLeague(){
   const body=$('league-body');
   if(cur==='standings')  body.innerHTML = paintStandings(league, sessions, matches, members);
   if(cur==='events')     body.innerHTML = paintEvents(league, sessions, matches, members, admin, member);
+  if(cur==='past')       body.innerHTML = paintPastEvents(league, sessions, matches, members, admin, member);
   if(cur==='meta')       body.innerHTML = `<div class="panel plain">${renderMeta(matches)}</div>`;
   if(cur==='tournament') await paintTournament(league, sessions, matches, members, admin);
   if(cur==='manage')     body.innerHTML = paintManage(league, members);
@@ -2463,121 +2892,194 @@ function paintStandings(league, sessions, matches, members){
     </div>`;
   if(!rows.length) h += `<div class="empty">No results yet.
     <button class="link" onclick="go('league',{leagueId:'${league.id}',tab:'events'})">Log the first match from Events →</button></div>`;
-  else h += `<table><thead><tr><th class="rank">#</th><th>Player</th>
-      <th class="num">Events</th><th class="num">W</th><th class="num">L</th>
-      <th class="num">Win%</th><th class="num">Points</th></tr></thead><tbody>` +
-    rows.map((r,i)=>{
+  else h += rows.map((r,i)=>{
       const g=r.w+r.l, wr=g?Math.round(r.w/g*100):0;
       const isMe = me&&r.id===me.id;
-      return `<tr><td class="rank ${i===0?'top1':''}">${i+1}</td>
-        <td class="${isMe?'me':''}">${esc(nameOf(r.id))}${isMe?' (you)':''}</td>
-        <td class="num">${r.att}</td><td class="num">${r.w}</td><td class="num">${r.l}</td>
-        <td class="num">${wr}%</td>
-        <td class="num" style="color:var(--brass);font-weight:600">${r.pts}</td></tr>`;
-    }).join('') + `</tbody></table>`;
-  h += `<p class="hint" style="margin-top:14px;font-size:12.5px">Scoring: ${league.pts_attend} per event attended,
-    ${league.pts_win} per win, ${league.pts_loss} per loss.</p></div>`;
+      return `<div class="st-row${isMe?' self':''}">
+        <div class="st-rank${i===0?' lead':''}">${i+1}</div>
+        <div class="st-main">
+          <div class="st-name">${esc(nameOf(r.id))}${isMe?' <span class="st-you">(you)</span>':''}</div>
+          <div class="st-sub">${r.att} ${r.att===1?'event':'events'} · ${r.w}–${r.l} · ${wr}% WR</div>
+        </div>
+        <div class="st-pts">${r.pts}</div>
+      </div>`;
+    }).join('');
+  h += `<p class="hint" style="margin-top:14px;font-size:12.5px">${league.pts_attend} pt per event ·
+    ${league.pts_win} per win · ${league.pts_loss} per loss.</p></div>`;
   return h;
 }
 
+/* ============================================================
+   EVENTS — split per the redesign:
+   "Current event" = today's event, or the next scheduled one, with the
+   4-step game-day checklist (Check in -> Play -> Log -> Confirmed) and a
+   guided actions row. "Past events" = read-only-ish recap cards that keep
+   the organizer tools, so attendance and late results can still be fixed.
+   ============================================================ */
+function sessionCard(s, league, matches, members, admin, member, current){
+  const att=(s.attendance||[]).map(a=>a.user_id);
+  const ms=matches.filter(m=>m.session_id===s.id);
+  const iAmIn = me && att.includes(me.id);
+  const canLog = me && (admin || iAmIn);
+  const editing = window._editEvent === s.id;
+  // Arriving from Home's "Log a match": open the wizard on this event directly.
+  if(window._autoWiz===s.id && canLog){ window._autoWiz=null; window._logWiz={sid:s.id, step:1, d:{}}; }
+  const absent = admin ? members.filter(m=>!att.includes(m.id))
+    .sort((a,b)=>a.display_name.localeCompare(b.display_name)) : [];
+  const myMs = me ? ms.filter(m=>m.winner_id===me.id||m.loser_id===me.id) : [];
+  const isToday = s.date===todayStr();
+
+  // --- the 4-step checklist (current event, signed-in members) ---
+  let checklist='';
+  if(current && me && member){
+    const done=[iAmIn, myMs.length>0, myMs.length>0, myMs.length>0 && myMs.every(m=>m.confirmed)];
+    const cur = done.indexOf(false);
+    const steps=[
+      ['Check in',"One tap — you're on the attendance list"],
+      ['Play your games','Battle at the table'],
+      ['Log each result','Winner, Seekers, terrain'],
+      ['Confirmed','The organizer signs it off']];
+    checklist = `<div class="ck-grid">`+steps.map((st,i)=>{
+      const state = done[i]?'done':(i===cur?'cur':'todo');
+      return `<div class="ck-card ${state}">
+        <div class="ck-n">${done[i]?'✓':i+1}</div>
+        <div class="ck-t">${st[0]}</div>
+        <div class="ck-d">${state==='cur'?"<b>You're here</b> · ":''}${st[1]}</div>
+      </div>`;
+    }).join('')+`</div>`;
+  }
+
+  // --- guided actions row (current event) ---
+  let actions='';
+  if(current && me && member){
+    actions = `<div class="cur-actions">
+      ${!iAmIn?`<button class="act gold" onclick="checkIn('${s.id}')">Check in</button>`:''}
+      ${canLog?`<div class="wiz-slot" id="wiz-${s.id}">${wizHtml(s.id)}</div>`:''}
+      <button class="ghost" onclick="go('tracker')">Open game tracker</button>
+      ${iAmIn?`<button class="co-link" onclick="checkOut('${s.id}')">check out</button>`:''}
+    </div>`;
+  }else if(current && me && !member){
+    actions = `<p class="hint" style="margin-top:12px">Join the league to check in and log matches.</p>`;
+  }
+
+  return `<div class="panel plain ${current?'ev-current':''}">
+    <div class="flex-between">
+      <div>
+        ${current?`<div class="ev-kicker">${isToday?'<span class="tc-live"></span>Event in progress':'Next event'}</div>`:''}
+        <h2 style="margin:0">${fmtDate(s.date)}</h2>
+        ${s.notes?`<p class="hint" style="margin:2px 0 0">${esc(s.notes)}</p>`:''}
+        ${safeUrl(s.event_url)?`<a class="ev-link" href="${esc(safeUrl(s.event_url))}" target="_blank" rel="noopener noreferrer">Official event page ↗</a>`:''}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="pill">${att.length} present</span>
+        <span class="pill">${ms.length} matches</span>
+        ${(!current && me && member)?(iAmIn
+          ? `<button class="ghost" onclick="checkOut('${s.id}')">Check out</button>`
+          : `<button class="ghost" onclick="checkIn('${s.id}')">I'm here</button>`):''}
+        ${admin?`<button class="ghost ${editing?'on':''}" onclick="toggleEditEvent('${s.id}')">${editing?'Cancel':'Edit'}</button>`:''}
+        ${admin?`<span class="del" role="button" aria-label="Delete event" onclick="delSession('${s.id}')" title="Delete event">×</span>`:''}
+      </div>
+    </div>
+    ${editing?`<div class="pane" style="margin-top:14px">
+      <div class="row">
+        <label class="field"><span>Date</span>
+          <input type="date" id="ed-date-${s.id}" value="${esc(s.date)}"></label>
+        <label class="field"><span>Notes</span>
+          <input type="text" id="ed-notes-${s.id}" value="${esc(s.notes||'')}" placeholder="Casual event, 6 tables"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Event link</span>
+          <input type="url" id="ed-url-${s.id}" value="${esc(s.event_url||'')}" placeholder="https://play.malediction.gg/..."></label>
+        <label class="field" style="display:flex;align-items:flex-end;max-width:160px">
+          <button class="act" style="width:100%" onclick="saveEvent('${s.id}')">Save changes</button></label>
+      </div>
+    </div>`:''}
+    ${checklist}
+    ${actions}
+    ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
+      att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}
+        ${admin?`<span class="att-x" role="button" aria-label="Remove from event" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
+      </span>`).join('') + `</div>`:''}
+
+    ${admin && absent.length?`<div class="check-others">
+      <span class="co-label">Check someone in</span>
+      <select id="ci-${s.id}" onchange="checkInOther('${s.id}', this.value); this.value='';">
+        <option value="">— pick a player —</option>
+        ${absent.map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join('')}
+      </select>
+    </div>`:''}
+
+    ${(!current && canLog)?`<div class="divider"></div>
+      <div id="wiz-${s.id}">${wizHtml(s.id)}</div>`:''}
+
+    ${ms.length?`<div class="divider"></div>` + `<table><tbody>` + ms.map(m=>`
+      <tr>
+        <td><span class="pill win">${esc(nameOf(m.winner_id))}</span>
+          ${m.winner_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.winner_seeker)}</span>`:''}
+          ${safeUrl(m.winner_decklist)?`<a class="dl" href="${esc(safeUrl(m.winner_decklist))}" target="_blank" rel="noopener noreferrer" title="Winner's decklist">deck ↗</a>`:''}
+          <span style="color:var(--bone-dim)"> beat </span>
+          ${esc(nameOf(m.loser_id))}
+          ${m.loser_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.loser_seeker)}</span>`:''}
+          ${safeUrl(m.loser_decklist)?`<a class="dl" href="${esc(safeUrl(m.loser_decklist))}" target="_blank" rel="noopener noreferrer" title="Loser's decklist">deck ↗</a>`:''}
+          ${(m.winner_terrain||m.loser_terrain)?`<br><span style="color:var(--bone-dim);font-size:12px">
+            ${[m.winner_terrain,m.loser_terrain].filter(Boolean).map(esc).join(' &nbsp;·&nbsp; ')}</span>`:''}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          ${!m.confirmed?`<span class="pill pending" title="Awaiting organizer confirmation">unconfirmed</span>`:''}
+          ${admin&&!m.confirmed?`<button class="ghost" onclick="confirmMatch('${m.id}')">Confirm</button>`:''}
+          ${(admin||(me&&m.reported_by===me.id&&!m.confirmed))?`<span class="del" role="button" aria-label="Delete match" onclick="delMatch('${m.id}')">×</span>`:''}
+        </td>
+      </tr>`).join('') + `</tbody></table>`:''}
+  </div>`;
+}
+
 function paintEvents(league, sessions, matches, members, admin, member){
+  const t=todayStr();
+  const sorted=[...sessions].sort((a,b)=>a.date.localeCompare(b.date));
+  const current = sorted.find(x=>x.date===t) || sorted.find(x=>x.date>t) || null;
+  const upcoming = sorted.filter(x=>x.date>t && (!current||x.id!==current.id));
   let h='';
   if(admin){
-    h += `<div class="panel">
-      <h2>New event</h2>
-      <p class="hint">Create the event, then players can check in and log their own matches.</p>
-      <div class="row">
-        <label class="field"><span>Date</span><input type="date" id="ns-date" value="${today()}"></label>
-        <label class="field"><span>Notes (optional)</span><input type="text" id="ns-notes" placeholder="Casual event, 6 tables"></label>
-        <label class="field"><span>Event link (optional)</span>
-          <input type="url" id="ns-event" placeholder="https://malediction.gg/events/..."></label>
-        <label class="field" style="display:flex;align-items:flex-end">
-          <button class="act gold" style="width:100%" onclick="createSession()">Create event</button></label>
-      </div>
-    </div>`;
+    const open = !current || window._newEvent;
+    if(open){
+      h += `<div class="panel">
+        <div class="flex-between"><h2 style="margin:0">New event</h2>
+          ${current?`<button class="ghost" onclick="window._newEvent=false;renderLeague()">Cancel</button>`:''}</div>
+        <p class="hint">Create the event, then players can check in and log their own matches.</p>
+        <div class="row">
+          <label class="field"><span>Date</span><input type="date" id="ns-date" value="${today()}"></label>
+          <label class="field"><span>Notes (optional)</span><input type="text" id="ns-notes" placeholder="Casual event, 6 tables"></label>
+          <label class="field"><span>Event link (optional)</span>
+            <input type="url" id="ns-event" placeholder="https://malediction.gg/events/..."></label>
+          <label class="field" style="display:flex;align-items:flex-end">
+            <button class="act gold" style="width:100%" onclick="createSession()">Create event</button></label>
+        </div>
+      </div>`;
+    }else{
+      h += `<div class="new-ev-row"><button class="ghost" onclick="window._newEvent=true;renderLeague()">+ New event</button></div>`;
+    }
   }
-  if(!sessions.length) return h + `<div class="panel plain"><div class="empty">No events yet.${admin?' Create the first one above.':' Your organizer will schedule the first one.'}</div></div>`;
-
-  h += sessions.map(s=>{
-    const att=(s.attendance||[]).map(a=>a.user_id);
-    const ms=matches.filter(m=>m.session_id===s.id);
-    const iAmIn = me && att.includes(me.id);
-    const canLog = me && (admin || iAmIn);
-    const editing = window._editEvent === s.id;
-    // Arriving from Home's "Log a match": open the wizard on this event directly.
-    if(window._autoWiz===s.id && canLog){ window._autoWiz=null; window._logWiz={sid:s.id, step:1, d:{}}; }
-    // League members not yet marked present — an organizer can check them in for
-    // the ones who forgot, or who don't have their phone out.
-    const absent = admin ? members.filter(m=>!att.includes(m.id))
-      .sort((a,b)=>a.display_name.localeCompare(b.display_name)) : [];
-    return `<div class="panel plain">
-      <div class="flex-between">
-        <div>
-          <h2 style="margin:0">${fmtDate(s.date)}</h2>
-          ${s.notes?`<p class="hint" style="margin:2px 0 0">${esc(s.notes)}</p>`:''}
-          ${safeUrl(s.event_url)?`<a class="ev-link" href="${esc(safeUrl(s.event_url))}" target="_blank" rel="noopener noreferrer">Official event page ↗</a>`:''}
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="pill">${att.length} present</span>
-          <span class="pill">${ms.length} matches</span>
-          ${me&&member?(iAmIn
-            ? `<button class="ghost" onclick="checkOut('${s.id}')">Check out</button>`
-            : `<button class="ghost" onclick="checkIn('${s.id}')">I'm here</button>`):''}
-          ${admin?`<button class="ghost ${editing?'on':''}" onclick="toggleEditEvent('${s.id}')">${editing?'Cancel':'Edit'}</button>`:''}
-          ${admin?`<span class="del" onclick="delSession('${s.id}')" title="Delete event">×</span>`:''}
-        </div>
-      </div>
-      ${editing?`<div class="pane" style="margin-top:14px">
-        <div class="row">
-          <label class="field"><span>Date</span>
-            <input type="date" id="ed-date-${s.id}" value="${esc(s.date)}"></label>
-          <label class="field"><span>Notes</span>
-            <input type="text" id="ed-notes-${s.id}" value="${esc(s.notes||'')}" placeholder="Casual event, 6 tables"></label>
-        </div>
-        <div class="row">
-          <label class="field"><span>Event link</span>
-            <input type="url" id="ed-url-${s.id}" value="${esc(s.event_url||'')}" placeholder="https://play.malediction.gg/..."></label>
-          <label class="field" style="display:flex;align-items:flex-end;max-width:160px">
-            <button class="act" style="width:100%" onclick="saveEvent('${s.id}')">Save changes</button></label>
-        </div>
-      </div>`:''}
-      ${att.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">` +
-        att.map(u=>`<span class="pill${me&&u===me.id?' pending':''}">${esc(nameOf(u))}
-          ${admin?`<span class="att-x" role="button" aria-label="Remove from event" onclick="checkOutOther('${s.id}','${u}')" title="Remove ${esc(nameOf(u))} from this event">×</span>`:''}
-        </span>`).join('') + `</div>`:''}
-
-      ${admin && absent.length?`<div class="check-others">
-        <span class="co-label">Check someone in</span>
-        <select id="ci-${s.id}" onchange="checkInOther('${s.id}', this.value); this.value='';">
-          <option value="">— pick a player —</option>
-          ${absent.map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join('')}
-        </select>
-      </div>`:''}
-
-      ${canLog?`<div class="divider"></div>
-        <div id="wiz-${s.id}">${wizHtml(s.id)}</div>`:''}
-
-      ${ms.length?`<div class="divider"></div>` + `<table><tbody>` + ms.map(m=>`
-        <tr>
-          <td><span class="pill win">${esc(nameOf(m.winner_id))}</span>
-            ${m.winner_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.winner_seeker)}</span>`:''}
-            ${safeUrl(m.winner_decklist)?`<a class="dl" href="${esc(safeUrl(m.winner_decklist))}" target="_blank" rel="noopener noreferrer" title="Winner's decklist">deck ↗</a>`:''}
-            <span style="color:var(--bone-dim)"> beat </span>
-            ${esc(nameOf(m.loser_id))}
-            ${m.loser_seeker?`<span style="color:var(--bone-dim);font-size:12.5px"> · ${esc(m.loser_seeker)}</span>`:''}
-            ${safeUrl(m.loser_decklist)?`<a class="dl" href="${esc(safeUrl(m.loser_decklist))}" target="_blank" rel="noopener noreferrer" title="Loser's decklist">deck ↗</a>`:''}
-            ${(m.winner_terrain||m.loser_terrain)?`<br><span style="color:var(--bone-dim);font-size:12px">
-              ${[m.winner_terrain,m.loser_terrain].filter(Boolean).map(esc).join(' &nbsp;·&nbsp; ')}</span>`:''}
-          </td>
-          <td style="text-align:right;white-space:nowrap">
-            ${!m.confirmed?`<span class="pill pending" title="Awaiting organizer confirmation">unconfirmed</span>`:''}
-            ${admin&&!m.confirmed?`<button class="ghost" onclick="confirmMatch('${m.id}')">Confirm</button>`:''}
-            ${(admin||(me&&m.reported_by===me.id&&!m.confirmed))?`<span class="del" role="button" aria-label="Delete match" onclick="delMatch('${m.id}')">×</span>`:''}
-          </td>
-        </tr>`).join('') + `</tbody></table>`:''}
-    </div>`;
-  }).join('');
+  if(!current){
+    if(!admin){
+      h += `<div class="panel plain"><div class="empty">No upcoming events.${sessions.length
+        ?` <button class="link" onclick="go('league',{leagueId:'${league.id}',tab:'past'})">Browse past events →</button>`
+        :' Your organizer will schedule the first one.'}</div></div>`;
+    }
+    return h;
+  }
+  h += sessionCard(current, league, matches, members, admin, member, true);
+  if(upcoming.length){
+    h += `<div class="panel plain" style="padding:12px 18px"><span class="hint" style="margin:0">
+      Also scheduled: ${upcoming.map(u=>fmtDate(u.date)).join(' · ')}</span></div>`;
+  }
   return h;
+}
+
+function paintPastEvents(league, sessions, matches, members, admin, member){
+  const t=todayStr();
+  const past=[...sessions].filter(x=>x.date<t).sort((a,b)=>b.date.localeCompare(a.date));
+  if(!past.length) return `<div class="panel plain"><div class="empty">No past events yet.</div></div>`;
+  return past.map(x=>sessionCard(x, league, matches, members, admin, member, false)).join('');
 }
 function playerOpts(ids, forceMe, sel){
   const list = forceMe ? ids.filter(i=>i===forceMe).concat(ids.filter(i=>i!==forceMe)) : ids;
@@ -2598,6 +3100,7 @@ function terrainOpts(sel){
 
 /* ---------- league actions ---------- */
 async function createSession(){
+  window._newEvent=false;
   const date=$('ns-date').value;
   if(!date) return toast('Pick a date');
   const ev=$('ns-event').value.trim();
@@ -2703,7 +3206,7 @@ function wizHtml(sid){
   }
   if(W.step===2){
     h+=`<div class="wz-body">
-      <div class="wz-side"><div class="log-tag win">Winner — ${esc(nameOf(d.w))}</div>
+      <div class="wz-side win"><div class="log-tag win">Winner — ${esc(nameOf(d.w))}</div>
         <div class="row tight">
           <label class="field"><span>Seeker</span><select id="wz-ws-${sid}">${seekerOpts(d.ws)}</select></label>
           <label class="field"><span>Terrain set brought</span><select id="wz-wt-${sid}">${terrainOpts(d.wt)}</select></label>
@@ -3118,6 +3621,104 @@ async function pickWinner(r,mi,slot){
 /* ============================================================
    PROFILE / PERSONAL STATS
    ============================================================ */
+/* ============================================================
+   COLLECTION — track what you own, printed, painted, based.
+   One private row per card (own-only RLS). Toggles write optimistically
+   and revert on error. Catalog lives in the file; only statuses hit the DB.
+   ============================================================ */
+async function renderCollection(){
+  const body=$('collection-body');
+  if(!me){
+    body.innerHTML=`<div class="panel plain"><div class="empty">Sign in to track your collection.
+      <button class="link" onclick="go('auth')">Sign in →</button></div></div>`;
+    return;
+  }
+  body.innerHTML=`<div class="empty"><span class="spinner"></span> Loading collection…</div>`;
+  const {data,error}=await sb.from('collection').select('*').eq('user_id',me.id);
+  if(error){ body.innerHTML=`<div class="banner">${esc(error.message)}</div>`; return; }
+  cache.collection={};
+  (data||[]).forEach(r=>cache.collection[r.card_key]=r);
+  paintCollection();
+}
+function colRow(key){ return cache.collection[key]||{owned:false,printed:false,painted:false,standee:false}; }
+function paintCollection(){
+  const body=$('collection-body'); if(!body) return;
+  const owned=CARDS.filter(c=>colRow(c.n).owned).length;
+  const painted=CARDS.filter(c=>colRow(c.n).painted).length;
+  const printed=CARDS.filter(c=>colRow(c.n).printed).length;
+  const standee=CARDS.filter(c=>colRow(c.n).standee).length;
+  body.innerHTML=`<div class="panel plain">
+    <h2 style="margin:0 0 2px">Collection</h2>
+    <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print, paint or base. Private to you.</p>
+    <div class="quick-grid col-stats">
+      <div class="qcard"><div class="q-label">Owned</div><div class="q-big">${owned}<small class="q-of">/ ${CARDS.length}</small></div></div>
+      <div class="qcard"><div class="q-label">Printed</div><div class="q-big dim">${printed}</div></div>
+      <div class="qcard"><div class="q-label">Painted</div><div class="q-big dim">${painted}</div></div>
+      <div class="qcard"><div class="q-label">Standees</div><div class="q-big dim">${standee}</div></div>
+    </div>
+    <input type="text" id="col-q" placeholder="Search cards…" value="${esc(window._colQ||'')}"
+      oninput="window._colQ=this.value; paintColList();" style="margin:4px 0 10px">
+    <div class="chip-row">
+      ${[['','All'],['C','Conclave'],['O','Order'],['L','Legion'],['P','Primal'],['N','Neutral']].map(([v,l])=>
+        `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${l}</button>`).join('')}
+    </div>
+    <div class="chip-row">
+      ${[['','All types'],['U','Units'],['S','Spells'],['A','Attachments'],['T','Terrains'],['G','Legacies']].map(([v,l])=>
+        `<button class="fchip ${(window._colT||'')===v?'on':''}" onclick="window._colT='${v}';paintCollection()">${l}</button>`).join('')}
+    </div>
+    <div id="col-list"></div>
+  </div>`;
+  paintColList();
+}
+function paintColList(){
+  const list=$('col-list'); if(!list) return;
+  const q=(window._colQ||'').toLowerCase(), F=window._colF||'', T=window._colT||'';
+  const rows=CARDS.map((c,i)=>({c,i})).filter(({c})=>{
+    if(q && !(c.n.toLowerCase().includes(q) || (c.tr||[]).some(t=>t.toLowerCase().includes(q)))) return false;
+    if(F==='N'){ if(c.f) return false; }
+    else if(F && !cardHasFaction(c,F)) return false;
+    if(T && c.t!==T) return false;
+    return true;
+  });
+  if(!rows.length){ list.innerHTML=`<div class="empty">No cards match.</div>`; return; }
+  list.innerHTML = rows.map(({c,i})=>{
+    const r=colRow(c.n);
+    const fields=colFields(c);
+    const labels={owned:'Own',printed:'Print',painted:'Paint',standee:'Base'};
+    return `<div class="col-row">
+      <div class="col-main">
+        <div class="col-name">${esc(c.n)}</div>
+        <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
+      </div>
+      <div class="col-facs">${c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join('') : '<span class="fbadge fN" title="Neutral">N</span>'}</div>
+      <div class="col-tog">
+        ${fields.map(f=>`<button class="ctog ${r[f]?'on':''}" onclick="colToggle(${i},'${f}')"
+          title="${labels[f]}${f==='standee'?' (standee)':''}">${labels[f]}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function colToggle(idx, field){
+  const c=CARDS[idx]; if(!c||!me) return;
+  const key=c.n;
+  const cur={...colRow(key)};
+  cur[field]=!cur[field];
+  // ottimista: aggiorno subito, poi scrivo; se fallisce torno indietro
+  cache.collection[key]={...(cache.collection[key]||{}), user_id:me.id, card_key:key,
+    owned:!!cur.owned, printed:!!cur.printed, painted:!!cur.painted, standee:!!cur.standee};
+  paintCollection();
+  const {error}=await sb.from('collection').upsert({
+    user_id:me.id, card_key:key,
+    owned:!!cur.owned, printed:!!cur.printed, painted:!!cur.painted, standee:!!cur.standee
+  },{onConflict:'user_id,card_key'});
+  if(error){
+    cur[field]=!cur[field];
+    cache.collection[key]={...cache.collection[key], ...cur};
+    paintCollection();
+    toast(error.message);
+  }
+}
+
 async function renderProfile(){
   if(!me) return go('auth');
   const body=$('profile-body');
@@ -3304,8 +3905,6 @@ async function deleteDeck(id, name){
     $('au-switch').onclick = ()=> setAuthMode(authMode==='signup'?'signin':'signup');
     $('au-forgot').onclick = sendReset;
   }
-  $('browse-search').oninput = paintBrowse;
-  $('browse-sort').onchange = paintBrowse;
   $('meta-scope').onchange = renderMetaView;
   $('meta-window').onchange = renderMetaView;
   // In recovery, initAuth already showed the new-password form — a render()
