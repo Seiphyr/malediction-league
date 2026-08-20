@@ -620,6 +620,41 @@
     .col-tog{order:3;width:100%;justify-content:flex-end}
   }
 
+  /* ---- deckbuilder ---- */
+  .bld-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;margin-top:12px}
+  @media(max-width:900px){ .bld-grid{grid-template-columns:minmax(0,1fr)} }
+  .bldbar{margin:6px 0 4px}
+  .bldbar-track{position:relative;height:8px;background:var(--coal-2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .bldbar-fill{height:100%;background:var(--brass-dim);transition:width .18s}
+  .bldbar.ok .bldbar-fill{background:#5a9e6f}
+  .bldbar.over .bldbar-fill{background:var(--crimson)}
+  .bldbar-mark{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--line-2)}
+  .bldbar-label{font-size:12px;color:var(--bone-dim);margin-top:5px}
+  .bldbar.ok .bldbar-label{color:#5a9e6f}
+  .bldbar.over .bldbar-label{color:var(--crimson)}
+  .fchip.own.on{background:rgba(200,165,104,.14);border-color:var(--brass);color:var(--brass)}
+  .bld-step{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .stp{width:32px;height:32px;border-radius:8px;background:var(--coal-2);border:1px solid var(--line-2);
+    color:var(--bone);font-size:16px;cursor:pointer}
+  .stp:disabled{opacity:.3;cursor:default}
+  .stp-n{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;color:var(--bone);width:16px;text-align:center}
+  .notown{color:var(--bone-dim);font-size:12px}
+  .bld-deck{background:var(--coal-2);border:1px solid var(--line);border-radius:12px;padding:14px 15px;
+    position:sticky;top:70px;max-height:calc(100vh - 90px);overflow-y:auto}
+  @media(max-width:900px){ .bld-deck{position:static;max-height:none} }
+  .bld-deck-h{font-family:'Oswald',sans-serif;font-size:11px;font-weight:600;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--brass);margin-bottom:10px}
+  .bldd-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .bldd-row:last-of-type{border-bottom:0}
+  .bldd-row.out .bldd-name{color:var(--crimson)}
+  .bldd-n{font-family:'Oswald',sans-serif;font-size:12px;color:var(--bone-dim);flex:0 0 24px}
+  .bldd-name{flex:1;min-width:0;font-size:13.5px;color:var(--bone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bldd-x{flex:0 0 auto;background:none;border:0;color:var(--bone-dim);font-size:15px;cursor:pointer;padding:2px 6px}
+  .bldd-x:hover{color:var(--crimson)}
+  .dk-build{font-size:12px;color:var(--bone-dim);margin-top:3px}
+  .dk-build.ok{color:#5a9e6f}
+  .dk-edit{padding:5px 11px;font-size:11px}
+
   /* ---- game tracker: modes + multi-player cards ---- */
   :root{ --echo:#6fa8c8; --echo-border:#38566a; }
   .tk-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
@@ -1039,6 +1074,10 @@
   </section>
 
   <!-- ================= AUTH ================= -->
+  <section class="view" id="builder">
+    <div id="builder-body"></div>
+  </section>
+
   <section class="view" id="collection">
     <div id="collection-body"></div>
   </section>
@@ -1350,15 +1389,20 @@ function go(view, opts={}){
   route.view = view;
   if(opts.leagueId!==undefined) route.leagueId = opts.leagueId;
   if(opts.tab!==undefined) route.tab = opts.tab;
-  const hash = view==='league' ? `#/league/${route.leagueId}${route.tab?'/'+route.tab:''}` : `#/${view}`;
+  // deckId travels only when explicitly passed; a plain go('builder') is a new deck
+  route.deckId = opts.deckId!==undefined ? opts.deckId : null;
+  const hash = view==='league' ? `#/league/${route.leagueId}${route.tab?'/'+route.tab:''}`
+             : (view==='builder'&&route.deckId) ? `#/builder/${route.deckId}`
+             : `#/${view}`;
   if(location.hash!==hash) history.pushState(null,'',hash);
   render();
 }
 function parseHash(){
   const p = location.hash.replace(/^#\//,'').split('/').filter(Boolean);
-  if(!p.length) return {view:'browse', leagueId:null, tab:null};
-  if(p[0]==='league' && p[1]) return {view:'league', leagueId:p[1], tab:p[2]||'standings'};
-  return {view:p[0], leagueId:null, tab:null};
+  if(!p.length) return {view:'browse', leagueId:null, tab:null, deckId:null};
+  if(p[0]==='league' && p[1]) return {view:'league', leagueId:p[1], tab:p[2]||'standings', deckId:null};
+  if(p[0]==='builder') return {view:'builder', leagueId:null, tab:null, deckId:p[1]||null};
+  return {view:p[0], leagueId:null, tab:null, deckId:null};
 }
 window.addEventListener('popstate', ()=>{ route=parseHash(); render(); });
 
@@ -1872,6 +1916,7 @@ function activeNavItem(){
   if(route.view==='rules') return 'ut-rules';
   if(route.view==='profile') return 'col-decks';
   if(route.view==='collection') return 'col-cards';
+  if(route.view==='builder') return 'col-decks';
   if(route.view==='league' && route.leagueId===getActiveLeagueId()){
     if(route.tab==='standings') return 'lg-standings';
     if(route.tab==='past') return 'lg-past';
@@ -1979,6 +2024,7 @@ async function render(){
   if(route.view==='meta')    return renderMetaView();
   if(route.view==='profile') return renderProfile();
   if(route.view==='collection') return renderCollection();
+  if(route.view==='builder') return renderBuilder();
   if(route.view==='league')  return renderLeague();
   if(route.view==='auth')    return setAuthMode(authMode);
 }
@@ -2590,7 +2636,33 @@ async function renderMetaView(){
   body.innerHTML = `<div class="empty"><span class="spinner"></span> Crunching matches…</div>`;
   let matches = scope.value==='global' ? await fetchAllMatches() : await fetchMatches(scope.value);
   matches = windowFilter(matches, $('meta-window').value);
-  body.innerHTML = renderMeta(matches);
+  let h = renderMeta(matches);
+  // Most included cards — computed from YOUR saved decks only: decks are
+  // private by design (own-only RLS), so there's no global aggregate to read.
+  if(me){
+    if(!cache.myDecks) cache.myDecks=await fetchMyDecks();
+    const agg={};
+    (cache.myDecks||[]).forEach(d=>{
+      if(!d.cards) return;
+      Object.keys(d.cards).forEach(k=>{
+        const r=agg[k]=agg[k]||{copies:0,decks:0};
+        r.copies+=d.cards[k]; r.decks++;
+      });
+    });
+    const top=Object.keys(agg).map(k=>({k,...agg[k]})).sort((a,b)=>b.copies-a.copies).slice(0,12);
+    if(top.length){
+      h+=`<div class="panel plain" style="margin-top:16px">
+        <h2 style="margin:0 0 2px">Most included cards</h2>
+        <p class="hint" style="margin:0 0 12px">Across your saved decks. Decks are private, so this reflects your builds only.</p>
+        ${top.map(r=>{const c=CARDS[CARD_IDX[r.k]];return `<div class="col-row">
+          <div class="col-main"><div class="col-name">${esc(r.k)}</div>
+            <div class="col-sub">${c?TNAME[c.t]:''} · ${r.copies} ${r.copies===1?'copy':'copies'} in ${r.decks} ${r.decks===1?'deck':'decks'}</div></div>
+          <div class="col-facs">${c&&c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join(''):''}</div>
+        </div>`;}).join('')}
+      </div>`;
+    }
+  }
+  body.innerHTML = h;
 }
 
 function renderTracker(){
@@ -3719,12 +3791,202 @@ async function colToggle(idx, field){
   }
 }
 
+/* ============================================================
+   DECKBUILDER — build a 30-50 deck card by card, from the catalog.
+   Pool = units, spells and non-relic attachments that share a faction
+   with the chosen Seeker (dual-faction cards count for both sides),
+   plus neutrals. Max 3 copies. "Only cards I own" leans on the
+   Collection, so what you build is what you can field.
+   ============================================================ */
+const CARD_IDX={}; CARDS.forEach((c,i)=>CARD_IDX[c.n]=i);
+function seekerList(){ return CARDS.filter(c=>(c.tr||[]).includes('Seeker')); }
+function bldInPool(c, seekerF){
+  if(c.t!=='U'&&c.t!=='S'&&c.t!=='A') return false;   // deck = units, spells, attachments
+  if((c.tr||[]).includes('Seeker')) return false;      // the Seeker is brought separately
+  if((c.tr||[]).includes('Relic')) return false;       // relics live in the shared deck
+  if(!c.f) return true;                                // neutral: any deck
+  return [...c.f].some(l=>seekerF.includes(l));
+}
+function bldCount(){ return Object.values(window._bld.cards).reduce((a,b)=>a+b,0); }
+function bldOwned(name){ const r=cache.collection&&cache.collection[name]; return !!(r&&r.owned); }
+
+async function renderBuilder(){
+  if(!me) return go('auth');
+  const body=$('builder-body');
+  body.innerHTML=`<div class="empty"><span class="spinner"></span> Opening builder…</div>`;
+  if(!cache.myDecks) cache.myDecks=await fetchMyDecks();
+  if(!cache.collection){
+    const {data}=await sb.from('collection').select('*').eq('user_id',me.id);
+    cache.collection={}; (data||[]).forEach(r=>cache.collection[r.card_key]=r);
+  }
+  const d = route.deckId ? (cache.myDecks.find(x=>x.id===route.deckId)||null) : null;
+  window._bld = {
+    id:d?d.id:null, name:d?d.name:'', seeker:d?(d.seeker||''):'',
+    url:d?(d.url||''):'', cards:(d&&d.cards)?{...d.cards}:{},
+    ownedOnly:true, q:'', t:'',
+  };
+  paintBuilder();
+}
+function paintBuilder(){
+  const body=$('builder-body'); if(!body) return;
+  const B=window._bld;
+  body.innerHTML=`<div class="panel plain">
+    <div class="flex-between" style="margin-bottom:12px">
+      <h2 style="margin:0">${B.id?'Edit deck':'New deck'}</h2>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" onclick="go('profile')">Cancel</button>
+        <button class="act gold" onclick="bldSave()">Save deck</button>
+      </div>
+    </div>
+    <div class="row">
+      <label class="field"><span>Deck name</span>
+        <input type="text" maxlength="60" value="${esc(B.name)}" oninput="window._bld.name=this.value" placeholder="Order aggro"></label>
+      <label class="field"><span>Seeker</span>
+        <select onchange="window._bld.seeker=this.value;paintBuilder()">
+          <option value="">— pick a Seeker —</option>
+          ${seekerList().map(c=>`<option value="${esc(c.n)}" ${B.seeker===c.n?'selected':''}>${esc(c.n)} (${[...c.f].map(l=>FNAME[l].split(' ')[0]).join(' / ')})</option>`).join('')}
+        </select></label>
+      <label class="field"><span>Link (optional)</span>
+        <input type="url" value="${esc(B.url)}" oninput="window._bld.url=this.value" placeholder="https://play.malediction.gg/decks/..."></label>
+    </div>
+    <div id="bld-bar"></div>
+    ${B.seeker?`
+    <div class="bld-grid">
+      <div>
+        <div class="bld-tools">
+          <input type="text" id="bld-q" placeholder="Search the pool…" value="${esc(B.q)}"
+            oninput="window._bld.q=this.value;paintBldPool()">
+          <div class="chip-row" style="margin:8px 0 2px">
+            ${[['','All'],['U','Units'],['S','Spells'],['A','Attachments']].map(([v,l])=>
+              `<button class="fchip ${B.t===v?'on':''}" onclick="window._bld.t='${v}';paintBuilder()">${l}</button>`).join('')}
+            <button class="fchip own ${B.ownedOnly?'on':''}" onclick="window._bld.ownedOnly=!window._bld.ownedOnly;paintBuilder()">Only cards I own</button>
+          </div>
+        </div>
+        <div id="bld-pool"></div>
+      </div>
+      <div id="bld-side"></div>
+    </div>`
+    :`<div class="empty" style="margin-top:8px">Pick a Seeker — the pool is built from their faction${'s'}, dual-faction cards included, plus neutrals.</div>`}
+  </div>`;
+  paintBldBar(); if(B.seeker){ paintBldPool(); paintBldSide(); }
+}
+function paintBldBar(){
+  const el=$('bld-bar'); if(!el) return;
+  const n=bldCount();
+  const pct=Math.min(100, n/50*100);
+  let cls='low', label=`${n} cards — ${30-n} more to a legal deck`;
+  if(n>=30&&n<=50){ cls='ok'; label=`${n} cards — legal deck size (30–50)`; }
+  if(n>50){ cls='over'; label=`${n} cards — ${n-50} over the limit`; }
+  el.innerHTML=`<div class="bldbar ${cls}">
+    <div class="bldbar-track"><div class="bldbar-fill" style="width:${pct}%"></div>
+      <span class="bldbar-mark" style="left:60%"></span><span class="bldbar-mark" style="left:100%"></span></div>
+    <div class="bldbar-label">${label}</div>
+  </div>`;
+}
+function paintBldPool(){
+  const list=$('bld-pool'); if(!list) return;
+  const B=window._bld;
+  const sf=(CARDS[CARD_IDX[B.seeker]]||{}).f||'';
+  const q=(B.q||'').toLowerCase();
+  const rows=CARDS.map((c,i)=>({c,i})).filter(({c})=>{
+    if(!bldInPool(c,sf)) return false;
+    if(B.ownedOnly && !bldOwned(c.n)) return false;
+    if(B.t && c.t!==B.t) return false;
+    if(q && !(c.n.toLowerCase().includes(q) || (c.tr||[]).some(t=>t.toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  if(!rows.length){
+    list.innerHTML=`<div class="empty">${B.ownedOnly?'Nothing owned matches — mark cards in your Collection, or switch off “Only cards I own”.':'No cards match.'}</div>`;
+    return;
+  }
+  list.innerHTML=rows.map(({c,i})=>{
+    const n=B.cards[c.n]||0;
+    return `<div class="col-row bld-row" id="bldrow-${i}">
+      <div class="col-main">
+        <div class="col-name">${esc(c.n)}${bldOwned(c.n)?'':' <span class="notown" title="Not in your collection">◇</span>'}</div>
+        <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
+      </div>
+      <div class="col-facs">${c.f? c.f.split('').map(l=>`<span class="fbadge f${l}" title="${FNAME[l]}">${l}</span>`).join('') : '<span class="fbadge fN" title="Neutral">N</span>'}</div>
+      <div class="bld-step">
+        <button class="stp" onclick="bldSub(${i})" ${n?'':'disabled'}>−</button>
+        <span class="stp-n" id="bldn-${i}">${n}</span>
+        <button class="stp" onclick="bldAdd(${i})" ${n>=3?'disabled':''}>+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function paintBldSide(){
+  const el=$('bld-side'); if(!el) return;
+  const B=window._bld;
+  const sf=(CARDS[CARD_IDX[B.seeker]]||{}).f||'';
+  const names=Object.keys(B.cards).filter(k=>B.cards[k]>0).sort();
+  el.innerHTML=`<div class="bld-deck">
+    <div class="bld-deck-h">Deck — ${bldCount()} cards</div>
+    ${names.length?names.map(k=>{
+      const i=CARD_IDX[k]; const c=CARDS[i];
+      const out = c && !bldInPool(c,sf);
+      return `<div class="bldd-row${out?' out':''}">
+        <span class="bldd-n">${B.cards[k]}×</span>
+        <span class="bldd-name">${esc(k)}${out?' <b title="Outside the factions of this Seeker">⚠</b>':''}${bldOwned(k)?'':' <span class="notown">◇</span>'}</span>
+        <button class="bldd-x" onclick="bldRemove(${i})" aria-label="Remove">×</button>
+      </div>`;
+    }).join(''):`<div class="empty" style="padding:14px 0">Tap + on a card to add it.</div>`}
+    ${names.some(k=>!bldOwned(k))?`<p class="hint" style="margin:10px 0 0;font-size:12px">◇ = not in your collection yet.</p>`:''}
+  </div>`;
+}
+function bldPatch(i){
+  const B=window._bld, c=CARDS[i], n=B.cards[c.n]||0;
+  const span=$('bldn-'+i); if(span) span.textContent=n;
+  const row=$('bldrow-'+i);
+  if(row){
+    const [sub,add]=row.querySelectorAll('.stp');
+    sub.disabled=!n; add.disabled=n>=3;
+  }
+  paintBldBar(); paintBldSide();
+}
+function bldAdd(i){
+  const B=window._bld, c=CARDS[i];
+  B.cards[c.n]=Math.min(3,(B.cards[c.n]||0)+1);
+  bldPatch(i);
+}
+function bldSub(i){
+  const B=window._bld, c=CARDS[i];
+  const n=(B.cards[c.n]||0)-1;
+  if(n<=0) delete B.cards[c.n]; else B.cards[c.n]=n;
+  bldPatch(i);
+}
+function bldRemove(i){
+  const B=window._bld, c=CARDS[i];
+  delete B.cards[c.n];
+  const inPool=$('bldrow-'+i);
+  if(inPool) bldPatch(i); else { paintBldBar(); paintBldSide(); }
+}
+async function bldSave(){
+  const B=window._bld;
+  const name=(B.name||'').trim();
+  if(!name) return toast('Give the deck a name');
+  if(B.url && !safeUrl(B.url)) return toast('Link must be a valid http(s) URL');
+  const row={user_id:me.id, name, url:safeUrl(B.url)||null, faction:null,
+    seeker:B.seeker||null, cards:Object.keys(B.cards).length?B.cards:null};
+  let res;
+  if(B.id) res=await sb.from('decks').update(row).eq('id',B.id);
+  else res=await sb.from('decks').insert(row);
+  if(res.error) return toast(res.error.message);
+  cache.myDecks=null;
+  toast('Deck saved', true);
+  go('profile');
+}
+
 async function renderProfile(){
   if(!me) return go('auth');
   const body=$('profile-body');
   body.innerHTML=`<div class="empty"><span class="spinner"></span> Loading your stats…</div>`;
   const all = await fetchAllMatches();
   cache.myDecks = await fetchMyDecks();
+  if(!cache.collection){
+    const {data:colData}=await sb.from('collection').select('*').eq('user_id',me.id);
+    cache.collection={}; (colData||[]).forEach(r=>cache.collection[r.card_key]=r);
+  }
   const mine = all.filter(m=>m.winner_id===me.id||m.loser_id===me.id);
   const w=mine.filter(m=>m.winner_id===me.id).length, l=mine.length-w;
 
@@ -3792,7 +4054,10 @@ async function renderProfile(){
           <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer" style="color:var(--brass)">official builder ↗</a>.
           Win rates count the matches where the deck link was attached.</p>
       </div>
-      <button class="ghost ${window._addDeck?'on':''}" onclick="toggleAddDeck()">${window._addDeck?'✕ Close':'+ Add deck'}</button>
+      <div style="display:flex;gap:8px;flex:0 0 auto">
+        <button class="ghost ${window._addDeck?'on':''}" onclick="toggleAddDeck()">${window._addDeck?'✕ Close':'+ Link only'}</button>
+        <button class="act" onclick="go('builder')">+ New deck</button>
+      </div>
     </div>
     ${window._addDeck?`<div class="pane" style="margin-top:14px">
       <div class="row">
@@ -3820,13 +4085,17 @@ async function renderProfile(){
         return `<div class="deck-card">
         <div class="dk-main">
           <div class="dk-name">${esc(d.name)}</div>
-          ${d.faction?`<div class="dk-fac">${fIcon(d.faction,true)}${esc(d.faction)}</div>`:''}
+          ${d.seeker?`<div class="dk-fac">${esc(d.seeker)}</div>`:(d.faction?`<div class="dk-fac">${fIcon(d.faction,true)}${esc(d.faction)}</div>`:'')}
+          ${d.cards?(()=>{const ks=Object.keys(d.cards);const tot=ks.reduce((a,k)=>a+d.cards[k],0);
+            const miss=ks.filter(k=>{const r=cache.collection&&cache.collection[k];return !(r&&r.owned);}).length;
+            return `<div class="dk-build ${miss?'':'ok'}">${tot} cards · ${miss?`${miss} missing from collection`:'✓ buildable from your collection'}</div>`;})():''}
           <div class="dk-wr">${dn
             ? `<b style="color:${wrColor(dw/dn,dn)}">${pct(dw/dn)}</b> · ${dw}W–${dl}L`
             : `no logged matches yet`}</div>
         </div>
         <div class="dk-actions">
           ${safeUrl(d.url)?`<a class="dk-open" href="${esc(safeUrl(d.url))}" target="_blank" rel="noopener noreferrer">Open ↗</a>`:''}
+          <button class="ghost dk-edit" onclick="go('builder',{deckId:'${d.id}'})">Edit</button>
           <span class="dk-del" role="button" aria-label="Delete deck" onclick="deleteDeck('${d.id}','${esc(d.name)}')" title="Delete deck">×</span>
         </div>
       </div>`;}).join('')}
