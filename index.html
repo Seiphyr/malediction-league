@@ -597,6 +597,14 @@
     font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
     padding:6px 12px;border-radius:999px;cursor:pointer;min-height:32px}
   .fchip.on{background:rgba(229,30,57,.12);border-color:var(--crimson);color:var(--bone)}
+  .prod-panel{background:var(--coal-2);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:14px}
+  .prod-group{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--brass);margin:12px 0 6px}
+  .prod-group:first-of-type{margin-top:2px}
+  .prod-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .prod-row:last-child{border-bottom:0}
+  .prod-done{flex:0 0 auto;font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:#5a9e6f}
   .owndot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5a9e6f;
     margin-right:7px;vertical-align:1px;box-shadow:0 0 6px rgba(90,158,111,.5)}
   .tr-pick{width:auto;font-size:12px;padding:6px 9px;min-height:32px}
@@ -1474,6 +1482,11 @@ function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
 function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
 // Units and terrains are physical pieces: 4 statuses. Everything else: owned.
 function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','printed','painted','standee'] : ['owned']; }
+
+/* Product contents (starter boxes, seeker decks, faction boxes): buying a box
+   can mark all its cards as owned in one tap. Relics, neutral items and
+   terrains aren't tied to these products and stay manual. */
+const PRODUCTS=[{"id":"sd_sigrith","name":"Seeker Deck — Sigrith Andravos","cards":["Armored Revenant","Citadel Crossbowman","Herald of Salvation","Knight of Astaris","Sigrith Andravos","Valcarist Priest","Warfront Commander","Astarian Pathways","Answer the Call","Convoke","Enforce Balance","Healing Light","Rites of Might","Shield of Andravos","Valorous Command","Ward of Valcaris","Andravon","Great Shield","Reinforced Plate"]},{"id":"sd_auric","name":"Seeker Deck — Auric Evenhand","cards":["Astaris Battlemaster","Auric Evenhand","Rogarth, the Breaker","Truestone Exemplar","Twinblades Skirmisher","Astarian Pathways","Barter","Call to Arms","Decree of Valcaris","Rebounding Throw","Second Wind","Valorous Command","Cabra Mauler","Primal Totem","Diehard","Endless Rage","Hunter's Bow","Ring of Vitality"]},{"id":"sd_polinore","name":"Seeker Deck — Polinore","cards":["Akhenzan Shieldmage","Conclave Scholar","Momentum Weaver","Polinore, Prime Archivist","Spellbound Bahig'udjin","Spellbound Devourer","Spellbound Gargoyle","Starcast Halls","Amblis Transposition","Demanifest","Dimension Breach","Liastrum Discharge","Liastrum Stride","Neutralizing Ward","Runefold Ward","Shatter","Telekinesis","Twin Flames","Runefold Gauntlet","Hunter's Bow"]},{"id":"sd_londriel","name":"Seeker Deck — Londriel","cards":["Londriel, Spellwarden","Valcarist Priest","Warden's Lancer","Death Undone","Resonant Guard","Reversion","Rites of Healing","Ward of Valcaris","Akhenzan Shieldmage","Conclave Artillerist","Gateway Guardian","Virtahn Battlecaster","Starcast Halls","Brewing Fate","Liastrum Stride","Rewrite Destiny","Runefold Ward","Shifting Winds","Ark of Lamentation"]},{"id":"sd_vorendal","name":"Seeker Deck — Vorendal","cards":["Anush-Vah Disciple","Dead-at-Arms","Deadeye Archer","Duskwood Prowler","Sestinar, the Silent","Stitched Corpse","Vorendal, the Dreadheart","Deathshroud Mire","Back for More","Brutal Outburst","Corpse Explosion","Curse of Lethargy","Dark Bindings","Death's Call","Dreadheart's Presence","Forced March","Mend the Dead","Price of Devotion","Heartlock","Shadow Shroud"]},{"id":"sd_morrida","name":"Seeker Deck — Countess Morrida","cards":["Countess Morrida Umberland","Umberland Shade","Starcast Halls","Dimension Breach","Disembody","Duplicate","Neutralizing Ward","Spell Plunder","Telekinesis","Dead-at-Arms","Deadeye Archer","Fleshripper","Stitched Corpse","Thrice Murdered","Back for More","Curse of Lethargy","Drown in Oblivion","Unmake","Writhing Pain","Soul-Stitcher","Ring of Vitality"]},{"id":"sd_thundersteps","name":"Seeker Deck — Thundersteps","cards":["Bloodfrenzy Berserker","Boneclaw Raider","Cabra Mauler","Farsight Ambusher","Mugq'Tovor, Bodybreaker","Primal Totem","Tarok Beast","Thundersteps","Noxious Fleshgardens","Adrenaline Rush","Consume Carcass","Fortune's Favor","Hunter's Sense","Retribution","Seize the Initiative","Thunderous Devastation","Unstoppable Rush","Storm's Eye","Scout's Boots","Winged Sandals"]},{"id":"sd_liena","name":"Seeker Deck — Kar-Mamok (Liena)","cards":["Arcane Sentinel","Kar-Mamok","Nariev, Master of the Grotesque","Reckless Researcher","Uncaged Experiment","Arcane Mirroring","Mind Harvest","Rippling Potential","Trample Through","Paxos Gorehorn","Sek'Takar, Scarred Arsonist","Woe-Caster Shaman","Noxious Fleshgardens","Choice of Brutality","Trial of Stone","Liena, Who Dreams"]},{"id":"sd_ingor","name":"Seeker Deck — In'Gor","cards":["Cursehost Boar","Fleshripper","In'Gor, the Spiritbound","Soulwhisperer","Chaotic Bargain","Entrap the Mind","Gift of Flesh","Ravenous Swarm","Bloodfeast Raptor","Bloodfrenzy Berserker","Boneclaw Raider","Spirit Shaman","Noxious Fleshgardens","Adrenaline Rush","Cataclysmic Blast","Heartstab Blast","Nature's Wrath","Effigy of Chaos","Winged Sandals"]},{"id":"sd_griza","name":"Seeker Deck — Griza","cards":["Brighthold Custodian","Epher, the Setting Sun","Griza, Lingering Wound","Revalis Penitent","Tragedy of Greed","Astarian Pathways","Dilemma of Fate","Echo of Sarstan","Rush of Salvation","Somber Surrender","Ihreniv","Barrow Defiler","Disgraced Kinship","Tragedy of the Wronged","Deadly Bargain","Pact of Demise"]},{"id":"st_sigthu","name":"Starter Box — Sigrith & Thundersteps","cards":["Armored Revenant","Citadel Crossbowman","Herald of Salvation","Knight of Astaris","Sigrith Andravos","Valcarist Priest","Warfront Commander","Astarian Pathways","Answer the Call","Convoke","Enforce Balance","Healing Light","Rites of Might","Shield of Andravos","Valorous Command","Ward of Valcaris","Andravon","Bloodfrenzy Berserker","Boneclaw Raider","Cabra Mauler","Farsight Ambusher","Mugq'Tovor, Bodybreaker","Primal Totem","Tarok Beast","Thundersteps","Noxious Fleshgardens","Adrenaline Rush","Consume Carcass","Fortune's Favor","Hunter's Sense","Retribution","Seize the Initiative","Thunderous Devastation","Unstoppable Rush","Storm's Eye","Great Shield","Reinforced Plate","Scout's Boots","Winged Sandals"]},{"id":"st_polvor","name":"Starter Box — Polinore & Vorendal","cards":["Akhenzan Shieldmage","Conclave Scholar","Momentum Weaver","Polinore, Prime Archivist","Spellbound Bahig'udjin","Spellbound Devourer","Spellbound Gargoyle","Starcast Halls","Amblis Transposition","Demanifest","Dimension Breach","Liastrum Discharge","Liastrum Stride","Neutralizing Ward","Runefold Ward","Shatter","Telekinesis","Twin Flames","Runefold Gauntlet","Anush-Vah Disciple","Dead-at-Arms","Deadeye Archer","Duskwood Prowler","Sestinar, the Silent","Stitched Corpse","Vorendal, the Dreadheart","Deathshroud Mire","Back for More","Brutal Outburst","Corpse Explosion","Curse of Lethargy","Dark Bindings","Death's Call","Dreadheart's Presence","Forced March","Mend the Dead","Price of Devotion","Heartlock","Hunter's Bow","Shadow Shroud"]},{"id":"fb_order","name":"Faction Box — Order","cards":["Armored Revenant","Astaris Battlemaster","Auric Evenhand","Brighthold Custodian","Citadel Crossbowman","Epher, the Setting Sun","Griza, Lingering Wound","Herald of Salvation","Knight of Astaris","Londriel, Spellwarden","Revalis Penitent","Rogarth, the Breaker","Sigrith Andravos","Tragedy of Greed","Truestone Exemplar","Twinblades Skirmisher","Valcarist Priest","Warden's Lancer","Warfront Commander","Astarian Pathways","Answer the Call","Barter","Call to Arms","Convoke","Death Undone","Decree of Valcaris","Dilemma of Fate","Echo of Sarstan","Enforce Balance","Healing Light","Rebounding Throw","Resonant Guard","Reversion","Rites of Healing","Rites of Might","Rush of Salvation","Second Wind","Shield of Andravos","Somber Surrender","Valorous Command","Ward of Valcaris","Andravon","Ihreniv"]},{"id":"fb_conclave","name":"Faction Box — Conclave","cards":["Londriel, Spellwarden","Warden's Lancer","Resonant Guard","Reversion","Akhenzan Shieldmage","Arcane Sentinel","Conclave Artillerist","Conclave Scholar","Countess Morrida Umberland","Gateway Guardian","Kar-Mamok","Momentum Weaver","Nariev, Master of the Grotesque","Polinore, Prime Archivist","Reckless Researcher","Spellbound Bahig'udjin","Spellbound Devourer","Spellbound Gargoyle","Umberland Shade","Uncaged Experiment","Virtahn Battlecaster","Starcast Halls","Amblis Transposition","Arcane Mirroring","Brewing Fate","Demanifest","Dimension Breach","Disembody","Duplicate","Liastrum Discharge","Liastrum Stride","Mind Harvest","Neutralizing Ward","Rewrite Destiny","Rippling Potential","Runefold Ward","Shatter","Shifting Winds","Spell Plunder","Telekinesis","Trample Through","Twin Flames","Ark of Lamentation","Runefold Gauntlet"]},{"id":"fb_legion","name":"Faction Box — Legion","cards":["Griza, Lingering Wound","Tragedy of Greed","Dilemma of Fate","Somber Surrender","Ihreniv","Countess Morrida Umberland","Umberland Shade","Disembody","Spell Plunder","Anush-Vah Disciple","Barrow Defiler","Cursehost Boar","Dead-at-Arms","Deadeye Archer","Disgraced Kinship","Duskwood Prowler","Fleshripper","In'Gor, the Spiritbound","Sestinar, the Silent","Soulwhisperer","Stitched Corpse","Thrice Murdered","Tragedy of the Wronged","Vorendal, the Dreadheart","Deathshroud Mire","Back for More","Brutal Outburst","Chaotic Bargain","Corpse Explosion","Curse of Lethargy","Dark Bindings","Deadly Bargain","Death's Call","Dreadheart's Presence","Drown in Oblivion","Entrap the Mind","Forced March","Gift of Flesh","Mend the Dead","Pact of Demise","Price of Devotion","Ravenous Swarm","Unmake","Writhing Pain","Heartlock","Soul-Stitcher"]},{"id":"fb_primal","name":"Faction Box — Primal","cards":["Auric Evenhand","Twinblades Skirmisher","Call to Arms","Rebounding Throw","Kar-Mamok","Uncaged Experiment","Arcane Mirroring","Trample Through","Cursehost Boar","In'Gor, the Spiritbound","Chaotic Bargain","Ravenous Swarm","Bloodfeast Raptor","Bloodfrenzy Berserker","Boneclaw Raider","Cabra Mauler","Farsight Ambusher","Mugq'Tovor, Bodybreaker","Paxos Gorehorn","Primal Totem","Sek'Takar, Scarred Arsonist","Spirit Shaman","Tarok Beast","Thundersteps","Woe-Caster Shaman","Noxious Fleshgardens","Adrenaline Rush","Cataclysmic Blast","Choice of Brutality","Consume Carcass","Diehard","Endless Rage","Fortune's Favor","Heartstab Blast","Hunter's Sense","Nature's Wrath","Retribution","Seize the Initiative","Thunderous Devastation","Trial of Stone","Unstoppable Rush","Effigy of Chaos","Liena, Who Dreams","Storm's Eye"]}];
 
 /* Card images live as separate files in the repo (cards/<slug>.webp) —
    embedding 212 images would bloat the single file beyond use. Every img
@@ -3891,8 +3904,26 @@ function paintCollection(){
   const printed=CARDS.filter(c=>colRow(c.n).printed).length;
   const standee=CARDS.filter(c=>colRow(c.n).standee).length;
   body.innerHTML=`<div class="panel plain">
-    <h2 style="margin:0 0 2px">Collection</h2>
+    <div class="flex-between" style="margin-bottom:2px">
+      <h2 style="margin:0">Collection</h2>
+      <button class="ghost ${window._colProd?'on':''}" onclick="window._colProd=!window._colProd;paintCollection()">${window._colProd?'✕ Close':'+ Add a product'}</button>
+    </div>
     <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print, paint or base. Private to you.</p>
+    ${window._colProd?`<div class="prod-panel">
+      <p class="hint" style="margin:0 0 10px">Bought a box? One tap marks every card it contains as owned. Relics, neutral items and terrains aren't in these products — tick those by hand.</p>
+      ${[['st_','Starter Boxes'],['sd_','Seeker Decks'],['fb_','Faction Boxes']].map(([pre,label])=>`
+        <div class="prod-group">${label}</div>
+        ${PRODUCTS.filter(pr=>pr.id.startsWith(pre)).map(pr=>{
+          const own=pr.cards.filter(k=>colRow(k).owned).length;
+          const full=own===pr.cards.length;
+          return `<div class="prod-row">
+            <div class="col-main"><div class="col-name" style="text-transform:none;font-family:'Barlow';font-weight:600">${esc(pr.name)}</div>
+              <div class="col-sub">${pr.cards.length} cards · you own ${own}</div></div>
+            ${full?`<span class="prod-done">✓ complete</span>`
+                  :`<button class="act" style="padding:8px 14px" onclick="colAddProduct('${pr.id}')">Add</button>`}
+          </div>`;
+        }).join('')}`).join('')}
+    </div>`:''}
     <div class="quick-grid col-stats">
       <div class="qcard"><div class="q-label">Owned</div><div class="q-big">${owned}<small class="q-of">/ ${CARDS.length}</small></div></div>
       <div class="qcard"><div class="q-label">Printed</div><div class="q-big dim">${printed}</div></div>
@@ -3973,6 +4004,30 @@ function paintColList(){
     </div>`;
   }).join('');
 }
+async function colAddProduct(pid){
+  const pr=PRODUCTS.find(x=>x.id===pid); if(!pr||!me) return;
+  const missing=pr.cards.filter(k=>!colRow(k).owned);
+  if(!missing.length) return;
+  if(!confirm(`Mark all ${pr.cards.length} cards from "${pr.name}" as owned? (${missing.length} new — the rest already are)`)) return;
+  // ottimista: aggiorno la cache, poi un solo upsert in blocco; revert su errore
+  const prev = missing.map(k=>({k, row: cache.collection[k]?{...cache.collection[k]}:null}));
+  const rows = pr.cards.map(k=>{
+    const r=colRow(k);
+    const full={user_id:me.id, card_key:k, owned:true,
+      printed:!!r.printed, painted:!!r.painted, standee:!!r.standee};
+    cache.collection[k]={...(cache.collection[k]||{}), ...full};
+    return full;
+  });
+  paintCollection();
+  const {error}=await sb.from('collection').upsert(rows,{onConflict:'user_id,card_key'});
+  if(error){
+    prev.forEach(({k,row})=>{ if(row) cache.collection[k]=row; else delete cache.collection[k]; });
+    paintCollection();
+    return toast(error.message);
+  }
+  toast(`${pr.name}: +${missing.length} owned`, true);
+}
+
 async function colToggle(idx, field){
   const c=CARDS[idx]; if(!c||!me) return;
   const key=c.n;
