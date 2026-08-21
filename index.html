@@ -611,6 +611,8 @@
   .prod-group:first-of-type{margin-top:2px}
   .prod-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
   .prod-row:last-child{border-bottom:0}
+  .prod-acts{display:flex;align-items:center;gap:8px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
+  .prod-btn{padding:8px 13px;font-size:11px}
   .prod-done{flex:0 0 auto;font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.08em;
     text-transform:uppercase;color:#5a9e6f}
   .owndot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5a9e6f;
@@ -3919,18 +3921,23 @@ function paintCollection(){
     <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print, paint or base. Private to you.</p>
     ${window._colProd?`<div class="prod-panel">
       <p class="hint" style="margin:0 0 8px">Bought a box? One tap marks every card it contains as owned. Relics, neutral items and terrains aren't in these products — tick those by hand.</p>
-      <label class="prod-std"><input type="checkbox" ${window._colProdStd?'checked':''}
-        onchange="window._colProdStd=this.checked"> Also mark standees (units &amp; terrains)</label>
       ${[['st_','Starter Boxes'],['sd_','Seeker Decks'],['fb_','Faction Boxes']].map(([pre,label])=>`
         <div class="prod-group">${label}</div>
         ${PRODUCTS.filter(pr=>pr.id.startsWith(pre)).map(pr=>{
           const own=pr.cards.filter(k=>colRow(k).owned).length;
           const full=own===pr.cards.length;
+          const stdCards=pr.cards.filter(k=>{const c=CARDS[CARD_IDX[k]];return c&&colFields(c).length>1;});
+          const stdOwn=stdCards.filter(k=>colRow(k).standee).length;
+          const stdFull=stdCards.length>0 && stdOwn===stdCards.length;
           return `<div class="prod-row">
             <div class="col-main"><div class="col-name" style="text-transform:none;font-family:'Barlow';font-weight:600">${esc(pr.name)}</div>
-              <div class="col-sub">${pr.cards.length} cards · you own ${own}</div></div>
-            ${full?`<span class="prod-done">✓ complete</span>`
-                  :`<button class="act" style="padding:8px 14px" onclick="colAddProduct('${pr.id}')">Add</button>`}
+              <div class="col-sub">${pr.cards.length} cards · you own ${own}${stdCards.length?` · standees ${stdOwn}/${stdCards.length}`:''}</div></div>
+            <div class="prod-acts">
+              ${stdCards.length?(stdFull?`<span class="prod-done">✓ standees</span>`
+                :`<button class="ghost prod-btn" onclick="colAddStandees('${pr.id}')">+ Standees</button>`):''}
+              ${full?`<span class="prod-done">✓ cards</span>`
+                :`<button class="act prod-btn" onclick="colAddProduct('${pr.id}')">Add</button>`}
+            </div>
           </div>`;
         }).join('')}`).join('')}
     </div>`:''}
@@ -4021,13 +4028,10 @@ async function colAddProduct(pid){
   if(!confirm(`Mark all ${pr.cards.length} cards from "${pr.name}" as owned? (${missing.length} new — the rest already are)`)) return;
   // ottimista: aggiorno la cache, poi un solo upsert in blocco; revert su errore
   const prev = missing.map(k=>({k, row: cache.collection[k]?{...cache.collection[k]}:null}));
-  const withStd = !!window._colProdStd;
   const rows = pr.cards.map(k=>{
     const r=colRow(k);
-    const c=CARDS[CARD_IDX[k]];
-    const std = (withStd && c && colFields(c).length>1) ? true : !!r.standee;
     const full={user_id:me.id, card_key:k, owned:true,
-      printed:!!r.printed, painted:!!r.painted, standee:std};
+      printed:!!r.printed, painted:!!r.painted, standee:!!r.standee};
     cache.collection[k]={...(cache.collection[k]||{}), ...full};
     return full;
   });
@@ -4039,6 +4043,33 @@ async function colAddProduct(pid){
     return toast(error.message);
   }
   toast(`${pr.name}: +${missing.length} owned`, true);
+}
+
+// The standee check is its own axis, per product: it marks the standees of
+// that product's units and terrains, leaving Own untouched (a standee pack
+// isn't the cards, and the cards aren't the standees).
+async function colAddStandees(pid){
+  const pr=PRODUCTS.find(x=>x.id===pid); if(!pr||!me) return;
+  const stdCards=pr.cards.filter(k=>{const c=CARDS[CARD_IDX[k]];return c&&colFields(c).length>1;});
+  const missing=stdCards.filter(k=>!colRow(k).standee);
+  if(!missing.length) return;
+  if(!confirm(`Mark the standees of "${pr.name}" as owned? ${missing.length} of ${stdCards.length} are new.`)) return;
+  const prev = missing.map(k=>({k, row: cache.collection[k]?{...cache.collection[k]}:null}));
+  const rows = stdCards.map(k=>{
+    const r=colRow(k);
+    const full={user_id:me.id, card_key:k, owned:!!r.owned,
+      printed:!!r.printed, painted:!!r.painted, standee:true};
+    cache.collection[k]={...(cache.collection[k]||{}), ...full};
+    return full;
+  });
+  paintCollection();
+  const {error}=await sb.from('collection').upsert(rows,{onConflict:'user_id,card_key'});
+  if(error){
+    prev.forEach(({k,row})=>{ if(row) cache.collection[k]=row; else delete cache.collection[k]; });
+    paintCollection();
+    return toast(error.message);
+  }
+  toast(`${pr.name}: +${missing.length} standees`, true);
 }
 
 async function colToggle(idx, field){
