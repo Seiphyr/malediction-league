@@ -605,6 +605,20 @@
     .flex-between.col-top{flex-direction:row;align-items:center;gap:10px}
     .col-top .ghost{padding:7px 11px;font-size:10px;align-self:auto}
   }
+  @media(min-width:761px){
+    .col-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .col-stats .qcard{padding:12px 16px}
+    .col-stats .q-big{font-size:28px}
+  }
+  .frow{display:flex;align-items:flex-start;gap:10px}
+  .flab{flex:0 0 56px;font-family:'Oswald',sans-serif;font-size:9.5px;font-weight:600;
+    letter-spacing:.13em;text-transform:uppercase;color:var(--bone-dim);padding-top:9px}
+  .frow .chip-row{flex:1;min-width:0}
+  .fchip .ficn.dual{width:17px;height:17px;margin-right:5px;vertical-align:-4px}
+  @media(max-width:760px){
+    .frow{flex-direction:column;gap:3px;margin-bottom:6px}
+    .flab{flex:0 0 auto;padding-top:0}
+  }
   .ctog.cinfo{width:28px;padding:0;border-radius:50%;font-style:italic;font-family:Georgia,serif;font-size:12px}
   .ctog b{font-weight:600;font-size:9px;opacity:.9;margin-left:2px}
   .info-pop{background:var(--surface);border:1px solid var(--line-2);border-radius:14px;
@@ -3975,16 +3989,16 @@ function paintCollection(){
   // Reinforcement Pack cards are in the catalog but not out yet: they stay
   // hidden from the collection (and its totals) until release day.
   const REL=CARDS.filter(c=>!c.rp);
-  const owned=REL.filter(c=>colRow(c.n).owned).length;
-  const painted=REL.filter(c=>colRow(c.n).painted).length;
-  const printed=REL.filter(c=>colRow(c.n).printed).length;
-  const standee=REL.filter(c=>colRow(c.n).standee).length;
+  const owned=REL.filter(c=>colRow(c.n).owned).length;                         // carte
+  const painted=REL.reduce((a,c)=>a+(+colRow(c.n).painted||0),0);              // miniature
+  const printed=REL.reduce((a,c)=>a+(+colRow(c.n).printed||0),0);
+  const standee=REL.reduce((a,c)=>a+(+colRow(c.n).standee||0),0);
   body.innerHTML=`<div class="panel plain">
     <div class="flex-between col-top" style="margin-bottom:2px">
       <h2 style="margin:0">Collection</h2>
       <button class="ghost ${window._colProd?'on':''}" onclick="window._colProd=!window._colProd;paintCollection()">${window._colProd?'✕ Close':'+ Add a product'}</button>
     </div>
-    <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print, paint or base. Private to you.</p>
+    <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print and paint.</p>
     ${window._colProd?`<div class="prod-panel">
       <p class="hint" style="margin:0 0 8px">Bought a box? One tap marks every card it contains as owned — including the shared 15-relic set that ships with every product. Contents mirror the official product lists, relic set included.</p>
       ${[['st_','Starter Boxes'],['sd_','Seeker Decks'],['fb_','Faction Boxes']].map(([pre,label])=>`
@@ -4021,19 +4035,19 @@ function paintCollection(){
       </button>
     </div>
     <div class="col-filters ${window._colFO?'open':''}">
-    <div class="chip-row">
+    <div class="frow"><span class="flab">Faction</span><div class="chip-row">
       ${(()=>{
         const ids=[...new Set(CARDS.map(c=>c.f).filter(Boolean))].sort((a,b)=>a.length-b.length||a.localeCompare(b));
         const chips=[['','All'], ...ids.map(f=>[f,factionLabel(f)]), ['N','Neutral']];
         return chips.map(([v,l])=>
-          `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${v&&v!=='N'?(v.length===1?`<img class="ficn sm" src="${LICON[v]}" alt="">`:''):''}${l}</button>`).join('');
+          `<button class="fchip ${(window._colF||'')===v?'on':''}" onclick="window._colF='${v}';paintCollection()">${v&&v!=='N'?(v.length===1?`<img class="ficn sm" src="${LICON[v]}" alt="">`:dualIcon(v)):''}${l}</button>`).join('');
       })()}
-    </div>
-    <div class="chip-row">
+    </div></div>
+    <div class="frow"><span class="flab">Type</span><div class="chip-row">
       ${[['','All types'],['U','Units'],['S','Spells'],['A','Attachments'],['T','Terrains'],['G','Legacies']].map(([v,l])=>
         `<button class="fchip ${(window._colT||'')===v?'on':''}" onclick="window._colT='${v}';paintCollection()">${l}</button>`).join('')}
-    </div>
-    <div class="chip-row">
+    </div></div>
+    <div class="frow"><span class="flab">Status</span><div class="chip-row">
       ${[['','Everything'],['own','Owned'],['miss','Missing'],['print','Printed'],['paint','Painted']].map(([v,l])=>
         `<button class="fchip ${(window._colOwn||'')===v?'on':''}" onclick="window._colOwn='${v}';paintCollection()">${l}</button>`).join('')}
       <select class="tr-pick" onchange="window._colTr=this.value;paintCollection()">
@@ -4043,7 +4057,7 @@ function paintCollection(){
       </select>
       ${(window._colQ||window._colF||window._colT||window._colOwn||window._colTr)?
         `<button class="fchip clear" onclick="window._colQ='';window._colF='';window._colT='';window._colOwn='';window._colTr='';paintCollection()">✕ Clear all</button>`:''}
-    </div>
+    </div></div>
     </div>
     <div class="col-count" id="col-count"></div>
     <div id="col-list"></div>
@@ -4086,9 +4100,10 @@ function paintColList(){
       <div class="col-facs">${fBadges(c.f)}</div>
       <div class="col-tog">
         ${fields.map(f=>{const mx=maxCopies(c);const n=+r[f]||0;
+          const cyc=(f==='printed'||f==='painted');
           return `<button class="ctog ${n?'on':''}" onclick="colToggle(${i},'${f}')"
-          title="${labels[f]} — tap to cycle 0–${mx}">${labels[f]}${mx>1?` <b>${n}/${mx}</b>`:''}</button>`;}).join('')}
-        <button class="ctog cinfo" onclick="showCardInfo(${i})" aria-label="Card info" title="Where it comes from, deck usage">i</button>
+          title="${labels[f]}${cyc&&mx>1?` — tap to cycle 0–${mx}`:''}">${labels[f]}${cyc&&mx>1?` <b>${n}/${mx}</b>`:''}</button>`;}).join('')}
+        <button class="ctog cinfo" onclick="showCardInfo(${i})" aria-label="Card info" title="Where it comes from, deck usage">?</button>
       </div>
     </div>`;
   }).join('');
@@ -4150,12 +4165,18 @@ async function colAddStandees(pid){
 
 async function colToggle(idx, field){
   const c=CARDS[idx]; if(!c||!me) return;
+  if(!colFields(c).includes(field)) return;   // spells/attachments have no minis
   const key=c.n;
   const before = cache.collection[key] ? {...cache.collection[key]} : null;
   const cur={...colRow(key)};
   const max=maxCopies(c);
-  // tap cycles the counter: 0 → 1 → … → max → 0
-  cur[field]=((+cur[field]||0)+1) % (max+1);
+  // Own and Standee are all-or-nothing: one tap = the full playset.
+  // Print and Paint are per-mini progress: tap cycles 0 → 1 → … → max → 0.
+  if(field==='owned'||field==='standee'){
+    cur[field] = (+cur[field]||0) > 0 ? 0 : max;
+  }else{
+    cur[field]=((+cur[field]||0)+1) % (max+1);
+  }
   // painting the Nth mini implies the Nth mini is printed
   if(field==='painted') cur.printed=Math.max(+cur.printed||0, cur.painted);
   // ottimista: aggiorno subito, poi scrivo; se fallisce ripristino lo snapshot
