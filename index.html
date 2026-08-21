@@ -597,6 +597,14 @@
     font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
     padding:6px 12px;border-radius:999px;cursor:pointer;min-height:32px}
   .fchip.on{background:rgba(229,30,57,.12);border-color:var(--crimson);color:var(--bone)}
+  .col-top{flex-wrap:nowrap;gap:10px}
+  .col-top h2{white-space:nowrap}
+  .prod-std{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--bone-dim);margin:0 0 10px;cursor:pointer}
+  .prod-std input{width:15px;height:15px;accent-color:var(--brass);margin:0}
+  @media(max-width:760px){
+    .flex-between.col-top{flex-direction:row;align-items:center;gap:10px}
+    .col-top .ghost{padding:7px 11px;font-size:10px;align-self:auto}
+  }
   .prod-panel{background:var(--coal-2);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:14px}
   .prod-group{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;letter-spacing:.14em;
     text-transform:uppercase;color:var(--brass);margin:12px 0 6px}
@@ -1481,7 +1489,7 @@ const TNAME={U:'Unit',G:'Legacy',S:'Spell',A:'Attachment',T:'Terrain'};
 function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
 function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
 // Units and terrains are physical pieces: 4 statuses. Everything else: owned.
-function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','printed','painted','standee'] : ['owned']; }
+function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','standee','printed','painted'] : ['owned']; }
 
 /* Product contents (starter boxes, seeker decks, faction boxes): buying a box
    can mark all its cards as owned in one tap. Relics, neutral items and
@@ -3904,13 +3912,15 @@ function paintCollection(){
   const printed=CARDS.filter(c=>colRow(c.n).printed).length;
   const standee=CARDS.filter(c=>colRow(c.n).standee).length;
   body.innerHTML=`<div class="panel plain">
-    <div class="flex-between" style="margin-bottom:2px">
+    <div class="flex-between col-top" style="margin-bottom:2px">
       <h2 style="margin:0">Collection</h2>
       <button class="ghost ${window._colProd?'on':''}" onclick="window._colProd=!window._colProd;paintCollection()">${window._colProd?'✕ Close':'+ Add a product'}</button>
     </div>
     <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print, paint or base. Private to you.</p>
     ${window._colProd?`<div class="prod-panel">
-      <p class="hint" style="margin:0 0 10px">Bought a box? One tap marks every card it contains as owned. Relics, neutral items and terrains aren't in these products — tick those by hand.</p>
+      <p class="hint" style="margin:0 0 8px">Bought a box? One tap marks every card it contains as owned. Relics, neutral items and terrains aren't in these products — tick those by hand.</p>
+      <label class="prod-std"><input type="checkbox" ${window._colProdStd?'checked':''}
+        onchange="window._colProdStd=this.checked"> Also mark standees (units &amp; terrains)</label>
       ${[['st_','Starter Boxes'],['sd_','Seeker Decks'],['fb_','Faction Boxes']].map(([pre,label])=>`
         <div class="prod-group">${label}</div>
         ${PRODUCTS.filter(pr=>pr.id.startsWith(pre)).map(pr=>{
@@ -3926,9 +3936,9 @@ function paintCollection(){
     </div>`:''}
     <div class="quick-grid col-stats">
       <div class="qcard"><div class="q-label">Owned</div><div class="q-big">${owned}<small class="q-of">/ ${CARDS.length}</small></div></div>
+      <div class="qcard"><div class="q-label">Standees</div><div class="q-big dim">${standee}</div></div>
       <div class="qcard"><div class="q-label">Printed</div><div class="q-big dim">${printed}</div></div>
       <div class="qcard"><div class="q-label">Painted</div><div class="q-big dim">${painted}</div></div>
-      <div class="qcard"><div class="q-label">Standees</div><div class="q-big dim">${standee}</div></div>
     </div>
     <div class="col-search-row">
       <input type="text" id="col-q" placeholder="Search cards…" value="${esc(window._colQ||'')}"
@@ -3989,17 +3999,17 @@ function paintColList(){
   list.innerHTML = rows.map(({c,i})=>{
     const r=colRow(c.n);
     const fields=colFields(c);
-    const labels={owned:'Own',printed:'Print',painted:'Paint',standee:'Base'};
+    const labels={owned:'Own',standee:'Standee',printed:'Print',painted:'Paint'};
     return `<div class="col-row">
       ${cardThumb(i)}
       <div class="col-main">
-        <div class="col-name">${r.owned?'<span class="owndot" title="In your collection"></span>':''}${esc(c.n)}</div>
+        <div class="col-name">${(colFields(c).length>1 ? (r.owned&&(r.standee||r.printed)) : r.owned)?'<span class="owndot" title="Owned and table-ready"></span>':''}${esc(c.n)}</div>
         <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
       </div>
       <div class="col-facs">${fBadges(c.f)}</div>
       <div class="col-tog">
         ${fields.map(f=>`<button class="ctog ${r[f]?'on':''}" onclick="colToggle(${i},'${f}')"
-          title="${labels[f]}${f==='standee'?' (standee)':''}">${labels[f]}</button>`).join('')}
+          title="${labels[f]}">${labels[f]}</button>`).join('')}
       </div>
     </div>`;
   }).join('');
@@ -4011,10 +4021,13 @@ async function colAddProduct(pid){
   if(!confirm(`Mark all ${pr.cards.length} cards from "${pr.name}" as owned? (${missing.length} new — the rest already are)`)) return;
   // ottimista: aggiorno la cache, poi un solo upsert in blocco; revert su errore
   const prev = missing.map(k=>({k, row: cache.collection[k]?{...cache.collection[k]}:null}));
+  const withStd = !!window._colProdStd;
   const rows = pr.cards.map(k=>{
     const r=colRow(k);
+    const c=CARDS[CARD_IDX[k]];
+    const std = (withStd && c && colFields(c).length>1) ? true : !!r.standee;
     const full={user_id:me.id, card_key:k, owned:true,
-      printed:!!r.printed, painted:!!r.painted, standee:!!r.standee};
+      printed:!!r.printed, painted:!!r.painted, standee:std};
     cache.collection[k]={...(cache.collection[k]||{}), ...full};
     return full;
   });
