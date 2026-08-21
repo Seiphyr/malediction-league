@@ -605,6 +605,29 @@
     .flex-between.col-top{flex-direction:row;align-items:center;gap:10px}
     .col-top .ghost{padding:7px 11px;font-size:10px;align-self:auto}
   }
+  .ctog.cinfo{width:28px;padding:0;border-radius:50%;font-style:italic;font-family:Georgia,serif;font-size:12px}
+  .ctog b{font-weight:600;font-size:9px;opacity:.9;margin-left:2px}
+  .info-pop{background:var(--surface);border:1px solid var(--line-2);border-radius:14px;
+    padding:16px 18px;max-width:min(92vw,420px);width:100%;cursor:default;
+    box-shadow:0 18px 60px rgba(0,0,0,.55)}
+  .ip-head{display:flex;gap:12px;margin-bottom:6px}
+  .ip-thumb{width:56px;height:78px;object-fit:cover;object-position:top;border-radius:7px;border:1px solid var(--line-2);flex:0 0 auto}
+  .ip-head>div{min-width:0;flex:1}
+  .ip-name{font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--bone)}
+  .ip-rar{display:inline-block;margin-top:5px;font-family:'Oswald',sans-serif;font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;padding:2px 9px;border-radius:999px;border:1px solid var(--line-2);color:var(--bone-dim)}
+  .ip-rar.rB{border-color:#a35c33;color:#d68a5c}
+  .ip-rar.rE{border-color:#7d8794;color:#b9c0c9}
+  .ip-rar.rU{border-color:var(--brass-dim);color:var(--brass)}
+  .ip-rar.rL{border-color:#5a2430;color:var(--crimson)}
+  .ip-sec{font-family:'Oswald',sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--brass);margin:12px 0 5px}
+  .ip-row{font-size:13px;color:var(--bone);padding:3px 0;border-bottom:1px solid var(--line)}
+  .ip-row:last-of-type{border-bottom:0}
+  .ip-row.dim{color:var(--bone-dim)}
+  .ip-avail{margin-top:10px;font-size:12.5px;color:var(--bone-dim);background:var(--coal-2);
+    border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+  .ip-avail b{color:var(--bone)}
   .prod-panel{background:var(--coal-2);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:14px}
   .prod-group{font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;letter-spacing:.14em;
     text-transform:uppercase;color:var(--brass);margin:12px 0 6px}
@@ -1455,7 +1478,7 @@ function isDemo(id){ return id === DEMO_ID; }
    f: faction letters (C Conclave · O Order · L Legion · P Primal),
    two letters = dual-faction, empty = neutral. tr: traits.
    ============================================================ */
-const CARDS=[{n:"Polinore, Prime Archivist",t:"U",f:"C",tr:["Seeker", "Human"]},{n:"Runefold Gauntlet",t:"G",f:"C",tr:["Polinore, Prime Archivist"]},{n:"Londriel, Spellwarden",t:"U",f:"CO",tr:["Seeker", "Erisyr"]},{n:"Ark of Lamentation",t:"G",f:"C",tr:["Londriel, Spellwarden"]},{n:"Spellbound Bahig'udjin",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Scholar",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Gargoyle",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Conclave Artillerist",t:"U",f:"C",tr:["Human"]},{n:"Akhenzan Shieldmage",t:"U",f:"C",tr:["Human"]},{n:"Momentum Weaver",t:"U",f:"C",tr:["Human"]},{n:"Virtahn Battlecaster",t:"U",f:"C",tr:["Erisyr"]},{n:"Spellbound Devourer",t:"U",f:"C",tr:["Abomination", "Spellbound"]},{n:"Gateway Guardian",t:"U",f:"C",tr:["Construct"]},{n:"Warden's Lancer",t:"U",f:"CO",tr:["Construct"]},{n:"Twin Flames",t:"S",f:"C",tr:["Channel"]},{n:"Shatter",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Stride",t:"S",f:"C",tr:["Channel"]},{n:"Rewrite Destiny",t:"S",f:"C",tr:["Channel"]},{n:"Liastrum Discharge",t:"S",f:"C",tr:["Channel"]},{n:"Telekinesis",t:"S",f:"C",tr:["Channel"]},{n:"Dimension Breach",t:"S",f:"C",tr:["Channel"]},{n:"Brewing Fate",t:"S",f:"C",tr:["Swift"]},{n:"Neutralizing Ward",t:"S",f:"C",tr:["Swift"]},{n:"Shifting Winds",t:"S",f:"C",tr:["Swift"]},{n:"Amblis Transposition",t:"S",f:"C",tr:["Channel"]},{n:"Demanifest",t:"S",f:"C",tr:["Channel"]},{n:"Duplicate",t:"S",f:"C",tr:["Channel"]},{n:"Runefold Ward",t:"S",f:"C",tr:["Swift"]},{n:"Reversion",t:"S",f:"CO",tr:["Swift"]},{n:"Resonant Guard",t:"S",f:"CO",tr:["Swift"]},{n:"Arcane Sentinel",t:"U",f:"C",tr:["Construct", "Spellbound"]},{n:"Reckless Researcher",t:"U",f:"C",tr:["Human", "Abomination"]},{n:"Nariev, Master of the Grotesque",t:"U",f:"C",tr:["Erisyr"]},{n:"Mind Harvest",t:"S",f:"C",tr:["Channel"]},{n:"Rippling Potential",t:"S",f:"C",tr:["Channel"]},{n:"Great Shield",t:"A",f:"",tr:["Item"]},{n:"Scout's Boots",t:"A",f:"",tr:["Item"]},{n:"Scoundrel's Blade",t:"A",f:"",tr:["Item"]},{n:"Amulet of Vigor",t:"A",f:"",tr:["Item"]},{n:"Shadow Shroud",t:"A",f:"",tr:["Item"]},{n:"Feral Gauntlets",t:"A",f:"",tr:["Item"]},{n:"Hunter's Bow",t:"A",f:"",tr:["Item"]},{n:"Horned Helmet",t:"A",f:"",tr:["Item"]},{n:"Sacred Prayerbook",t:"A",f:"",tr:["Item"]},{n:"Winged Sandals",t:"A",f:"",tr:["Item"]},{n:"Ring of Vitality",t:"A",f:"",tr:["Item"]},{n:"Reinforced Plate",t:"A",f:"",tr:["Item"]},{n:"Tear of Gold",t:"A",f:"",tr:["Item"]},{n:"Umberland Lantern",t:"A",f:"",tr:["Item"]},{n:"Goredrinker Axe",t:"A",f:"",tr:["Item"]},{n:"Seal of the Nexi",t:"A",f:"",tr:["Item"]},{n:"Vorendal, the Dreadheart",t:"U",f:"L",tr:["Seeker", "Fallen"]},{n:"Heartlock",t:"G",f:"L",tr:["Vorendal, the Dreadheart"]},{n:"Countess Morrida Umberland",t:"U",f:"LC",tr:["Seeker", "Human"]},{n:"Soul-Stitcher",t:"G",f:"L",tr:["Countess Morrida Umberland"]},{n:"Stitched Corpse",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Anush-Vah Disciple",t:"U",f:"L",tr:["Human"]},{n:"Dead-at-Arms",t:"U",f:"L",tr:["Fallen"]},{n:"Deadeye Archer",t:"U",f:"L",tr:["Fallen"]},{n:"Fleshripper",t:"U",f:"L",tr:["Fallen", "Stitched"]},{n:"Soulwhisperer",t:"U",f:"L",tr:["Human"]},{n:"Duskwood Prowler",t:"U",f:"L",tr:["Fallen", "Abomination"]},{n:"Sestinar, the Silent",t:"U",f:"L",tr:["Human"]},{n:"Thrice Murdered",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Umberland Shade",t:"U",f:"LC",tr:["Fallen", "Spirit"]},{n:"Gift of Flesh",t:"S",f:"L",tr:["Channel"]},{n:"Mend the Dead",t:"S",f:"L",tr:["Channel"]},{n:"Corpse Explosion",t:"S",f:"L",tr:["Channel"]},{n:"Forced March",t:"S",f:"L",tr:["Channel"]},{n:"Writhing Pain",t:"S",f:"L",tr:["Channel"]},{n:"Dark Bindings",t:"S",f:"L",tr:["Channel"]},{n:"Curse of Lethargy",t:"S",f:"L",tr:["Swift"]},{n:"Drown in Oblivion",t:"S",f:"L",tr:["Swift"]},{n:"Back for More",t:"S",f:"L",tr:["Swift"]},{n:"Price of Devotion",t:"S",f:"L",tr:["Swift"]},{n:"Brutal Outburst",t:"S",f:"L",tr:["Swift"]},{n:"Entrap the Mind",t:"S",f:"L",tr:["Channel"]},{n:"Death's Call",t:"S",f:"L",tr:["Channel"]},{n:"Unmake",t:"S",f:"L",tr:["Channel"]},{n:"Dreadheart's Presence",t:"S",f:"L",tr:["Swift"]},{n:"Disembody",t:"S",f:"LC",tr:["Swift"]},{n:"Spell Plunder",t:"S",f:"LC",tr:["Channel"]},{n:"Griza, Lingering Wound",t:"U",f:"LO",tr:["Seeker", "Spirit"]},{n:"Ihreniv",t:"G",f:"LO",tr:["Griza, Lingering Wound"]},{n:"Disgraced Kinship",t:"U",f:"L",tr:["Fallen"]},{n:"Tragedy of the Wronged",t:"U",f:"L",tr:["Fallen", "Spirit"]},{n:"Barrow Defiler",t:"U",f:"L",tr:["Abomination"]},{n:"Tragedy of Greed",t:"U",f:"LO",tr:["Spirit"]},{n:"Deadly Bargain",t:"S",f:"L",tr:["Channel"]},{n:"Pact of Demise",t:"S",f:"L",tr:["Channel"]},{n:"Somber Surrender",t:"S",f:"LO",tr:["Swift"]},{n:"Dilemma of Fate",t:"S",f:"LO",tr:["Channel"]},{n:"Sigrith Andravos",t:"U",f:"O",tr:["Seeker", "Human"]},{n:"Andravon",t:"G",f:"O",tr:["Sigrith Andravos"]},{n:"Auric Evenhand",t:"U",f:"OP",tr:["Seeker", "Vulkir"]},{n:"Will of the Forge",t:"G",f:"",tr:["Auric Evenhand"]},{n:"Knight of Astaris",t:"U",f:"O",tr:["Human"]},{n:"Valcarist Priest",t:"U",f:"O",tr:["Human"]},{n:"Armored Revenant",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Citadel Crossbowman",t:"U",f:"O",tr:["Human"]},{n:"Truestone Exemplar",t:"U",f:"O",tr:["Vulkir"]},{n:"Warfront Commander",t:"U",f:"O",tr:["Human"]},{n:"Astaris Battlemaster",t:"U",f:"O",tr:["Vulkir"]},{n:"Herald of Salvation",t:"U",f:"O",tr:["Human", "Hallowed"]},{n:"Rogarth, the Breaker",t:"U",f:"O",tr:["Human"]},{n:"Twinblades Skirmisher",t:"U",f:"OP",tr:["Human"]},{n:"Valorous Command",t:"S",f:"O",tr:["Channel"]},{n:"Healing Light",t:"S",f:"O",tr:["Channel"]},{n:"Answer the Call",t:"S",f:"O",tr:["Channel"]},{n:"Convoke",t:"S",f:"O",tr:["Channel"]},{n:"Barter",t:"S",f:"O",tr:["Channel"]},{n:"Second Wind",t:"S",f:"O",tr:["Channel"]},{n:"Rites of Might",t:"S",f:"O",tr:["Channel"]},{n:"Death Undone",t:"S",f:"O",tr:["Swift"]},{n:"Ward of Valcaris",t:"S",f:"O",tr:["Swift"]},{n:"Rites of Healing",t:"S",f:"O",tr:["Channel"]},{n:"Decree of Valcaris",t:"S",f:"O",tr:["Channel"]},{n:"Shield of Andravos",t:"S",f:"O",tr:["Swift"]},{n:"Enforce Balance",t:"S",f:"O",tr:["Swift"]},{n:"Call to Arms",t:"S",f:"OP",tr:["Channel"]},{n:"Rebounding Throw",t:"S",f:"OP",tr:["Channel"]},{n:"Brighthold Custodian",t:"U",f:"O",tr:["Human"]},{n:"Epher, the Setting Sun",t:"U",f:"O",tr:["Construct", "Spirit"]},{n:"Revalis Penitent",t:"U",f:"O",tr:["Human"]},{n:"Rush of Salvation",t:"S",f:"O",tr:["Swift"]},{n:"Echo of Sarstan",t:"S",f:"O",tr:["Swift"]},{n:"Thundersteps",t:"U",f:"P",tr:["Seeker", "Tyran"]},{n:"Storm's Eye",t:"G",f:"P",tr:["Thundersteps"]},{n:"In'Gor, the Spiritbound",t:"U",f:"PL",tr:["Seeker", "Oerikan", "Abomination"]},{n:"Effigy of Chaos",t:"G",f:"P",tr:["In'Gor, the Spiritbound"]},{n:"Tarok Beast",t:"U",f:"P",tr:["Beast"]},{n:"Spirit Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Primal Totem",t:"U",f:"P",tr:["Construct"]},{n:"Cabra Mauler",t:"U",f:"P",tr:["Vulkir"]},{n:"Boneclaw Raider",t:"U",f:"P",tr:["Human"]},{n:"Farsight Ambusher",t:"U",f:"P",tr:["Erisyr"]},{n:"Bloodfrenzy Berserker",t:"U",f:"P",tr:["Oerikan"]},{n:"Mugq'Tovor, Bodybreaker",t:"U",f:"P",tr:["Abomination"]},{n:"Bloodfeast Raptor",t:"U",f:"P",tr:["Beast"]},{n:"Cursehost Boar",t:"U",f:"PL",tr:["Beast", "Abomination"]},{n:"Hunter's Sense",t:"S",f:"P",tr:["Channel"]},{n:"Consume Carcass",t:"S",f:"P",tr:["Channel"]},{n:"Heartstab Blast",t:"S",f:"P",tr:["Channel"]},{n:"Nature's Wrath",t:"S",f:"P",tr:["Channel"]},{n:"Adrenaline Rush",t:"S",f:"P",tr:["Channel"]},{n:"Fortune's Favor",t:"S",f:"P",tr:["Swift"]},{n:"Retribution",t:"S",f:"P",tr:["Swift"]},{n:"Diehard",t:"S",f:"P",tr:["Swift"]},{n:"Seize the Initiative",t:"S",f:"P",tr:["Swift"]},{n:"Cataclysmic Blast",t:"S",f:"P",tr:["Channel"]},{n:"Unstoppable Rush",t:"S",f:"P",tr:["Channel"]},{n:"Thunderous Devastation",t:"S",f:"P",tr:["Channel"]},{n:"Endless Rage",t:"S",f:"P",tr:["Swift"]},{n:"Chaotic Bargain",t:"S",f:"PL",tr:["Channel"]},{n:"Ravenous Swarm",t:"S",f:"PL",tr:["Channel"]},{n:"Kar-Mamok",t:"U",f:"PC",tr:["Seeker", "Abomination"]},{n:"Liena, Who Dreams",t:"G",f:"P",tr:["Kar-Mamok"]},{n:"Paxos Gorehorn",t:"U",f:"P",tr:["Shifter"]},{n:"Woe-Caster Shaman",t:"U",f:"P",tr:["Oerikan"]},{n:"Sek'Takar, Scarred Arsonist",t:"U",f:"P",tr:["Oerikan"]},{n:"Uncaged Experiment",t:"U",f:"PC",tr:["Beast", "Spellbound"]},{n:"Trial of Stone",t:"S",f:"P",tr:["Channel"]},{n:"Choice of Brutality",t:"S",f:"P",tr:["Channel"]},{n:"Arcane Mirroring",t:"S",f:"PC",tr:["Swift"]},{n:"Trample Through",t:"S",f:"PC",tr:["Channel"]},{n:"Tempest Scepter",t:"A",f:"",tr:["Relic"]},{n:"Ring of Time",t:"A",f:"",tr:["Relic"]},{n:"Veilpiercer",t:"A",f:"",tr:["Relic"]},{n:"Everlasting Heart",t:"A",f:"",tr:["Relic"]},{n:"Umbral Cloak",t:"A",f:"",tr:["Relic"]},{n:"Helm of Wrath",t:"A",f:"",tr:["Relic"]},{n:"Everkeep Reliquary",t:"A",f:"",tr:["Relic"]},{n:"Martyr's Vexillum",t:"A",f:"",tr:["Relic"]},{n:"Guardian's Aegis",t:"A",f:"",tr:["Relic"]},{n:"Reaper's Edge",t:"A",f:"",tr:["Relic"]},{n:"Trapjaw Chain",t:"A",f:"",tr:["Relic"]},{n:"Boots of Celerity",t:"A",f:"",tr:["Relic"]},{n:"Fang of the Damned",t:"A",f:"",tr:["Relic"]},{n:"Spelleater Mask",t:"A",f:"",tr:["Relic"]},{n:"Vengeance and Retribution",t:"A",f:"",tr:["Relic"]},{n:"Noxious Fleshgardens",t:"T",f:""},{n:"Starcast Halls",t:"T",f:""},{n:"Deathshroud Mire",t:"T",f:""},{n:"Astarian Pathways",t:"T",f:""},{n:"Behemoth Khuyakine",t:"U",f:"P",tr:["Beast"],rp:1},{n:"Murder of Shriekers",t:"U",f:"P",tr:["Beast"],rp:1},{n:"Irynia and Aratan",t:"U",f:"P",tr:["Oerikan", "Shifter"],rp:1},{n:"Ymirian Rage",t:"S",f:"P",tr:["Channel"],rp:1},{n:"Landshift",t:"S",f:"P",tr:["Swift"],rp:1},{n:"Raptor's Lift",t:"S",f:"P",tr:["Channel"],rp:1},{n:"Thaumite Mercenary",t:"U",f:"C",tr:["Human"],rp:1},{n:"Liastrum Accumulator",t:"U",f:"C",tr:["Construct", "Spellbound"],rp:1},{n:"Athan, Prime Decimator",t:"U",f:"C",tr:["Human"],rp:1},{n:"Liastrum Decimation",t:"S",f:"C",tr:["Channel"],rp:1},{n:"Crackling Trap",t:"S",f:"C",tr:["Channel"],rp:1},{n:"Salvage",t:"S",f:"C",tr:["Channel"],rp:1},{n:"Gilded Sentries",t:"U",f:"O",tr:["Human"],rp:1},{n:"Discordant Voice",t:"U",f:"O",tr:["Human"],rp:1},{n:"Siro, Hand of Law",t:"U",f:"O",tr:["Vulkir"],rp:1},{n:"Triumvirate Liturgy",t:"S",f:"O",tr:["Channel"],rp:1},{n:"Demand Confession",t:"S",f:"O",tr:["Channel"],rp:1},{n:"Twisted Charity",t:"S",f:"O",tr:["Channel"],rp:1},{n:"Masarin Deathsinger",t:"U",f:"L",tr:["Fallen", "Horror"],rp:1},{n:"Mashr",t:"U",f:"L",tr:["Human"],rp:1},{n:"Champion of Drav",t:"U",f:"L",tr:["Fallen", "Horror"],rp:1},{n:"Choice of Malady",t:"S",f:"L",tr:["Channel"],rp:1},{n:"Soul Mimicry",t:"S",f:"L",tr:["Channel"],rp:1},{n:"Horrific Archery",t:"S",f:"L",tr:["Channel"],rp:1},{n:"Myrkosian Magnifier",t:"A",f:"C",tr:["Item"],rp:1},{n:"Oskarite Blade",t:"A",f:"L",tr:["Item"],rp:1},{n:"Expiatrine Scourge",t:"A",f:"O",tr:["Item"],rp:1},{n:"Avakran Flute",t:"A",f:"P",tr:["Item"],rp:1}];
+const CARDS=[{n:"Polinore, Prime Archivist",t:"U",f:"C",tr:["Seeker", "Human"],r:"L"},{n:"Runefold Gauntlet",t:"G",f:"C",tr:["Polinore, Prime Archivist"]},{n:"Londriel, Spellwarden",t:"U",f:"CO",tr:["Seeker", "Erisyr"],r:"L"},{n:"Ark of Lamentation",t:"G",f:"C",tr:["Londriel, Spellwarden"]},{n:"Spellbound Bahig'udjin",t:"U",f:"C",tr:["Abomination", "Spellbound"],r:"B"},{n:"Conclave Scholar",t:"U",f:"C",tr:["Erisyr"],r:"B"},{n:"Spellbound Gargoyle",t:"U",f:"C",tr:["Abomination", "Spellbound"],r:"B"},{n:"Conclave Artillerist",t:"U",f:"C",tr:["Human"],r:"B"},{n:"Akhenzan Shieldmage",t:"U",f:"C",tr:["Human"],r:"E"},{n:"Momentum Weaver",t:"U",f:"C",tr:["Human"],r:"E"},{n:"Virtahn Battlecaster",t:"U",f:"C",tr:["Erisyr"],r:"E"},{n:"Spellbound Devourer",t:"U",f:"C",tr:["Abomination", "Spellbound"],r:"U"},{n:"Gateway Guardian",t:"U",f:"C",tr:["Construct"],r:"U"},{n:"Warden's Lancer",t:"U",f:"CO",tr:["Construct"],r:"B"},{n:"Twin Flames",t:"S",f:"C",tr:["Channel"],r:"B"},{n:"Shatter",t:"S",f:"C",tr:["Channel"],r:"B"},{n:"Liastrum Stride",t:"S",f:"C",tr:["Channel"],r:"B"},{n:"Rewrite Destiny",t:"S",f:"C",tr:["Channel"],r:"B"},{n:"Liastrum Discharge",t:"S",f:"C",tr:["Channel"],r:"B"},{n:"Telekinesis",t:"S",f:"C",tr:["Channel"],r:"E"},{n:"Dimension Breach",t:"S",f:"C",tr:["Channel"],r:"E"},{n:"Brewing Fate",t:"S",f:"C",tr:["Swift"],r:"E"},{n:"Neutralizing Ward",t:"S",f:"C",tr:["Swift"],r:"E"},{n:"Shifting Winds",t:"S",f:"C",tr:["Swift"],r:"E"},{n:"Amblis Transposition",t:"S",f:"C",tr:["Channel"],r:"U"},{n:"Demanifest",t:"S",f:"C",tr:["Channel"],r:"U"},{n:"Duplicate",t:"S",f:"C",tr:["Channel"],r:"U"},{n:"Runefold Ward",t:"S",f:"C",tr:["Swift"],r:"U"},{n:"Reversion",t:"S",f:"CO",tr:["Swift"],r:"E"},{n:"Resonant Guard",t:"S",f:"CO",tr:["Swift"],r:"E"},{n:"Arcane Sentinel",t:"U",f:"C",tr:["Construct", "Spellbound"],r:"B"},{n:"Reckless Researcher",t:"U",f:"C",tr:["Human", "Abomination"],r:"E"},{n:"Nariev, Master of the Grotesque",t:"U",f:"C",tr:["Erisyr"],r:"U"},{n:"Mind Harvest",t:"S",f:"C",tr:["Channel"],r:"E"},{n:"Rippling Potential",t:"S",f:"C",tr:["Channel"],r:"U"},{n:"Great Shield",t:"A",f:"",tr:["Item"],r:"B"},{n:"Scout's Boots",t:"A",f:"",tr:["Item"],r:"B"},{n:"Scoundrel's Blade",t:"A",f:"",tr:["Item"],r:"B"},{n:"Amulet of Vigor",t:"A",f:"",tr:["Item"],r:"B"},{n:"Shadow Shroud",t:"A",f:"",tr:["Item"],r:"E"},{n:"Feral Gauntlets",t:"A",f:"",tr:["Item"],r:"E"},{n:"Hunter's Bow",t:"A",f:"",tr:["Item"],r:"E"},{n:"Horned Helmet",t:"A",f:"",tr:["Item"],r:"E"},{n:"Sacred Prayerbook",t:"A",f:"",tr:["Item"],r:"U"},{n:"Winged Sandals",t:"A",f:"",tr:["Item"],r:"U"},{n:"Ring of Vitality",t:"A",f:"",tr:["Item"],r:"U"},{n:"Reinforced Plate",t:"A",f:"",tr:["Item"],r:"U"},{n:"Tear of Gold",t:"A",f:"",tr:["Item"],r:"B"},{n:"Umberland Lantern",t:"A",f:"",tr:["Item"],r:"E"},{n:"Goredrinker Axe",t:"A",f:"",tr:["Item"],r:"B"},{n:"Seal of the Nexi",t:"A",f:"",tr:["Item"],r:"E"},{n:"Vorendal, the Dreadheart",t:"U",f:"L",tr:["Seeker", "Fallen"],r:"L"},{n:"Heartlock",t:"G",f:"L",tr:["Vorendal, the Dreadheart"]},{n:"Countess Morrida Umberland",t:"U",f:"LC",tr:["Seeker", "Human"],r:"L"},{n:"Soul-Stitcher",t:"G",f:"L",tr:["Countess Morrida Umberland"]},{n:"Stitched Corpse",t:"U",f:"L",tr:["Fallen", "Stitched"],r:"B"},{n:"Anush-Vah Disciple",t:"U",f:"L",tr:["Human"],r:"B"},{n:"Dead-at-Arms",t:"U",f:"L",tr:["Fallen"],r:"B"},{n:"Deadeye Archer",t:"U",f:"L",tr:["Fallen"],r:"B"},{n:"Fleshripper",t:"U",f:"L",tr:["Fallen", "Stitched"],r:"E"},{n:"Soulwhisperer",t:"U",f:"L",tr:["Human"],r:"E"},{n:"Duskwood Prowler",t:"U",f:"L",tr:["Fallen", "Abomination"],r:"E"},{n:"Sestinar, the Silent",t:"U",f:"L",tr:["Human"],r:"U"},{n:"Thrice Murdered",t:"U",f:"L",tr:["Fallen", "Spirit"],r:"U"},{n:"Umberland Shade",t:"U",f:"LC",tr:["Fallen", "Spirit"],r:"B"},{n:"Gift of Flesh",t:"S",f:"L",tr:["Channel"],r:"B"},{n:"Mend the Dead",t:"S",f:"L",tr:["Channel"],r:"B"},{n:"Corpse Explosion",t:"S",f:"L",tr:["Channel"],r:"B"},{n:"Forced March",t:"S",f:"L",tr:["Channel"],r:"E"},{n:"Writhing Pain",t:"S",f:"L",tr:["Channel"],r:"E"},{n:"Dark Bindings",t:"S",f:"L",tr:["Channel"],r:"E"},{n:"Curse of Lethargy",t:"S",f:"L",tr:["Swift"],r:"E"},{n:"Drown in Oblivion",t:"S",f:"L",tr:["Swift"],r:"E"},{n:"Back for More",t:"S",f:"L",tr:["Swift"],r:"E"},{n:"Price of Devotion",t:"S",f:"L",tr:["Swift"],r:"E"},{n:"Brutal Outburst",t:"S",f:"L",tr:["Swift"],r:"E"},{n:"Entrap the Mind",t:"S",f:"L",tr:["Channel"],r:"U"},{n:"Death's Call",t:"S",f:"L",tr:["Channel"],r:"U"},{n:"Unmake",t:"S",f:"L",tr:["Channel"],r:"U"},{n:"Dreadheart's Presence",t:"S",f:"L",tr:["Swift"],r:"U"},{n:"Disembody",t:"S",f:"LC",tr:["Swift"],r:"E"},{n:"Spell Plunder",t:"S",f:"LC",tr:["Channel"],r:"E"},{n:"Griza, Lingering Wound",t:"U",f:"LO",tr:["Seeker", "Spirit"],r:"L"},{n:"Ihreniv",t:"G",f:"LO",tr:["Griza, Lingering Wound"]},{n:"Disgraced Kinship",t:"U",f:"L",tr:["Fallen"],r:"B"},{n:"Tragedy of the Wronged",t:"U",f:"L",tr:["Fallen", "Spirit"],r:"E"},{n:"Barrow Defiler",t:"U",f:"L",tr:["Abomination"],r:"U"},{n:"Tragedy of Greed",t:"U",f:"LO",tr:["Spirit"],r:"B"},{n:"Deadly Bargain",t:"S",f:"L",tr:["Channel"],r:"E"},{n:"Pact of Demise",t:"S",f:"L",tr:["Channel"],r:"U"},{n:"Somber Surrender",t:"S",f:"LO",tr:["Swift"],r:"E"},{n:"Dilemma of Fate",t:"S",f:"LO",tr:["Channel"],r:"E"},{n:"Sigrith Andravos",t:"U",f:"O",tr:["Seeker", "Human"],r:"L"},{n:"Andravon",t:"G",f:"O",tr:["Sigrith Andravos"]},{n:"Auric Evenhand",t:"U",f:"OP",tr:["Seeker", "Vulkir"],r:"L"},{n:"Will of the Forge",t:"G",f:"",tr:["Auric Evenhand"]},{n:"Knight of Astaris",t:"U",f:"O",tr:["Human"],r:"B"},{n:"Valcarist Priest",t:"U",f:"O",tr:["Human"],r:"B"},{n:"Armored Revenant",t:"U",f:"O",tr:["Construct", "Spirit"],r:"B"},{n:"Citadel Crossbowman",t:"U",f:"O",tr:["Human"],r:"B"},{n:"Truestone Exemplar",t:"U",f:"O",tr:["Vulkir"],r:"E"},{n:"Warfront Commander",t:"U",f:"O",tr:["Human"],r:"E"},{n:"Astaris Battlemaster",t:"U",f:"O",tr:["Vulkir"],r:"E"},{n:"Herald of Salvation",t:"U",f:"O",tr:["Human", "Hallowed"],r:"U"},{n:"Rogarth, the Breaker",t:"U",f:"O",tr:["Human"],r:"U"},{n:"Twinblades Skirmisher",t:"U",f:"OP",tr:["Human"],r:"B"},{n:"Valorous Command",t:"S",f:"O",tr:["Channel"],r:"B"},{n:"Healing Light",t:"S",f:"O",tr:["Channel"],r:"B"},{n:"Answer the Call",t:"S",f:"O",tr:["Channel"],r:"B"},{n:"Convoke",t:"S",f:"O",tr:["Channel"],r:"B"},{n:"Barter",t:"S",f:"O",tr:["Channel"],r:"B"},{n:"Second Wind",t:"S",f:"O",tr:["Channel"],r:"E"},{n:"Rites of Might",t:"S",f:"O",tr:["Channel"],r:"E"},{n:"Death Undone",t:"S",f:"O",tr:["Swift"],r:"E"},{n:"Ward of Valcaris",t:"S",f:"O",tr:["Swift"],r:"E"},{n:"Rites of Healing",t:"S",f:"O",tr:["Channel"],r:"U"},{n:"Decree of Valcaris",t:"S",f:"O",tr:["Channel"],r:"U"},{n:"Shield of Andravos",t:"S",f:"O",tr:["Swift"],r:"U"},{n:"Enforce Balance",t:"S",f:"O",tr:["Swift"],r:"U"},{n:"Call to Arms",t:"S",f:"OP",tr:["Channel"],r:"E"},{n:"Rebounding Throw",t:"S",f:"OP",tr:["Channel"],r:"E"},{n:"Brighthold Custodian",t:"U",f:"O",tr:["Human"],r:"B"},{n:"Epher, the Setting Sun",t:"U",f:"O",tr:["Construct", "Spirit"],r:"U"},{n:"Revalis Penitent",t:"U",f:"O",tr:["Human"],r:"E"},{n:"Rush of Salvation",t:"S",f:"O",tr:["Swift"],r:"E"},{n:"Echo of Sarstan",t:"S",f:"O",tr:["Swift"],r:"U"},{n:"Thundersteps",t:"U",f:"P",tr:["Seeker", "Tyran"],r:"L"},{n:"Storm's Eye",t:"G",f:"P",tr:["Thundersteps"]},{n:"In'Gor, the Spiritbound",t:"U",f:"PL",tr:["Seeker", "Oerikan", "Abomination"],r:"L"},{n:"Effigy of Chaos",t:"G",f:"P",tr:["In'Gor, the Spiritbound"]},{n:"Tarok Beast",t:"U",f:"P",tr:["Beast"],r:"B"},{n:"Spirit Shaman",t:"U",f:"P",tr:["Oerikan"],r:"B"},{n:"Primal Totem",t:"U",f:"P",tr:["Construct"],r:"B"},{n:"Cabra Mauler",t:"U",f:"P",tr:["Vulkir"],r:"B"},{n:"Boneclaw Raider",t:"U",f:"P",tr:["Human"],r:"E"},{n:"Farsight Ambusher",t:"U",f:"P",tr:["Erisyr"],r:"E"},{n:"Bloodfrenzy Berserker",t:"U",f:"P",tr:["Oerikan"],r:"E"},{n:"Mugq'Tovor, Bodybreaker",t:"U",f:"P",tr:["Abomination"],r:"U"},{n:"Bloodfeast Raptor",t:"U",f:"P",tr:["Beast"],r:"U"},{n:"Cursehost Boar",t:"U",f:"PL",tr:["Beast", "Abomination"],r:"B"},{n:"Hunter's Sense",t:"S",f:"P",tr:["Channel"],r:"B"},{n:"Consume Carcass",t:"S",f:"P",tr:["Channel"],r:"B"},{n:"Heartstab Blast",t:"S",f:"P",tr:["Channel"],r:"B"},{n:"Nature's Wrath",t:"S",f:"P",tr:["Channel"],r:"B"},{n:"Adrenaline Rush",t:"S",f:"P",tr:["Channel"],r:"B"},{n:"Fortune's Favor",t:"S",f:"P",tr:["Swift"],r:"E"},{n:"Retribution",t:"S",f:"P",tr:["Swift"],r:"E"},{n:"Diehard",t:"S",f:"P",tr:["Swift"],r:"E"},{n:"Seize the Initiative",t:"S",f:"P",tr:["Swift"],r:"E"},{n:"Cataclysmic Blast",t:"S",f:"P",tr:["Channel"],r:"U"},{n:"Unstoppable Rush",t:"S",f:"P",tr:["Channel"],r:"U"},{n:"Thunderous Devastation",t:"S",f:"P",tr:["Channel"],r:"U"},{n:"Endless Rage",t:"S",f:"P",tr:["Swift"],r:"U"},{n:"Chaotic Bargain",t:"S",f:"PL",tr:["Channel"],r:"E"},{n:"Ravenous Swarm",t:"S",f:"PL",tr:["Channel"],r:"E"},{n:"Kar-Mamok",t:"U",f:"PC",tr:["Seeker", "Abomination"],r:"L"},{n:"Liena, Who Dreams",t:"G",f:"P",tr:["Kar-Mamok"]},{n:"Paxos Gorehorn",t:"U",f:"P",tr:["Shifter"],r:"B"},{n:"Woe-Caster Shaman",t:"U",f:"P",tr:["Oerikan"],r:"E"},{n:"Sek'Takar, Scarred Arsonist",t:"U",f:"P",tr:["Oerikan"],r:"U"},{n:"Uncaged Experiment",t:"U",f:"PC",tr:["Beast", "Spellbound"],r:"B"},{n:"Trial of Stone",t:"S",f:"P",tr:["Channel"],r:"E"},{n:"Choice of Brutality",t:"S",f:"P",tr:["Channel"],r:"U"},{n:"Arcane Mirroring",t:"S",f:"PC",tr:["Swift"],r:"E"},{n:"Trample Through",t:"S",f:"PC",tr:["Channel"],r:"E"},{n:"Tempest Scepter",t:"A",f:"",tr:["Relic"]},{n:"Ring of Time",t:"A",f:"",tr:["Relic"]},{n:"Veilpiercer",t:"A",f:"",tr:["Relic"]},{n:"Everlasting Heart",t:"A",f:"",tr:["Relic"]},{n:"Umbral Cloak",t:"A",f:"",tr:["Relic"]},{n:"Helm of Wrath",t:"A",f:"",tr:["Relic"]},{n:"Everkeep Reliquary",t:"A",f:"",tr:["Relic"]},{n:"Martyr's Vexillum",t:"A",f:"",tr:["Relic"]},{n:"Guardian's Aegis",t:"A",f:"",tr:["Relic"]},{n:"Reaper's Edge",t:"A",f:"",tr:["Relic"]},{n:"Trapjaw Chain",t:"A",f:"",tr:["Relic"]},{n:"Boots of Celerity",t:"A",f:"",tr:["Relic"]},{n:"Fang of the Damned",t:"A",f:"",tr:["Relic"]},{n:"Spelleater Mask",t:"A",f:"",tr:["Relic"]},{n:"Vengeance and Retribution",t:"A",f:"",tr:["Relic"]},{n:"Noxious Fleshgardens",t:"T",f:""},{n:"Starcast Halls",t:"T",f:""},{n:"Deathshroud Mire",t:"T",f:""},{n:"Astarian Pathways",t:"T",f:""},{n:"Behemoth Khuyakine",t:"U",f:"P",tr:["Beast"],rp:1,r:"E"},{n:"Murder of Shriekers",t:"U",f:"P",tr:["Beast"],rp:1,r:"B"},{n:"Irynia and Aratan",t:"U",f:"P",tr:["Oerikan", "Shifter"],rp:1,r:"U"},{n:"Ymirian Rage",t:"S",f:"P",tr:["Channel"],rp:1,r:"U"},{n:"Landshift",t:"S",f:"P",tr:["Swift"],rp:1,r:"E"},{n:"Raptor's Lift",t:"S",f:"P",tr:["Channel"],rp:1,r:"B"},{n:"Thaumite Mercenary",t:"U",f:"C",tr:["Human"],rp:1,r:"E"},{n:"Liastrum Accumulator",t:"U",f:"C",tr:["Construct", "Spellbound"],rp:1,r:"B"},{n:"Athan, Prime Decimator",t:"U",f:"C",tr:["Human"],rp:1,r:"U"},{n:"Liastrum Decimation",t:"S",f:"C",tr:["Channel"],rp:1,r:"U"},{n:"Crackling Trap",t:"S",f:"C",tr:["Channel"],rp:1,r:"E"},{n:"Salvage",t:"S",f:"C",tr:["Channel"],rp:1,r:"B"},{n:"Gilded Sentries",t:"U",f:"O",tr:["Human"],rp:1,r:"E"},{n:"Discordant Voice",t:"U",f:"O",tr:["Human"],rp:1,r:"B"},{n:"Siro, Hand of Law",t:"U",f:"O",tr:["Vulkir"],rp:1,r:"U"},{n:"Triumvirate Liturgy",t:"S",f:"O",tr:["Channel"],rp:1,r:"U"},{n:"Demand Confession",t:"S",f:"O",tr:["Channel"],rp:1,r:"E"},{n:"Twisted Charity",t:"S",f:"O",tr:["Channel"],rp:1,r:"B"},{n:"Masarin Deathsinger",t:"U",f:"L",tr:["Fallen", "Horror"],rp:1,r:"E"},{n:"Mashr",t:"U",f:"L",tr:["Human"],rp:1,r:"B"},{n:"Champion of Drav",t:"U",f:"L",tr:["Fallen", "Horror"],rp:1,r:"U"},{n:"Choice of Malady",t:"S",f:"L",tr:["Channel"],rp:1,r:"U"},{n:"Soul Mimicry",t:"S",f:"L",tr:["Channel"],rp:1,r:"E"},{n:"Horrific Archery",t:"S",f:"L",tr:["Channel"],rp:1,r:"B"},{n:"Myrkosian Magnifier",t:"A",f:"C",tr:["Item"],rp:1,r:"E"},{n:"Oskarite Blade",t:"A",f:"L",tr:["Item"],rp:1,r:"E"},{n:"Expiatrine Scourge",t:"A",f:"O",tr:["Item"],rp:1,r:"E"},{n:"Avakran Flute",t:"A",f:"P",tr:["Item"],rp:1,r:"E"}];
 const FNAME={C:'Conclave of the Sphere',O:'Order of the Shattered Throne',L:'Legion of the Fallen',P:'Primal Blood'};
 const LICON={C:ASSETS.conclave,O:ASSETS.order,L:ASSETS.legion,P:ASSETS.primal};
 const SHORTF={C:'Conclave',O:'Order',L:'Legion',P:'Primal'};
@@ -1493,6 +1516,12 @@ function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
 // Units and terrains are physical pieces: 4 statuses. Everything else: owned.
 function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','standee','printed','painted'] : ['owned']; }
 
+/* Rarity fixes how many copies of a card exist: Basic 3, Elite 2,
+   Unique/Legendary 1. Legacies, relics and terrains have no rarity —
+   they are single by nature. Collection counters run 0..maxCopies. */
+const RNAME={B:'Basic',E:'Elite',U:'Unique',L:'Legendary'};
+function maxCopies(c){ return c.r==='B'?3 : c.r==='E'?2 : 1; }
+
 /* Product contents (starter boxes, seeker decks, faction boxes): buying a box
    can mark all its cards as owned in one tap. Relics, neutral items and
    terrains aren't tied to these products and stay manual. */
@@ -1525,6 +1554,38 @@ function cardThumb(i){
   return `<img class="cimg" loading="lazy" src="${cardImg(c.n)}" alt=""
     onclick="event.stopPropagation();showCard(${i})" onerror="this.classList.add('off')">`;
 }
+function showCardInfo(i){
+  const c=CARDS[i]; if(!c) return;
+  const r=colRow(c.n);
+  const mx=maxCopies(c);
+  const prods=PRODUCTS.filter(p=>!p.rp && p.cards.includes(c.n)).map(p=>p.name);
+  // uso nei tuoi mazzi salvati (privati per design)
+  const uses=(cache.myDecks||[]).filter(d=>d.cards && d.cards[c.n]).map(d=>({name:d.name, n:d.cards[c.n]}));
+  const inUse=uses.reduce((a,u)=>a+u.n,0);
+  const free=Math.max(0,(+r.owned||0)-inUse);
+  let ov=$('card-info');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='card-info'; ov.className='card-light';
+    ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+    document.body.appendChild(ov);
+  }
+  ov.innerHTML=`<div class="info-pop" onclick="event.stopPropagation()">
+    <div class="ip-head">
+      ${CARD_IMGS_ON!==false?`<img class="ip-thumb" src="${cardImg(c.n)}" alt="" onerror="this.remove()">`:''}
+      <div>
+        <div class="ip-name">${esc(c.n)}</div>
+        <div class="col-sub">${TNAME[c.t]}${(c.tr&&c.tr.length)?' · '+c.tr.map(esc).join(' · '):''}</div>
+        <div class="ip-rar r${c.r||'X'}">${c.r?`${RNAME[c.r]} — ${mx} ${mx===1?'copy':'copies'}`:'Single copy'}</div>
+      </div>
+      <button class="bldd-x" style="align-self:flex-start" onclick="document.getElementById('card-info').remove()" aria-label="Close">×</button>
+    </div>
+    <div class="ip-sec">Found in</div>
+    ${prods.length?prods.map(n=>`<div class="ip-row">${esc(n)}</div>`).join(''):`<div class="ip-row dim">No released product — manual entry.</div>`}
+    ${me?`<div class="ip-sec">In your decks</div>
+      ${uses.length?uses.map(u=>`<div class="ip-row">${esc(u.name)} <b>×${u.n}</b></div>`).join(''):`<div class="ip-row dim">Not used in any saved deck.</div>`}
+      <div class="ip-avail">You own <b>${+r.owned||0}</b> · in decks <b>${inUse}</b> · free <b>${free}</b></div>`:''}
+  </div>`;
+}
 function showCard(i){
   const c=CARDS[i]; if(!c) return;
   let ov=$('card-light');
@@ -1537,7 +1598,7 @@ function showCard(i){
     onerror="document.getElementById('card-light').remove();toast('No image for this card yet')">
     <div class="cl-name">${esc(c.n)}</div>`;
 }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ const o=$('card-light'); if(o) o.remove(); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ ['card-light','card-info'].forEach(id=>{const o=$(id); if(o) o.remove();}); }});
 
 
 const seekerFaction = n => (SEEKERS.find(s=>s.name===n)||{}).faction || null;
@@ -3901,12 +3962,14 @@ async function renderCollection(){
   body.innerHTML=`<div class="empty"><span class="spinner"></span> Loading collection…</div>`;
   const {data,error}=await sb.from('collection').select('*').eq('user_id',me.id);
   if(error){ body.innerHTML=`<div class="banner">${esc(error.message)}</div>`; return; }
+  if(!cache.myDecks) cache.myDecks=await fetchMyDecks();
   cache.collection={};
-  (data||[]).forEach(r=>cache.collection[r.card_key]=r);
+  (data||[]).forEach(r=>cache.collection[r.card_key]=colNorm(r));
   await detectCardImgs();
   paintCollection();
 }
-function colRow(key){ return cache.collection[key]||{owned:false,printed:false,painted:false,standee:false}; }
+function colRow(key){ return cache.collection[key]||{owned:0,printed:0,painted:0,standee:0}; }
+function colNorm(r){ ['owned','printed','painted','standee'].forEach(f=>r[f]=+r[f]||0); return r; }
 function paintCollection(){
   const body=$('collection-body'); if(!body) return;
   // Reinforcement Pack cards are in the catalog but not out yet: they stay
@@ -3971,7 +4034,7 @@ function paintCollection(){
         `<button class="fchip ${(window._colT||'')===v?'on':''}" onclick="window._colT='${v}';paintCollection()">${l}</button>`).join('')}
     </div>
     <div class="chip-row">
-      ${[['','Everything'],['own','Owned'],['miss','Missing']].map(([v,l])=>
+      ${[['','Everything'],['own','Owned'],['miss','Missing'],['print','Printed'],['paint','Painted']].map(([v,l])=>
         `<button class="fchip ${(window._colOwn||'')===v?'on':''}" onclick="window._colOwn='${v}';paintCollection()">${l}</button>`).join('')}
       <select class="tr-pick" onchange="window._colTr=this.value;paintCollection()">
         <option value="">Any keyword</option>
@@ -4000,6 +4063,8 @@ function paintColList(){
     if(TR && !(c.tr||[]).includes(TR)) return false;
     if(OWN==='own' && !colRow(c.n).owned) return false;
     if(OWN==='miss' && colRow(c.n).owned) return false;
+    if(OWN==='print' && !colRow(c.n).printed) return false;
+    if(OWN==='paint' && !colRow(c.n).painted) return false;
     return true;
   });
   const cnt=$('col-count');
@@ -4020,8 +4085,10 @@ function paintColList(){
       </div>
       <div class="col-facs">${fBadges(c.f)}</div>
       <div class="col-tog">
-        ${fields.map(f=>`<button class="ctog ${r[f]?'on':''}" onclick="colToggle(${i},'${f}')"
-          title="${labels[f]}">${labels[f]}</button>`).join('')}
+        ${fields.map(f=>{const mx=maxCopies(c);const n=+r[f]||0;
+          return `<button class="ctog ${n?'on':''}" onclick="colToggle(${i},'${f}')"
+          title="${labels[f]} — tap to cycle 0–${mx}">${labels[f]}${mx>1?` <b>${n}/${mx}</b>`:''}</button>`;}).join('')}
+        <button class="ctog cinfo" onclick="showCardInfo(${i})" aria-label="Card info" title="Where it comes from, deck usage">i</button>
       </div>
     </div>`;
   }).join('');
@@ -4035,8 +4102,10 @@ async function colAddProduct(pid){
   const prev = missing.map(k=>({k, row: cache.collection[k]?{...cache.collection[k]}:null}));
   const rows = pr.cards.map(k=>{
     const r=colRow(k);
-    const full={user_id:me.id, card_key:k, owned:true,
-      printed:!!r.printed, painted:!!r.painted, standee:!!r.standee};
+    const c=CARDS[CARD_IDX[k]];
+    const full={user_id:me.id, card_key:k,
+      owned:Math.max(+r.owned||0, c?maxCopies(c):1),
+      printed:+r.printed||0, painted:+r.painted||0, standee:+r.standee||0};
     cache.collection[k]={...(cache.collection[k]||{}), ...full};
     return full;
   });
@@ -4062,8 +4131,10 @@ async function colAddStandees(pid){
   const prev = missing.map(k=>({k, row: cache.collection[k]?{...cache.collection[k]}:null}));
   const rows = stdCards.map(k=>{
     const r=colRow(k);
-    const full={user_id:me.id, card_key:k, owned:!!r.owned,
-      printed:!!r.printed, painted:!!r.painted, standee:true};
+    const c=CARDS[CARD_IDX[k]];
+    const full={user_id:me.id, card_key:k, owned:+r.owned||0,
+      printed:+r.printed||0, painted:+r.painted||0,
+      standee:Math.max(+r.standee||0, c?maxCopies(c):1)};
     cache.collection[k]={...(cache.collection[k]||{}), ...full};
     return full;
   });
@@ -4080,19 +4151,23 @@ async function colAddStandees(pid){
 async function colToggle(idx, field){
   const c=CARDS[idx]; if(!c||!me) return;
   const key=c.n;
+  const before = cache.collection[key] ? {...cache.collection[key]} : null;
   const cur={...colRow(key)};
-  cur[field]=!cur[field];
-  // ottimista: aggiorno subito, poi scrivo; se fallisce torno indietro
+  const max=maxCopies(c);
+  // tap cycles the counter: 0 → 1 → … → max → 0
+  cur[field]=((+cur[field]||0)+1) % (max+1);
+  // painting the Nth mini implies the Nth mini is printed
+  if(field==='painted') cur.printed=Math.max(+cur.printed||0, cur.painted);
+  // ottimista: aggiorno subito, poi scrivo; se fallisce ripristino lo snapshot
   cache.collection[key]={...(cache.collection[key]||{}), user_id:me.id, card_key:key,
-    owned:!!cur.owned, printed:!!cur.printed, painted:!!cur.painted, standee:!!cur.standee};
+    owned:+cur.owned||0, printed:+cur.printed||0, painted:+cur.painted||0, standee:+cur.standee||0};
   paintCollection();
   const {error}=await sb.from('collection').upsert({
     user_id:me.id, card_key:key,
-    owned:!!cur.owned, printed:!!cur.printed, painted:!!cur.painted, standee:!!cur.standee
+    owned:+cur.owned||0, printed:+cur.printed||0, painted:+cur.painted||0, standee:+cur.standee||0
   },{onConflict:'user_id,card_key'});
   if(error){
-    cur[field]=!cur[field];
-    cache.collection[key]={...cache.collection[key], ...cur};
+    if(before) cache.collection[key]=before; else delete cache.collection[key];
     paintCollection();
     toast(error.message);
   }
@@ -4129,7 +4204,7 @@ async function renderBuilder(){
   if(!cache.myDecks) cache.myDecks=await fetchMyDecks();
   if(!cache.collection){
     const {data}=await sb.from('collection').select('*').eq('user_id',me.id);
-    cache.collection={}; (data||[]).forEach(r=>cache.collection[r.card_key]=r);
+    cache.collection={}; (data||[]).forEach(r=>cache.collection[r.card_key]=colNorm(r));
   }
   const d = route.deckId ? (cache.myDecks.find(x=>x.id===route.deckId)||null) : null;
   await detectCardImgs();
@@ -4241,7 +4316,7 @@ function paintBldSide(){
       const out = c && !bldInPool(c,sf);
       return `<div class="bldd-row${out?' out':''}">
         <span class="bldd-n">${B.cards[k]}×</span>
-        <span class="bldd-name">${esc(k)}${out?' <b title="Outside the factions of this Seeker">⚠</b>':''}${bldOwned(k)?'':' <span class="notown">◇</span>'}</span>
+        <span class="bldd-name">${esc(k)}${out?' <b title="Outside the factions of this Seeker">⚠</b>':''}${(()=>{const o=+((cache.collection||{})[k]||{}).owned||0;const need=B.cards[k];return o>=need?'':` <span class="notown" title="You own ${o} of ${need}">◇ ${o}/${need}</span>`;})()}</span>
         <button class="bldd-x" onclick="bldRemove(${i})" aria-label="Remove">×</button>
       </div>`;
     }).join(''):`<div class="empty" style="padding:14px 0">Tap + on a card to add it.</div>`}
@@ -4299,7 +4374,7 @@ async function renderProfile(){
   cache.myDecks = await fetchMyDecks();
   if(!cache.collection){
     const {data:colData}=await sb.from('collection').select('*').eq('user_id',me.id);
-    cache.collection={}; (colData||[]).forEach(r=>cache.collection[r.card_key]=r);
+    cache.collection={}; (colData||[]).forEach(r=>cache.collection[r.card_key]=colNorm(r));
   }
   const mine = all.filter(m=>m.winner_id===me.id||m.loser_id===me.id);
   const w=mine.filter(m=>m.winner_id===me.id).length, l=mine.length-w;
@@ -4401,8 +4476,8 @@ async function renderProfile(){
           <div class="dk-name">${esc(d.name)}</div>
           ${d.seeker?`<div class="dk-fac">${esc(d.seeker)}</div>`:(d.faction?`<div class="dk-fac">${fIcon(d.faction,true)}${esc(d.faction)}</div>`:'')}
           ${d.cards?(()=>{const ks=Object.keys(d.cards);const tot=ks.reduce((a,k)=>a+d.cards[k],0);
-            const miss=ks.filter(k=>{const r=cache.collection&&cache.collection[k];return !(r&&r.owned);}).length;
-            return `<div class="dk-build ${miss?'':'ok'}">${tot} cards · ${miss?`${miss} missing from collection`:'✓ buildable from your collection'}</div>`;})():''}
+            const missCopies=ks.reduce((a,k)=>{const o=+((cache.collection||{})[k]||{}).owned||0;return a+Math.max(0,d.cards[k]-o);},0);
+            return `<div class="dk-build ${missCopies?'':'ok'}">${tot} cards · ${missCopies?`${missCopies} ${missCopies===1?'copy':'copies'} missing from collection`:'✓ buildable from your collection'}</div>`;})():''}
           <div class="dk-wr">${dn
             ? `<b style="color:${wrColor(dw/dn,dn)}">${pct(dw/dn)}</b> · ${dw}W–${dl}L`
             : `no logged matches yet`}</div>
