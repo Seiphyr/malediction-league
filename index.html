@@ -610,6 +610,19 @@
     .col-stats .qcard{padding:12px 16px}
     .col-stats .q-big{font-size:28px}
   }
+  .lg-step{display:flex;gap:13px;align-items:flex-start;margin-bottom:11px;font-size:14px;color:var(--bone);line-height:1.55}
+  .lg-step b{color:var(--bone)}
+  .lg-n{flex:0 0 26px;height:26px;border-radius:50%;background:rgba(229,30,57,.12);border:1px solid var(--crimson);
+    color:var(--crimson);font-family:'Oswald',sans-serif;font-size:12px;font-weight:600;
+    display:inline-flex;align-items:center;justify-content:center;margin-top:1px}
+  .pp-btn{display:inline-block;margin-top:14px;padding:9px 16px;border:1px solid var(--brass-dim);
+    border-radius:999px;color:var(--brass);font-family:'Oswald',sans-serif;font-size:11px;
+    letter-spacing:.09em;text-transform:uppercase;text-decoration:none}
+  .pp-btn:hover{border-color:var(--brass);background:rgba(200,165,104,.08)}
+  .col-filters{min-width:0;max-width:100%}
+  .frow{min-width:0}
+  .frow .chip-row{min-width:0;max-width:100%}
+  .col-count{border-top:1px solid var(--line);margin:14px 0 10px;padding-top:11px}
   .frow{display:flex;align-items:flex-start;gap:10px}
   .flab{flex:0 0 56px;font-family:'Oswald',sans-serif;font-size:9.5px;font-weight:600;
     letter-spacing:.13em;text-transform:uppercase;color:var(--bone-dim);padding-top:9px}
@@ -1293,8 +1306,11 @@
       Not created, endorsed or sponsored by Loot Studios.</p>
       <p>Malediction and all related names, logos, characters, factions, Seekers, terrain and imagery are
       trademarks and/or registered trademarks of Loot Studios. All rights reserved by their respective
-      owners. This tool is a free, non-commercial utility made by and for the local player community, and
+      owners. This tool is a free, non-commercial utility made by and for the player community, and
       claims no ownership over any Malediction intellectual property.</p>
+      <a class="pp-btn" target="_blank" rel="noopener noreferrer"
+         href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=aeon%40aol.it&item_name=A%20paint%20pot%20for%20the%20Seekers%20League%20developer&currency_code=EUR">
+        🎨 Buy the developer a paint pot</a>
     </div>
   </footer>
 </div>
@@ -1525,7 +1541,6 @@ function fBadges(f){
   return dualIcon(f);
 }
 const TNAME={U:'Unit',G:'Legacy',S:'Spell',A:'Attachment',T:'Terrain'};
-function cardHasFaction(c,letter){ return (c.f||'').includes(letter); }
 function isRelicCard(c){ return (c.tr||[]).includes('Relic'); }
 // Units and terrains are physical pieces: 4 statuses. Everything else: owned.
 function colFields(c){ return (c.t==='U'||c.t==='T') ? ['owned','standee','printed','painted'] : ['owned']; }
@@ -2511,6 +2526,19 @@ let rulesTab = 'setup';
 function renderRules(){
   const body=$('rules-body');
   body.innerHTML = `
+    <div class="panel plain">
+      <h2 style="margin:0 0 2px">How a league works</h2>
+      <p class="hint" style="margin:0 0 14px">The thirty-second version.</p>
+      <div class="lg-step"><span class="lg-n">1</span><div>
+        <b>A league is your group.</b> Someone creates it, shares the join code, and players join from their phones. Standings, events and results live here.</div></div>
+      <div class="lg-step"><span class="lg-n">2</span><div>
+        <b>You play at events.</b> The organizer schedules an event; players check in when they arrive and log their matches — winner, Seekers, terrain sets.</div></div>
+      <div class="lg-step"><span class="lg-n">3</span><div>
+        <b>Points build the standings.</b> Showing up scores, winning scores more, even losing scores — the organizer decides how much. The table updates as results come in.</div></div>
+      <div class="lg-step"><span class="lg-n">4</span><div>
+        <b>The month ends in a tournament.</b> The standings seed the bracket — snake-seeded groups, then knockout — and the champion is crowned. A new month starts the race again.</div></div>
+    </div>
+
     <div class="panel">
       <details class="fold docs-fold">
         <summary>Official documents <span class="sum-note">on malediction.gg</span></summary>
@@ -3996,7 +4024,10 @@ function paintCollection(){
   body.innerHTML=`<div class="panel plain">
     <div class="flex-between col-top" style="margin-bottom:2px">
       <h2 style="margin:0">Collection</h2>
-      <button class="ghost ${window._colProd?'on':''}" onclick="window._colProd=!window._colProd;paintCollection()">${window._colProd?'✕ Close':'+ Add a product'}</button>
+      <div style="display:flex;gap:8px;flex:0 0 auto">
+        <button class="ghost" onclick="colChecklist()" title="Download a printable paint checklist">↓ Checklist</button>
+        <button class="ghost ${window._colProd?'on':''}" onclick="window._colProd=!window._colProd;paintCollection()">${window._colProd?'✕ Close':'+ Add a product'}</button>
+      </div>
     </div>
     <p class="hint" style="margin:0 0 14px">Track every card and mini you own, print and paint.</p>
     ${window._colProd?`<div class="prod-panel">
@@ -4137,6 +4168,54 @@ async function colAddProduct(pid){
 // The standee check is its own axis, per product: it marks the standees of
 // that product's units and terrains, leaving Own untouched (a standee pack
 // isn't the cards, and the cards aren't the standees).
+// Printable paint checklist: every owned unit and terrain, with one circle
+// per copy for Print and Paint — filled circles are already done, empty ones
+// are what's left on the bench. Downloads as a standalone HTML you can print.
+function colChecklist(){
+  const rows=CARDS.filter(c=>!c.rp && colFields(c).length>1 && (+colRow(c.n).owned||0)>0);
+  if(!rows.length) return toast('Mark some units or terrains as owned first');
+  const dots=(n,mx)=>'●'.repeat(Math.min(n,mx))+'○'.repeat(Math.max(0,mx-n));
+  const groups={};
+  rows.forEach(c=>{ (groups[factionLabel(c.f)]=groups[factionLabel(c.f)]||[]).push(c); });
+  const order=Object.keys(groups).sort();
+  const today=new Date().toISOString().slice(0,10);
+  const totP=rows.reduce((a,c)=>a+(+colRow(c.n).printed||0),0);
+  const totPa=rows.reduce((a,c)=>a+(+colRow(c.n).painted||0),0);
+  const totMx=rows.reduce((a,c)=>a+maxCopies(c),0);
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Malediction paint checklist</title>
+<style>
+ body{font-family:Georgia,serif;color:#1a1a1a;margin:34px;max-width:720px}
+ h1{font-size:21px;letter-spacing:.04em;margin:0 0 2px}
+ .sub{color:#666;font-size:13px;margin:0 0 22px}
+ h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;border-bottom:1.5px solid #1a1a1a;
+    padding-bottom:4px;margin:24px 0 8px}
+ table{width:100%;border-collapse:collapse}
+ td{padding:5px 8px;border-bottom:1px solid #ddd;font-size:13.5px;vertical-align:baseline}
+ td.dots{font-size:15px;letter-spacing:3px;white-space:nowrap;width:1%}
+ td.rar{color:#888;font-size:11px;width:1%;white-space:nowrap}
+ th{text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:0 8px 4px}
+ @media print{ body{margin:12mm} }
+</style></head><body>
+<h1>Malediction — paint checklist</h1>
+<p class="sub">${today} · ${rows.length} models owned · printed ${totP}/${totMx} · painted ${totPa}/${totMx} · ● done ○ to do</p>
+${order.map(g=>`<h2>${g}</h2>
+<table><tr><th style="width:auto">Model</th><th></th><th>Print</th><th>Paint</th></tr>
+${groups[g].sort((a,b)=>a.n.localeCompare(b.n)).map(c=>{
+  const r=colRow(c.n), mx=maxCopies(c);
+  return `<tr><td>${esc(c.n)}</td><td class="rar">${c.r?RNAME[c.r]:''}</td>
+    <td class="dots">${dots(+r.printed||0,mx)}</td><td class="dots">${dots(+r.painted||0,mx)}</td></tr>`;
+}).join('')}
+</table>`).join('')}
+</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const aEl=document.createElement('a');
+  aEl.href=URL.createObjectURL(blob);
+  aEl.download='malediction-paint-checklist.html';
+  document.body.appendChild(aEl); aEl.click(); aEl.remove();
+  URL.revokeObjectURL(aEl.href);
+  toast('Checklist downloaded', true);
+}
+
 async function colAddStandees(pid){
   const pr=PRODUCTS.find(x=>x.id===pid); if(!pr||!me) return;
   const stdCards=pr.cards.filter(k=>{const c=CARDS[CARD_IDX[k]];return c&&colFields(c).length>1;});
