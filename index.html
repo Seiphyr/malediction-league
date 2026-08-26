@@ -106,6 +106,9 @@
 
 /* ---- center control bar ---- */
 .tkl-bar{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;flex:0 0 auto;padding:2px 0}
+.tkl-bar{justify-content:flex-start}        /* fullscreen hard left, settings hard right, middle centered */
+.tkl-bar .tkl-round{margin-left:auto}        /* pushes Round+Next+D20 into the center */
+.tkl-bar .tkl-fs.edge-r{margin-left:auto}
 .tkl-fs{height:40px;width:44px;flex:0 0 auto;border-radius:10px;background:#1c1c1c;border:1px solid var(--line-2);color:var(--bone);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
 .tkl-round{display:flex;align-items:center;gap:5px;flex:0 0 auto}
 .tkl-round .tm-btn{width:32px;height:32px}
@@ -537,7 +540,7 @@ function paintTracker() {
       </div>
       <button class="act next-round" onclick="tNextRound()">Next round → +${echoForRound(trk.round + 1)} Echo</button>
       <button class="tkl-d20" onclick="tkRoll()" title="Roll a d20"><span class="hx">20</span>D20</button>
-      <button class="tkl-fs" onclick="window._tkSet=true;paintTracker()" title="Settings">⚙</button>
+      <button class="tkl-fs edge-r" onclick="window._tkSet=true;paintTracker()" title="Settings">⚙</button>
     </div>
     ${zone(split[1], false)}
   </div>
