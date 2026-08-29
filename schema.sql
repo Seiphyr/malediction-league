@@ -299,7 +299,17 @@ begin
   insert into public.profiles (id, display_name, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email,'@',1)),
+    -- email signup uses display_name; Google sends full_name/name,
+    -- Discord sends global_name/full_name/user_name. Email prefix is the last resort.
+    coalesce(
+      nullif(trim(new.raw_user_meta_data->>'display_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'global_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'user_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'preferred_username'), ''),
+      split_part(new.email,'@',1)
+    ),
     coalesce(new.raw_user_meta_data->>'role', 'player')
   )
   on conflict (id) do nothing;
