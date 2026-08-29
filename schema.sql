@@ -1,6 +1,15 @@
 -- ============================================================
 --  MALEDICTION LEAGUE TRACKER — Supabase schema
 --  Run this in: Supabase Dashboard > SQL Editor > New query
+--
+--  This file was checked against the live database on 2026-08-29:
+--  every column, type, default, constraint, index, policy, view and
+--  function below was read back from the Postgres catalogs and matches
+--  production. Two things are deliberately different:
+--    * tournaments no longer declares unique (league_id, month) — see
+--      the drop constraint below, which the live database still needs;
+--    * handle_new_user also reads the names sent by Google and Discord.
+--  Keep it that way: if you change the database, mirror it here.
 -- ============================================================
 
 -- ---------- PROFILES ----------
@@ -28,7 +37,8 @@ create table if not exists leagues (
   pts_attend  numeric not null default 1,
   pts_win     numeric not null default 2,
   pts_loss    numeric not null default 0.5,
-  pts_sweep   numeric not null default 1
+  pts_sweep   numeric not null default 1,
+  next_event_bonus smallint not null default 0
 );
 
 -- ---------- MEMBERSHIPS ----------
@@ -38,6 +48,7 @@ create table if not exists memberships (
   user_id    uuid not null references profiles(id) on delete cascade,
   is_admin   boolean not null default false,  -- co-organizer of this league
   joined_at  timestamptz not null default now(),
+  dropped_at timestamptz,                     -- set when a player leaves mid-season
   unique (league_id, user_id)
 );
 
@@ -47,6 +58,8 @@ create table if not exists sessions (
   league_id  uuid not null references leagues(id) on delete cascade,
   date       date not null,
   notes      text,
+  event_url  text,                              -- optional link to the event page
+  is_tournament boolean not null default false, -- tournament nights score double
   created_by uuid references profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
@@ -69,7 +82,11 @@ create table if not exists matches (
   loser_id       uuid not null references profiles(id) on delete cascade,
   winner_seeker  text,
   loser_seeker   text,
-  terrain        text,          -- terrain set in play
+  terrain        text,          -- legacy single-terrain column, kept for old rows
+  winner_terrain text,          -- each side brings its own terrain
+  loser_terrain  text,
+  winner_decklist text,         -- optional decklist link or text
+  loser_decklist  text,
   reported_by    uuid references profiles(id) on delete set null,
   confirmed      boolean not null default false,
   created_at     timestamptz not null default now(),
@@ -88,9 +105,77 @@ create table if not exists tournaments (
   month      text not null,          -- 'YYYY-MM'
   payload    jsonb not null,         -- groups + bracket state
   created_by uuid references profiles(id) on delete set null,
-  created_at timestamptz not null default now(),
-  unique (league_id, month)
+  created_at timestamptz not null default now()
+  -- no unique (league_id, month): a league can run several tournaments
+  -- in the same month. The app picks the most recent one by default.
 );
+
+-- Existing databases created before this change still carry the old
+-- constraint, which would reject the second tournament of a month:
+alter table tournaments drop constraint if exists tournaments_league_id_month_key;
+
+-- ---------- COLLECTION ----------
+-- One row per user per card. Each status is stored as a copy count:
+-- toggling "owned" writes the full playset for that rarity (3/2/1),
+-- so a non-zero value means "I have all the copies I can play".
+create table if not exists collection (
+  user_id    uuid not null references profiles(id) on delete cascade,
+  card_key   text not null,               -- the card name, as printed
+  owned      smallint not null default 0,
+  printed    smallint not null default 0,
+  painted    smallint not null default 0,
+  standee    smallint not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, card_key)         -- no surrogate id on this one
+);
+
+-- ---------- DECKS ----------
+create table if not exists decks (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references profiles(id) on delete cascade,
+  name       text not null,
+  seeker     text,                        -- Seeker name; binds the deck's Legacy
+  faction    text,
+  url        text,                        -- optional link to an external list
+  cards      jsonb,                       -- { "Card name": copies }
+  side       jsonb,
+  tag        text check (tag is null or tag in ('competitive','test','fun')),
+  is_public  boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+-- ---------- FREE BATTLES ----------
+-- Games played outside a league. The opponent is free text, so they
+-- do not need an account.
+create table if not exists free_battles (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null references profiles(id) on delete cascade,
+  result        text not null check (result in ('win','loss')),
+  my_seeker     text,
+  opp_seeker    text,
+  my_terrain    text,
+  opp_terrain   text,
+  opponent_name text,
+  played_on     date not null default current_date,
+  created_at    timestamptz not null default now()
+);
+
+-- collection needs no extra index: its primary key is (user_id, card_key).
+create index if not exists decks_user_idx on decks(user_id);
+create index if not exists free_battles_user_idx on free_battles(user_id);
+
+-- The public_leagues view lives further down, next to the policies.
+
+-- ---------- BRINGING AN OLD DATABASE UP TO DATE ----------
+-- Safe to run on a database created from an earlier version of this file.
+alter table leagues     add column if not exists next_event_bonus smallint not null default 0;
+alter table memberships add column if not exists dropped_at timestamptz;
+alter table sessions    add column if not exists event_url text;
+alter table sessions    add column if not exists is_tournament boolean not null default false;
+alter table matches     add column if not exists winner_terrain text;
+alter table matches     add column if not exists loser_terrain text;
+alter table matches     add column if not exists winner_decklist text;
+alter table matches     add column if not exists loser_decklist text;
 
 -- ============================================================
 --  HELPER FUNCTIONS
@@ -129,6 +214,64 @@ alter table sessions    enable row level security;
 alter table attendance  enable row level security;
 alter table matches     enable row level security;
 alter table tournaments enable row level security;
+alter table collection  enable row level security;
+alter table decks       enable row level security;
+alter table free_battles enable row level security;
+
+-- ---------- collection: private to its owner ----------
+drop policy if exists "collection own read" on collection;
+create policy "collection own read" on collection
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "collection own write" on collection;
+create policy "collection own write" on collection
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "collection own update" on collection;
+create policy "collection own update" on collection
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "collection own delete" on collection;
+create policy "collection own delete" on collection
+  for delete using (auth.uid() = user_id);
+
+-- ---------- decks ----------
+-- Two separate select policies: anyone reads the public ones, the owner
+-- also reads their private ones. Policies are OR-ed together.
+drop policy if exists "public decks read" on decks;
+create policy "public decks read" on decks
+  for select using (is_public = true);
+
+drop policy if exists "own decks select" on decks;
+create policy "own decks select" on decks
+  for select using (user_id = auth.uid());
+
+drop policy if exists "own decks insert" on decks;
+create policy "own decks insert" on decks
+  for insert with check (user_id = auth.uid());
+
+drop policy if exists "own decks update" on decks;
+create policy "own decks update" on decks
+  for update using (user_id = auth.uid());
+
+drop policy if exists "own decks delete" on decks;
+create policy "own decks delete" on decks
+  for delete using (user_id = auth.uid());
+
+-- ---------- free battles: private to their owner ----------
+-- Note: there is deliberately no update policy — a logged battle is
+-- deleted and re-entered rather than edited.
+drop policy if exists "fb own read" on free_battles;
+create policy "fb own read" on free_battles
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "fb own write" on free_battles;
+create policy "fb own write" on free_battles
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "fb own delete" on free_battles;
+create policy "fb own delete" on free_battles
+  for delete using (auth.uid() = user_id);
 
 -- ---------- profiles ----------
 drop policy if exists "profiles readable" on profiles;
@@ -182,6 +325,21 @@ create policy "admins manage memberships" on memberships
 drop policy if exists "leave or admin removes" on memberships;
 create policy "leave or admin removes" on memberships
   for delete using (user_id = auth.uid() or is_league_admin(league_id));
+
+-- Two more update policies live on the database alongside the one above.
+-- The admin one reads memberships directly instead of going through
+-- is_league_admin(), so it does not depend on that helper.
+drop policy if exists "memberships_update_admin" on memberships;
+create policy "memberships_update_admin" on memberships
+  for update using (
+    exists (select 1 from memberships m2
+            where m2.league_id = memberships.league_id
+              and m2.user_id = auth.uid() and m2.is_admin)
+  ) with check (true);
+
+drop policy if exists "memberships_update_self" on memberships;
+create policy "memberships_update_self" on memberships
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ---------- sessions ----------
 drop policy if exists "sessions visible" on sessions;
