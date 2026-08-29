@@ -38,7 +38,9 @@ create table if not exists leagues (
   pts_win     numeric not null default 2,
   pts_loss    numeric not null default 0.5,
   pts_sweep   numeric not null default 1,
-  next_event_bonus smallint not null default 0
+  next_event_bonus smallint not null default 0,
+  -- set when the owner archives: history stays readable, everything else stops
+  archived_at timestamptz
 );
 
 -- ---------- MEMBERSHIPS ----------
@@ -169,6 +171,23 @@ create index if not exists free_battles_user_idx on free_battles(user_id);
 -- ---------- BRINGING AN OLD DATABASE UP TO DATE ----------
 -- Safe to run on a database created from an earlier version of this file.
 alter table leagues     add column if not exists next_event_bonus smallint not null default 0;
+alter table leagues     add column if not exists archived_at timestamptz;
+
+-- Ownership is not just a UI matter: the "admins update leagues" policy lets
+-- any co-organizer write to the row, owner_id included. This guard makes sure
+-- only the current owner can hand the league over.
+create or replace function guard_league_owner()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.owner_id is distinct from old.owner_id and auth.uid() <> old.owner_id then
+    raise exception 'Only the league owner can hand the league over';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists league_owner_guard on leagues;
+create trigger league_owner_guard before update on leagues
+  for each row execute function guard_league_owner();
 alter table memberships add column if not exists dropped_at timestamptz;
 alter table sessions    add column if not exists event_url text;
 alter table sessions    add column if not exists is_tournament boolean not null default false;
