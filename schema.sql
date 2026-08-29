@@ -311,13 +311,14 @@ drop policy if exists "public leagues visible" on leagues;
 create policy "public leagues visible" on leagues
   for select using (is_public or is_league_member(id));
 
--- Only organizers can create leagues, and only as themselves.
+-- Any signed-in user can create a league, and only as themselves.
+-- The old rule also required profiles.role = 'organizer'. That was never a real
+-- boundary (anyone can update their own profile row) and it left new users stuck:
+-- you only become an owner by creating a league in the first place.
 drop policy if exists "organizers create leagues" on leagues;
-create policy "organizers create leagues" on leagues
-  for insert with check (
-    owner_id = auth.uid()
-    and exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'organizer')
-  );
+drop policy if exists "members create leagues" on leagues;
+create policy "members create leagues" on leagues
+  for insert with check (owner_id = auth.uid());
 
 drop policy if exists "admins update leagues" on leagues;
 create policy "admins update leagues" on leagues
