@@ -141,6 +141,9 @@ create table if not exists decks (
   url        text,                        -- optional link to an external list
   cards      jsonb,                       -- { "Card name": copies }
   side       jsonb,
+  -- 'precon' is deliberately absent: the official Seeker Decks are built into
+  -- index.html and never stored here. Copying one into your own decks drops the
+  -- tag, so this constraint stays as it is.
   tag        text check (tag is null or tag in ('competitive','test','fun')),
   is_public  boolean not null default false,
   created_at timestamptz not null default now()
