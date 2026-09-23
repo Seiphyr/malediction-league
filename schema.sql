@@ -198,6 +198,24 @@ alter table matches     add column if not exists winner_terrain text;
 alter table matches     add column if not exists loser_terrain text;
 alter table matches     add column if not exists winner_decklist text;
 alter table matches     add column if not exists loser_decklist text;
+-- Card names are the keys user data is stored under, so correcting a spelling
+-- means moving that data. The official database spells this card Muq'Tovor;
+-- this catalogue carried a stray "g". Re-running this does nothing, because
+-- the old key no longer exists afterwards.
+update collection
+   set card_key = 'Muq''Tovor, Bodybreaker'
+ where card_key = 'Mugq''Tovor, Bodybreaker';
+
+update decks
+   set cards = (cards - 'Mugq''Tovor, Bodybreaker')
+             || jsonb_build_object('Muq''Tovor, Bodybreaker', cards -> 'Mugq''Tovor, Bodybreaker')
+ where jsonb_exists(cards, 'Mugq''Tovor, Bodybreaker');
+
+update decks
+   set side = (side - 'Mugq''Tovor, Bodybreaker')
+            || jsonb_build_object('Muq''Tovor, Bodybreaker', side -> 'Mugq''Tovor, Bodybreaker')
+ where jsonb_exists(side, 'Mugq''Tovor, Bodybreaker');
+
 
 -- ============================================================
 --  HELPER FUNCTIONS
