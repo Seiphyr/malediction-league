@@ -87,8 +87,10 @@ create table if not exists matches (
   terrain        text,          -- legacy single-terrain column, kept for old rows
   winner_terrain text,          -- each side brings its own terrain
   loser_terrain  text,
-  winner_decklist text,         -- optional decklist link or text
+  winner_decklist text,         -- optional decklist link, for a list hosted elsewhere
   loser_decklist  text,
+  winner_deck_id  uuid,         -- a deck kept here; decks is created further down,
+  loser_deck_id   uuid,         -- so the foreign keys are added at the end of the file
   reported_by    uuid references profiles(id) on delete set null,
   confirmed      boolean not null default false,
   created_at     timestamptz not null default now(),
@@ -200,6 +202,22 @@ alter table matches     add column if not exists winner_terrain text;
 alter table matches     add column if not exists loser_terrain text;
 alter table matches     add column if not exists winner_decklist text;
 alter table matches     add column if not exists loser_decklist text;
+-- A pasted link could only ever describe a deck hosted somewhere else, so a
+-- deck built here was impossible to attach to a result. A match now points at
+-- the deck itself; the old text columns stay for rows written before this.
+alter table matches     add column if not exists winner_deck_id uuid;
+alter table matches     add column if not exists loser_deck_id  uuid;
+-- add constraint has no "if not exists", so adding it twice has to be caught.
+do $$ begin
+  alter table matches add constraint matches_winner_deck_fk
+    foreign key (winner_deck_id) references decks(id) on delete set null;
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table matches add constraint matches_loser_deck_fk
+    foreign key (loser_deck_id) references decks(id) on delete set null;
+exception when duplicate_object then null; end $$;
+create index if not exists idx_matches_winner_deck on matches(winner_deck_id);
+create index if not exists idx_matches_loser_deck  on matches(loser_deck_id);
 
 -- A shared deck is a list and nothing else without a few words on how it plays.
 alter table decks       add column if not exists description text;
