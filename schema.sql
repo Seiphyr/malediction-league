@@ -533,6 +533,12 @@ create policy "admins delete tournaments" on tournaments
 -- ============================================================
 --  PUBLIC DIRECTORY VIEW (no auth needed)
 -- ============================================================
+-- The view selects the map pin, so the columns have to exist by the time it is
+-- created. They are added again further down with the rest of the map work;
+-- both are "if not exists", and this file is meant to run top to bottom.
+alter table leagues add column if not exists lat double precision;
+alter table leagues add column if not exists lon double precision;
+
 create or replace view public_leagues
 with (security_invoker = on) as
 select
