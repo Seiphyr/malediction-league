@@ -698,18 +698,39 @@ function mapPickOpen(e,n){
     <label class="field" style="margin-top:12px"><span>What to call this place</span>
       <input id="pick-place" maxlength="60" value="${esc(a?s.city||"":s.place||"")}" placeholder="Firenze, Italy"></label>
     <div id="pick-where" class="hint" style="margin:6px 0 0">${null!=window._pick.lat?`Pin at ${window._pick.lat.toFixed(2)}, ${window._pick.lon.toFixed(2)}`:"No pin yet — tap the map."}</div>
-    <div style="display:flex;gap:8px;margin-top:12px">
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="act" id="pick-save" onclick="mapPickSave()">Save pin</button>
+      <button class="ghost" id="pick-gps" onclick="mapPickGps()">\u25CE Use my location</button>
       <button class="ghost" onclick="mapPickClear()">Remove pin</button>
     </div>
   </div>`;
   mapMount("pick-map",{points:null!=window._pick.lat?[{lon:window._pick.lon,lat:window._pick.lat,cls:"me",label:"Your pin"}]:[],
-    pick:e=>{
-      window._pick.lon=e.lon;window._pick.lat=e.lat;
-      const n=MAP.inst["pick-map"];
-      if(n){n.pts=[{lon:e.lon,lat:e.lat,cls:"me",label:"Your pin"}];mapDraw("pick-map")}
-      const t=$("pick-where");if(t)t.textContent=`Pin at ${e.lat.toFixed(2)}, ${e.lon.toFixed(2)}`;
-    }}).then(()=>{if(null!=window._pick.lat)mapFlyTo("pick-map",window._pick.lon,window._pick.lat,6)});
+    pick:e=>mapPickSet(e.lon,e.lat)}).then(()=>{if(null!=window._pick.lat)mapFlyTo("pick-map",window._pick.lon,window._pick.lat,6)});
+}
+function mapPickSet(e,n){
+  if(!window._pick)return;
+  window._pick.lon=e;window._pick.lat=n;
+  const t=MAP.inst["pick-map"];
+  if(t){t.pts=[{lon:e,lat:n,cls:"me",label:"Your pin"}];mapDraw("pick-map")}
+  const a=$("pick-where");if(a)a.textContent=`Pin at ${n.toFixed(2)}, ${e.toFixed(2)}`;
+}
+/* The browser asks for permission and hands the coordinates straight to this
+   page: nothing is sent anywhere to work out where you are. They are rounded
+   to about a kilometre before the pin is placed, because this pin is public
+   and its job is to say which town you play in, not which building. */
+function mapPickGps(){
+  const e=$("pick-gps");
+  if(!navigator.geolocation)return toast("This browser cannot report a location");
+  const n=()=>{if(e){e.disabled=!1;e.textContent="\u25CE Use my location"}};
+  if(e){e.disabled=!0;e.textContent="Locating\u2026"}
+  navigator.geolocation.getCurrentPosition(e=>{
+    n();
+    const t=Math.round(100*e.coords.latitude)/100,a=Math.round(100*e.coords.longitude)/100;
+    mapPickSet(a,t),mapFlyTo("pick-map",a,t,25),
+    toast("Pin placed near you \u2014 tap the map to move it",!0);
+  },e=>{
+    n(),toast(1===e.code?"Location permission refused \u2014 tap the map instead":"Could not read a location \u2014 tap the map instead");
+  },{enableHighAccuracy:!1,timeout:12e3,maximumAge:6e5});
 }
 async function mapPickSave(){
   const e=window._pick;if(!e)return;
@@ -1430,11 +1451,12 @@ function privacyOpen(){
     <p class="hint" style="margin:0 0 14px">Short version: only what the tracker needs to work, nothing sold, nobody tracked.</p>
     <p class="pv-p"><b>What is stored.</b> Your display name and email address, the leagues you join, the matches you log, and anything you choose to create &mdash; decks, collection, free battles.</p>
     <p class="pv-p"><b>Who can see it.</b> Your display name and your match results are visible to the other players in your league, and on the public page of a league that is set to public. Your decks stay private unless you mark one public. Your collection and your free battles are only ever visible to you.</p>
-    <p class="pv-p"><b>What you choose to publish.</b> A Herald rank, a Discord name, a link to your profile on malediction.gg and a pin on the map are all optional and all start empty. Anything you fill in is readable by anyone, signed in or not &mdash; that is the point of the Herald finder. The pin is one you place yourself: there is no address lookup behind it and nothing reads your device's location. Clear a field and it stops being published.</p>
-    <p class="pv-p"><b>The map itself</b> is drawn from a coastline file served from this site. No tile service is contacted, so opening the map tells nobody where you are looking.</p>
+    <p class="pv-p"><b>What you choose to publish.</b> A Herald rank, a Discord name, a link to your profile on malediction.gg and a pin on the map are all optional and all start empty. Anything you fill in is readable by anyone, signed in or not &mdash; that is the point of the Herald finder. Clear a field and it stops being published.</p>
+    <p class="pv-p"><b>The pin.</b> You place it by tapping the map. There is also a <i>Use my location</i> button: press it and your browser will ask whether to share your position with this page. Nothing happens unless you press it and then agree, and the answer goes nowhere except into the map in front of you. What we keep is the pin after rounding, which is about a kilometre of precision &mdash; enough to say which town you play in, not which building. You can move it afterwards, and <i>Remove pin</i> deletes it outright.</p>
+    <p class="pv-p"><b>The map itself</b> is drawn from a coastline file served from this site, and there is no address lookup anywhere in it. No tile service and no location service is contacted, so opening the map, panning it or searching it tells nobody what you are looking for.</p>
     <p class="pv-p"><b>Where it lives.</b> On Supabase, which hosts the database. Access is restricted per user at the database level, not just in the app.</p>
     <p class="pv-p"><b>If you sign in with Google or Discord</b> the provider tells us your name, email and account id, and nothing else. We never see your password, and Seekers League cannot post or act on your behalf.</p>
-    <p class="pv-p"><b>No analytics, no advertising, no third-party trackers.</b> Nothing about you is sold or shared, and there are no cookies beyond the one that keeps you signed in.</p>
+    <p class="pv-p"><b>No analytics, no advertising, no third-party trackers.</b> Nothing about you is sold or shared, and there are no cookies beyond the one that keeps you signed in. Your address is never looked up and your position is never read on its own: the only way this site learns where you are is if you press <i>Use my location</i> and tell your browser yes.</p>
     <p class="pv-p"><b>Deleting it.</b> Write to the address behind the feedback button and your account and everything attached to it will be removed.</p>
     <p class="pv-p" style="color:var(--bone-dim)">Seekers League is a free, non-commercial community tool. It is run by one person, not a company.</p>
   </div>`;
