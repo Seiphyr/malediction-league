@@ -139,6 +139,7 @@ create table if not exists decks (
   seeker     text,                        -- Seeker name; binds the deck's Legacy
   faction    text,
   url        text,                        -- optional link to an external list
+  description text,                       -- how the deck plays, shown on its page
   cards      jsonb,                       -- { "Card name": copies }
   side       jsonb,
   -- 'precon' is deliberately absent: the official Seeker Decks are built into
@@ -198,6 +199,9 @@ alter table matches     add column if not exists winner_terrain text;
 alter table matches     add column if not exists loser_terrain text;
 alter table matches     add column if not exists winner_decklist text;
 alter table matches     add column if not exists loser_decklist text;
+
+-- A shared deck is a list and nothing else without a few words on how it plays.
+alter table decks       add column if not exists description text;
 -- Card names are the keys user data is stored under, so correcting a spelling
 -- means moving that data. The official database spells this card Muq'Tovor;
 -- this catalogue carried a stray "g". Re-running this does nothing, because
