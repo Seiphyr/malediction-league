@@ -539,14 +539,20 @@ create policy "admins delete tournaments" on tournaments
 alter table leagues add column if not exists lat double precision;
 alter table leagues add column if not exists lon double precision;
 
+-- "create or replace view" may only append columns to an existing view: put a
+-- new one in the middle and Postgres reads it as renaming whatever already sat
+-- in that position. Dropping first sidesteps that, and the pin goes last so a
+-- plain replace would work too. Nothing depends on this view but the app, which
+-- selects * and reads columns by name, so their order does not matter.
+drop view if exists public_leagues;
 create or replace view public_leagues
 with (security_invoker = on) as
 select
   l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
-  l.lat, l.lon,
   (select count(*) from memberships m where m.league_id = l.id) as member_count,
   (select count(*) from sessions s where s.league_id = l.id)    as session_count,
-  (select max(s.date) from sessions s where s.league_id = l.id) as last_session
+  (select max(s.date) from sessions s where s.league_id = l.id) as last_session,
+  l.lat, l.lon
 from leagues l
 where l.is_public;
 
@@ -683,16 +689,16 @@ create policy "announcements delete" on announcements
 --   select id from profiles where display_name = 'GengisGun';
 
 -- The home page reads leagues through public_leagues, so the view has to carry
--- the pin as well or Find a league would never show one. A view cannot gain a
--- column with "create or replace", so it is dropped and rebuilt.
+-- the pin as well or Find a league would never show one. Same definition as
+-- further up, repeated here so this section can be run on its own.
 drop view if exists public_leagues;
 create or replace view public_leagues
 with (security_invoker = on) as
 select
   l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
-  l.lat, l.lon,
   (select count(*) from memberships m where m.league_id = l.id) as member_count,
   (select count(*) from sessions s where s.league_id = l.id)    as session_count,
-  (select max(s.date) from sessions s where s.league_id = l.id) as last_session
+  (select max(s.date) from sessions s where s.league_id = l.id) as last_session,
+  l.lat, l.lon
 from leagues l
 where l.is_public;
