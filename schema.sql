@@ -147,7 +147,8 @@ create table if not exists decks (
   -- tag, so this constraint stays as it is.
   tag        text check (tag is null or tag in ('competitive','test','fun')),
   is_public  boolean not null default false,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()  -- touched on every save
 );
 
 -- ---------- FREE BATTLES ----------
@@ -202,6 +203,9 @@ alter table matches     add column if not exists loser_decklist text;
 
 -- A shared deck is a list and nothing else without a few words on how it plays.
 alter table decks       add column if not exists description text;
+-- So a reader of a shared deck knows whether it is still the list that player
+-- actually brings.
+alter table decks       add column if not exists updated_at timestamptz not null default now();
 -- Card names are the keys user data is stored under, so correcting a spelling
 -- means moving that data. The official database spells this card Muq'Tovor;
 -- this catalogue carried a stray "g". Re-running this does nothing, because
