@@ -537,6 +537,7 @@ create or replace view public_leagues
 with (security_invoker = on) as
 select
   l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
+  l.lat, l.lon,
   (select count(*) from memberships m where m.league_id = l.id) as member_count,
   (select count(*) from sessions s where s.league_id = l.id)    as session_count,
   (select max(s.date) from sessions s where s.league_id = l.id) as last_session
@@ -674,3 +675,18 @@ create policy "announcements delete" on announcements
 -- To be able to post to everyone, add yourself once, by hand:
 --   insert into site_admins (user_id)
 --   select id from profiles where display_name = 'GengisGun';
+
+-- The home page reads leagues through public_leagues, so the view has to carry
+-- the pin as well or Find a league would never show one. A view cannot gain a
+-- column with "create or replace", so it is dropped and rebuilt.
+drop view if exists public_leagues;
+create or replace view public_leagues
+with (security_invoker = on) as
+select
+  l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
+  l.lat, l.lon,
+  (select count(*) from memberships m where m.league_id = l.id) as member_count,
+  (select count(*) from sessions s where s.league_id = l.id)    as session_count,
+  (select max(s.date) from sessions s where s.league_id = l.id) as last_session
+from leagues l
+where l.is_public;
