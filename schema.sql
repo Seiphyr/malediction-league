@@ -574,3 +574,103 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ============================================================
+--  HERALDS, CONTACTS, MAP PINS AND THE NOTICE BOARD
+-- ============================================================
+
+-- ---------- profiles: what a player chooses to publish ----------
+-- Everything in profiles is world-readable (see "profiles readable" below), so
+-- each of these is published the moment it is filled in, and the app says so
+-- where it asks for them. All of them are optional and start empty.
+alter table profiles add column if not exists herald_rank     text;
+alter table profiles add column if not exists discord         text;
+alter table profiles add column if not exists malediction_url text;
+alter table profiles add column if not exists lat             double precision;
+alter table profiles add column if not exists lon             double precision;
+alter table profiles add column if not exists place           text;
+
+-- Only the four official ranks, or none at all.
+alter table profiles drop constraint if exists profiles_herald_rank_check;
+alter table profiles add constraint profiles_herald_rank_check
+  check (herald_rank is null or herald_rank in
+    ('Journeyman Herald','True Herald','Elevated Herald','Grand Herald'));
+
+-- A pin is either absent or a real point on the globe. Half a pin is not a pin.
+alter table profiles drop constraint if exists profiles_latlon_check;
+alter table profiles add constraint profiles_latlon_check
+  check ((lat is null) = (lon is null)
+     and (lat is null or (lat between -90 and 90 and lon between -180 and 180)));
+
+-- ---------- leagues get a pin too, for Find a league ----------
+alter table leagues add column if not exists lat double precision;
+alter table leagues add column if not exists lon double precision;
+alter table leagues drop constraint if exists leagues_latlon_check;
+alter table leagues add constraint leagues_latlon_check
+  check ((lat is null) = (lon is null)
+     and (lat is null or (lat between -90 and 90 and lon between -180 and 180)));
+
+-- ---------- who may speak to everyone ----------
+-- Deliberately its own table rather than a column on profiles: a player may
+-- update every column of their own profile row, so a site_admin flag living
+-- there would let anybody promote themselves. This table has a read policy and
+-- no write policy at all, so it can only be changed from the SQL editor.
+create table if not exists site_admins (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  added_at timestamptz not null default now()
+);
+alter table site_admins enable row level security;
+drop policy if exists "site admins readable" on site_admins;
+create policy "site admins readable" on site_admins for select using (true);
+
+create or replace function is_site_admin()
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from site_admins s where s.user_id = auth.uid());
+$$;
+
+-- ---------- the notice board ----------
+-- league_id null means the message is for everyone and only a site admin may
+-- write it. Otherwise it belongs to one league and its organisers own it.
+create table if not exists announcements (
+  id         uuid primary key default gen_random_uuid(),
+  league_id  uuid references leagues(id) on delete cascade,
+  author_id  uuid references profiles(id) on delete set null,
+  body       text not null check (length(btrim(body)) between 1 and 1000),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz
+);
+create index if not exists idx_announcements_league  on announcements(league_id);
+create index if not exists idx_announcements_created on announcements(created_at desc);
+
+alter table announcements enable row level security;
+
+drop policy if exists "announcements visible" on announcements;
+create policy "announcements visible" on announcements
+  for select using (
+    league_id is null
+    or is_league_member(league_id)
+    or exists (select 1 from leagues l where l.id = league_id and l.is_public)
+  );
+
+drop policy if exists "announcements write" on announcements;
+create policy "announcements write" on announcements
+  for insert with check (
+    author_id = auth.uid()
+    and case when league_id is null then is_site_admin() else is_league_admin(league_id) end
+  );
+
+drop policy if exists "announcements update" on announcements;
+create policy "announcements update" on announcements
+  for update using (
+    case when league_id is null then is_site_admin() else is_league_admin(league_id) end
+  );
+
+drop policy if exists "announcements delete" on announcements;
+create policy "announcements delete" on announcements
+  for delete using (
+    case when league_id is null then is_site_admin() else is_league_admin(league_id) end
+  );
+
+-- To be able to post to everyone, add yourself once, by hand:
+--   insert into site_admins (user_id)
+--   select id from profiles where display_name = 'GengisGun';
