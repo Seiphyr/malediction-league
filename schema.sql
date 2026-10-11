@@ -702,3 +702,78 @@ select
   l.lat, l.lon
 from leagues l
 where l.is_public;
+
+-- ============================================================
+--  TOURNAMENTS: AN ENTRANT SETS THEIR OWN DECK
+-- ============================================================
+-- Only league admins may update a tournament, and that stays true. But an
+-- organizer cannot read a player's private decks, so they could never pick
+-- them on the player's behalf. This function lets the signed-in player change
+-- one thing: their own line in `entrants` (Seeker, terrain, deck). It refuses
+-- once any result has been recorded or the tournament is finalized, so a list
+-- is fixed before play starts.
+create or replace function set_tournament_entry(
+  p_tournament uuid,
+  p_seeker     text,
+  p_terrain    text,
+  p_deck       text,
+  p_deck_id    text
+) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  pl  jsonb;
+  idx int;
+begin
+  if uid is null then
+    raise exception 'Sign in first';
+  end if;
+
+  select payload into pl from tournaments where id = p_tournament for update;
+  if pl is null then
+    raise exception 'Tournament not found';
+  end if;
+  if coalesce(pl->>'v', '') <> '2' then
+    raise exception 'This tournament cannot be changed';
+  end if;
+  if coalesce(pl->>'finalized', 'false') = 'true' then
+    raise exception 'The tournament is finalized';
+  end if;
+  if exists (
+    select 1 from jsonb_array_elements(coalesce(pl->'gm', '[]'::jsonb)) m
+    where coalesce(m->>'w', '') <> ''
+  ) then
+    raise exception 'A result is already in — decks are locked';
+  end if;
+
+  select (o - 1)::int into idx
+  from jsonb_array_elements(coalesce(pl->'entrants', '[]'::jsonb)) with ordinality as x(v, o)
+  where v->>'id' = uid::text
+  limit 1;
+  if idx is null then
+    raise exception 'You are not playing in this tournament';
+  end if;
+
+  -- A deck id is only accepted if it is the caller's own deck.
+  if coalesce(p_deck_id, '') <> '' and not exists (
+    select 1 from decks d where d.id::text = p_deck_id and d.user_id = uid
+  ) then
+    raise exception 'That deck is not yours';
+  end if;
+
+  update tournaments
+  set payload = jsonb_set(
+    pl,
+    array['entrants', idx::text],
+    (pl->'entrants'->idx) || jsonb_build_object(
+      'seeker',  left(coalesce(p_seeker, ''), 80),
+      'terrain', left(coalesce(p_terrain, ''), 80),
+      'deck',    left(coalesce(p_deck, ''), 80),
+      'deckId',  coalesce(p_deck_id, '')
+    )
+  )
+  where id = p_tournament;
+end $$;
+
+revoke all on function set_tournament_entry(uuid, text, text, text, text) from public;
+grant execute on function set_tournament_entry(uuid, text, text, text, text) to authenticated;
