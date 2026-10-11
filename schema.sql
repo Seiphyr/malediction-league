@@ -206,6 +206,34 @@ alter table decks       add column if not exists description text;
 -- So a reader of a shared deck knows whether it is still the list that player
 -- actually brings.
 alter table decks       add column if not exists updated_at timestamptz not null default now();
+-- The database owns updated_at, so no client can get it wrong or leave it out.
+-- Only a change a reader would care about counts: flipping a deck public or
+-- private, for instance, leaves the list exactly as it was.
+create or replace function touch_deck_updated()
+returns trigger language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    new.updated_at = now();
+    return new;
+  end if;
+  if new.cards       is distinct from old.cards
+  or new.side        is distinct from old.side
+  or new.name        is distinct from old.name
+  or new.seeker      is distinct from old.seeker
+  or new.description is distinct from old.description
+  or new.tag         is distinct from old.tag
+  or new.url         is distinct from old.url then
+    new.updated_at = now();
+  else
+    new.updated_at = old.updated_at;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists decks_touch_updated on decks;
+create trigger decks_touch_updated before insert or update on decks
+  for each row execute function touch_deck_updated();
 -- Card names are the keys user data is stored under, so correcting a spelling
 -- means moving that data. The official database spells this card Muq'Tovor;
 -- this catalogue carried a stray "g". Re-running this does nothing, because
