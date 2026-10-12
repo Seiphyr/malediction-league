@@ -33,6 +33,18 @@ a.hl-ln:hover{text-decoration:underline}
 .ms-hero2 .stat b{font-size:30px}
 @media(max-width:620px){.ms-hero2 .stat b{font-size:23px}}
 .pf-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:7px}
+.ct-pill{display:inline-flex;align-items:center;gap:7px;max-width:100%;min-height:34px;padding:5px 13px 5px 9px;border-radius:999px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);font-family:Barlow,sans-serif;font-size:13px;line-height:1.2;color:var(--bone);cursor:pointer;text-decoration:none;white-space:nowrap;transition:.14s}
+.ct-pill small{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
+.ct-pill b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ct-ic{width:17px;height:17px;flex:0 0 auto}
+.ct-dc{border-color:rgba(88,101,242,.6)}
+.ct-dc .ct-ic{color:#8690f7}
+.ct-dc:hover{background:rgba(88,101,242,.16)}
+.ct-ml{border-color:var(--brass-dim)}
+.ct-ml b{color:var(--brass)}
+.ct-ml:hover{background:rgba(200,165,104,.1);border-color:var(--brass)}
+.ct-m{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:var(--crimson);color:#fff;font-family:Oswald,sans-serif;font-size:10px;font-weight:700}
+.pf-contact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pf-ln{font-size:12px;color:var(--brass);white-space:nowrap}
 a.pf-ln:hover{text-decoration:underline}
 .ms-hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:12px;flex:0 0 auto}
@@ -784,8 +796,8 @@ function hlRow(e){
     <div class="hl-side">
       ${heraldChip(e.herald_rank)}
       <div class="hl-links">
-        ${e.discord?`<span class="hl-ln" title="Discord">\u25C8 ${esc(e.discord)}</span>`:""}
-        ${safeUrl(e.malediction_url)?`<a class="hl-ln" href="${esc(safeUrl(e.malediction_url))}" target="_blank" rel="noopener noreferrer">malediction.gg \u2197</a>`:""}
+        ${discordChip(e.discord)}
+        ${malChip(e.malediction_url)}
       </div>
     </div>
     <button class="ghost hl-go" onclick="hlFocus('${esc(e.id)}')">Show</button>
@@ -2318,9 +2330,8 @@ async function renderProfile(){
             ${u.herald_rank?heraldChip(u.herald_rank):""}
             ${null!=u.lat&&u.place?`<span class="pf-tag">◉ ${esc(u.place)}</span>`:""}
             ${streak>=2?`<span class="streak-chip">🔥 ${streak} win streak</span>`:""}
-            ${u.discord?`<span class="pf-ln" title="Discord">◈ ${esc(u.discord)}</span>`:""}
-            ${safeUrl(u.malediction_url)?`<a class="pf-ln" href="${esc(safeUrl(u.malediction_url))}" target="_blank" rel="noopener noreferrer">malediction.gg ↗</a>`:""}
           </div>
+          ${u.discord||safeUrl(u.malediction_url)?`<div class="pf-contact">${discordChip(u.discord)}${malChip(u.malediction_url)}</div>`:""}
         </div>
       </div>
       <div class="ms-hero-right">
@@ -2369,6 +2380,11 @@ async function renderProfile(){
     </div>`).join("")}</div>`;
   el.innerHTML=b;
 }
+/* Contact details shown as proper buttons: the Discord name copies itself on a
+   tap, which is what anyone looking at it wants to do next. */
+const DISCORD_IC='<svg class="ct-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.198.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>';
+function discordChip(n){return n?`<button type="button" class="ct-pill ct-dc" title="Copy Discord name" data-n="${esc(n)}" onclick="event.stopPropagation();copyText(this.dataset.n,()=>toast('Discord name copied',!0))">${DISCORD_IC}<small>Discord</small><b>${esc(n)}</b></button>`:""}
+function malChip(u){const s=safeUrl(u);return s?`<a class="ct-pill ct-ml" href="${esc(s)}" target="_blank" rel="noopener noreferrer" title="Open the profile on malediction.gg" onclick="event.stopPropagation()"><span class="ct-ic ct-m" aria-hidden="true">M</span><small>Malediction</small><b>Profile &#8599;</b></a>`:""}
 function pfLink(e){return location.origin+location.pathname+"#/profile/"+e}
 function pfShare(e){const n=pfLink(e);if(navigator.share)return void navigator.share({url:n}).catch(()=>copyText(n,()=>toast("Link copied",!0)));copyText(n,()=>toast("Link copied",!0))}
 async function fbDel(e){if(!confirm("Delete this free battle? Your stats will update."))return;const{error:n}=await sb.from("free_battles").delete().eq("id",e);if(n)return toast(n.message);toast("Battle deleted",!0),renderProfile()}
