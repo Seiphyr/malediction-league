@@ -90,6 +90,20 @@ a.pf-ln:hover{text-decoration:underline}
 .gpin:hover .gpin-dot,.gpin:focus-visible .gpin-dot{transform:scale(1.35)}
 .gpin-dot{transition:transform .12s}
 .gpin-n{font-family:Oswald,sans-serif;font-size:10px;font-weight:600;color:var(--bone);background:rgba(12,12,12,.85);border:1px solid var(--line-2);border-radius:999px;padding:1px 5px;line-height:1.3}
+.gpin.h1,.gpin.h2,.gpin.h3,.gpin.h4{transform:translate(-50%,-100%);padding:6px 8px 0;display:block;--pc:#c8a568}
+.gpin.h1{--pc:#b59c6c}
+.gpin.h2{--pc:#cfa95f}
+.gpin.h3{--pc:#e6c070}
+.gpin.h4{--pc:#ffe6a6}
+.gpin.h1 .gpin-dot,.gpin.h2 .gpin-dot,.gpin.h3 .gpin-dot,.gpin.h4 .gpin-dot{position:relative;width:20px;height:20px;margin:0 auto 5px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#fff3 0,#0000 55%),var(--pc);border:2px solid #0b0b0b;box-shadow:0 0 0 1.5px var(--pc),0 0 12px 2px rgba(240,200,120,.55),-3px 3px 6px rgba(0,0,0,.7)}
+.gpin.h4 .gpin-dot{width:24px;height:24px;box-shadow:0 0 0 2px var(--pc),0 0 18px 4px rgba(255,225,150,.75),-3px 3px 6px rgba(0,0,0,.7)}
+.gpin.h1 .gpin-dot::after,.gpin.h2 .gpin-dot::after,.gpin.h3 .gpin-dot::after,.gpin.h4 .gpin-dot::after{content:"";position:absolute;left:50%;top:50%;width:38%;height:38%;margin:-19% 0 0 -19%;border-radius:50%;background:#0b0b0b}
+.gpin.h1::after,.gpin.h2::after,.gpin.h3::after,.gpin.h4::after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;margin-left:-6px;border-radius:50%;border:1.5px solid var(--pc);opacity:0;pointer-events:none;animation:gpin-pulse 2.4s ease-out infinite}
+@keyframes gpin-pulse{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+@media(prefers-reduced-motion:reduce){.gpin::after{animation:none!important}}
+.gpin.h1:hover .gpin-dot,.gpin.h2:hover .gpin-dot,.gpin.h3:hover .gpin-dot,.gpin.h4:hover .gpin-dot,.gpin.h1:focus-visible .gpin-dot,.gpin.h2:focus-visible .gpin-dot,.gpin.h3:focus-visible .gpin-dot,.gpin.h4:focus-visible .gpin-dot{transform:rotate(-45deg) scale(1.2)}
+.gpin:hover,.gpin:focus-visible{z-index:5}
+.gpin.h1 .gpin-n,.gpin.h2 .gpin-n,.gpin.h3 .gpin-n,.gpin.h4 .gpin-n{position:absolute;left:calc(50% + 7px);top:0;border-color:var(--pc);color:var(--pc)}
 .gmap-ctrl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
 .gmap-b{width:34px;height:34px;border-radius:9px;background:rgba(18,18,18,.88);border:1px solid var(--line-2);color:var(--bone);font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
 .gmap-b:hover{border-color:var(--brass);color:var(--brass)}
