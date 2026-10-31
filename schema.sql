@@ -1449,3 +1449,69 @@ begin
 end $$;
 revoke all on function confirm_match(uuid, uuid, uuid, text, text, text, text) from public, anon;
 grant execute on function confirm_match(uuid, uuid, uuid, text, text, text, text) to authenticated;
+
+-- ============================================================
+--  RETIRED PLAYERS CANNOT REJOIN BY THEMSELVES
+-- ============================================================
+-- join_league() clears dropped_at, so a player an organizer had retired could
+-- come straight back with the join code (or one tap on a public league).
+-- memberships.dropped_by now records who set dropped_at: the player when they
+-- leave, the organizer when they retire someone. A trigger fills it in, so
+-- nobody can write it directly. join_league() lets a player back in only when
+-- they were the one who left; anyone else is told to ask an organizer, who
+-- can restore them (clearing dropped_at clears dropped_by too).
+-- Rows dropped before this column existed have no dropped_by and are treated
+-- as retired by an organizer, the safe reading.
+alter table memberships add column if not exists dropped_by uuid;
+
+create or replace function stamp_membership_drop()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.dropped_at is null then
+    new.dropped_by := null;
+  elsif old.dropped_at is null then
+    new.dropped_by := auth.uid();
+  else
+    new.dropped_by := old.dropped_by;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists membership_drop_stamp on memberships;
+create trigger membership_drop_stamp before update on memberships
+  for each row execute function stamp_membership_drop();
+
+create or replace function join_league(p_code text default null, p_league uuid default null)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  l   leagues%rowtype;
+  m   memberships%rowtype;
+begin
+  if uid is null then
+    raise exception 'Sign in first';
+  end if;
+  if coalesce(trim(p_code), '') <> '' then
+    select * into l from leagues where upper(join_code) = upper(trim(p_code));
+  elsif p_league is not null then
+    select * into l from leagues where leagues.id = p_league and is_public;
+  end if;
+  if l.id is null then
+    raise exception 'No league with that code';
+  end if;
+  if l.archived_at is not null then
+    raise exception 'This league is archived';
+  end if;
+  select * into m from memberships where league_id = l.id and user_id = uid;
+  if found and m.dropped_at is not null and m.dropped_by is distinct from uid then
+    raise exception 'An organizer retired you from this league. Ask them to restore you.'
+      using errcode = '42501';
+  end if;
+  insert into memberships (league_id, user_id) values (l.id, uid)
+    on conflict (league_id, user_id) do update set dropped_at = null;
+  return jsonb_build_object('id', l.id, 'name', l.name);
+end $$;
+
+revoke all on function join_league(text, uuid) from public, anon;
+grant execute on function join_league(text, uuid) to authenticated;
