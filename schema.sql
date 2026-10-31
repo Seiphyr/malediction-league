@@ -1385,3 +1385,67 @@ begin
     end;
   end if;
 end $$;
+
+-- ============================================================
+--  OPPONENT CONFIRMATION (confirm_match)
+-- ============================================================
+-- A reported match used to wait for an organizer. Now the player on the other
+-- side of the report can confirm it too: the winner or the loser who is not
+-- the one who reported it, while still an active member of the league.
+-- Organizers can confirm any match of their league. Nothing else about a
+-- match changes here, and the update policies on matches stay as they are.
+-- An archived league takes no confirmations. Confirming a match that is
+-- already confirmed does nothing, so "Confirm all" can be repeated safely.
+-- The site falls back to the organizer's direct update until this exists.
+--
+-- The reporter can still edit an unconfirmed report, so the caller passes the
+-- players, Seekers and terrains it showed, and the match is confirmed only
+-- when the row still says exactly that. Otherwise it is refused with
+-- "This match was changed ...", and the site reloads the list.
+--
+-- Safe to run more than once.
+drop function if exists confirm_match(uuid);
+create or replace function confirm_match(
+  p_match uuid,
+  p_winner uuid, p_loser uuid,
+  p_winner_seeker text, p_loser_seeker text,
+  p_winner_terrain text, p_loser_terrain text)
+returns void language plpgsql security definer set search_path = public as $$
+declare m matches%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in to confirm a match' using errcode = '42501';
+  end if;
+  select * into m from matches where id = p_match for update;
+  if not found then
+    raise exception 'Match not found' using errcode = 'P0002';
+  end if;
+  if not (
+    is_league_admin(m.league_id)
+    or (
+      auth.uid() in (m.winner_id, m.loser_id)
+      and m.reported_by is distinct from auth.uid()
+      and is_active_member(m.league_id)
+    )
+  ) then
+    raise exception 'Only your opponent or an organizer can confirm this match' using errcode = '42501';
+  end if;
+  if exists (select 1 from leagues l where l.id = m.league_id and l.archived_at is not null) then
+    raise exception 'This league is archived' using errcode = '42501';
+  end if;
+  if m.confirmed then
+    return;
+  end if;
+  if m.winner_id is distinct from p_winner
+     or m.loser_id is distinct from p_loser
+     or m.winner_seeker is distinct from p_winner_seeker
+     or m.loser_seeker is distinct from p_loser_seeker
+     or m.winner_terrain is distinct from p_winner_terrain
+     or m.loser_terrain is distinct from p_loser_terrain then
+    raise exception 'This match was changed since you opened it. Check it again before confirming.'
+      using errcode = 'P0001', hint = 'sl_match_changed';
+  end if;
+  update matches set confirmed = true where id = p_match;
+end $$;
+revoke all on function confirm_match(uuid, uuid, uuid, text, text, text, text) from public, anon;
+grant execute on function confirm_match(uuid, uuid, uuid, text, text, text, text) to authenticated;
