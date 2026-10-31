@@ -1515,3 +1515,30 @@ end $$;
 
 revoke all on function join_league(text, uuid) from public, anon;
 grant execute on function join_league(text, uuid) to authenticated;
+
+-- ============================================================
+--  SELF CHECK-IN OPENS ON THE DAY OF THE EVENT
+-- ============================================================
+-- A player could check themselves in to an event days ahead, and the
+-- standings counted that attendance at once. Checking yourself in now also
+-- needs the event date to have begun. Leagues have no time zone, so "begun"
+-- means begun anywhere on Earth: the date in UTC+14, the earliest zone
+-- ('Etc/GMT-14' is UTC+14; the sign in Etc/ names is inverted). The app hides
+-- check-in until the event date in the viewer's own time zone, which is never
+-- later than that. Organizers are not affected: the attendance insert policy
+-- lets is_league_admin() check anyone in at any time without this function.
+create or replace function can_check_in(p_session uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1
+    from sessions s
+    join leagues l on l.id = s.league_id
+    join memberships m on m.league_id = s.league_id
+                      and m.user_id = auth.uid()
+                      and m.dropped_at is null
+    where s.id = p_session
+      and s.closed_at is null
+      and l.archived_at is null
+      and s.date <= (now() at time zone 'Etc/GMT-14')::date
+  );
+$$;
