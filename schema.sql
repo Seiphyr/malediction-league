@@ -408,10 +408,10 @@ drop policy if exists "memberships visible" on memberships;
 create policy "memberships visible" on memberships
   for select using (true);
 
--- A player joins themselves (via join code, verified client-side by lookup).
+-- Players join through join_league() (see the end of this file); only organizers insert rows directly.
 drop policy if exists "self join" on memberships;
 create policy "self join" on memberships
-  for insert with check (user_id = auth.uid() or is_league_admin(league_id));
+  for insert with check (is_league_admin(league_id));
 
 drop policy if exists "admins manage memberships" on memberships;
 create policy "admins manage memberships" on memberships
@@ -777,3 +777,223 @@ end $$;
 
 revoke all on function set_tournament_entry(uuid, text, text, text, text) from public;
 grant execute on function set_tournament_entry(uuid, text, text, text, text) to authenticated;
+
+-- ============================================================
+--  JOINING A LEAGUE, AND WHO MAY CHANGE A MEMBERSHIP
+-- ============================================================
+-- Until now a player joined by inserting their own membership row, and the
+-- join code was only checked in the browser. The insert policy asked for
+-- nothing but user_id = auth.uid(), so anyone signed in could add themselves
+-- to any league, private ones included, and with is_admin = true. The update
+-- policy for one's own row had the same gap.
+--
+-- Now:
+--   * joining goes through join_league(), which checks the code (or that the
+--     league is public) inside the database;
+--   * only a league's organizers insert membership rows directly (that is how
+--     createLeague adds the owner);
+--   * a player may change their own row only to leave; organizers keep full
+--     control. A trigger enforces that, since a policy cannot compare old and
+--     new values.
+--
+-- Every existing policy on memberships is dropped first, whatever its name,
+-- so a policy added by hand on the live database cannot keep the old hole open.
+
+do $$
+declare p record;
+begin
+  for p in select policyname from pg_policies where schemaname = 'public' and tablename = 'memberships' loop
+    execute format('drop policy %I on public.memberships', p.policyname);
+  end loop;
+end $$;
+
+create policy "memberships visible" on memberships
+  for select using (true);
+
+create policy "organizers add members" on memberships
+  for insert with check (is_league_admin(league_id));
+
+create policy "members update own or organizers" on memberships
+  for update using (user_id = auth.uid() or is_league_admin(league_id))
+  with check (user_id = auth.uid() or is_league_admin(league_id));
+
+create policy "leave or admin removes" on memberships
+  for delete using (user_id = auth.uid() or is_league_admin(league_id));
+
+-- Not security definer on purpose: current_user is then the caller's role.
+-- Requests from the site run as 'authenticated'; database functions such as
+-- join_league() run as their owner and are trusted to have checked already.
+create or replace function guard_membership_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if new.league_id is distinct from old.league_id or new.user_id is distinct from old.user_id then
+    raise exception 'A membership cannot be moved';
+  end if;
+  if is_league_admin(old.league_id) then
+    return new;
+  end if;
+  if new.is_admin is distinct from old.is_admin or new.joined_at is distinct from old.joined_at then
+    raise exception 'Only an organizer can change that';
+  end if;
+  if old.dropped_at is not null and new.dropped_at is null then
+    raise exception 'Use the join code to come back';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists membership_update_guard on memberships;
+create trigger membership_update_guard before update on memberships
+  for each row execute function guard_membership_update();
+
+-- Join with a code, or straight into a public league by its id.
+-- Coming back after leaving clears dropped_at, as joining always did.
+create or replace function join_league(p_code text default null, p_league uuid default null)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  l   leagues%rowtype;
+begin
+  if uid is null then
+    raise exception 'Sign in first';
+  end if;
+  if coalesce(trim(p_code), '') <> '' then
+    select * into l from leagues where upper(join_code) = upper(trim(p_code));
+  elsif p_league is not null then
+    select * into l from leagues where leagues.id = p_league and is_public;
+  end if;
+  if l.id is null then
+    raise exception 'No league with that code';
+  end if;
+  if l.archived_at is not null then
+    raise exception 'This league is archived';
+  end if;
+  insert into memberships (league_id, user_id) values (l.id, uid)
+    on conflict (league_id, user_id) do update set dropped_at = null;
+  return jsonb_build_object('id', l.id, 'name', l.name);
+end $$;
+
+revoke all on function join_league(text, uuid) from public, anon;
+grant execute on function join_league(text, uuid) to authenticated;
+
+-- ============================================================
+--  FINISHING AN EVENT
+-- ============================================================
+-- "Finish event" used to move the event's date back a day so it would fall
+-- into Past, which put events on the 1st into the previous month's standing.
+-- It now stamps closed_at and leaves the date alone.
+alter table sessions add column if not exists closed_at timestamptz;
+
+-- ============================================================
+--  CLOSING THE SAME KIND OF GAP ELSEWHERE
+-- ============================================================
+-- A review of every policy after the membership fix found more places where a
+-- signed-in user could reach into a league they do not belong to.
+
+create or replace function league_is_public(p_league uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select coalesce((select is_public from leagues where id = p_league), false);
+$$;
+
+-- A member who has not left. Players who left or were moved to Retired keep
+-- reading their league's history, but no longer report results in it.
+create or replace function is_active_member(p_league uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from memberships m
+    where m.league_id = p_league and m.user_id = auth.uid() and m.dropped_at is null
+  );
+$$;
+
+-- Checking yourself in needs an active membership, an open event and a league
+-- that is not archived. Before, anyone signed in could add themselves to any
+-- event of any league and collect attendance points in its standings.
+create or replace function can_check_in(p_session uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1
+    from sessions s
+    join leagues l on l.id = s.league_id
+    join memberships m on m.league_id = s.league_id
+                      and m.user_id = auth.uid()
+                      and m.dropped_at is null
+    where s.id = p_session
+      and s.closed_at is null
+      and l.archived_at is null
+  );
+$$;
+
+-- The owner of a league can always read it. A private league used to be
+-- unreadable to its owner for the moment between creating it and adding their
+-- own membership, so creating one failed.
+drop policy if exists "public leagues visible" on leagues;
+create policy "public leagues visible" on leagues
+  for select using (is_public or owner_id = auth.uid() or is_league_member(id));
+
+-- Who plays in a private league, and who came to its events, is now visible
+-- only to its members (and to each player for their own rows).
+drop policy if exists "memberships visible" on memberships;
+create policy "memberships visible" on memberships
+  for select using (
+    user_id = auth.uid() or is_league_member(league_id) or league_is_public(league_id)
+  );
+
+drop policy if exists "attendance visible" on attendance;
+create policy "attendance visible" on attendance
+  for select using (
+    user_id = auth.uid()
+    or is_league_member(session_league(session_id))
+    or league_is_public(session_league(session_id))
+  );
+
+drop policy if exists "self or admin attendance" on attendance;
+create policy "self or admin attendance" on attendance
+  for insert with check (
+    is_league_admin(session_league(session_id))
+    or (user_id = auth.uid() and can_check_in(session_id))
+  );
+
+-- A reported match must belong to an event of the same league, and a player's
+-- own report cannot arrive already confirmed. Editing an unconfirmed report is
+-- held to the same rules as writing it, so it cannot be moved into another
+-- league or handed to two other players.
+drop policy if exists "own match or admin" on matches;
+create policy "own match or admin" on matches
+  for insert with check (
+    session_league(session_id) = league_id
+    and (
+      is_league_admin(league_id)
+      or (
+        reported_by = auth.uid()
+        and not confirmed
+        and (winner_id = auth.uid() or loser_id = auth.uid())
+        and is_active_member(league_id)
+      )
+    )
+  );
+
+drop policy if exists "edit own unconfirmed or admin" on matches;
+create policy "edit own unconfirmed or admin" on matches
+  for update using (
+    is_league_admin(league_id)
+    or (reported_by = auth.uid() and not confirmed)
+  ) with check (
+    session_league(session_id) = league_id
+    and (
+      is_league_admin(league_id)
+      or (
+        reported_by = auth.uid()
+        and not confirmed
+        and (winner_id = auth.uid() or loser_id = auth.uid())
+        and is_active_member(league_id)
+      )
+    )
+  );
+
+-- Notices are never edited from the site, and the update rule let an
+-- organizer change who a notice appeared to come from. Removing it means a
+-- notice can only be posted or deleted.
+drop policy if exists "announcements update" on announcements;
