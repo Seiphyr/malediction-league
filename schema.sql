@@ -997,3 +997,391 @@ create policy "edit own unconfirmed or admin" on matches
 -- organizer change who a notice appeared to come from. Removing it means a
 -- notice can only be posted or deleted.
 drop policy if exists "announcements update" on announcements;
+
+-- ============================================================
+--  APP ANALYTICS AND FEEDBACK
+-- ============================================================
+-- Two tables the site writes to without anyone having to be signed in.
+--
+-- app_events holds anonymous usage statistics: a page view, a named action or
+-- an error, with a random id that lives only as long as the browser tab
+-- (sessionStorage), whether someone was signed in, and a coarse device type.
+-- There is deliberately no user_id, no IP address and no user agent string.
+-- Paths arrive with every id and code replaced (#/league/:id/standings), and
+-- action events carry no user text. Rows are kept 90 days, feedback 12 months:
+-- purge_old_rows() deletes older ones every night through pg_cron (scheduled
+-- at the end of this section when the project has pg_cron), every insert into
+-- app_events also clears a batch of expired rows, and the admin panel purges
+-- when it is opened. Nothing depends on someone opening the admin panel.
+--
+-- Action names the site records (see the anActs list in index.html):
+--   signup_submit, signup_ok, signin_ok, oauth_start, league_join,
+--   league_create, checkin, checkin_other, match_log, match_confirm,
+--   event_create, notice_post, tournament_generate, tournament_result,
+--   tournament_finalize, deck_save, free_battle_log, notify_on, invite_copy,
+--   feedback_send.
+-- Error names start with "js: ", "promise: " or "toast: ".
+--
+-- feedback holds bug reports and ideas sent from the site. Signed-out
+-- visitors may send one too; a trigger keeps a flood of them out.
+--
+-- Safe to run more than once.
+
+-- ---------- app_events ----------
+create table if not exists app_events (
+  id         bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  sid        text not null check (length(sid) between 1 and 40),
+  kind       text not null check (kind in ('view','action','error')),
+  name       text not null check (length(name) between 1 and 240),
+  path       text check (path is null or length(path) <= 200),
+  signed_in  boolean not null default false,
+  device     text check (device in ('mobile','tablet','desktop')),
+  detail     jsonb check (detail is null or octet_length(detail::text) <= 1000)
+);
+create index if not exists app_events_created_idx on app_events (created_at);
+create index if not exists app_events_kind_created_idx on app_events (kind, created_at);
+
+-- The client cannot backdate or postdate a row.
+create or replace function app_events_stamp()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.created_at := now();
+  return new;
+end $$;
+drop trigger if exists app_events_stamp on app_events;
+create trigger app_events_stamp before insert on app_events
+  for each row execute function app_events_stamp();
+
+alter table app_events enable row level security;
+drop policy if exists "app events insert" on app_events;
+create policy "app events insert" on app_events
+  for insert to anon, authenticated with check (true);
+drop policy if exists "app events admin read" on app_events;
+create policy "app events admin read" on app_events
+  for select using (is_site_admin());
+drop policy if exists "app events admin delete" on app_events;
+create policy "app events admin delete" on app_events
+  for delete using (is_site_admin());
+-- No update policy: an event is never edited.
+
+-- Only what the site needs. Inserts go out with return=minimal, so anon never
+-- needs to read the table back.
+revoke all on app_events from anon, authenticated;
+grant insert on app_events to anon, authenticated;
+grant select, delete on app_events to authenticated;
+
+-- The flood brake. Anyone holding the public key can insert, so the database
+-- caps what it accepts: at most 50 rows in one request (the site sends 50 at
+-- most), at most 1000 rows a minute and 30000 a day from everyone together.
+-- Past that, inserts are refused until the window moves on; the site treats
+-- the refusal like a missing table and stops sending for that tab. With rows
+-- of at most about 2 KB that keeps a flood under roughly 60 MB a day.
+-- Rows stay forgeable (an anonymous counter cannot tell a script from a
+-- visitor), so the numbers are a guide, not evidence.
+-- The same trigger clears a batch of expired rows, so the 90-day and
+-- 12-month limits hold even where pg_cron is not available.
+create or replace function app_events_brake()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from new_rows) > 50 then
+    raise exception 'Too many events in one request.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if (select count(*) from app_events where created_at > now() - interval '1 minute') > 1000
+     or (select count(*) from app_events where created_at > now() - interval '1 day') > 30000 then
+    raise exception 'Too many events right now.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  delete from app_events where id in (
+    select id from app_events where created_at < now() - interval '90 days'
+    order by created_at limit 2000 for update skip locked);
+  delete from feedback where id in (
+    select id from feedback where created_at < now() - interval '12 months'
+    order by created_at limit 200 for update skip locked);
+  return null;
+end $$;
+drop trigger if exists app_events_brake on app_events;
+create trigger app_events_brake after insert on app_events
+  referencing new table as new_rows
+  for each statement execute function app_events_brake();
+
+-- ---------- feedback ----------
+create table if not exists feedback (
+  id         uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  user_id    uuid default auth.uid() references auth.users on delete cascade,
+  kind       text not null check (kind in ('bug','idea','other')),
+  body       text not null check (length(body) between 3 and 4000),
+  contact    text check (contact is null or length(contact) <= 200),
+  page       text check (page is null or length(page) <= 200),
+  context    jsonb check (context is null or octet_length(context::text) <= 4000),
+  status     text not null default 'new' check (status in ('new','seen','done')),
+  admin_note text check (admin_note is null or length(admin_note) <= 2000),
+  updated_at timestamptz
+);
+create index if not exists feedback_created_idx on feedback (created_at);
+create index if not exists feedback_user_created_idx on feedback (user_id, created_at);
+-- Deleting an account deletes its reports, contact field included, as the
+-- privacy page promises. Re-added so an older copy of this table is fixed too.
+alter table feedback drop constraint if exists feedback_user_id_fkey;
+alter table feedback add constraint feedback_user_id_fkey
+  foreign key (user_id) references auth.users on delete cascade;
+
+alter table feedback enable row level security;
+-- A signed-in sender is recorded as themselves, a signed-out one as nobody,
+-- and nothing can arrive already triaged.
+drop policy if exists "feedback insert" on feedback;
+create policy "feedback insert" on feedback
+  for insert to anon, authenticated with check (
+    ((user_id is null and auth.uid() is null) or user_id = auth.uid())
+    and status = 'new'
+    and admin_note is null
+    and updated_at is null
+  );
+drop policy if exists "feedback read" on feedback;
+create policy "feedback read" on feedback
+  for select using (is_site_admin() or (user_id is not null and user_id = auth.uid()));
+drop policy if exists "feedback admin update" on feedback;
+create policy "feedback admin update" on feedback
+  for update using (is_site_admin()) with check (is_site_admin());
+drop policy if exists "feedback admin delete" on feedback;
+create policy "feedback admin delete" on feedback
+  for delete using (is_site_admin());
+
+revoke all on feedback from anon, authenticated;
+grant insert on feedback to anon;
+grant select, insert, update, delete on feedback to authenticated;
+
+-- The abuse brake. Security definer, because the count has to see every row,
+-- not only the ones the sender may read. More than 20 in ten minutes from one
+-- account, or more than 50 in ten minutes from signed-out visitors together,
+-- is refused, and so is a text identical to one that arrived in the last hour
+-- (from anyone). The time stamp is the database's, never the sender's.
+-- The database sees no IP address, so signed-out senders share one bucket: a
+-- flood of anonymous junk can fill it for everyone. While it is full the form
+-- tells signed-out visitors to sign in (an account has its own bucket) or to
+-- use the Email instead link, which is the expected way round it.
+create or replace function feedback_brake()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  new.created_at := now();
+  if exists (select 1 from feedback f
+             where f.created_at > now() - interval '1 hour'
+               and f.body = new.body) then
+    raise exception 'This message already arrived.'
+      using errcode = 'P0001', hint = 'duplicate';
+  end if;
+  if new.user_id is not null then
+    if (select count(*) from feedback f
+        where f.user_id = new.user_id
+          and f.created_at > now() - interval '10 minutes') >= 20 then
+      raise exception 'Too many messages in a short time. Try again in a few minutes.'
+        using errcode = 'P0001', hint = 'rate_limited';
+    end if;
+  elsif (select count(*) from feedback f
+         where f.user_id is null
+           and f.created_at > now() - interval '10 minutes') >= 50 then
+    raise exception 'Too many messages in a short time. Try again in a few minutes.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  return new;
+end $$;
+drop trigger if exists feedback_brake on feedback;
+create trigger feedback_brake before insert on feedback
+  for each row execute function feedback_brake();
+
+-- An admin's edit carries its own time stamp.
+create or replace function feedback_touch()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.updated_at := now();
+  new.created_at := old.created_at;
+  return new;
+end $$;
+drop trigger if exists feedback_touch on feedback;
+create trigger feedback_touch before update on feedback
+  for each row execute function feedback_touch();
+
+-- ---------- admin_stats(): what the admin panel shows ----------
+-- Days are UTC days. Every list is capped, so the answer stays small.
+-- The funnel counts tab sessions: viewed #/auth, then signup_submit, then
+-- signup_ok, then league_join, each step within the same session. Someone who
+-- confirms their email opens a new tab (a new session), so a join after
+-- confirming shows up under league_join_any rather than in the last step.
+create or replace function admin_stats(p_days int default 30)
+returns jsonb language plpgsql security definer stable set search_path = public as $$
+declare
+  d     int := greatest(1, least(coalesce(p_days, 30), 90));
+  since timestamptz := now() - make_interval(days => greatest(1, least(coalesce(p_days, 30), 90)));
+  r     jsonb;
+begin
+  if not is_site_admin() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+
+  with ev as (
+    select * from app_events where created_at >= since
+  )
+  select jsonb_build_object(
+    'days', d,
+    'since', since,
+    'generated_at', now(),
+    'totals', (
+      select jsonb_build_object(
+        'events', count(*),
+        'views', count(*) filter (where kind = 'view'),
+        'actions', count(*) filter (where kind = 'action'),
+        'errors', count(*) filter (where kind = 'error'),
+        'sessions', count(distinct sid),
+        'signed_in_sessions', count(distinct sid) filter (where signed_in)
+      ) from ev
+    ),
+    'per_day', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+          'day', g.day::date,
+          'views', coalesce(x.views, 0),
+          'sessions', coalesce(x.sessions, 0),
+          'signed_in_sessions', coalesce(x.signed_in_sessions, 0)
+        ) order by g.day), '[]'::jsonb)
+      from generate_series(((now() at time zone 'utc')::date - (d - 1))::timestamp,
+                           ((now() at time zone 'utc')::date)::timestamp,
+                           interval '1 day') as g(day)
+      left join (
+        select (created_at at time zone 'utc')::date as day,
+               count(*) filter (where kind = 'view') as views,
+               count(distinct sid) as sessions,
+               count(distinct sid) filter (where signed_in) as signed_in_sessions
+        from ev group by 1
+      ) x on x.day = g.day::date
+    ),
+    'top_paths', (
+      select coalesce(jsonb_agg(jsonb_build_object('path', t.path, 'views', t.views, 'sessions', t.sessions)
+                                order by t.views desc, t.path), '[]'::jsonb)
+      from (
+        select coalesce(path, '') as path, count(*) as views, count(distinct sid) as sessions
+        from ev where kind = 'view'
+        group by 1 order by 2 desc, 1 limit 25
+      ) t
+    ),
+    'devices', (
+      select coalesce(jsonb_agg(jsonb_build_object('device', t.device, 'sessions', t.sessions, 'events', t.events)
+                                order by t.sessions desc), '[]'::jsonb)
+      from (
+        select coalesce(device, 'unknown') as device, count(distinct sid) as sessions, count(*) as events
+        from ev group by 1
+      ) t
+    ),
+    'top_actions', (
+      select coalesce(jsonb_agg(jsonb_build_object('name', t.name, 'count', t.n, 'sessions', t.sessions)
+                                order by t.n desc, t.name), '[]'::jsonb)
+      from (
+        select name, count(*) as n, count(distinct sid) as sessions
+        from ev where kind = 'action'
+        group by name order by 2 desc, 1 limit 40
+      ) t
+    ),
+    'errors', (
+      select coalesce(jsonb_agg(jsonb_build_object(
+          'name', t.name, 'count', t.n, 'hits', t.hits, 'sessions', t.sessions,
+          'first_seen', t.first_seen, 'last_seen', t.last_seen,
+          'sample_path', t.sample_path, 'sample_detail', t.sample_detail
+        ) order by t.sessions desc, t.last_seen desc), '[]'::jsonb)
+      from (
+        select name,
+               count(*) as n,
+               sum(case when jsonb_typeof(detail -> 'n') = 'number'
+                        then least((detail ->> 'n')::numeric, 100000) else 1 end) as hits,
+               count(distinct sid) as sessions,
+               min(created_at) as first_seen,
+               max(created_at) as last_seen,
+               (array_agg(path order by created_at desc))[1] as sample_path,
+               (array_agg(detail order by created_at desc))[1] as sample_detail
+        from ev where kind = 'error'
+        group by name
+        order by count(distinct sid) desc, max(created_at) desc
+        limit 50
+      ) t
+    ),
+    'funnel', (
+      select jsonb_build_object(
+        'auth_view', count(*) filter (where a),
+        'signup_submit', count(*) filter (where a and s),
+        'signup_ok', count(*) filter (where a and s and o),
+        'league_join', count(*) filter (where a and s and o and j),
+        'signup_ok_any', count(*) filter (where o),
+        'league_join_any', count(*) filter (where j)
+      )
+      from (
+        select sid,
+               bool_or(kind = 'view' and path like '#/auth%') as a,
+               bool_or(kind = 'action' and name = 'signup_submit') as s,
+               bool_or(kind = 'action' and name = 'signup_ok') as o,
+               bool_or(kind = 'action' and name = 'league_join') as j
+        from ev group by sid
+      ) f
+    ),
+    'feedback', (
+      select jsonb_build_object(
+        'total', count(*),
+        'new', count(*) filter (where status = 'new'),
+        'seen', count(*) filter (where status = 'seen'),
+        'done', count(*) filter (where status = 'done'),
+        'in_period', count(*) filter (where created_at >= since)
+      ) from feedback
+    )
+  ) into r;
+
+  return r;
+end $$;
+revoke all on function admin_stats(int) from public, anon;
+grant execute on function admin_stats(int) to authenticated;
+
+-- ---------- purge_old_rows(): the 90-day and 12-month limits ----------
+-- Statistics older than 90 days and feedback older than 12 months go. Nobody
+-- can call this over the API; pg_cron runs it every night (below), the
+-- app_events trigger clears expired rows in batches, and purge_app_events()
+-- lets the admin panel run it on demand.
+create or replace function purge_old_rows()
+returns integer language plpgsql security definer set search_path = public as $$
+declare n integer; m integer;
+begin
+  delete from app_events where created_at < now() - interval '90 days';
+  get diagnostics n = row_count;
+  delete from feedback where created_at < now() - interval '12 months';
+  get diagnostics m = row_count;
+  return n + m;
+end $$;
+revoke all on function purge_old_rows() from public, anon, authenticated;
+
+-- The admin panel calls this each time it is opened.
+create or replace function purge_app_events()
+returns integer language plpgsql security definer set search_path = public as $$
+begin
+  if not is_site_admin() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  return purge_old_rows();
+end $$;
+revoke all on function purge_app_events() from public, anon;
+grant execute on function purge_app_events() to authenticated;
+
+-- Every night at 03:17 UTC through pg_cron. If the extension cannot be turned
+-- on here (Dashboard > Database > Extensions), the rest of this section still
+-- runs and the trigger above keeps the limits. Re-running replaces the job.
+do $$
+begin
+  begin
+    create extension if not exists pg_cron with schema pg_catalog;
+  exception when others then
+    raise notice 'pg_cron is not available (%); expired rows are cleared by the app_events trigger only.', sqlerrm;
+  end;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    begin
+      perform cron.unschedule(j.jobid) from cron.job j where j.jobname = 'sl-purge-old-rows';
+      perform cron.schedule('sl-purge-old-rows', '17 3 * * *', 'select public.purge_old_rows()');
+    exception when others then
+      raise notice 'Could not schedule sl-purge-old-rows (%).', sqlerrm;
+    end;
+  end if;
+end $$;
