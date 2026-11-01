@@ -14,6 +14,8 @@
 
 -- ---------- PROFILES ----------
 -- One row per auth user. Role chosen at signup.
+-- The foreign key to auth.users is dropped again in SECURITY HARDENING
+-- (2026-11-06): a deleted login leaves its profile behind as a tombstone.
 create table if not exists profiles (
   id          uuid primary key references auth.users on delete cascade,
   display_name text not null,
@@ -275,6 +277,7 @@ update decks
 --  HELPER FUNCTIONS
 --  SECURITY DEFINER + fixed search_path avoids RLS recursion.
 -- ============================================================
+-- Replaced in SECURITY HARDENING (2026-11-06): a dropped co-organizer no longer counts.
 create or replace function is_league_admin(p_league uuid)
 returns boolean language sql security definer stable set search_path = public as $$
   select exists (
@@ -684,9 +687,10 @@ create policy "announcements delete" on announcements
     case when league_id is null then is_site_admin() else is_league_admin(league_id) end
   );
 
--- To be able to post to everyone, add yourself once, by hand:
---   insert into site_admins (user_id)
---   select id from profiles where display_name = 'GengisGun';
+-- To be able to post to everyone, add yourself once, by hand, by account id
+-- (a display name is not unique: anyone can call themselves the same):
+--   insert into site_admins (user_id) values ('<your-user-uuid>');
+-- Your id is under Dashboard > Authentication > Users.
 
 -- The home page reads leagues through public_leagues, so the view has to carry
 -- the pin as well or Find a league would never show one. Same definition as
@@ -1781,3 +1785,1104 @@ end $$;
 
 revoke all on function sync_tournament(uuid) from public, anon;
 grant execute on function sync_tournament(uuid) to authenticated;
+
+-- ============================================================
+--  SECURITY HARDENING (2026-11-06)
+-- ============================================================
+-- Same SQL as migration-2026-11-06.sql (whose header lists every change and
+-- ends with read-only checks). It replaces several definitions made further
+-- up: is_league_admin, guard_league_owner, stamp_membership_drop,
+-- guard_membership_update, join_league, sync_tournament, app_events_stamp,
+-- app_events_brake, feedback_brake, handle_new_user, and the policies on
+-- memberships, attendance, matches, tournaments (insert/update) and
+-- announcements (delete). The migration wraps it in begin/commit.
+
+
+begin;
+
+-- ============================================================
+--  0. NEW COLUMNS AND SMALL HELPERS
+-- ============================================================
+alter table profiles add column if not exists deleted_at timestamptz;
+
+-- The league owner (and nobody else) — used by the membership insert policy.
+create or replace function is_league_owner(p_league uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (select 1 from leagues l where l.id = p_league and l.owner_id = auth.uid());
+$$;
+
+-- Owner, or a co-organizer who has not been dropped. A retired co-organizer
+-- keeps reading the league like any retired player and nothing more.
+create or replace function is_league_admin(p_league uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from leagues l where l.id = p_league and l.owner_id = auth.uid()
+  ) or exists (
+    select 1 from memberships m
+    where m.league_id = p_league and m.user_id = auth.uid()
+      and m.is_admin and m.dropped_at is null
+  );
+$$;
+
+-- Is p_user an active (not dropped) member of p_league, with an account that
+-- was not deleted? Answers only about leagues whose member list the caller
+-- may read anyway.
+create or replace function league_player_active(p_league uuid, p_user uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from memberships m join profiles p on p.id = m.user_id
+    where m.league_id = p_league and m.user_id = p_user and m.dropped_at is null
+      and p.deleted_at is null
+  ) and (league_is_public(p_league) or is_league_member(p_league) or is_league_owner(p_league));
+$$;
+
+-- An event that still takes results from players: not finished, league not archived.
+create or replace function session_is_open(p_session uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from sessions s join leagues l on l.id = s.league_id
+    where s.id = p_session and s.closed_at is null and l.archived_at is null
+  );
+$$;
+
+-- A fresh join code in the app's own alphabet (no 0/O/1/I), from the strong
+-- random source behind gen_random_uuid(). 256 is a multiple of 32, so no bias.
+create or replace function gen_join_code()
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare
+  a constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  b bytea;
+  c text;
+  n int := 0;
+begin
+  loop
+    b := uuid_send(gen_random_uuid());
+    c := '';
+    for i in 0..5 loop
+      c := c || substr(a, (get_byte(b, i) % 32) + 1, 1);
+    end loop;
+    exit when not exists (select 1 from leagues where upper(join_code) = c);
+    n := n + 1;
+    if n > 50 then
+      raise exception 'Could not find a free join code';
+    end if;
+  end loop;
+  return c;
+end $$;
+
+-- The quota checks. Each raises when the caller is over the limit.
+create or replace function check_league_quota()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    return;
+  end if;
+  if (select count(*) from leagues
+      where owner_id = auth.uid() and created_at > now() - interval '1 day') >= 5 then
+    raise exception 'You created 5 leagues in the last 24 hours. Try again tomorrow.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if (select count(*) from leagues
+      where owner_id = auth.uid() and archived_at is null) >= 20 then
+    raise exception 'You already run 20 open leagues. Archive one before creating another.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+end $$;
+
+create or replace function check_match_quota()
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    return;
+  end if;
+  if (select count(*) from matches
+      where reported_by = auth.uid() and created_at > now() - interval '1 day') >= 200 then
+    raise exception 'You logged 200 matches in the last 24 hours. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+end $$;
+
+create or replace function check_notice_quota(p_league uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_league is null then
+    return;
+  end if;
+  if (select count(*) from announcements
+      where league_id = p_league and created_at > now() - interval '1 day') >= 10 then
+    raise exception 'This league posted 10 notices in the last 24 hours. Try again tomorrow.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+end $$;
+
+revoke all on function is_league_owner(uuid)              from public, anon;
+revoke all on function league_player_active(uuid, uuid)   from public, anon;
+revoke all on function session_is_open(uuid)              from public, anon;
+revoke all on function gen_join_code()                    from public, anon;
+revoke all on function check_league_quota()               from public, anon;
+revoke all on function check_match_quota()                from public, anon;
+revoke all on function check_notice_quota(uuid)           from public, anon;
+grant execute on function is_league_owner(uuid)            to authenticated;
+grant execute on function league_player_active(uuid, uuid) to authenticated;
+grant execute on function session_is_open(uuid)            to authenticated;
+grant execute on function gen_join_code()                  to authenticated;
+grant execute on function check_league_quota()             to authenticated;
+grant execute on function check_match_quota()              to authenticated;
+grant execute on function check_notice_quota(uuid)         to authenticated;
+
+create index if not exists idx_matches_reporter_created on matches(reported_by, created_at);
+create index if not exists idx_leagues_owner on leagues(owner_id);
+create index if not exists idx_announcements_league_created on announcements(league_id, created_at);
+
+-- ============================================================
+--  1. JOIN CODES
+-- ============================================================
+-- Codes the app makes are 6 characters from A-Z/2-9. The check is a little
+-- wider (A-Z, 0-9, 4 to 12) so older codes keep working. A lower-case code is
+-- upper-cased (join_league compares upper-cased anyway); anything else that
+-- does not fit gets a fresh code. On the live data this changes nothing.
+update leagues set join_code = upper(join_code)
+ where join_code ~ '^[A-Za-z0-9]{4,12}$' and join_code <> upper(join_code)
+   and not exists (select 1 from leagues l2 where l2.join_code = upper(leagues.join_code));
+update leagues set join_code = gen_join_code()
+ where join_code is null or join_code !~ '^[A-Z0-9]{4,12}$';
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'leagues_join_code_format' and conrelid = 'public.leagues'::regclass) then
+    alter table leagues add constraint leagues_join_code_format
+      check (join_code ~ '^[A-Z0-9]{4,12}$') not valid;
+  end if;
+end $$;
+alter table leagues validate constraint leagues_join_code_format;
+
+-- Updates to a league from the site:
+--   * going from public to private rotates the join code (it was readable by
+--     anyone while the league was public);
+--   * a site admin who is not an organizer of the league may only archive or
+--     reopen it.
+-- Not security definer on purpose: current_user is then the caller's role.
+create or replace function guard_league_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if not is_league_admin(old.id) then
+    if (to_jsonb(new) - 'archived_at') is distinct from (to_jsonb(old) - 'archived_at') then
+      raise exception 'A site admin can only archive or reopen a league' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if old.is_public and not new.is_public and new.join_code is not distinct from old.join_code then
+    new.join_code := gen_join_code();
+  end if;
+  return new;
+end $$;
+drop trigger if exists league_update_guard on leagues;
+create trigger league_update_guard before update on leagues
+  for each row execute function guard_league_update();
+
+-- Handing a league over: still only the owner, and now only to an active
+-- player of that league (the app already offers nobody else).
+create or replace function guard_league_owner()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.owner_id is distinct from old.owner_id then
+    if auth.uid() <> old.owner_id then
+      raise exception 'Only the league owner can hand the league over';
+    end if;
+    if auth.uid() is not null and not exists (
+      select 1 from memberships m
+      where m.league_id = new.id and m.user_id = new.owner_id and m.dropped_at is null
+    ) then
+      raise exception 'The new owner must be an active player of this league';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists league_owner_guard on leagues;
+create trigger league_owner_guard before update on leagues
+  for each row execute function guard_league_owner();
+
+-- A new league from the site: database time stamp and the creation quota.
+create or replace function guard_league_insert()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  new.created_at := now();
+  new.archived_at := null;  -- a league starts open, so it counts towards the 20
+  perform check_league_quota();
+  return new;
+end $$;
+drop trigger if exists league_insert_guard on leagues;
+create trigger league_insert_guard before insert on leagues
+  for each row execute function guard_league_insert();
+
+-- ============================================================
+--  2, 3, 7. MEMBERSHIPS
+-- ============================================================
+-- Every policy on memberships is dropped and the full set recreated, so a
+-- policy added by hand cannot keep a hole open.
+do $$
+declare p record;
+begin
+  for p in select policyname from pg_policies where schemaname = 'public' and tablename = 'memberships' loop
+    execute format('drop policy %I on public.memberships', p.policyname);
+  end loop;
+end $$;
+
+create policy "memberships visible" on memberships
+  for select using (
+    user_id = auth.uid() or is_league_member(league_id) or league_is_public(league_id)
+  );
+
+-- The only direct insert left: the owner's own row, right after creating the
+-- league. Everyone else joins through join_league().
+create policy "owner adds own row" on memberships
+  for insert with check (user_id = auth.uid() and is_league_owner(league_id));
+
+create policy "members update own or organizers" on memberships
+  for update using (user_id = auth.uid() or is_league_admin(league_id))
+  with check (user_id = auth.uid() or is_league_admin(league_id));
+
+-- Only an organizer removes a row. A player leaves by setting dropped_at (the
+-- app never deletes): a deleted row would let a retired player come back as
+-- a new member, or wipe their tournament games at the next sync.
+create policy "admin removes" on memberships
+  for delete using (is_league_admin(league_id));
+
+-- Who dropped a row, and a dropped row is never an organizer. Runs before
+-- membership_update_guard (triggers fire in name order).
+create or replace function stamp_membership_drop()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.dropped_at is null then
+    new.dropped_by := null;
+  elsif old.dropped_at is null then
+    new.dropped_by := auth.uid();
+    new.is_admin := false;
+  else
+    new.dropped_by := old.dropped_by;
+    new.is_admin := false;
+  end if;
+  return new;
+end $$;
+drop trigger if exists membership_drop_stamp on memberships;
+create trigger membership_drop_stamp before update on memberships
+  for each row execute function stamp_membership_drop();
+
+-- Not security definer on purpose: current_user is then the caller's role.
+-- A retired co-organizer is not is_league_admin() any more, so they take the
+-- player path below and cannot clear their own dropped_at (the owner can).
+-- Organizers can restore a player they retired ("Restore" in the app), but
+-- not one who left by themselves: that is the player's decision, and the
+-- player can rejoin with the code. Nobody brings back a deleted account.
+create or replace function guard_membership_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if new.league_id is distinct from old.league_id or new.user_id is distinct from old.user_id then
+    raise exception 'A membership cannot be moved';
+  end if;
+  if old.dropped_at is not null and new.dropped_at is null
+     and exists (select 1 from profiles p where p.id = old.user_id and p.deleted_at is not null) then
+    raise exception 'This account was deleted' using errcode = '42501';
+  end if;
+  if is_league_admin(old.league_id) then
+    if old.dropped_at is not null and new.dropped_at is null
+       and old.user_id is distinct from auth.uid()
+       and old.dropped_by is not distinct from old.user_id then
+      raise exception 'This player left the league themselves. They can rejoin with the join code.'
+        using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if new.is_admin is distinct from old.is_admin or new.joined_at is distinct from old.joined_at then
+    raise exception 'Only an organizer can change that';
+  end if;
+  if old.dropped_at is not null and new.dropped_at is null then
+    raise exception 'Use the join code to come back';
+  end if;
+  return new;
+end $$;
+drop trigger if exists membership_update_guard on memberships;
+create trigger membership_update_guard before update on memberships
+  for each row execute function guard_membership_update();
+
+-- One-time cleanup: a dropped row is never an organizer.
+update memberships set is_admin = false where dropped_at is not null and is_admin;
+
+-- join_league(): unchanged, except that a deleted account cannot join.
+create or replace function join_league(p_code text default null, p_league uuid default null)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  l   leagues%rowtype;
+  m   memberships%rowtype;
+begin
+  if uid is null then
+    raise exception 'Sign in first';
+  end if;
+  if exists (select 1 from profiles p where p.id = uid and p.deleted_at is not null) then
+    raise exception 'This account was deleted' using errcode = '42501';
+  end if;
+  if coalesce(trim(p_code), '') <> '' then
+    select * into l from leagues where upper(join_code) = upper(trim(p_code));
+  elsif p_league is not null then
+    select * into l from leagues where leagues.id = p_league and is_public;
+  end if;
+  if l.id is null then
+    raise exception 'No league with that code';
+  end if;
+  if l.archived_at is not null then
+    raise exception 'This league is archived';
+  end if;
+  select * into m from memberships where league_id = l.id and user_id = uid;
+  if found and m.dropped_at is not null and m.dropped_by is distinct from uid then
+    raise exception 'An organizer retired you from this league. Ask them to restore you.'
+      using errcode = '42501';
+  end if;
+  insert into memberships (league_id, user_id) values (l.id, uid)
+    on conflict (league_id, user_id) do update set dropped_at = null;
+  return jsonb_build_object('id', l.id, 'name', l.name);
+end $$;
+revoke all on function join_league(text, uuid) from public, anon;
+grant execute on function join_league(text, uuid) to authenticated;
+
+-- ============================================================
+--  2. ATTENDANCE
+-- ============================================================
+do $$
+declare p record;
+begin
+  for p in select policyname from pg_policies where schemaname = 'public' and tablename = 'attendance' loop
+    execute format('drop policy %I on public.attendance', p.policyname);
+  end loop;
+end $$;
+
+create policy "attendance visible" on attendance
+  for select using (
+    user_id = auth.uid()
+    or is_league_member(session_league(session_id))
+    or league_is_public(session_league(session_id))
+  );
+
+-- An organizer checks in active players of their league; a player checks
+-- themselves in through can_check_in().
+create policy "self or admin attendance" on attendance
+  for insert with check (
+    (is_league_admin(session_league(session_id))
+       and league_player_active(session_league(session_id), user_id))
+    or (user_id = auth.uid() and can_check_in(session_id))
+  );
+
+create policy "self or admin remove attendance" on attendance
+  for delete using (
+    user_id = auth.uid() or is_league_admin(session_league(session_id))
+  );
+
+-- ============================================================
+--  2, 6, 8. MATCHES
+-- ============================================================
+do $$
+declare p record;
+begin
+  for p in select policyname from pg_policies where schemaname = 'public' and tablename = 'matches' loop
+    execute format('drop policy %I on public.matches', p.policyname);
+  end loop;
+end $$;
+
+create policy "matches visible" on matches
+  for select using (
+    is_league_member(league_id)
+    or exists (select 1 from leagues l where l.id = league_id and l.is_public)
+  );
+
+-- So the site admin can find (and delete) a match in a private league too.
+create policy "site admin reads matches" on matches
+  for select using (is_site_admin());
+
+-- Both players are active members of the league, whoever writes the match.
+-- An organizer may write any such match; a player only their own unconfirmed
+-- report, in an open event of a league that is not archived.
+create policy "own match or admin" on matches
+  for insert with check (
+    session_league(session_id) = league_id
+    and league_player_active(league_id, winner_id)
+    and league_player_active(league_id, loser_id)
+    and (
+      is_league_admin(league_id)
+      or (
+        reported_by = auth.uid()
+        and not confirmed
+        and (winner_id = auth.uid() or loser_id = auth.uid())
+        and is_active_member(league_id)
+        and session_is_open(session_id)
+      )
+    )
+  );
+
+-- Changing the players of an existing match is checked by match_write_guard
+-- (a policy cannot tell a changed player from an unchanged one).
+create policy "edit own unconfirmed or admin" on matches
+  for update using (
+    is_league_admin(league_id)
+    or (reported_by = auth.uid() and not confirmed)
+  ) with check (
+    session_league(session_id) = league_id
+    and (
+      is_league_admin(league_id)
+      or (
+        reported_by = auth.uid()
+        and not confirmed
+        and (winner_id = auth.uid() or loser_id = auth.uid())
+        and is_active_member(league_id)
+        and session_is_open(session_id)
+      )
+    )
+  );
+
+-- The reporter withdraws, or the named opponent rejects, an unconfirmed
+-- report. Organizers and the site admin can delete any match.
+create policy "delete own unconfirmed or admin" on matches
+  for delete using (
+    is_league_admin(league_id)
+    or is_site_admin()
+    or (not confirmed and tournament_id is null
+        and auth.uid() in (reported_by, winner_id, loser_id))
+  );
+
+-- Requests from the site: database time stamp, the per-reporter quota, both
+-- players active members when a match is written or its players change, and
+-- an open event for anyone who is not an organizer. Gives readable messages
+-- before the policies above refuse. sync_tournament() and confirm_match()
+-- run as their owner and pass.
+-- Not security definer on purpose: current_user is then the caller's role.
+create or replace function guard_match_write()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    perform check_match_quota();
+  else
+    new.created_at := old.created_at;
+  end if;
+  if tg_op = 'INSERT'
+     or new.winner_id is distinct from old.winner_id
+     or new.loser_id  is distinct from old.loser_id
+     or new.league_id is distinct from old.league_id then
+    if not (league_player_active(new.league_id, new.winner_id)
+            and league_player_active(new.league_id, new.loser_id)) then
+      raise exception 'Both players must be active members of this league' using errcode = '42501';
+    end if;
+  end if;
+  if not is_league_admin(new.league_id) and not session_is_open(new.session_id) then
+    raise exception 'This event is finished or the league is archived. Ask an organizer to add the result.'
+      using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists match_write_guard on matches;
+create trigger match_write_guard before insert or update on matches
+  for each row execute function guard_match_write();
+
+-- ============================================================
+--  2. TOURNAMENTS: LINKED ONLY TO AN EVENT OF THE SAME LEAGUE
+-- ============================================================
+drop policy if exists "admins write tournaments" on tournaments;
+create policy "admins write tournaments" on tournaments
+  for insert with check (
+    is_league_admin(league_id)
+    and (session_id is null or session_league(session_id) = league_id)
+  );
+
+drop policy if exists "admins update tournaments" on tournaments;
+create policy "admins update tournaments" on tournaments
+  for update using (is_league_admin(league_id))
+  with check (
+    is_league_admin(league_id)
+    and (session_id is null or session_league(session_id) = league_id)
+  );
+
+-- sync_tournament(): as before, but a game becomes a match only when both
+-- players are active members whose account was not deleted, or when the same
+-- game (same place, same winner and loser) is already saved for this
+-- tournament. So a game played before someone left, was retired or deleted
+-- their account stays, and no new game can be made up against them. An
+-- entrant becomes a check-in on the same active rule. tournament_games() is
+-- unchanged.
+create or replace function sync_tournament(p_tournament uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_s    sessions%rowtype;
+  v_fin  boolean;
+  v_refs text[];
+  v_up   int := 0;
+  v_del  int := 0;
+  v_att  int := 0;
+begin
+  if v_uid is null then
+    raise exception 'Sign in first' using errcode = '42501';
+  end if;
+  select * into v_t from tournaments where id = p_tournament for update;
+  if not found then
+    raise exception 'Tournament not found' using errcode = 'P0002';
+  end if;
+  if not is_league_admin(v_t.league_id) then
+    raise exception 'Only an organizer of this league can do that' using errcode = '42501';
+  end if;
+  if exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    raise exception 'This league is archived' using errcode = '42501';
+  end if;
+  if v_t.session_id is null then
+    raise exception 'This tournament is not linked to an event' using errcode = 'P0001';
+  end if;
+  select * into v_s from sessions where id = v_t.session_id for update;
+  if not found or v_s.league_id <> v_t.league_id then
+    raise exception 'The tournament''s event is not in its league' using errcode = 'P0001';
+  end if;
+  if coalesce(v_t.payload->>'v', '') <> '2' then
+    raise exception 'This tournament cannot be linked to an event' using errcode = 'P0001';
+  end if;
+  v_fin := coalesce(v_t.payload->>'finalized', 'false') = 'true';
+
+  select coalesce(array_agg(g.ref), '{}') into v_refs
+  from tournament_games(v_t.payload) g
+  where exists (select 1 from matches mt
+                where mt.tournament_id = v_t.id and mt.t_ref = g.ref
+                  and mt.winner_id = g.winner_id and mt.loser_id = g.loser_id)
+     or (league_player_active(v_t.league_id, g.winner_id)
+         and league_player_active(v_t.league_id, g.loser_id));
+
+  delete from matches mt
+  where mt.tournament_id = v_t.id
+    and not (mt.t_ref = any (v_refs));
+  get diagnostics v_del = row_count;
+
+  insert into matches (session_id, league_id, winner_id, loser_id,
+                       winner_seeker, loser_seeker, winner_terrain, loser_terrain,
+                       winner_deck_id, loser_deck_id, reported_by, confirmed,
+                       tournament_id, t_ref)
+  select v_s.id, v_t.league_id, g.winner_id, g.loser_id,
+         g.winner_seeker, g.loser_seeker, g.winner_terrain, g.loser_terrain,
+         g.winner_deck_id, g.loser_deck_id, v_uid, true,
+         v_t.id, g.ref
+  from tournament_games(v_t.payload) g
+  where g.ref = any (v_refs)
+  on conflict (tournament_id, t_ref) where tournament_id is not null do update set
+    session_id     = excluded.session_id,
+    league_id      = excluded.league_id,
+    winner_id      = excluded.winner_id,
+    loser_id       = excluded.loser_id,
+    winner_seeker  = excluded.winner_seeker,
+    loser_seeker   = excluded.loser_seeker,
+    winner_terrain = excluded.winner_terrain,
+    loser_terrain  = excluded.loser_terrain,
+    winner_deck_id = excluded.winner_deck_id,
+    loser_deck_id  = excluded.loser_deck_id,
+    confirmed      = true
+  where (matches.session_id, matches.league_id, matches.winner_id, matches.loser_id,
+         matches.winner_seeker, matches.loser_seeker, matches.winner_terrain, matches.loser_terrain,
+         matches.winner_deck_id, matches.loser_deck_id, matches.confirmed)
+        is distinct from
+        (excluded.session_id, excluded.league_id, excluded.winner_id, excluded.loser_id,
+         excluded.winner_seeker, excluded.loser_seeker, excluded.winner_terrain, excluded.loser_terrain,
+         excluded.winner_deck_id, excluded.loser_deck_id, excluded.confirmed);
+  get diagnostics v_up = row_count;
+
+  insert into attendance (session_id, user_id)
+  select distinct v_s.id, m.user_id
+  from jsonb_array_elements(case when jsonb_typeof(v_t.payload->'entrants') = 'array'
+                                 then v_t.payload->'entrants' else '[]'::jsonb end) as e
+  join memberships m on m.league_id = v_t.league_id and m.user_id::text = e->>'id'
+                    and m.dropped_at is null
+  join profiles p on p.id = m.user_id and p.deleted_at is null
+  on conflict (session_id, user_id) do nothing;
+  get diagnostics v_att = row_count;
+
+  update sessions
+  set is_tournament = true,
+      t_linked = true,
+      closed_at = case when v_fin then coalesce(closed_at, now()) end
+  where id = v_s.id
+    and (not is_tournament or not t_linked
+         or (v_fin and closed_at is null) or (not v_fin and closed_at is not null));
+
+  return jsonb_build_object(
+    'games', coalesce(array_length(v_refs, 1), 0),
+    'saved', v_up, 'removed', v_del, 'checked_in', v_att, 'closed', v_fin);
+end $$;
+revoke all on function sync_tournament(uuid) from public, anon;
+grant execute on function sync_tournament(uuid) to authenticated;
+
+-- ============================================================
+--  4, 6. NOTICES, EVENTS AND LEAGUES: QUOTA AND SITE-ADMIN MODERATION
+-- ============================================================
+-- The database's own time stamp on every notice (a client-chosen created_at
+-- could pin a notice to the top of the board for ever), and at most 10
+-- notices per league a day. Global notices (site admin) are not counted.
+-- On update the original time stamp is kept, so a notice cannot be re-dated.
+create or replace function stamp_announcement()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    if current_user in ('authenticated', 'anon') and new.league_id is not null then
+      perform check_notice_quota(new.league_id);
+    end if;
+  else
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end $$;
+drop trigger if exists announcement_stamp on announcements;
+create trigger announcement_stamp before insert or update on announcements
+  for each row execute function stamp_announcement();
+
+drop policy if exists "announcements delete" on announcements;
+create policy "announcements delete" on announcements
+  for delete using (
+    is_site_admin()
+    or (league_id is not null and is_league_admin(league_id))
+  );
+
+drop policy if exists "site admin deletes sessions" on sessions;
+create policy "site admin deletes sessions" on sessions
+  for delete using (is_site_admin());
+
+-- Archive or reopen only: league_update_guard refuses any other change.
+drop policy if exists "site admin archives leagues" on leagues;
+create policy "site admin archives leagues" on leagues
+  for update using (is_site_admin()) with check (is_site_admin());
+
+-- An update or delete only reaches rows the caller can read, so the site
+-- admin also reads private leagues, their events and their notices (matches
+-- are covered in the matches section). Same reach as the SQL editor.
+drop policy if exists "site admin reads leagues" on leagues;
+create policy "site admin reads leagues" on leagues
+  for select using (is_site_admin());
+drop policy if exists "site admin reads sessions" on sessions;
+create policy "site admin reads sessions" on sessions
+  for select using (is_site_admin());
+drop policy if exists "site admin reads announcements" on announcements;
+create policy "site admin reads announcements" on announcements
+  for select using (is_site_admin());
+
+-- ============================================================
+--  4. FREE-TIER BRAKES: APP_EVENTS AND FEEDBACK
+-- ============================================================
+-- app_events, per row: the database's time stamp, and anything oversized in
+-- bytes is cut down rather than refused (a refusal switches statistics off
+-- for that tab). The site already keeps name <= 240 characters, path <= 200
+-- and detail <= 800 bytes; multi-byte text could make those 4x bigger.
+create or replace function app_events_stamp()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.created_at := now();
+  if octet_length(new.name) > 300 then
+    new.name := left(new.name, 75);
+  end if;
+  if new.path is not null and octet_length(new.path) > 200 then
+    new.path := '#/other';
+  end if;
+  if new.detail is not null and octet_length(new.detail::text) > 800 then
+    new.detail := null;
+  end if;
+  return new;
+end $$;
+drop trigger if exists app_events_stamp on app_events;
+create trigger app_events_stamp before insert on app_events
+  for each row execute function app_events_stamp();
+
+-- The flood brake, per request:
+--   * at most 50 rows (the site sends 50 at most);
+--   * at most 400 rows a minute and 8000 a day from everyone together. A tab
+--     sends at most 300 events in its whole life (AN_MAX) and a normal visit
+--     10 to 30, so 8000 a day is several hundred real visits;
+--   * at most 80000 rows are kept: past that the oldest rows go first, so new
+--     statistics and error reports always land and the table stays bounded
+--     (about 20 MB with normal rows, about 140 MB if every row were at its
+--     byte limit). At 80000 rows the 90 days hold up to about 900 events a
+--     day; with more traffic the history is simply shorter than 90 days;
+--   * a last stop if the table still passes 160 MB (the row count above comes
+--     from the statistics collector and can lag, for example after a
+--     restart): then nothing while it holds more than 20000 rows. Deleting
+--     rows reopens it at once; vacuum full gives the space back.
+-- Past a refusal the insert fails (hint rate_limited); the site then stops
+-- sending for that tab. The trigger also clears expired rows, as before.
+create or replace function app_events_brake()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_live bigint;
+begin
+  if (select count(*) from new_rows) > 50 then
+    raise exception 'Too many events in one request.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if (select count(*) from app_events where created_at > now() - interval '1 minute') > 400
+     or (select count(*) from app_events where created_at > now() - interval '1 day') > 8000 then
+    raise exception 'Too many events right now.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if pg_total_relation_size('public.app_events'::regclass) > 160 * 1024 * 1024
+     and (select count(*) from (select 1 from app_events limit 20001) x) > 20000 then
+    raise exception 'The statistics table is full.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  select coalesce(s.n_live_tup, 0) into v_live
+  from pg_stat_user_tables s where s.relid = 'public.app_events'::regclass;
+  if coalesce(v_live, 0) > 80000 then
+    delete from app_events where id in (
+      select id from app_events order by created_at
+      limit least(v_live - 80000 + 100, 2000) for update skip locked);
+  end if;
+  delete from app_events where id in (
+    select id from app_events where created_at < now() - interval '90 days'
+    order by created_at limit 2000 for update skip locked);
+  delete from feedback where id in (
+    select id from feedback where created_at < now() - interval '12 months'
+    order by created_at limit 200 for update skip locked);
+  return null;
+end $$;
+drop trigger if exists app_events_brake on app_events;
+create trigger app_events_brake after insert on app_events
+  referencing new table as new_rows
+  for each statement execute function app_events_brake();
+
+-- The feedback brake. Security definer, because the counts have to see every
+-- row. Sizes are counted in bytes: the message at most 16000 (the form and
+-- the table allow 4000 characters, up to 4 bytes each, so Greek, Cyrillic or
+-- Japanese text is not cut short), contact and page at most 800 bytes each
+-- (200 characters). Then:
+--   * nothing from signed-out visitors once the stored messages take more
+--     than 10 MB, nothing at all past 25 MB. This counts the data in the rows
+--     still there (not the file size), so deleting junk reopens the form at
+--     once, without a vacuum full;
+--   * a text identical to one from the last hour is refused (as before);
+--   * an account: 10 in ten minutes, 20 a day;
+--   * signed-out visitors together (the database sees no IP address): 30 in
+--     ten minutes, 200 a day. While that bucket is full the form tells them
+--     to sign in, since an account has its own bucket.
+create or replace function feedback_brake()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_size bigint;
+begin
+  new.created_at := now();
+  if octet_length(new.body) > 16000
+     or (new.contact is not null and octet_length(new.contact) > 800)
+     or (new.page is not null and octet_length(new.page) > 800) then
+    raise exception 'This message is too long. Shorten it and send it again.'
+      using errcode = '22001';
+  end if;
+  -- Stored size of what the rows hold (pg_column_size reads no long value),
+  -- plus about 100 bytes a row for the row itself and its indexes.
+  select coalesce(sum(100 + coalesce(pg_column_size(f.body), 0)
+                      + coalesce(pg_column_size(f.contact), 0)
+                      + coalesce(pg_column_size(f.page), 0)
+                      + coalesce(pg_column_size(f.context), 0)
+                      + coalesce(pg_column_size(f.admin_note), 0)), 0)
+    into v_size
+  from feedback f;
+  if v_size > 25 * 1024 * 1024 or (new.user_id is null and v_size > 10 * 1024 * 1024) then
+    raise exception 'Feedback cannot take more messages right now. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if exists (select 1 from feedback f
+             where f.created_at > now() - interval '1 hour'
+               and f.body = new.body) then
+    raise exception 'This message already arrived.'
+      using errcode = 'P0001', hint = 'duplicate';
+  end if;
+  if new.user_id is not null then
+    if (select count(*) from feedback f
+        where f.user_id = new.user_id
+          and f.created_at > now() - interval '10 minutes') >= 10
+       or (select count(*) from feedback f
+           where f.user_id = new.user_id
+             and f.created_at > now() - interval '1 day') >= 20 then
+      raise exception 'Too many messages in a short time. Try again later.'
+        using errcode = 'P0001', hint = 'rate_limited';
+    end if;
+  elsif (select count(*) from feedback f
+         where f.user_id is null
+           and f.created_at > now() - interval '10 minutes') >= 30
+     or (select count(*) from feedback f
+         where f.user_id is null
+           and f.created_at > now() - interval '1 day') >= 200 then
+    raise exception 'Too many messages in a short time. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  return new;
+end $$;
+drop trigger if exists feedback_brake on feedback;
+create trigger feedback_brake before insert on feedback
+  for each row execute function feedback_brake();
+
+-- ============================================================
+--  9. DISPLAY NAMES
+-- ============================================================
+-- 1 to 40 characters, not blank (the app's name fields allow 40). Longer or
+-- blank names are fixed first; on the live data (15 profiles, longest 18)
+-- this changes nothing. Signup trims what Google or Discord send to 40.
+update profiles
+   set display_name = coalesce(nullif(btrim(left(btrim(display_name), 40)), ''), 'Player')
+ where char_length(display_name) > 40 or btrim(display_name) = '';
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'profiles_display_name_len' and conrelid = 'public.profiles'::regclass) then
+    alter table profiles add constraint profiles_display_name_len
+      check (char_length(display_name) between 1 and 40 and btrim(display_name) <> '') not valid;
+  end if;
+end $$;
+alter table profiles validate constraint profiles_display_name_len;
+
+create or replace function handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, display_name, role)
+  values (
+    new.id,
+    -- email signup uses display_name (typed by the player); Google sends
+    -- full_name/name, Discord global_name/full_name/user_name. Of a provider's
+    -- full name only the first word is used, so a legal full name is never
+    -- public; the site then asks the player to choose a public name. The full
+    -- name stays only in the login's own metadata. Email prefix is the last resort.
+    coalesce(nullif(btrim(left(coalesce(
+      nullif(trim(new.raw_user_meta_data->>'display_name'), ''),
+      nullif(split_part(btrim(new.raw_user_meta_data->>'full_name'), ' ', 1), ''),
+      nullif(split_part(btrim(new.raw_user_meta_data->>'name'), ' ', 1), ''),
+      nullif(trim(new.raw_user_meta_data->>'global_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'user_name'), ''),
+      nullif(trim(new.raw_user_meta_data->>'preferred_username'), ''),
+      split_part(new.email, '@', 1),
+      ''), 40)), ''), 'Player'),
+    case when new.raw_user_meta_data->>'role' = 'organizer' then 'organizer' else 'player' end
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+-- A deleted account's profile is a tombstone: nobody edits it from the site,
+-- and nobody marks their own profile deleted except through delete_my_account().
+-- Not security definer on purpose: current_user is then the caller's role.
+create or replace function guard_profile_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if old.deleted_at is not null then
+    raise exception 'This account was deleted' using errcode = '42501';
+  end if;
+  if new.deleted_at is distinct from old.deleted_at then
+    raise exception 'Use Delete my account to delete an account' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists profile_update_guard on profiles;
+create trigger profile_update_guard before update on profiles
+  for each row execute function guard_profile_update();
+
+-- ============================================================
+--  5. DELETING AN ACCOUNT WITHOUT TAKING OTHER PLAYERS' DATA
+-- ============================================================
+-- Foreign keys. profiles.id used to cascade from auth.users, so deleting a
+-- login deleted the profile and, through it, every match, check-in and
+-- league of that player, other players' results included. Now:
+--   * profiles has no foreign key to auth.users. The profile outlives the
+--     login as a tombstone ("Deleted player", deleted_at set), so opponents
+--     keep their results. A key that does not cascade cannot work here: SET
+--     NULL is impossible on a primary key, and NO ACTION / RESTRICT would block
+--     deleting the login while the tombstone exists. Ids come from
+--     gen_random_uuid() in auth, so a new account never reuses one;
+--   * leagues.owner_id, matches.winner_id / loser_id and attendance.user_id
+--     are ON DELETE RESTRICT: deleting a profile by hand that owns a league or
+--     has results fails with an error instead of wiping them.
+do $$
+declare c record;
+begin
+  for c in select conname from pg_constraint
+           where conrelid = 'public.profiles'::regclass and contype = 'f'
+             and confrelid = 'auth.users'::regclass loop
+    execute format('alter table public.profiles drop constraint %I', c.conname);
+  end loop;
+end $$;
+
+do $$
+declare
+  r record;
+  c record;
+begin
+  for r in select * from (values
+      ('leagues', 'owner_id'),
+      ('matches', 'winner_id'),
+      ('matches', 'loser_id'),
+      ('attendance', 'user_id')) as v(tbl, col)
+  loop
+    for c in
+      select con.conname, con.confdeltype
+      from pg_constraint con
+      join pg_attribute a on a.attrelid = con.conrelid and a.attnum = con.conkey[1]
+      where con.contype = 'f'
+        and con.conrelid = format('public.%I', r.tbl)::regclass
+        and con.confrelid = 'public.profiles'::regclass
+        and array_length(con.conkey, 1) = 1
+        and a.attname = r.col
+    loop
+      if c.confdeltype <> 'r' then
+        execute format('alter table public.%I drop constraint %I', r.tbl, c.conname);
+      end if;
+    end loop;
+    if not exists (
+      select 1
+      from pg_constraint con
+      join pg_attribute a on a.attrelid = con.conrelid and a.attnum = con.conkey[1]
+      where con.contype = 'f'
+        and con.conrelid = format('public.%I', r.tbl)::regclass
+        and con.confrelid = 'public.profiles'::regclass
+        and array_length(con.conkey, 1) = 1
+        and a.attname = r.col
+    ) then
+      execute format(
+        'alter table public.%I add constraint %I foreign key (%I) references public.profiles(id) on delete restrict',
+        r.tbl, r.tbl || '_' || r.col || '_fkey', r.col);
+    end if;
+  end loop;
+end $$;
+
+-- What erasing a player does. Idempotent. Not callable over the API.
+--   * Leagues they own: one where nobody else ever played (no other member,
+--     match or check-in) is deleted. One that still has other active players
+--     and is not archived stops the whole deletion with a message: hand it
+--     over or archive it first. Any other (archived, or only retired players
+--     left) is archived and kept, owned by the tombstone.
+--   * Their collection, free battles, private decks, feedback and site-admin
+--     row are deleted. Public decks stay, so results that name them still do.
+--   * Their memberships are marked dropped (and not organizer).
+--   * The profile becomes "Deleted player" with every optional field cleared.
+--     Their matches and check-ins stay, so nobody's standings move.
+create or replace function erase_user_data(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  l record;
+begin
+  if p_user is null then
+    return;
+  end if;
+  for l in select id, name, archived_at from leagues where owner_id = p_user for update loop
+    if not exists (select 1 from memberships m where m.league_id = l.id and m.user_id <> p_user)
+       and not exists (select 1 from matches mt where mt.league_id = l.id)
+       and not exists (select 1 from attendance a join sessions s on s.id = a.session_id
+                       where s.league_id = l.id and a.user_id <> p_user) then
+      delete from leagues where id = l.id;
+    elsif l.archived_at is null and exists (
+      select 1 from memberships m
+      where m.league_id = l.id and m.user_id <> p_user and m.dropped_at is null
+    ) then
+      raise exception 'This account owns the league "%", which still has players. Hand it over to one of them or archive it first (Manage).', l.name
+        using errcode = 'P0001', hint = 'sl_owns_league';
+    else
+      update leagues set archived_at = coalesce(archived_at, now()) where id = l.id;
+    end if;
+  end loop;
+
+  delete from collection   where user_id = p_user;
+  delete from free_battles where user_id = p_user;
+  delete from decks        where user_id = p_user and not is_public;
+  delete from feedback     where user_id = p_user;
+  delete from site_admins  where user_id = p_user;
+
+  update memberships
+     set dropped_at = coalesce(dropped_at, now()), is_admin = false
+   where user_id = p_user and (dropped_at is null or is_admin);
+
+  update profiles
+     set display_name = 'Deleted player',
+         role = 'player',
+         herald_rank = null,
+         discord = null,
+         malediction_url = null,
+         lat = null,
+         lon = null,
+         place = null,
+         deleted_at = coalesce(deleted_at, now())
+   where id = p_user;
+end $$;
+revoke all on function erase_user_data(uuid) from public, anon, authenticated;
+
+-- The signed-in player deletes their own account. On success the login is
+-- gone; the site should sign out locally afterwards.
+create or replace function delete_my_account()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Sign in first' using errcode = '42501';
+  end if;
+  perform erase_user_data(uid);
+  delete from auth.users where id = uid;
+  return jsonb_build_object('deleted', true);
+end $$;
+revoke all on function delete_my_account() from public, anon;
+grant execute on function delete_my_account() to authenticated;
+
+-- The site admin, for a deletion request that arrived some other way (check
+-- who is asking first: a signed-out message must not get someone else erased).
+create or replace function admin_delete_user(p_user uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  if not is_site_admin() then
+    raise exception 'not allowed' using errcode = '42501';
+  end if;
+  if p_user is null then
+    raise exception 'No user given' using errcode = '22004';
+  end if;
+  perform erase_user_data(p_user);
+  delete from auth.users where id = p_user;
+  return jsonb_build_object('deleted', true, 'user', p_user);
+end $$;
+revoke all on function admin_delete_user(uuid) from public, anon;
+grant execute on function admin_delete_user(uuid) to authenticated;
+
+-- Deleting a login anywhere else (Dashboard > Authentication > Delete user)
+-- erases the same way first, and fails with the same message if the player
+-- still owns a league with players. If the project does not allow a trigger
+-- on auth.users this step is skipped with a notice; use the functions above.
+create or replace function handle_user_deleted()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  perform public.erase_user_data(old.id);
+  return old;
+end $$;
+
+do $$
+begin
+  begin
+    drop trigger if exists on_auth_user_deleted on auth.users;
+    create trigger on_auth_user_deleted
+      before delete on auth.users
+      for each row execute function public.handle_user_deleted();
+  exception when others then
+    raise notice 'Could not add the delete trigger on auth.users (%). Delete accounts with delete_my_account() / admin_delete_user() only.', sqlerrm;
+  end;
+end $$;
+
