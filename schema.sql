@@ -24,6 +24,8 @@ create table if not exists profiles (
 );
 
 -- ---------- LEAGUES ----------
+-- is_online, region, timezone and discord_url are added in ONLINE LEAGUES AND
+-- WINDOW EVENTS (2026-11-01) at the end of this file.
 create table if not exists leagues (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
@@ -57,6 +59,8 @@ create table if not exists memberships (
 );
 
 -- ---------- SESSIONS (game nights) ----------
+-- end_date and rounds (window events) are added in ONLINE LEAGUES AND WINDOW
+-- EVENTS (2026-11-01) at the end of this file.
 create table if not exists sessions (
   id         uuid primary key default gen_random_uuid(),
   league_id  uuid not null references leagues(id) on delete cascade,
@@ -69,6 +73,8 @@ create table if not exists sessions (
 );
 
 -- ---------- ATTENDANCE ----------
+-- auto (a participation row kept by a trigger) is added in ONLINE LEAGUES AND
+-- WINDOW EVENTS (2026-11-01) at the end of this file.
 create table if not exists attendance (
   id         uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
@@ -2885,4 +2891,760 @@ begin
     raise notice 'Could not add the delete trigger on auth.users (%). Delete accounts with delete_my_account() / admin_delete_user() only.', sqlerrm;
   end;
 end $$;
+
+
+-- ============================================================
+--  ONLINE LEAGUES AND WINDOW EVENTS (2026-11-01)
+-- ============================================================
+-- Same SQL as migration-2026-11-01-online.sql (whose header lists every
+-- change and which ends with a read-only check). It comes after SECURITY
+-- HARDENING (2026-11-06) and replaces these definitions made further up:
+-- public_leagues (three columns appended), session_is_open, can_check_in,
+-- guard_match_write, confirm_match, sync_tournament, erase_user_data, and the
+-- attendance insert policy "self or admin attendance". New: columns
+-- leagues.is_online/region/timezone/discord_url, sessions.end_date/rounds,
+-- attendance.auto; table member_discord; functions guard_league_fields,
+-- guard_session_window, window_state, window_confirmable,
+-- window_attendance_for, match_window_attendance, session_window_attendance,
+-- shares_league_with, touch_member_discord; triggers league_fields_guard,
+-- session_window_guard, match_window_attendance, session_window_attendance,
+-- member_discord_touch. The migration wraps it in begin/commit.
+
+
+-- ============================================================
+--  1. NEW COLUMNS
+-- ============================================================
+alter table leagues    add column if not exists is_online   boolean not null default false;
+alter table leagues    add column if not exists region      text;
+alter table leagues    add column if not exists timezone    text;
+alter table leagues    add column if not exists discord_url text;
+
+alter table sessions   add column if not exists end_date date;
+alter table sessions   add column if not exists rounds   jsonb;
+
+alter table attendance add column if not exists auto boolean not null default false;
+
+-- shares_league_with() looks memberships up by player.
+create index if not exists idx_memberships_user on memberships(user_id);
+
+-- ============================================================
+--  2. CONSTRAINTS
+-- ============================================================
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'leagues_region_check' and conrelid = 'public.leagues'::regclass) then
+    alter table leagues add constraint leagues_region_check check (region is null or region in
+      ('world', 'europe', 'north_america', 'latin_america', 'asia_pacific', 'africa_middle_east'));
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'leagues_timezone_len' and conrelid = 'public.leagues'::regclass) then
+    alter table leagues add constraint leagues_timezone_len
+      check (timezone is null or char_length(timezone) between 1 and 64);
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'leagues_discord_url_format' and conrelid = 'public.leagues'::regclass) then
+    alter table leagues add constraint leagues_discord_url_format check (discord_url is null or
+      discord_url ~ '^https://(discord\.gg|discord\.com/invite)/[A-Za-z0-9-]{2,32}$');
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'leagues_online_fields' and conrelid = 'public.leagues'::regclass) then
+    alter table leagues add constraint leagues_online_fields
+      check (not is_online or (region is not null and timezone is not null));
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'leagues_online_no_pin' and conrelid = 'public.leagues'::regclass) then
+    alter table leagues add constraint leagues_online_no_pin
+      check (not is_online or (lat is null and lon is null));
+  end if;
+
+  if not exists (select 1 from pg_constraint
+                 where conname = 'sessions_end_after_start' and conrelid = 'public.sessions'::regclass) then
+    alter table sessions add constraint sessions_end_after_start
+      check (end_date is null or end_date > date);
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'sessions_window_not_tournament' and conrelid = 'public.sessions'::regclass) then
+    alter table sessions add constraint sessions_window_not_tournament
+      check (end_date is null or not is_tournament);
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'sessions_rounds_window' and conrelid = 'public.sessions'::regclass) then
+    alter table sessions add constraint sessions_rounds_window
+      check (rounds is null or end_date is not null);
+  end if;
+  -- CASE, so jsonb_array_length never sees a non-array (AND has no fixed order).
+  if not exists (select 1 from pg_constraint
+                 where conname = 'sessions_rounds_shape' and conrelid = 'public.sessions'::regclass) then
+    alter table sessions add constraint sessions_rounds_shape check (rounds is null or
+      case when jsonb_typeof(rounds) = 'array'
+           then jsonb_array_length(rounds) <= 12 and octet_length(rounds::text) <= 32768
+           else false end);
+  end if;
+end $$;
+
+-- ============================================================
+--  3. LEAGUES: ONLINE FIELDS (league_fields_guard)
+-- ============================================================
+-- Runs first among the leagues triggers (name order): league_fields_guard,
+-- league_insert_guard, league_owner_guard, league_update_guard. The site-admin
+-- "archive only" check in guard_league_update still holds: on an online league
+-- lat/lon are already null and location is already filled, so nothing changes.
+-- Security definer, so the events check sees every event of the league. A
+-- request from the site is told apart by auth.uid() (as in guard_league_owner):
+-- inside a security definer function current_user is the owner, not the caller.
+create or replace function guard_league_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  new.region      := nullif(btrim(new.region), '');
+  new.timezone    := nullif(btrim(new.timezone), '');
+  new.discord_url := nullif(btrim(new.discord_url), '');
+  if new.is_online then
+    -- No map pin for an online league. Cleared rather than refused, so an old
+    -- cached client that sends a pin does not fail.
+    new.lat := null;
+    new.lon := null;
+    if new.location is null or btrim(new.location) = '' then
+      new.location := 'Online';
+    end if;
+  end if;
+  if new.timezone is not null then
+    if tg_op = 'INSERT' or new.timezone is distinct from old.timezone then
+      if not exists (select 1 from pg_timezone_names where name = new.timezone) then
+        raise exception 'Unknown time zone: %', new.timezone using errcode = '22023';
+      end if;
+    end if;
+  end if;
+  if tg_op = 'UPDATE' then
+    -- Events with an end date run in the league's time zone, so it stays set.
+    if new.timezone is null and old.timezone is not null
+       and exists (select 1 from sessions s where s.league_id = old.id and s.end_date is not null) then
+      raise exception 'This league has events with an end date, so it needs a time zone'
+        using errcode = '23514', hint = 'sl_tz_needed';
+    end if;
+    if new.is_online is distinct from old.is_online
+       and auth.uid() is not null
+       and exists (select 1 from sessions s where s.league_id = old.id) then
+      raise exception 'A league that has events cannot switch between online and in person'
+        using errcode = '42501', hint = 'sl_kind_locked';
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists league_fields_guard on leagues;
+create trigger league_fields_guard before insert or update on leagues
+  for each row execute function guard_league_fields();
+
+-- ============================================================
+--  4. SESSIONS: WINDOW EVENTS (session_window_guard)
+-- ============================================================
+-- date_trunc('week', ...) starts the week on Monday (ISO), so "same week" is
+-- Monday to Sunday. "At most 28 days" counts both ends: end_date - date <= 27.
+-- An event with an end date needs the league's time zone, so the window opens
+-- and closes at one midnight for everyone and two windows never overlap.
+-- A round is {n: number, due: 'YYYY-MM-DD', pairs: [...], ...}; the database
+-- checks only that shape and that due falls inside the event's dates. A due
+-- that is not a real date is refused with the same message, not a cast error.
+create or replace function guard_session_window()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_online boolean;
+  v_tz     text;
+  v_r      jsonb;
+  v_ok     boolean;
+  v_due    date;
+begin
+  if new.end_date is not null then
+    if new.end_date <= new.date then
+      raise exception 'The end date must be after the start date' using errcode = '23514';
+    end if;
+    if new.is_tournament then
+      raise exception 'A Tournament event is a single day. Remove the end date, or make it a League event.'
+        using errcode = '23514', hint = 'sl_window_tournament';
+    end if;
+    select l.is_online, l.timezone into v_online, v_tz from leagues l where l.id = new.league_id;
+    if v_tz is null then
+      raise exception 'An event with an end date needs the league''s time zone. Set it in Manage first.'
+        using errcode = '23514', hint = 'sl_window_tz';
+    end if;
+    if coalesce(v_online, false) then
+      if new.end_date - new.date > 27 then
+        raise exception 'An online event can last at most 28 days' using errcode = '23514', hint = 'sl_window_long';
+      end if;
+    elsif date_trunc('week', new.date::timestamp) <> date_trunc('week', new.end_date::timestamp) then
+      raise exception 'An in-person event with an end date stays within one week, Monday to Sunday'
+        using errcode = '23514', hint = 'sl_window_week';
+    end if;
+  end if;
+  if new.rounds is not null then
+    if new.end_date is null then
+      raise exception 'Rounds need an event with an end date' using errcode = '23514';
+    end if;
+    if jsonb_typeof(new.rounds) is distinct from 'array' then
+      raise exception 'Each round needs its pairings and a deadline inside the event''s dates'
+        using errcode = '23514', hint = 'sl_round_bad';
+    end if;
+    if jsonb_array_length(new.rounds) > 12 then
+      raise exception 'An event can have at most 12 rounds' using errcode = '23514', hint = 'sl_round_bad';
+    end if;
+    for v_r in select e from jsonb_array_elements(new.rounds) as t(e) loop
+      v_due := null;
+      v_ok := coalesce(jsonb_typeof(v_r) = 'object'
+                       and jsonb_typeof(v_r->'n') = 'number'
+                       and jsonb_typeof(v_r->'pairs') = 'array'
+                       and coalesce(v_r->>'due', '') ~ '^\d{4}-\d\d-\d\d$', false);
+      if v_ok then
+        begin
+          v_due := (v_r->>'due')::date;
+        exception when others then
+          v_ok := false;
+        end;
+      end if;
+      if not v_ok or v_due is null or v_due < new.date or v_due > new.end_date then
+        raise exception 'Each round needs its pairings and a deadline inside the event''s dates'
+          using errcode = '23514', hint = 'sl_round_bad';
+      end if;
+    end loop;
+  end if;
+  return new;
+end $$;
+drop trigger if exists session_window_guard on sessions;
+create trigger session_window_guard before insert or update on sessions
+  for each row execute function guard_session_window();
+
+-- ============================================================
+--  5. TIME HELPERS
+-- ============================================================
+-- 'single' for a single-day event, otherwise 'before' / 'open' / 'after' the
+-- window, in the league's time zone. session_window_guard makes sure a window
+-- event's league has one; if it were ever missing, UTC, the same zone at both
+-- ends, so back-to-back windows never overlap (no anywhere-on-Earth margin here).
+create or replace function window_state(p_start date, p_end date, p_tz text)
+returns text language sql stable set search_path = public as $$
+  select case
+    when p_end is null then 'single'
+    when p_start > (now() at time zone coalesce(p_tz, 'UTC'))::date then 'before'
+    when p_end   < (now() at time zone coalesce(p_tz, 'UTC'))::date then 'after'
+    else 'open' end;
+$$;
+
+-- The opponent may still confirm a pending match of a window event up to 3
+-- days after its last day (league time). After that only an organizer can.
+create or replace function window_confirmable(p_end date, p_tz text)
+returns boolean language sql stable set search_path = public as $$
+  select p_end is null or p_end + 3 >= (now() at time zone coalesce(p_tz, 'UTC'))::date;
+$$;
+
+-- guard_match_write is not security definer and calls window_state as the
+-- caller, so authenticated needs execute on it.
+revoke all on function window_state(date, date, text) from public, anon;
+revoke all on function window_confirmable(date, text) from public, anon;
+grant execute on function window_state(date, date, text) to authenticated;
+grant execute on function window_confirmable(date, text) to authenticated;
+
+-- ============================================================
+--  6. session_is_open AND can_check_in (replaced)
+-- ============================================================
+-- An event that still takes results from players: not finished, league not
+-- archived, and for a window event, while the window is open.
+create or replace function session_is_open(p_session uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from sessions s join leagues l on l.id = s.league_id
+    where s.id = p_session and s.closed_at is null and l.archived_at is null
+      and window_state(s.date, s.end_date, l.timezone) in ('single', 'open')
+  );
+$$;
+revoke all on function session_is_open(uuid) from public, anon;
+grant execute on function session_is_open(uuid) to authenticated;
+
+-- As before, plus: no self check-in at a window event (a confirmed game counts
+-- the player in instead). Grants are unchanged.
+create or replace function can_check_in(p_session uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1
+    from sessions s
+    join leagues l on l.id = s.league_id
+    join memberships m on m.league_id = s.league_id
+                      and m.user_id = auth.uid()
+                      and m.dropped_at is null
+    where s.id = p_session
+      and s.end_date is null
+      and s.closed_at is null
+      and l.archived_at is null
+      and s.date <= (now() at time zone 'Etc/GMT-14')::date
+  );
+$$;
+
+-- ============================================================
+--  7. guard_match_write (replaced)
+-- ============================================================
+-- Same as 2026-11-06 except the last check, which now says why a window event
+-- refuses a player's result. Organizers are not limited by the window.
+-- Not security definer on purpose: current_user is then the caller's role.
+create or replace function guard_match_write()
+returns trigger language plpgsql set search_path = public as $$
+declare
+  v_st text;
+  v_d  date;
+  v_e  date;
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    perform check_match_quota();
+  else
+    new.created_at := old.created_at;
+  end if;
+  if tg_op = 'INSERT'
+     or new.winner_id is distinct from old.winner_id
+     or new.loser_id  is distinct from old.loser_id
+     or new.league_id is distinct from old.league_id then
+    if not (league_player_active(new.league_id, new.winner_id)
+            and league_player_active(new.league_id, new.loser_id)) then
+      raise exception 'Both players must be active members of this league' using errcode = '42501';
+    end if;
+  end if;
+  if not is_league_admin(new.league_id) and not session_is_open(new.session_id) then
+    select window_state(s.date, s.end_date, l.timezone), s.date, s.end_date
+      into v_st, v_d, v_e
+    from sessions s join leagues l on l.id = s.league_id
+    where s.id = new.session_id and s.closed_at is null and l.archived_at is null;
+    if v_st = 'before' then
+      raise exception 'This event opens on %. Log the result from then on.', to_char(v_d, 'Dy FMDD Mon')
+        using errcode = '42501', hint = 'sl_window_before';
+    elsif v_st = 'after' then
+      raise exception 'This event ended on %. Ask an organizer to add the result.', to_char(v_e, 'Dy FMDD Mon')
+        using errcode = '42501', hint = 'sl_window_after';
+    end if;
+    raise exception 'This event is finished or the league is archived. Ask an organizer to add the result.'
+      using errcode = '42501';
+  end if;
+  return new;
+end $$;
+drop trigger if exists match_write_guard on matches;
+create trigger match_write_guard before insert or update on matches
+  for each row execute function guard_match_write();
+
+-- ============================================================
+--  8. confirm_match (replaced: same signature and body, plus two checks)
+-- ============================================================
+-- The added checks come after "already confirmed: nothing to do", so
+-- "Confirm all" can still be repeated safely at any time. A player cannot
+-- confirm a game against someone who has since left the league, been retired
+-- or deleted their account (guard_match_write already refuses new games with
+-- them); an organizer still can.
+create or replace function confirm_match(
+  p_match uuid,
+  p_winner uuid, p_loser uuid,
+  p_winner_seeker text, p_loser_seeker text,
+  p_winner_terrain text, p_loser_terrain text)
+returns void language plpgsql security definer set search_path = public as $$
+declare m matches%rowtype;
+begin
+  if auth.uid() is null then
+    raise exception 'Sign in to confirm a match' using errcode = '42501';
+  end if;
+  select * into m from matches where id = p_match for update;
+  if not found then
+    raise exception 'Match not found' using errcode = 'P0002';
+  end if;
+  if not (
+    is_league_admin(m.league_id)
+    or (
+      auth.uid() in (m.winner_id, m.loser_id)
+      and m.reported_by is distinct from auth.uid()
+      and is_active_member(m.league_id)
+    )
+  ) then
+    raise exception 'Only your opponent or an organizer can confirm this match' using errcode = '42501';
+  end if;
+  if exists (select 1 from leagues l where l.id = m.league_id and l.archived_at is not null) then
+    raise exception 'This league is archived' using errcode = '42501';
+  end if;
+  if m.confirmed then
+    return;
+  end if;
+  if not is_league_admin(m.league_id)
+     and not (league_player_active(m.league_id, m.winner_id)
+              and league_player_active(m.league_id, m.loser_id)) then
+    raise exception 'Your opponent is no longer in this league, so only an organizer can confirm this match.'
+      using errcode = '42501', hint = 'sl_player_gone';
+  end if;
+  if not is_league_admin(m.league_id) and exists (
+    select 1 from sessions s join leagues l on l.id = s.league_id
+    where s.id = m.session_id and s.end_date is not null
+      and not window_confirmable(s.end_date, l.timezone)
+  ) then
+    raise exception 'The time to confirm this match is over. Ask an organizer to confirm it.'
+      using errcode = '42501', hint = 'sl_confirm_closed';
+  end if;
+  if m.winner_id is distinct from p_winner
+     or m.loser_id is distinct from p_loser
+     or m.winner_seeker is distinct from p_winner_seeker
+     or m.loser_seeker is distinct from p_loser_seeker
+     or m.winner_terrain is distinct from p_winner_terrain
+     or m.loser_terrain is distinct from p_loser_terrain then
+    raise exception 'This match was changed since you opened it. Check it again before confirming.'
+      using errcode = 'P0001', hint = 'sl_match_changed';
+  end if;
+  update matches set confirmed = true where id = p_match;
+end $$;
+revoke all on function confirm_match(uuid, uuid, uuid, text, text, text, text) from public, anon;
+grant execute on function confirm_match(uuid, uuid, uuid, text, text, text, text) to authenticated;
+
+-- ============================================================
+--  9. PARTICIPATION IN WINDOW EVENTS: AUTOMATIC ATTENDANCE ROWS
+-- ============================================================
+-- The participation point comes from ordinary attendance rows, so the
+-- standings and old clients keep working unchanged. Rows made here are marked
+-- auto = true; an organizer's hand mark (auto = false) is never removed.
+-- All three functions are security definer and owned by the tables' owner,
+-- so RLS does not apply to their writes (as with sync_tournament's check-ins).
+
+-- Internal. Makes p_user's automatic attendance at a window event match
+-- whether they have at least one confirmed match there (confirmed covers
+-- organizer entries and opponent confirmations; a window event is never a
+-- Tournament event). Not callable over the API.
+create or replace function window_attendance_for(p_session uuid, p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_session is null or p_user is null then
+    return;
+  end if;
+  if not exists (select 1 from sessions s where s.id = p_session and s.end_date is not null) then
+    return;
+  end if;
+  -- One player and event at a time: a second change waits here, and its next
+  -- statement then sees the first one's commit (READ COMMITTED), so two
+  -- concurrent changes cannot leave a confirmed game without its row.
+  perform pg_advisory_xact_lock(hashtextextended(p_session::text || ':' || p_user::text, 0));
+  if exists (select 1 from matches m
+             where m.session_id = p_session and m.confirmed
+               and (m.winner_id = p_user or m.loser_id = p_user)) then
+    insert into attendance (session_id, user_id, auto) values (p_session, p_user, true)
+      on conflict (session_id, user_id) do nothing;
+  else
+    delete from attendance a
+     where a.session_id = p_session and a.user_id = p_user and a.auto;
+  end if;
+end $$;
+revoke all on function window_attendance_for(uuid, uuid) from public, anon, authenticated;
+
+create or replace function match_window_attendance()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if tg_op = 'UPDATE'
+     and new.session_id is not distinct from old.session_id
+     and new.winner_id  is not distinct from old.winner_id
+     and new.loser_id   is not distinct from old.loser_id
+     and new.confirmed  is not distinct from old.confirmed then
+    return null;
+  end if;
+  if tg_op in ('UPDATE', 'DELETE') then
+    perform window_attendance_for(old.session_id, old.winner_id);
+    perform window_attendance_for(old.session_id, old.loser_id);
+  end if;
+  if tg_op in ('INSERT', 'UPDATE') then
+    perform window_attendance_for(new.session_id, new.winner_id);
+    perform window_attendance_for(new.session_id, new.loser_id);
+  end if;
+  return null;
+end $$;
+drop trigger if exists match_window_attendance on matches;
+create trigger match_window_attendance after insert or update or delete on matches
+  for each row execute function match_window_attendance();
+
+-- An event that gains or loses its end date. Gaining one: a player with a
+-- confirmed game there keeps their row, now automatic; the other rows were
+-- check-ins or hand marks of a one-day event, which no longer count here, so
+-- they go (the site asks the organizer first; the organizer can mark someone
+-- by hand again afterwards).
+create or replace function session_window_attendance()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if old.end_date is null and new.end_date is not null then
+    update attendance a set auto = true
+     where a.session_id = new.id and not a.auto
+       and exists (select 1 from matches m
+                   where m.session_id = new.id and m.confirmed
+                     and a.user_id in (m.winner_id, m.loser_id));
+    delete from attendance a where a.session_id = new.id and not a.auto;
+    insert into attendance (session_id, user_id, auto)
+    select distinct new.id, u.uid
+    from matches m cross join lateral (values (m.winner_id), (m.loser_id)) as u(uid)
+    where m.session_id = new.id and m.confirmed
+    on conflict (session_id, user_id) do nothing;
+  elsif old.end_date is not null and new.end_date is null then
+    -- Back to a single-day event: automatic rows become ordinary check-ins.
+    update attendance set auto = false where session_id = new.id and auto;
+  end if;
+  return null;
+end $$;
+drop trigger if exists session_window_attendance on sessions;
+create trigger session_window_attendance after update of end_date on sessions
+  for each row execute function session_window_attendance();
+
+-- The attendance insert policy, replaced: as 2026-11-06, plus "not auto", so
+-- the site can never write an automatic row. The select and delete policies
+-- are unchanged, and there is still no update policy, so auto cannot be
+-- flipped from the site.
+drop policy if exists "self or admin attendance" on attendance;
+create policy "self or admin attendance" on attendance
+  for insert with check (
+    not auto
+    and (
+      (is_league_admin(session_league(session_id))
+         and league_player_active(session_league(session_id), user_id))
+      or (user_id = auth.uid() and can_check_in(session_id))
+    )
+  );
+
+-- ============================================================
+--  10. sync_tournament (replaced: one more check)
+-- ============================================================
+-- Same as 2026-11-06, plus: a tournament needs a single-day event.
+create or replace function sync_tournament(p_tournament uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_s    sessions%rowtype;
+  v_fin  boolean;
+  v_refs text[];
+  v_up   int := 0;
+  v_del  int := 0;
+  v_att  int := 0;
+begin
+  if v_uid is null then
+    raise exception 'Sign in first' using errcode = '42501';
+  end if;
+  select * into v_t from tournaments where id = p_tournament for update;
+  if not found then
+    raise exception 'Tournament not found' using errcode = 'P0002';
+  end if;
+  if not is_league_admin(v_t.league_id) then
+    raise exception 'Only an organizer of this league can do that' using errcode = '42501';
+  end if;
+  if exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    raise exception 'This league is archived' using errcode = '42501';
+  end if;
+  if v_t.session_id is null then
+    raise exception 'This tournament is not linked to an event' using errcode = 'P0001';
+  end if;
+  select * into v_s from sessions where id = v_t.session_id for update;
+  if not found or v_s.league_id <> v_t.league_id then
+    raise exception 'The tournament''s event is not in its league' using errcode = 'P0001';
+  end if;
+  if v_s.end_date is not null then
+    raise exception 'A tournament needs a single-day event. Remove the event''s end date first.'
+      using errcode = 'P0001', hint = 'sl_window_tournament';
+  end if;
+  if coalesce(v_t.payload->>'v', '') <> '2' then
+    raise exception 'This tournament cannot be linked to an event' using errcode = 'P0001';
+  end if;
+  v_fin := coalesce(v_t.payload->>'finalized', 'false') = 'true';
+
+  select coalesce(array_agg(g.ref), '{}') into v_refs
+  from tournament_games(v_t.payload) g
+  where exists (select 1 from matches mt
+                where mt.tournament_id = v_t.id and mt.t_ref = g.ref
+                  and mt.winner_id = g.winner_id and mt.loser_id = g.loser_id)
+     or (league_player_active(v_t.league_id, g.winner_id)
+         and league_player_active(v_t.league_id, g.loser_id));
+
+  delete from matches mt
+  where mt.tournament_id = v_t.id
+    and not (mt.t_ref = any (v_refs));
+  get diagnostics v_del = row_count;
+
+  insert into matches (session_id, league_id, winner_id, loser_id,
+                       winner_seeker, loser_seeker, winner_terrain, loser_terrain,
+                       winner_deck_id, loser_deck_id, reported_by, confirmed,
+                       tournament_id, t_ref)
+  select v_s.id, v_t.league_id, g.winner_id, g.loser_id,
+         g.winner_seeker, g.loser_seeker, g.winner_terrain, g.loser_terrain,
+         g.winner_deck_id, g.loser_deck_id, v_uid, true,
+         v_t.id, g.ref
+  from tournament_games(v_t.payload) g
+  where g.ref = any (v_refs)
+  on conflict (tournament_id, t_ref) where tournament_id is not null do update set
+    session_id     = excluded.session_id,
+    league_id      = excluded.league_id,
+    winner_id      = excluded.winner_id,
+    loser_id       = excluded.loser_id,
+    winner_seeker  = excluded.winner_seeker,
+    loser_seeker   = excluded.loser_seeker,
+    winner_terrain = excluded.winner_terrain,
+    loser_terrain  = excluded.loser_terrain,
+    winner_deck_id = excluded.winner_deck_id,
+    loser_deck_id  = excluded.loser_deck_id,
+    confirmed      = true
+  where (matches.session_id, matches.league_id, matches.winner_id, matches.loser_id,
+         matches.winner_seeker, matches.loser_seeker, matches.winner_terrain, matches.loser_terrain,
+         matches.winner_deck_id, matches.loser_deck_id, matches.confirmed)
+        is distinct from
+        (excluded.session_id, excluded.league_id, excluded.winner_id, excluded.loser_id,
+         excluded.winner_seeker, excluded.loser_seeker, excluded.winner_terrain, excluded.loser_terrain,
+         excluded.winner_deck_id, excluded.loser_deck_id, excluded.confirmed);
+  get diagnostics v_up = row_count;
+
+  insert into attendance (session_id, user_id)
+  select distinct v_s.id, m.user_id
+  from jsonb_array_elements(case when jsonb_typeof(v_t.payload->'entrants') = 'array'
+                                 then v_t.payload->'entrants' else '[]'::jsonb end) as e
+  join memberships m on m.league_id = v_t.league_id and m.user_id::text = e->>'id'
+                    and m.dropped_at is null
+  join profiles p on p.id = m.user_id and p.deleted_at is null
+  on conflict (session_id, user_id) do nothing;
+  get diagnostics v_att = row_count;
+
+  update sessions
+  set is_tournament = true,
+      t_linked = true,
+      closed_at = case when v_fin then coalesce(closed_at, now()) end
+  where id = v_s.id
+    and (not is_tournament or not t_linked
+         or (v_fin and closed_at is null) or (not v_fin and closed_at is not null));
+
+  return jsonb_build_object(
+    'games', coalesce(array_length(v_refs, 1), 0),
+    'saved', v_up, 'removed', v_del, 'checked_in', v_att, 'closed', v_fin);
+end $$;
+revoke all on function sync_tournament(uuid) from public, anon;
+grant execute on function sync_tournament(uuid) to authenticated;
+
+-- ============================================================
+--  11. DISCORD NAMES SHARED WITH YOUR LEAGUES ONLY (member_discord)
+-- ============================================================
+-- profiles.discord stays exactly as it is: the public Discord name (player
+-- page, Heralds map). member_discord holds a Discord name that only the player
+-- and the players who share an active league with them can read. The site
+-- keeps only one of the two filled in.
+create table if not exists member_discord (
+  user_id    uuid primary key references profiles(id) on delete cascade,
+  handle     text not null,
+  updated_at timestamptz not null default now(),
+  constraint member_discord_handle_check
+    check (char_length(btrim(handle)) between 2 and 40 and handle !~ '[[:cntrl:]]')
+);
+alter table member_discord enable row level security;
+
+-- True when the caller and p_user are both active (not dropped) in at least
+-- one same league that is not archived. Anyone signed in can join a public
+-- league, so in a public league the name reaches whoever joins it (the
+-- privacy notice says so).
+create or replace function shares_league_with(p_user uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select auth.uid() is not null and exists (
+    select 1 from memberships a
+    join memberships b on b.league_id = a.league_id
+    join leagues l on l.id = a.league_id and l.archived_at is null
+    where a.user_id = auth.uid() and a.dropped_at is null
+      and b.user_id = p_user and b.dropped_at is null
+  );
+$$;
+revoke all on function shares_league_with(uuid) from public, anon;
+grant execute on function shares_league_with(uuid) to authenticated;
+
+drop policy if exists "member discord read" on member_discord;
+create policy "member discord read" on member_discord
+  for select using (user_id = auth.uid() or shares_league_with(user_id));
+drop policy if exists "member discord insert own" on member_discord;
+create policy "member discord insert own" on member_discord
+  for insert with check (user_id = auth.uid());
+drop policy if exists "member discord update own" on member_discord;
+create policy "member discord update own" on member_discord
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists "member discord delete own" on member_discord;
+create policy "member discord delete own" on member_discord
+  for delete using (user_id = auth.uid());
+
+revoke all on member_discord from public, anon, authenticated;
+grant select, insert, update, delete on member_discord to authenticated;
+
+-- The database's own time stamp, and the handle trimmed.
+create or replace function touch_member_discord()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.handle := btrim(new.handle);
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists member_discord_touch on member_discord;
+create trigger member_discord_touch before insert or update on member_discord
+  for each row execute function touch_member_discord();
+
+-- erase_user_data(): same as 2026-11-06, plus the member Discord name.
+create or replace function erase_user_data(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  l record;
+begin
+  if p_user is null then
+    return;
+  end if;
+  for l in select id, name, archived_at from leagues where owner_id = p_user for update loop
+    if not exists (select 1 from memberships m where m.league_id = l.id and m.user_id <> p_user)
+       and not exists (select 1 from matches mt where mt.league_id = l.id)
+       and not exists (select 1 from attendance a join sessions s on s.id = a.session_id
+                       where s.league_id = l.id and a.user_id <> p_user) then
+      delete from leagues where id = l.id;
+    elsif l.archived_at is null and exists (
+      select 1 from memberships m
+      where m.league_id = l.id and m.user_id <> p_user and m.dropped_at is null
+    ) then
+      raise exception 'This account owns the league "%", which still has players. Hand it over to one of them or archive it first (Manage).', l.name
+        using errcode = 'P0001', hint = 'sl_owns_league';
+    else
+      update leagues set archived_at = coalesce(archived_at, now()) where id = l.id;
+    end if;
+  end loop;
+
+  delete from collection     where user_id = p_user;
+  delete from free_battles   where user_id = p_user;
+  delete from decks          where user_id = p_user and not is_public;
+  delete from feedback       where user_id = p_user;
+  delete from site_admins    where user_id = p_user;
+  delete from member_discord where user_id = p_user;
+
+  update memberships
+     set dropped_at = coalesce(dropped_at, now()), is_admin = false
+   where user_id = p_user and (dropped_at is null or is_admin);
+
+  update profiles
+     set display_name = 'Deleted player',
+         role = 'player',
+         herald_rank = null,
+         discord = null,
+         malediction_url = null,
+         lat = null,
+         lon = null,
+         place = null,
+         deleted_at = coalesce(deleted_at, now())
+   where id = p_user;
+end $$;
+revoke all on function erase_user_data(uuid) from public, anon, authenticated;
+
+-- ============================================================
+--  12. public_leagues (three columns appended)
+-- ============================================================
+-- "create or replace view" may only append columns, which is all this does,
+-- so the view is not dropped and keeps its grants. Still security_invoker.
+-- discord_url is not here: the league page reads it from leagues.
+create or replace view public_leagues
+with (security_invoker = on) as
+select
+  l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
+  (select count(*) from memberships m where m.league_id = l.id) as member_count,
+  (select count(*) from sessions s where s.league_id = l.id)    as session_count,
+  (select max(s.date) from sessions s where s.league_id = l.id) as last_session,
+  l.lat, l.lon,
+  l.is_online, l.region, l.timezone
+from leagues l
+where l.is_public;
 
