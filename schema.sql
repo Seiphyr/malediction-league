@@ -1542,3 +1542,242 @@ returns boolean language sql security definer stable set search_path = public as
       and s.date <= (now() at time zone 'Etc/GMT-14')::date
   );
 $$;
+
+-- ============================================================
+--  A TOURNAMENT BELONGS TO AN EVENT AND SCORES THROUGH IT
+-- ============================================================
+-- A tournament (groups and bracket, payload v2) used to live on its own: its
+-- results counted in win rates and the meta but never in the standings, and
+-- it checked nobody in. Now a tournament is linked to a Tournament event
+-- (tournaments.session_id) and sync_tournament() makes that event's matches
+-- say exactly what the tournament says:
+--   * every decided game becomes one confirmed match of the event, with each
+--     player's Seeker, terrain and deck from their tournament entry. A game is
+--     found again by matches.t_ref, its place in the payload:
+--       'g:<i>'      the i-th entry of payload.gm (0-based), a group game;
+--       'b:<r>:<k>'  payload.bracket[r][k] (0-based), a knockout game.
+--     A bye (one side empty) was never played and is not a match. A corrected
+--     result updates its match, a cleared one deletes it, and discarding the
+--     tournament deletes them all (on delete cascade);
+--   * every entrant is checked in to the event. Nobody is ever checked out;
+--   * a finalized tournament closes its event, a reopened one reopens it;
+--   * the event becomes a Tournament event for good (is_tournament, t_linked).
+-- Entrant ids are profile ids (the app picks entrants from the league's
+-- members). An id with no profile behind it, an account deleted since, is
+-- left out of the matches and the attendance instead of failing the call.
+--
+-- Points: the app counts a match with a tournament_id double. At an event with
+-- t_linked set, any other match (logged by hand) counts once. Events from
+-- before this change have t_linked false and no tournament matches, so an
+-- is_tournament event of theirs still counts every match double, as it did.
+-- t_linked stays set when the tournament is discarded, so such an event does
+-- not fall back to the old rule.
+--
+-- The app calls sync_tournament() after every change it saves to a linked
+-- tournament. Until this section has run it links nothing and works as before.
+-- Safe to run more than once.
+alter table tournaments add column if not exists session_id uuid references sessions(id) on delete set null;
+alter table matches     add column if not exists tournament_id uuid references tournaments(id) on delete cascade;
+alter table matches     add column if not exists t_ref text;
+alter table sessions    add column if not exists t_linked boolean not null default false;
+
+-- One tournament per event: two would each open and close the same event from
+-- their own payload. (An earlier draft of this section made a plain index.)
+drop index if exists idx_tournaments_session;
+create unique index if not exists tournaments_session_one
+  on tournaments(session_id) where session_id is not null;
+create unique index if not exists matches_tournament_ref
+  on matches(tournament_id, t_ref) where tournament_id is not null;
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'matches_t_ref_needed') then
+    alter table matches add constraint matches_t_ref_needed
+      check (tournament_id is null or t_ref is not null);
+  end if;
+end $$;
+
+-- A match with a tournament_id counts double and the app will not edit or
+-- delete it, so only sync_tournament() may write these two columns. The match
+-- policies let a player write their own report and an organizer any match,
+-- with any value in them; this trigger refuses a request from the site that
+-- sets them on a new match or changes them on an existing one.
+-- Not security definer on purpose: current_user is then the caller's role.
+-- Requests from the site run as 'authenticated' or 'anon'; sync_tournament()
+-- runs as its owner and passes, as does the SQL editor.
+create or replace function guard_match_tournament()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    if new.tournament_id is not null or new.t_ref is not null then
+      raise exception 'Tournament results are recorded in the Tournament tab' using errcode = '42501';
+    end if;
+  elsif new.tournament_id is distinct from old.tournament_id or new.t_ref is distinct from old.t_ref then
+    raise exception 'Tournament results are recorded in the Tournament tab' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists match_tournament_guard on matches;
+create trigger match_tournament_guard before insert or update on matches
+  for each row execute function guard_match_tournament();
+
+-- The decided games of a v2 payload, one row per game, in the shape of a
+-- match. Not callable over the API: only sync_tournament() uses it.
+create or replace function tournament_games(p jsonb)
+returns table (
+  ref text, winner_id uuid, loser_id uuid,
+  winner_seeker text, loser_seeker text,
+  winner_terrain text, loser_terrain text,
+  winner_deck_id uuid, loser_deck_id uuid
+)
+language sql stable set search_path = public as $$
+  with ent as (
+    select distinct on (e->>'id')
+           e->>'id' as id,
+           nullif(left(coalesce(e->>'seeker', ''), 80), '')  as seeker,
+           nullif(left(coalesce(e->>'terrain', ''), 80), '') as terrain,
+           nullif(e->>'deckId', '') as deck_id
+    from jsonb_array_elements(case when jsonb_typeof(p->'entrants') = 'array' then p->'entrants' else '[]'::jsonb end) as e
+    where jsonb_typeof(e) = 'object' and e->>'id' is not null
+    order by e->>'id'
+  ),
+  raw as (
+    -- group game: { g, a, b, w } where w is the winner's id (or null)
+    select 'g:' || (x.o - 1) as ref,
+           x.m->>'a' as a, x.m->>'b' as b,
+           case when x.m->>'w' = x.m->>'a' then 'a'
+                when x.m->>'w' = x.m->>'b' then 'b' end as side
+    from jsonb_array_elements(case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end)
+         with ordinality as x(m, o)
+    where jsonb_typeof(x.m) = 'object'
+    union all
+    -- knockout game: { a: {id} | null, b: {id} | null, winner: 'a' | 'b' | null }
+    select 'b:' || (r.o - 1) || ':' || (q.o - 1),
+           q.m->'a'->>'id', q.m->'b'->>'id', q.m->>'winner'
+    from jsonb_array_elements(case when jsonb_typeof(p->'bracket') = 'array' then p->'bracket' else '[]'::jsonb end)
+         with ordinality as r(rd, o)
+    cross join lateral jsonb_array_elements(case when jsonb_typeof(r.rd) = 'array' then r.rd else '[]'::jsonb end)
+         with ordinality as q(m, o)
+    where jsonb_typeof(q.m) = 'object'
+  ),
+  won as (
+    select raw.ref,
+           case when raw.side = 'a' then raw.a else raw.b end as w,
+           case when raw.side = 'a' then raw.b else raw.a end as l
+    from raw
+    where raw.side in ('a', 'b') and raw.a is not null and raw.b is not null and raw.a <> raw.b
+  )
+  select won.ref, pw.id, pl.id, ew.seeker, el.seeker, ew.terrain, el.terrain, dw.id, dl.id
+  from won
+  join profiles pw on pw.id::text = won.w
+  join profiles pl on pl.id::text = won.l
+  left join ent ew on ew.id = won.w
+  left join ent el on el.id = won.l
+  left join decks dw on dw.id::text = ew.deck_id
+  left join decks dl on dl.id::text = el.deck_id;
+$$;
+
+revoke all on function tournament_games(jsonb) from public, anon, authenticated;
+
+create or replace function sync_tournament(p_tournament uuid)
+returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_s    sessions%rowtype;
+  v_fin  boolean;
+  v_refs text[];
+  v_up   int := 0;
+  v_del  int := 0;
+  v_att  int := 0;
+begin
+  if v_uid is null then
+    raise exception 'Sign in first' using errcode = '42501';
+  end if;
+  select * into v_t from tournaments where id = p_tournament for update;
+  if not found then
+    raise exception 'Tournament not found' using errcode = 'P0002';
+  end if;
+  if not is_league_admin(v_t.league_id) then
+    raise exception 'Only an organizer of this league can do that' using errcode = '42501';
+  end if;
+  if exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    raise exception 'This league is archived' using errcode = '42501';
+  end if;
+  if v_t.session_id is null then
+    raise exception 'This tournament is not linked to an event' using errcode = 'P0001';
+  end if;
+  select * into v_s from sessions where id = v_t.session_id for update;
+  if not found or v_s.league_id <> v_t.league_id then
+    raise exception 'The tournament''s event is not in its league' using errcode = 'P0001';
+  end if;
+  if coalesce(v_t.payload->>'v', '') <> '2' then
+    raise exception 'This tournament cannot be linked to an event' using errcode = 'P0001';
+  end if;
+  v_fin := coalesce(v_t.payload->>'finalized', 'false') = 'true';
+
+  select coalesce(array_agg(g.ref), '{}') into v_refs from tournament_games(v_t.payload) g;
+
+  delete from matches mt
+  where mt.tournament_id = v_t.id
+    and not (mt.t_ref = any (v_refs));
+  get diagnostics v_del = row_count;
+
+  insert into matches (session_id, league_id, winner_id, loser_id,
+                       winner_seeker, loser_seeker, winner_terrain, loser_terrain,
+                       winner_deck_id, loser_deck_id, reported_by, confirmed,
+                       tournament_id, t_ref)
+  select v_s.id, v_t.league_id, g.winner_id, g.loser_id,
+         g.winner_seeker, g.loser_seeker, g.winner_terrain, g.loser_terrain,
+         g.winner_deck_id, g.loser_deck_id, v_uid, true,
+         v_t.id, g.ref
+  from tournament_games(v_t.payload) g
+  on conflict (tournament_id, t_ref) where tournament_id is not null do update set
+    session_id     = excluded.session_id,
+    league_id      = excluded.league_id,
+    winner_id      = excluded.winner_id,
+    loser_id       = excluded.loser_id,
+    winner_seeker  = excluded.winner_seeker,
+    loser_seeker   = excluded.loser_seeker,
+    winner_terrain = excluded.winner_terrain,
+    loser_terrain  = excluded.loser_terrain,
+    winner_deck_id = excluded.winner_deck_id,
+    loser_deck_id  = excluded.loser_deck_id,
+    confirmed      = true
+  where (matches.session_id, matches.league_id, matches.winner_id, matches.loser_id,
+         matches.winner_seeker, matches.loser_seeker, matches.winner_terrain, matches.loser_terrain,
+         matches.winner_deck_id, matches.loser_deck_id, matches.confirmed)
+        is distinct from
+        (excluded.session_id, excluded.league_id, excluded.winner_id, excluded.loser_id,
+         excluded.winner_seeker, excluded.loser_seeker, excluded.winner_terrain, excluded.loser_terrain,
+         excluded.winner_deck_id, excluded.loser_deck_id, excluded.confirmed);
+  get diagnostics v_up = row_count;
+
+  insert into attendance (session_id, user_id)
+  select distinct v_s.id, p.id
+  from jsonb_array_elements(case when jsonb_typeof(v_t.payload->'entrants') = 'array'
+                                 then v_t.payload->'entrants' else '[]'::jsonb end) as e
+  join profiles p on p.id::text = e->>'id'
+  on conflict (session_id, user_id) do nothing;
+  get diagnostics v_att = row_count;
+
+  update sessions
+  set is_tournament = true,
+      t_linked = true,
+      closed_at = case when v_fin then coalesce(closed_at, now()) end
+  where id = v_s.id
+    and (not is_tournament or not t_linked
+         or (v_fin and closed_at is null) or (not v_fin and closed_at is not null));
+
+  return jsonb_build_object(
+    'games', coalesce(array_length(v_refs, 1), 0),
+    'saved', v_up, 'removed', v_del, 'checked_in', v_att, 'closed', v_fin);
+end $$;
+
+revoke all on function sync_tournament(uuid) from public, anon;
+grant execute on function sync_tournament(uuid) to authenticated;
