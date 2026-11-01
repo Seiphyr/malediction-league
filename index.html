@@ -1372,7 +1372,7 @@ function demoDress(){
     meta[id]={id,name,seeker,user_id}});
   const f0=dt("demo-0-1")||dt("demo-1-t");
   DEMO_NOTICES.push({id:"demo-n1",league_id:"demo",author_id:"demo-u1",created_at:[C.at(C.h,9),C.s(.4)].sort()[0],expires_at:null,body:"Cup event today! Groups start at 19:00. Check in at the bar when you arrive."},
-    {id:"demo-n2",league_id:"demo",author_id:"demo-u1",created_at:C.at(f0,21,30),expires_at:null,body:"Bring your painted standees: best-painted army at the next League event wins a playmat."});
+    {id:"demo-n2",league_id:"demo",author_id:"demo-u1",created_at:C.at(f0,21,30),expires_at:null,body:"Bring your painted miniatures: best-painted army at the next League event wins a playmat."});
 }
 /* The record of a demo deck, in deckRecord's shape, from the demo's own games. */
 function demoDeckRecord(e){demoDress();const r=[],vs={},add=(w,o)=>{r.push(w);const k=normName(o||""),v=vs[k]=vs[k]||{sk:o||"",w:0,l:0};w?v.w++:v.l++};
