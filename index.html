@@ -853,6 +853,8 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .cd-more{position:relative;flex:0 0 auto;align-self:center}
 .cd-more .dk-kebab{position:static;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center}
 .cd-more .dk-menu{top:calc(100% + 4px);right:0;min-width:200px}
+
+.dp-card{margin:0 0 12px;cursor:default}
 </style><style>.mc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 6px}
 .mc-hint{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-faint)}
 
@@ -1658,9 +1660,6 @@ function shareCard(e){const c=CARDS[e];if(!c)return;const url=cardLink(c);
   copyText(url,()=>toast("Link copied",!0))}
 function cardFromRoute(){const k=route.card;route.card=null;try{history.replaceState(null,"","#/")}catch(x){}
   setTimeout(()=>{const i=CARDS.findIndex(c=>cardSlug(c.n)===k);i>=0?showCardInfo(i):toast("That card was not found")},250)}
-const ICO_EDIT='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
-  ICO_COPY='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/></svg>',
-  ICO_SHARE='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="17.5" cy="5.5" r="2.5"/><circle cx="6.5" cy="12" r="2.5"/><circle cx="17.5" cy="18.5" r="2.5"/><path d="M8.7 10.7l6.6-3.9M8.7 13.3l6.6 3.9"/></svg>';
 function showCard(e){const n=CARDS[e];if(!n)return;let t=$("card-light");t||(t=document.createElement("div"),t.id="card-light",t.className="card-light",t.onclick=()=>t.remove(),document.body.appendChild(t)),t.innerHTML=`<img src="${cardImg(n.n)}" alt="${esc(n.n)}"\n    onerror="document.getElementById('card-light').remove();toast('No image for this card yet')">\n    <div class="cl-name">${esc(n.n)}${n.cn?` <small>${esc(n.cn)}</small>`:""}</div>`}document.addEventListener("keydown",e=>{"Escape"===e.key&&["card-light","card-info"].forEach(e=>{const n=$(e);n&&n.remove()})});const seekerFaction=e=>(SEEKERS.find(n=>n.name===e)||{}).faction||null,factionColor=e=>(FACTIONS[e]||{}).color||"var(--line-2)";let me=null,session=null,route={view:"browse",leagueId:null,tab:null},cache={leagues:[],myLeagues:[],league:null,members:[],sessions:[],matches:[],tourney:null},authMode="signin";const $=e=>document.getElementById(e),esc=e=>String(e??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e])),/* A value going into a JS string inside an on*="" handler: JSON makes it a valid string literal, esc keeps it inside the attribute. */jsq=e=>esc(JSON.stringify(String(e??""))),/* "Today" has to mean the day it is where the player is standing. Taking it
    from UTC put league night on tomorrow's date for anyone in the Americas —
    they meet in the evening, which is already the next day in UTC — and filed
@@ -7087,26 +7086,26 @@ async function renderDeckPage(){
   const who=(cache.profNames||{})[deck.user_id]||(DEMO_MEMBERS.find(m=>m.id===deck.user_id)||{}).display_name||"a Seeker",mine=me&&deck.user_id===me.id,rec=await deckRecord(deck.id);
   const legal=deck.cards?deckLegal(deck):null;
   el.innerHTML=`<div class="panel plain">
-    <div class="dk-phead dp-head">
-      <div class="dk-ph-main">
-        <h2 style="margin:0">${esc(deck.name)}</h2>
-        <div class="dk-ph-meta">${deck.tag?`<span class="dk-tag t-${deck.tag}">${DTAGS[deck.tag]||esc(deck.tag)}</span>`:""}${legal?`<span class="dk-valid ${legal.ok?"":"bad"}">${legal.tot} ${legal.ok?"✓":"⚠"}</span>`:""}<span>by ${DECK_ID_RE.test(deck.user_id||"")?`<button class="link" style="padding:0;font:inherit" onclick="go('profile',{profileId:${jsq(deck.user_id)}})">${esc(who)}</button>`:esc(who)}${deck.seeker?` · ${esc(deck.seeker)}`:""}${deck.updated_at?` · ${timeAgo(deck.updated_at)}`:""}${rec&&rec.w+rec.l?` · <span class="dk-rec">${rec.w}–${rec.l}</span> in league play${rec.t?`, ${rec.t} ${1===rec.t?"tournament":"tournaments"} included`:""}`:""}</span></div>
+    ${(()=>{const f=deckFacL(deck),mc=deck.cards?deckMainCount(deck.cards):0,sc=deck.side?Object.values(deck.side).reduce((a,b)=>a+b,0):0,miss=me&&deck.cards?missingCopies(deck.cards,deck.side):0,g=rec?rec.w+rec.l:0;return`<div class="deck-card dk2 dk3 dp-card" style="position:relative;border-left-color:${f?fColor(f):"var(--line-2)"}">
+      <div class="dk-well" style="background:${f?`color-mix(in srgb, ${fColor(f)} 13%, transparent)`:"rgba(255,255,255,.04)"};border-color:${f?`color-mix(in srgb, ${fColor(f)} 40%, transparent)`:"var(--line-2)"}">${f?fBadges(f):""}</div>
+      <div class="dk-main">
+        <div class="dk-name" role="heading" aria-level="2" title="${esc(deck.name)}">${esc(deck.name)}</div>
+        <div class="dk-meta">${deck.seeker?`<span class="dk-fac">${esc(deck.seeker.split(",")[0])}</span>`:""}${legal?`<span class="dk-valid ${legal.ok?"":"bad"}" title="${esc(deckWhyText(legal))}">${legal.tot} ${legal.ok?"✓":"⚠"}</span>`:""}${deck.tag?`<span class="dk-tag t-${deck.tag}">${DTAGS[deck.tag]||esc(deck.tag)}</span>`:""}${mine?`<span class="dk-visl">${deck.is_public?"🌐 Public":"🔒 Private"}</span>`:""}</div>
+        <div class="dk-build${deck.cards&&me&&!miss?" ok":""}">${mine?"":`by ${DECK_ID_RE.test(deck.user_id||"")?`<button class="link" style="padding:0;font:inherit" onclick="go('profile',{profileId:${jsq(deck.user_id)}})">${esc(who)}</button>`:esc(who)} · `}${deck.cards?`${mc} cards${sc?` +${sc} side`:""}${me?` · ${miss?`${miss} ${1===miss?"copy":"copies"} missing from collection`:"✓ buildable from your collection"}`:""}`:"link-only deck"}${deck.updated_at?` · ${timeAgo(deck.updated_at)}`:""}</div>
       </div>
-      <div class="dk-ph-tools">
-        ${mine?`<button class="ico-btn primary" onclick="go('builder',{deckId:${jsq(deck.id)}})" title="Edit in builder" aria-label="Edit in builder">${ICO_EDIT}</button>`:/^demo-d\d$/.test(deck.id)?"":me?`<button class="ico-btn primary" onclick="deckAdoptById(${jsq(deck.id)})" title="Copy to my decks" aria-label="Copy to my decks">${ICO_COPY}</button>`:`<button class="ico-btn primary" onclick="go('auth')" title="Sign in to copy it" aria-label="Sign in to copy it">${ICO_COPY}</button>`}
-        <button class="ico-btn" onclick="deckShare(${jsq(deck.id)})" title="Share" aria-label="Share">${ICO_SHARE}</button>
-        <div class="dk-act bld-more"><button class="dk-kebab ico-btn" aria-label="More deck actions" aria-haspopup="menu" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('open')">⋮</button>
-        <div class="dk-menu" onclick="this.classList.remove('open')">
-          ${mine?`<button class="dk-mi" onclick="go('builder',{deckId:${jsq(deck.id)}})">Edit in builder</button>`:/^demo-d\d$/.test(deck.id)?"":me?`<button class="dk-mi" onclick="deckAdoptById(${jsq(deck.id)})">⧉ Copy to my decks</button>`:`<button class="dk-mi" onclick="go('auth')">Sign in to copy it</button>`}
-          <button class="dk-mi" onclick="deckShare(${jsq(deck.id)})">Share</button>
-          <button class="dk-mi" onclick="deckCopyList(${jsq(deck.id)})">Copy list</button>
-          ${deck.cards?`<button class="dk-mi" onclick="deckPageProxies()">Print proxies…</button>`:""}
-        </div></div>
-      </div>
-    </div>
+      <div class="dk-wr">${g?`<span class="dk-spark"><i style="width:${Math.round(rec.w/g*100)}%;background:${wrTone(rec.w/g)}"></i></span><b style="color:${wrTone(rec.w/g)}">${pct(rec.w/g)}</b>&nbsp;· ${rec.w}W–${rec.l}L${rec.t?` · ${rec.t} ${1===rec.t?"tournament":"tournaments"}`:""}`:"no logged matches yet"}</div>
+      <div class="dk-act"><button class="dk-kebab" aria-label="Deck options" aria-haspopup="menu" onclick="event.stopPropagation();const m=this.nextElementSibling;document.querySelectorAll('.dk-menu.open').forEach(x=>{if(x!==m)x.classList.remove('open')});m.classList.toggle('open')">⋮</button>
+      <div class="dk-menu" onclick="this.classList.remove('open')">
+        ${mine?`<button class="dk-mi" onclick="go('builder',{deckId:${jsq(deck.id)}})">✎ Edit in builder</button>`:/^demo-d\d$/.test(deck.id)?"":me?`<button class="dk-mi" onclick="deckAdoptById(${jsq(deck.id)})">⧉ Copy to my decks</button>`:`<button class="dk-mi" onclick="go('auth')">Sign in to copy it</button>`}
+        <button class="dk-mi" onclick="deckShare(${jsq(deck.id)})">Share</button>
+        <button class="dk-mi" onclick="deckCopyList(${jsq(deck.id)})">Copy list</button>
+        ${deck.cards?`<button class="dk-mi" onclick="const d=cache.deckPage;d&&deckDownloadList(d.name,d.seeker||'',d.cards||{},d.side||{})">Download list</button>
+        <button class="dk-mi" onclick="deckPageProxies()">Print proxies…</button>`:""}
+        ${deck.url&&safeUrl(deck.url)?`<a class="dk-mi" href="${esc(safeUrl(deck.url))}" target="_blank" rel="noopener noreferrer">Original list ↗</a>`:""}
+      </div></div>
+    </div>`})()}
     ${mine&&!deck.is_public&&DECK_ID_RE.test(deck.id||"")?`<div class="dp-priv"><span>&#128274; Private: only you can open this page.</span><button class="ghost" onclick="deckPublicCopy(${jsq(deck.id)})">Make it public and copy link</button></div>`:""}
     ${deckDescHtml(deck.description)}
-    ${deck.url&&safeUrl(deck.url)?`<p class="hint" style="margin:10px 0 0"><a href="${esc(safeUrl(deck.url))}" target="_blank" rel="noopener noreferrer">Original list ↗</a></p>`:""}
     ${deck.cards?`<div class="flex-between" style="margin-top:14px">
         <div class="ip-sec" style="margin:0">Main deck — ${deckMainCount(deck.cards)} cards</div>
         ${dkSeg("renderDeckPage()")}
