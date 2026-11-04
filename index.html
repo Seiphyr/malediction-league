@@ -1153,7 +1153,7 @@ button.ghost.mc-no:hover{border-color:var(--crimson);color:var(--crimson-txt)}
 .ev-hand{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:0 10px}
 .ev-hand .link{display:inline-flex;align-items:center;min-height:44px;font-size:13.5px;color:var(--bone-dim)}
 .ev-hand small{font-family:Barlow,sans-serif;font-size:12px;color:var(--bone-dim)}
-/* Live-night strip, live refresh line and the "Last night" row */
+/* Live-event strip, live refresh line and the "Last event" row */
 .ev-live{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line-2);border-radius:12px;background:rgba(255,255,255,.025)}
 .ev-live-n{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;font-family:Oswald,sans-serif;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}
 .ev-live-n b{font-size:17px;letter-spacing:.02em;color:var(--bone);font-weight:500;margin-right:3px}
@@ -1449,10 +1449,10 @@ const SUPABASE_URL="https://mrcciuwekqijitngvojc.supabase.co",SUPABASE_ANON="sb_
    reads or writes the database. */
 DEMO_CAL=demoCal(new Date),DEMO_ID="demo",DEMO_MEMBERS=[["Aldric","organizer"],["Bryn"],["Corvin"],["Delia"],["Eowyn"],["Faramond"],["Gwen"],["Hadrian"],["Isolde"],["Jory"],["Kestrel"],["Lucan"]].map(([n,r],i)=>({id:"demo-u"+(i+1),display_name:n,role:r||"player",is_admin:!!r,dropped_at:11===i?DEMO_CAL.drop:null})),DEMO_SESSIONS=DEMO_CAL.ev.map(x=>({id:x.id,league_id:"demo",date:x.d,end_date:x.e||null,rounds:null,notes:x.n||null,event_url:null,is_tournament:!!x.t,t_linked:!!x.l,closed_at:x.c||null,created_by:"demo-u1",attendance:[]})),DEMO_LEAGUE={id:"demo",name:"Everwood Seekers",location:"The Sample Tavern",city:"Everwood",country:"Demo",description:"A sample league with made-up players. Nothing here can be changed.",join_code:"DEMO",owner_id:"demo-u1",is_public:!0,pts_attend:1,pts_win:2,pts_loss:.5,pts_sweep:0,is_online:!1,region:null,timezone:null,discord_url:null,member_count:DEMO_MEMBERS.filter(m=>!m.dropped_at).length,session_count:DEMO_SESSIONS.length,created_at:DEMO_CAL.lg,last_session:DEMO_CAL.h},DEMO_MATCHES=[],DEMO_TOURNEYS=[],DEMO_DECKS=[],DEMO_NOTICES=[];function isDemo(e){return"demo"===e}
 /* The demo's calendar. M3..M1 are the three months before this one: every
-   Friday is a league night and the last Friday of each is a tournament night
+   Friday is a league event and the last Friday of each is a tournament event
    (M3 and M1 with a tournament linked to the event, M2 an older Tournament
    event whose hand-logged games count double). This month has its Fridays so
-   far, Cup night today with a tournament under way, the next Friday and a
+   far, Cup event today with a tournament under way, the next Friday and a
    challenge week, Monday to Sunday, the week after (an event with an end date).
    When this month has no Friday behind it yet, an afternoon of open play
    earlier today gives it a second played event, so the Players tab can show
@@ -1476,7 +1476,7 @@ function demoCal(T){
 /* The demo's results, for the calendar C. Each player has a kit (Seeker,
    terrain, and the deck: three of them keep a public deck, everyone else plays
    the official precon of their Seeker); a few have a second Seeker (and Isolde a second terrain), marked '
-   in the log ("5'>2": Eowyn on her second Seeker beats Bryn). A night is
+   in the log ("5'>2": Eowyn on her second Seeker beats Bryn). An event is
    written as winner>loser, in the order played, and everyone who played is
    checked in. The three tournaments are built by the same functions a real
    one is, and their decided games become matches of their event exactly as
@@ -1486,7 +1486,7 @@ function demoCal(T){
    month and the Founders' Cup; Aldric and Corvin share the second month, where
    Aldric's six wins in a row still stand as the best streak; Corvin takes last
    month and its Midseason Cup; this month Kestrel is new, Bryn and Kestrel
-   share a place, and Isolde is on a run into tonight's Cup. */
+   share a place, and Isolde is on a run into today's Cup. */
 function demoMake(C){
   const K=[0,["Auric Evenhand","Starcast Halls","demo-d1"],["Thundersteps","Deathshroud Mire",0,"Sigrith Andravos"],["Londriel, Spellwarden","Astarian Pathways","demo-d2"],["Sigrith Andravos","Noxious Fleshgardens"],["Polinore, Prime Archivist","Starcast Halls",0,"Londriel, Spellwarden"],["Vorendal, the Dreadheart","Deathshroud Mire"],["Griza, Lingering Wound","Noxious Fleshgardens"],["Countess Morrida Umberland","Deathshroud Mire"],["In'Gor, the Spiritbound","Noxious Fleshgardens","demo-d3","Thundersteps","Deathshroud Mire"],["Auric Evenhand","Starcast Halls"],["Kar-Mamok","Starcast Halls"],["Countess Morrida Umberland","Astarian Pathways"]],
     DN={"demo-d1":"Forgewall Auric","demo-d2":"Spellward Tempo","demo-d3":"Spirit Bloom"},pre={},u=n=>"demo-u"+n,
@@ -1514,7 +1514,7 @@ function demoMake(C){
         p={v:2,entrants:S.n.map(n=>{const k=kit(n);return{id:k.id,seeker:k.sk,terrain:k.tr,deck:k.dn,deckId:k.dk||""}}),groups:tvSplit(ids),gm:[],tables:S.tb,bracket:[],finalized:!S.run};
       p.groups.forEach((g,gi)=>tvPairs(g).forEach(([a,b])=>{const x=a.slice(6),y=b.slice(6);p.gm.push({g:gi,a,b,w:bt.has(x+">"+y)?a:bt.has(y+">"+x)?b:null})}));
       tvSchedule(p.gm,S.tb);
-      /* Tonight: every game of the rounds already played has its result, one
+      /* Today: every game of the rounds already played has its result, one
          table of the round now on has finished and the other is still going. */
       if(S.run){const R=Math.max(...p.gm.map(m=>m.r)),cr=Math.ceil(R/2)+1;p.gm.forEach(m=>{(m.r>cr||m.r===cr&&m.tb>1)&&(m.w=null)})}
       p.bracket=buildBracket(new Array(Math.min(ids.length,1===p.groups.length?4:2*p.groups.length)).fill(null));
@@ -1528,7 +1528,7 @@ function demoMake(C){
       ids.forEach(id=>att[S.s].add(id));
     });
   }finally{cache.members=mem}
-  /* Cup night beside the tournament: Bryn and Kestrel play for fun. Their
+  /* Cup event beside the tournament: Bryn and Kestrel play for fun. Their
      first two games are confirmed, one win each, so they share a place; the
      third, Bryn's report of another win, is still waiting for Kestrel and
      scores nothing until Kestrel confirms it. Today's
@@ -1776,8 +1776,8 @@ function renderSetPreview(){
 function spShow(i,j){const p=SET_PREVIEW.posts[i],f=p&&p.imgs[j];if(!f)return;const nm=f.split("|")[1]||p.title;
   let t=$("card-light");t||(t=document.createElement("div"),t.id="card-light",t.className="card-light",t.onclick=()=>t.remove(),document.body.appendChild(t));
   t.innerHTML=`<img src="${SET_PREVIEW.dir+f.split("|")[0]}.jpg" alt="${esc(nm)}"><div class="cl-name">${esc(nm)} <small>${spDate(p.date)} · <a href="${p.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Instagram ↗</a></small></div>`}function showCard(e){const n=CARDS[e];if(!n)return;let t=$("card-light");t||(t=document.createElement("div"),t.id="card-light",t.className="card-light",t.onclick=()=>t.remove(),document.body.appendChild(t)),t.innerHTML=`<img src="${cardImg(n.n)}" alt="${esc(n.n)}"\n    onerror="document.getElementById('card-light').remove();toast('No image for this card yet')">\n    <div class="cl-name">${esc(n.n)}${n.cn?` <small>${esc(n.cn)}</small>`:""}</div>`}document.addEventListener("keydown",e=>{"Escape"===e.key&&["card-light","card-info"].forEach(e=>{const n=$(e);n&&n.remove()})});const seekerFaction=e=>(SEEKERS.find(n=>n.name===e)||{}).faction||null,factionColor=e=>(FACTIONS[e]||{}).color||"var(--line-2)";let me=null,session=null,route={view:"browse",leagueId:null,tab:null},cache={leagues:[],myLeagues:[],league:null,members:[],sessions:[],matches:[],tourney:null},authMode="signin";const $=e=>document.getElementById(e),esc=e=>String(e??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e])),/* A value going into a JS string inside an on*="" handler: JSON makes it a valid string literal, esc keeps it inside the attribute. */jsq=e=>esc(JSON.stringify(String(e??""))),/* "Today" has to mean the day it is where the player is standing. Taking it
-   from UTC put league night on tomorrow's date for anyone in the Americas —
-   they meet in the evening, which is already the next day in UTC — and filed
+   from UTC put a league event on tomorrow's date for anyone in the Americas —
+   they meet late in the day, which is already the next day in UTC — and filed
    a tournament played on the 31st under the following month. */
 today=()=>todayStr(),monthKey=e=>String(e).slice(0,7),MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],/* Dates are written in English, since the whole page is, but in the order
    the viewer's browser uses: month first for a browser that writes dates that
@@ -4146,7 +4146,7 @@ function plSnap(e){const nA=(cache.matches||[]).filter(n=>n.winner_id===e||n.los
   if(!o.length)return hist+'<div class="panel plain"><div class="empty">No past events yet.</div></div>';
   /* Grouped by month, newest first. The latest month is open, older ones are
      folded; each event is one row that unfolds into its full card in place.
-     The "Last night" row asks for its event with window._pastOpen. */
+     The "Last event" row asks for its event with window._pastOpen. */
   window._pePast={e,n,t,a,s,i};
   const po=window._pastOpen,pk=po&&(o.find(x=>x.id===po)||{}).date,G=[];
   po&&(window._pastOpen=null,pk&&(window._peRow[po]=!0,window._pmOpen[pk.slice(0,7)]=!0));
@@ -4258,12 +4258,12 @@ function wzTer(t){return t&&TERRAINS.includes(t)?t:""}
 function wzDeckTer(dk){if(!dk)return"";try{const t=deckTerrains(dk).find(x=>TERRAINS.includes(x));if(t)return t}catch(x){}try{return wzTer((JSON.parse(localStorage.getItem("sl.deckter")||"{}")||{})[dk.id])}catch(x){return""}}
 function wzDeckSk(dk){if(!dk||!dk.seeker)return"";const s=seekerByNorm(normName(dk.seeker));return s?s.name:""}
 /* The opponent's Seeker and terrain from their latest game at this event,
-   when they have one: most players keep the same deck all evening. */
+   when they have one: most players keep the same deck for the whole event. */
 function wzOppLast(sid,id){const m=(cache.matches||[]).filter(x=>x.session_id===sid&&(x.winner_id===id||x.loser_id===id)).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""))[0];if(!m)return null;const w=m.winner_id===id;return{s:wzSk(w?m.winner_seeker:m.loser_seeker),t:wzTer(w?m.winner_terrain:m.loser_terrain),did:(w?m.winner_deck_id:m.loser_deck_id)||""}}
 function wizInit(sid){const adm=isAdminOf(cache.league),att=wizGetAtt(sid);return me&&(!adm||att.includes(me.id)&&!evIsWin(ciSes(sid)))?wzQuickNew(sid):{sid,step:1,d:{}}}
 /* Your own side: your latest game at this event comes first (whoever logged
    it), then the last setup this browser saved, then the deck. A saved deck
-   that does not fit tonight's Seeker is left out. */
+   that does not fit today's Seeker is left out. */
 function wzQuickNew(sid,opp){const L=wzLastGet(cache.league.id),o=me?wzOppLast(sid,me.id):null,ds=cache.myDecks||[];let dk=o&&o.did&&ds.find(x=>x.id===o.did)||ds.find(x=>x.id===L.did);o&&o.s&&dk&&dk.id!==o.did&&wzDeckSk(dk)&&wzDeckSk(dk)!==o.s&&(dk=null);const d={res:"",opp:"",mys:o&&o.s||wzSk(L.s)||wzDeckSk(dk),myt:o&&o.t||wzTer(L.t)||wzDeckTer(dk),mydid:dk?dk.id:"",myd:dk&&dk.url||"",ops:"",opt:"",opd:""};d._dku=d.myd;const n={sid,step:"q",d};opp&&wzOppSet(n,opp);return n}
 function wzOppSet(n,id){const d=n.d;d.opp=id||"";const o=id?wzOppLast(n.sid,id):null;o&&(o.s||o.t)?(d.ops=o.s,d.opt=o.t,d._oa=1):d._oa&&(d.ops="",d.opt="",d._oa=0)}
 /* Checked-in players you have not played at this event come first, then the
@@ -4311,11 +4311,11 @@ function wzMode(sid,m){const n=window._logWiz;if(!n||n.sid!==sid)return;wzCap(si
 function wzPrefillClassic(t,sid){if(!cache.league)return;const L=wzLastGet(cache.league.id),ds=cache.myDecks||[],p=t._pf||{};t._pf=p;["w","l"].forEach(k=>{const id=t[k],q=p[k];
 /* Back to step 1 and a side changed hands (or the sides swapped): what was
    prefilled there, and left as it was, goes, and the new player's comes in. */
-if(q&&q.id!==id){["s","t","did"].forEach(f=>{q[f]&&t[k+f]===q[f]&&(t[k+f]="")});delete p[k]}if(!id||p[k])return;const o=sid?wzOppLast(sid,id):null,pf={id,src:o&&(o.s||o.t)?"tonight":""};if(me&&id===me.id){let dk=o&&o.did&&ds.find(x=>x.id===o.did)||ds.find(x=>x.id===L.did);o&&o.s&&dk&&dk.id!==o.did&&wzDeckSk(dk)&&wzDeckSk(dk)!==o.s&&(dk=null);t[k+"s"]||(t[k+"s"]=pf.s=o&&o.s||wzSk(L.s)||wzDeckSk(dk)),t[k+"t"]||(t[k+"t"]=pf.t=o&&o.t||wzTer(L.t)||wzDeckTer(dk)),!t[k+"did"]&&dk&&(t[k+"did"]=pf.did=dk.id);pf.src||(pf.src="last")}else if(o){t[k+"s"]||(t[k+"s"]=pf.s=o.s),t[k+"t"]||(t[k+"t"]=pf.t=o.t)}p[k]=pf})}
+if(q&&q.id!==id){["s","t","did"].forEach(f=>{q[f]&&t[k+f]===q[f]&&(t[k+f]="")});delete p[k]}if(!id||p[k])return;const o=sid?wzOppLast(sid,id):null,pf={id,src:o&&(o.s||o.t)?"event":""};if(me&&id===me.id){let dk=o&&o.did&&ds.find(x=>x.id===o.did)||ds.find(x=>x.id===L.did);o&&o.s&&dk&&dk.id!==o.did&&wzDeckSk(dk)&&wzDeckSk(dk)!==o.s&&(dk=null);t[k+"s"]||(t[k+"s"]=pf.s=o&&o.s||wzSk(L.s)||wzDeckSk(dk)),t[k+"t"]||(t[k+"t"]=pf.t=o&&o.t||wzTer(L.t)||wzDeckTer(dk)),!t[k+"did"]&&dk&&(t[k+"did"]=pf.did=dk.id);pf.src||(pf.src="last")}else if(o){t[k+"s"]||(t[k+"s"]=pf.s=o.s),t[k+"t"]||(t[k+"t"]=pf.t=o.t)}p[k]=pf})}
 /* Step 2 marks what was prefilled and is still as it was. */
 function wzPfOn(d,k,f){const q=d._pf&&d._pf[k];return!!q&&!!q[f]&&d[k+f]===q[f]}
 function wzPfc(d,k,f){return wzPfOn(d,k,f)?' class="wz-pfs" onchange="this.classList.remove(\'wz-pfs\')"':""}
-function wzPfTag(d,k,sid){const q=d._pf&&d._pf[k];if(!q||!wzPfOn(d,k,"s")&&!wzPfOn(d,k,"t"))return"";const mine=me&&q.id===me.id,ev=sid&&ciSes(sid),tn=ev&&ev.date!==todayStr()?" at this event":" today";return`<p class="wz-pf-h">Prefilled from ${"tonight"===q.src?(mine?"your":"their")+" last game"+tn:"your last game in this league"} · change it if needed</p>`}
+function wzPfTag(d,k,sid){const q=d._pf&&d._pf[k];if(!q||!wzPfOn(d,k,"s")&&!wzPfOn(d,k,"t"))return"";const mine=me&&q.id===me.id,ev=sid&&ciSes(sid),tn=ev&&ev.date!==todayStr()?" at this event":" today";return`<p class="wz-pf-h">Prefilled from ${"event"===q.src?(mine?"your":"their")+" last game"+tn:"your last game in this league"} · change it if needed</p>`}
 function wzQuickMap(n){const q=n.d;if(!me)return null;if(!q.res)return toast("Tap I won or I lost"),null;if(!q.opp)return toast("Pick your opponent"),null;if(q.opp===me.id)return toast("A player cannot beat themselves"),null;if(!q.mys||!q.ops)return toast("Pick both Seekers"),null;if(!q.myt||!q.opt)return toast("Pick the terrain set each player brought"),null;const W="w"===q.res;return{w:W?me.id:q.opp,l:W?q.opp:me.id,ws:W?q.mys:q.ops,wt:W?q.myt:q.opt,ls:W?q.ops:q.mys,lt:W?q.opt:q.myt,wd:W?q.myd:q.opd,ld:W?q.opd:q.myd,wdid:W?q.mydid:"",ldid:W?"":q.mydid}}
 function wzOrd(n){const s=n%100;return n+(s>10&&s<14?"th":{1:"st",2:"nd",3:"rd"}[n%10]||"th")}
 function wzPts(x){x=Math.round(100*x)/100;return`${x<0?"":"+"}${x} ${1===Math.abs(x)?"pt":"pts"}`}
@@ -4556,7 +4556,7 @@ function lgsGo(k){
   go("league",{leagueId:lg.id,tab:"events"});
 }
 function paintManage(e,n){return lgStartPanel(e,n)+nbManagePanel(e)+`<div class="panel plain"><h2>League details</h2><p class="hint">This is what players read at the top of the league page.</p>${lgKindLine(e)}${lgHasWin(e)&&lgOnl(e)?lgOnlineFields(e):`<label class="field"><span>Name</span><input id="lg-name" maxlength="60" value="${esc(e.name||"")}"></label><div class="row tight"><label class="field"><span>Venue</span><input id="lg-loc" maxlength="80" value="${esc(e.location||"")}"></label><label class="field"><span>City</span><input id="lg-city" maxlength="60" value="${esc(e.city||"")}"></label><label class="field"><span>Country</span><input id="lg-country" maxlength="60" value="${esc(e.country||"")}"></label></div><p class="hint" style="margin:-6px 0 14px">${null!=e.lat?`\u25C9 On the map from <b>${esc([e.city,e.country].filter(Boolean).join(", "))}</b>. <button class="link" style="padding:0" onclick="mapPickOpen('league',${jsq(e.id)})">Move the pin by hand</button> if it landed in the wrong place.`:e.city?`\u25CE Not on the map yet \u2014 save the details and the town will place it.`:`\u25CE Fill in the city to put this league on the map.`}</p>${lgWinFields(e)}`}<label class="field"><span>Description (optional)</span><textarea id="lg-desc" rows="2" maxlength="240" placeholder="When and where you meet">${esc(e.description||"")}</textarea></label><label style="display:flex;align-items:center;gap:9px;margin:12px 0 16px;cursor:pointer"><input type="checkbox" id="lg-public" style="width:auto" ${e.is_public?"checked":""}><span class="hint" style="margin:0">Listed publicly on the home page</span></label><button class="act" id="lg-save" style="width:100%" onclick="saveLeague()">Save details</button></div><div class="panel plain">\n    <h2>Join code</h2>\n    <div class="code-box">\n      <div class="code">${esc(e.join_code)}</div>\n      <small>League join code</small>\n    </div>\n    <div class="row">\n      <button class="ghost" onclick="copyCode(${jsq(e.join_code)})">Copy code</button>\n      <button class="ghost" onclick="copyInvite()">Copy invite link</button>\n      <button class="ghost" onclick="rerollCode()">Generate new code</button>\n    </div>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Invite link: <span class="inv-url">${esc(inviteLink(e.join_code))}</span><br>Whoever opens it joins this league as soon as they've signed in.</p>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Generating a new code doesn't remove existing members —\n      it only invalidates the old code for new joins.</p>\n  </div>\n\n  <div class="panel plain">\n    <h2>Scoring rules</h2>\n    <p class="hint">Changing these recalculates all standings immediately.</p>\n    <div class="config-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">\n      <label class="field"><span>Points per attendance</span><input type="number" step="0.5" id="cf-att" value="${e.pts_attend}"></label>\n      <label class="field"><span>Points per win</span><input type="number" step="0.5" id="cf-win" value="${e.pts_win}"></label>\n      <label class="field"><span>Points per loss</span><input type="number" step="0.5" id="cf-loss" value="${e.pts_loss}"></label>\n      <label class="field"><span>Tournament games</span>\n        <input type="text" value="×2 points — fixed" disabled style="opacity:.7"></label>\n      <label class="field"><span>Next event bonus <b id="cf-neb-v" style="color:var(--brass)">${e.next_event_bonus||0}</b></span>\n        <input type="range" min="0" max="2" step="1" id="cf-neb" value="${e.next_event_bonus||0}"\n          oninput="document.getElementById('cf-neb-v').textContent=this.value">\n        <small class="hint" style="font-size:11px">Extra attendance points on the next upcoming event</small></label>\n    </div>\n    <button class="act" onclick="saveScoring()">Save rules</button>\n  </div>\n\n  <div class="panel plain">\n    <h2>Members</h2>\n    <table><thead><tr><th>Player</th><th>Role</th><th></th></tr></thead><tbody>\n      ${n.map(n=>`<tr>\n        <td class="${me&&n.id===me.id?"me":""}">${esc(n.display_name)}${me&&n.id===me.id?" (you)":""}</td>\n        <td>${e.owner_id===n.id?'<span class="ownchip">Owner</span>':n.dropped_at?'<span class="retchip">Retired</span>'+(n.is_admin?' <span class="mb-still" title="Retired, but still has organizer rights. Demote them to take those away.">still co-organizer</span>':''):n.is_admin?'<span style="color:var(--brass)">Co-organizer</span>':"Player"}</td>\n        <td style="text-align:right"><div class="mb-act">${e.owner_id===n.id?"":n.dropped_at?`${n.is_admin?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},false)" title="Take away their organizer rights">Demote</button>`:""}<button class="ghost" onclick="mbRestore(${jsq(n.id)})">Bring back</button>`:`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},${!n.is_admin})" title="${n.is_admin?"Make them a player again":"Make them a co-organizer"}">${n.is_admin?"Demote":"Promote"}</button><button class="t-x" onclick="mbDrop(${jsq(n.id)})" title="Drop from the league" aria-label="Drop player">&#10005;</button>`}</div></td></tr>`).join("")}\n    </tbody></table>\n  </div>\n\n  <div class="panel plain">\n    <h2>Owner controls</h2>\n    ${isOwnerOf(e)?`<p class="hint">Only you can do these.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the league":"Archive the league"}</b><small>${lgArchived(e)?"Events, matches and joining work again.":"The history stays readable. Nobody can add events, matches or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>\n    <div class="oz-row"><div><b>Hand the league over</b><small>They get these controls and you drop to co-organizer. You cannot undo it yourself.</small></div><div class="oz-pick"><select id="lg-owner"><option value="">— pick a player —</option>${n.filter(x=>x.id!==e.owner_id&&!x.dropped_at).map(x=>`<option value="${x.id}">${esc(x.display_name)}</option>`).join("")}</select><button class="ghost" onclick="lgTransfer()">Transfer</button></div></div>\n    <div class="oz-row"><div><b>Delete the league</b><small>Deletes everything, permanently. No undo.</small></div><button class="ghost t-danger-b" onclick="deleteLeague()">Delete league</button></div>`:`<p class="hint">Only ${esc((n.find(x=>x.id===e.owner_id)||{}).display_name||"the owner")}, who made the league, can archive, hand over or delete it.</p>`}\n  </div>`}function copyCode(e){copyText(e,()=>{toast("Code copied",!0);cache.league&&cache.league.join_code===e&&lgsMarkShared()})}async function rerollCode(){if(!await slConfirm({title:"Generate a new join code?",body:"The old one stops working.",ok:"New code",danger:!0}))return;const e=genCode(),{error:n}=await sb.from("leagues").update({join_code:e}).eq("id",cache.league.id);if(n)return toast(n.message);toast("New code: "+e,!0),renderLeague()}async function saveScoring(){const{error:e}=await sb.from("leagues").update({pts_attend:+$("cf-att").value||0,pts_win:+$("cf-win").value||0,pts_loss:+$("cf-loss").value||0,next_event_bonus:+($("cf-neb")?$("cf-neb").value:0)||0}).eq("id",cache.league.id);if(e)return toast(e.message);toast("Rules saved",!0),renderLeague()}async function toggleAdmin(e,n){const{error:t}=await sb.from("memberships").update({is_admin:n}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n?"Promoted to co-organizer":"Demoted to player",!0),cache.myLeagues=[],renderLeague()}async function deleteLeague(){if(!cache.league||!await slConfirm({title:"Delete this league permanently?",body:"All events and matches will be lost. This cannot be undone.",ok:"Delete league",danger:!0,typed:cache.league.name}))return;const{error:e}=await sb.from("leagues").delete().eq("id",cache.league.id);if(e)return toast(e.message);cache.myLeagues=[],toast("League deleted",!0),go("browse")}window._peOpen=window._peOpen||{};/* ===== Tournaments, second generation =====
-   A tournament is an evening, not a month. The organiser picks the people who
+   A tournament is a single event, not a month. The organiser picks the people who
    actually turned up, every group match is written out in advance, and the
    finals fill themselves in from the group results. Older tournaments carry no
    "v" and keep rendering through the original code path. */
@@ -4652,7 +4652,7 @@ function tvQualifiers(p,n){
   return out.map(r=>({id:r.id}));
 }
 /* The bracket exists from the first minute, empty, so everyone can see the
-   shape of the evening. It is filled the moment the last group match lands. */
+   shape of the event. It is filled the moment the last group match lands. */
 function tvSyncFinals(p){
   if(!p.bracket||!p.bracket.length)return;
   const clear=()=>p.bracket.forEach(r=>r.forEach(m=>{m.a=null,m.b=null,m.winner=null}));
@@ -4693,7 +4693,7 @@ function tvBrought(p,id){
   const bits=dup?[dk,e.terrain&&esc(e.terrain)].filter(Boolean):[sk&&esc(sk),e.terrain&&esc(e.terrain),dk].filter(Boolean);
   return bits.length?`<span class="tv-brought">${bits.join(" · ")}</span>`:"";
 }
-/* A tournament is an evening. It is filed under the month it happens in, and
+/* A tournament is a single event. It is filed under the month it happens in, and
    there is no limit on how many a month can hold, so there is nothing to ask. */
 function tvSetup(members){
   const s=tvSel(),pool=(members||[]).filter(m=>!m.dropped_at);
@@ -4803,7 +4803,7 @@ async function tvWin(i,who){
 }
 /* ===== Matches by round =====
    With tables set, every group match carries a round and a table. On the
-   night the organizer works round by round, not group by group, so the same
+   day of the event the organizer works round by round, not group by group, so the same
    matches can be listed for one round across all groups, in table order, with
    the same one-tap result buttons. The view sticks (this browser only); the
    round follows play until a different one is picked. */
@@ -4858,7 +4858,7 @@ function evTEntrant(sid,uid){const t=sid&&uid&&evTOf({id:sid});return!!t&&Array.
 function evTWants(ev){const k=evTKind(ev);return!evTOf(ev)&&("t"===k||"old"===k&&!0===tvLinkOk)}
 function evTTag(ev,sp){const k=evTKind(ev);return k?`${sp}<span class="dk-tag" style="border-color:var(--brass-dim);color:var(--brass)"${"old"===k?' title="Set up before tournaments were linked to events: every match here counts double"':""}>${"old"===k?"Tournament ×2":"Tournament"}</span>`:""}
 function evTWord(ev){const k=evTKind(ev);return"old"===k?"Tournament ×2":k?"Tournament":""}
-/* nb: the live-night strip above already carries the tournament button. */
+/* nb: the live-event strip above already carries the tournament button. */
 function evTBox(ev,s,cur,nb){
   const k=evTKind(ev);if(!k)return"";
   const t=evTOf(ev),id=esc(ev.id);
@@ -4882,9 +4882,9 @@ function evTHand(ev,s){
 }
 function evHandToggle(sid){window._evHand=window._evHand===sid?null:sid;window._evHand?window._logWiz=wizInit(sid):window._logWiz&&window._logWiz.sid===sid&&(window._logWiz=null);renderLeague()}
 function evTOpen(tid){window._tPick=tid;goLeagueTab("tournament",cache.league&&cache.league.id)}
-/* ===== Live-night strip =====
-   At the top of today's event card. Organizers get the night in one line and
-   its actions in one place; a checked-in player gets their own night, the
+/* ===== Live-event strip =====
+   At the top of today's event card. Organizers get the event in one line and
+   its actions in one place; a checked-in player gets their own event, the
    reports waiting on them (with Confirm right there) and the ones they wait
    on. Points come from computeStandings itself, fed this event's check-ins and
    matches only, so the figure always agrees with the standings. */
@@ -4913,7 +4913,7 @@ function evLiveMe(ev,ls){
     pd=ls.filter(m=>!m.tournament_id&&mcCanOpp(m)),wt={};
   ls.forEach(m=>{if(m.confirmed||m.tournament_id||m.reported_by!==me.id)return;const o=m.winner_id===me.id?m.loser_id:m.loser_id===me.id?m.winner_id:"";o&&(wt[o]=(wt[o]||0)+1)});
   const wk=Object.keys(wt),wl=!wk.length?"":1===wk.length?`Waiting for <b>${esc(nameOf(wk[0]))}</b> to confirm ${wt[wk[0]]} ${1===wt[wk[0]]?"match":"matches"}`:`Waiting for ${wk.map(k=>`<b>${esc(nameOf(k))}</b> (${wt[k]})`).join(", ")} to confirm`;
-  /* Two parts: the night's line at the top of the card, and what waits for a
+  /* Two parts: the event's line at the top of the card, and what waits for a
      confirmation under the player's own buttons, so "+ Log a match" stays on
      the first screen however many reports are pending. */
   return[`<div class="ev-live ev-live-me" role="group" aria-label="Your event">
@@ -4956,7 +4956,7 @@ function evLiveSig(ss,ms){const by=(a,b)=>String(a.id).localeCompare(String(b.id
 async function evLiveTick(force){
   if(!evLiveOn())return void evLiveArm(null);
   if(window._evLiveRun||!force&&(document.hidden||evLiveBusy()))return;
-  /* Only today's events and their matches can change during the night, so
+  /* Only today's events and their matches can change during the event, so
      only those are fetched; they are spliced into the cached history and
      handed to renderLeague, which then doesn't fetch them again. Returns
      true (redrawn), false (nothing changed) or null (couldn't reach the
@@ -4978,7 +4978,7 @@ async function evLiveTick(force){
 }
 async function evLiveRefresh(){const c=await evLiveTick(1);null===c?toast("Couldn't refresh. Check your connection and try again."):!1===c&&toast("Up to date",!0)}
 document.addEventListener("visibilitychange",()=>{"visible"===document.visibilityState&&window._evLiveT&&Date.now()-(window._evLiveAt||0)>1e4&&evLiveTick()});
-/* ===== Last night =====
+/* ===== Last event =====
    For two days after an event, a one-row reminder at the top of Current:
    its counts, your result and what still waits for a confirmation. It opens
    that event under Past, its lists unfolded. */
@@ -5050,9 +5050,9 @@ async function nsMany(D,row,lk){
   toast(w,!0),renderLeague();
 }
 /* ===== Pairing suggestions =====
-   For organizers at a league night: tables from the players checked in, new
-   opponents tonight first, then the pairs with the fewest games together
-   ever, and a bye for an odd count (to someone with the most games tonight).
+   For organizers at a league event: tables from the players checked in, new
+   opponents of the day first, then the pairs with the fewest games together
+   ever, and a bye for an odd count (to someone with the most games today).
    Advisory only and kept in this browser: nothing is saved. "Log result"
    opens the match wizard with both players already picked. */
 function evPairK(a,b){return a<b?a+"|"+b:b+"|"+a}
@@ -5219,7 +5219,7 @@ function evChampion(ev){
   }
   return null;
 }
-/* Under the date on the upcoming (or live) event card: what tonight is worth,
+/* Under the date on the upcoming (or live) event card: what today's event is worth,
    read from the league's own fields the way ptsHow reads them (the next event
    bonus only on the event computeStandings gives it to), then, before the
    event day (up), Invite and Add to calendar. */
@@ -5272,7 +5272,7 @@ function evIcs(sid){
   toast("Calendar file saved — open it to add the event",!0);
 }
 /* Visitors and signed-in non-members, under the next event: what a league
-   night is, then the league's own way in (lgJoinBox; the header leaves its
+   event is, then the league's own way in (lgJoinBox; the header leaves its
    copy out on this tab so the ids stay unique). Only before the event day:
    on the day the live card is long, so the header keeps the join box and
    paintEvents skips this. The demo has nothing to join: its demo note
@@ -5329,7 +5329,7 @@ function tvGroupsHtml(p,admin){
   return h+"</div></div>";
 }
 /* ===== The tournament tab =====
-   A running tournament comes first and stays open, as on the night. If two
+   A running tournament comes first and stays open, as on the day of the event. If two
    run at once, the newest is open and the other waits as a row. Finished ones
    follow under Past tournaments, newest first, each a closed row: when it
    ended, who won and whom they beat in the final. Tapping one opens it in
@@ -5697,7 +5697,7 @@ function tvLinkedSes(ss,ms){const o=new Set;(ss||[]).forEach(x=>{x&&x.t_linked&&
    started from (window._tSes), else today's Tournament event that has no
    tournament yet, else a new Tournament event dated today. false: none could
    be made, so the tournament is not created either. */
-/* The event it was started from may be a League night: it becomes a Tournament
+/* The event it was started from may be a League event: it becomes a Tournament
    event at the first sync, and its hand-logged games keep counting once. Of
    today's Tournament events, an open one set up for a tournament comes first. */
 function tvEventPick(){
@@ -5708,7 +5708,7 @@ function tvEventPick(){
 }
 /* Today's open events with no tournament yet. When it is the only one, a
    tournament started from the Tournament tab goes into it rather than into a
-   second event, so nobody is checked in twice that evening. */
+   second event, so nobody is checked in twice that day. */
 function tvTodayFree(){
   const lg=cache.league,d=todayStr(),used=new Set((cache.tourneys||[]).filter(x=>x&&x.session_id).map(x=>x.session_id));
   return(cache.sessions||[]).filter(x=>x&&lg&&x.league_id===lg.id&&x.date===d&&!x.closed_at&&!used.has(x.id));
