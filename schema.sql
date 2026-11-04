@@ -3648,3 +3648,28 @@ select
 from leagues l
 where l.is_public;
 
+
+
+-- ============================================================
+--  PINNED NOTICES (2026-11-07)
+-- ============================================================
+-- A notice can be pinned to the top of the board. Pinning goes through
+-- set_notice_pinned() only: there is still no update policy on announcements.
+alter table public.announcements add column if not exists pinned boolean not null default false;
+
+create or replace function public.set_notice_pinned(p_id uuid, p_pinned boolean)
+returns void language plpgsql security definer set search_path = public as $$
+declare v_league uuid;
+begin
+  select league_id into v_league from announcements where id = p_id;
+  if not found then
+    raise exception 'notice not found';
+  end if;
+  if not (case when v_league is null then is_site_admin() else (is_site_admin() or is_league_admin(v_league)) end) then
+    raise exception 'not allowed';
+  end if;
+  update announcements set pinned = coalesce(p_pinned, false) where id = p_id;
+end $$;
+
+revoke all on function public.set_notice_pinned(uuid, boolean) from public, anon;
+grant execute on function public.set_notice_pinned(uuid, boolean) to authenticated;
