@@ -49,30 +49,29 @@ foreach ($c in $cards) {
   $type = (@($TN[$c.t]) + @($c.tr | Where-Object { $_ })) -join " · "
   $desc = "$type · $fac" + $(if ($kw) { ". " + ($kw -join ", ") } else { "" }) + ". Malediction card on Seekers League."
 
-  # preview picture: the card on the left, its name and lines on the right
+  # preview picture: the card in the middle (WhatsApp crops a square from the
+  # centre) over a blurred, darkened copy of its own art
   $dec = [Windows.Media.Imaging.BitmapDecoder]::Create([Uri]$img, [Windows.Media.Imaging.BitmapCreateOptions]::None, [Windows.Media.Imaging.BitmapCacheOption]::OnLoad)
   $bmp = $dec.Frames[0]
   $land = $bmp.PixelWidth -gt $bmp.PixelHeight
-  if ($land) { $w = 600; $h = $w * $bmp.PixelHeight / $bmp.PixelWidth } else { $h = 570; $w = $h * $bmp.PixelWidth / $bmp.PixelHeight }
-  $ix = 50; $iy = (630 - $h) / 2
+  if ($land) { $w = 600; $h = $w * $bmp.PixelHeight / $bmp.PixelWidth } else { $h = 580; $w = $h * $bmp.PixelWidth / $bmp.PixelHeight }
+  $ix = (1200 - $w) / 2; $iy = (630 - $h) / 2
+  $bw = 1320; $bh = $bw * $bmp.PixelHeight / $bmp.PixelWidth
+  $back = New-Object Windows.Media.DrawingVisual
+  $back.Effect = New-Object Windows.Media.Effects.BlurEffect -Property @{ Radius = 46 }
+  $bc = $back.RenderOpen(); $bc.DrawImage($bmp, (New-Object Windows.Rect -60, ((630 - $bh) / 2), $bw, $bh)); $bc.Close()
   $dv = New-Object Windows.Media.DrawingVisual
   $dc = $dv.RenderOpen()
   $dc.DrawRectangle($bg, $null, (New-Object Windows.Rect 0, 0, 1200, 630))
+  $dc.DrawRectangle((New-Object Windows.Media.VisualBrush $back), $null, (New-Object Windows.Rect 0, 0, 1200, 630))
+  $dc.DrawRectangle((New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(150, 12, 12, 12))), $null, (New-Object Windows.Rect 0, 0, 1200, 630))
   $dc.DrawRectangle($crim, $null, (New-Object Windows.Rect 0, 0, 1200, 6))
-  $dc.DrawRoundedRectangle([Windows.Media.Brushes]::Black, $null, (New-Object Windows.Rect ($ix + 6), ($iy + 8), $w, $h), 14, 14)
+  $dc.DrawRoundedRectangle((New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromArgb(170, 0, 0, 0))), $null, (New-Object Windows.Rect ($ix + 8), ($iy + 10), $w, $h), 14, 14)
   $dc.PushClip((New-Object Windows.Media.RectangleGeometry (New-Object Windows.Rect $ix, $iy, $w, $h), 12, 12))
   $dc.DrawImage($bmp, (New-Object Windows.Rect $ix, $iy, $w, $h))
   $dc.Pop()
-  $tx = $ix + $w + 50; $tw = 1200 - $tx - 50; $y = 120
-  $y += Txt $dc "SEEKERS LEAGUE" $tfBold 22 $brass $tx $y $tw
-  $y += 14
-  $y += Txt $dc $c.n $tfBold 56 $bone $tx $y $tw
-  $y += 14
-  $y += Txt $dc $type $tf 28 $dim $tx $y $tw
-  $y += 8
-  $y += Txt $dc $fac $tf 28 $brass $tx $y $tw
-  if ($kw) { $y += 14; [void](Txt $dc ($kw -join " · ") $tf 26 $blue $tx $y $tw) }
-  [void](Txt $dc "seekers-league.com" $tf 22 $dim $tx 560 $tw)
+  [void](Txt $dc "SEEKERS LEAGUE" $tfBold 20 $brass 40 34 300)
+  [void](Txt $dc "seekers-league.com" $tf 20 $dim 40 586 300)
   $dc.Close()
   $rt = New-Object Windows.Media.Imaging.RenderTargetBitmap 1200, 630, 96, 96, ([Windows.Media.PixelFormats]::Pbgra32)
   $rt.Render($dv)
