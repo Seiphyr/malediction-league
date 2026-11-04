@@ -1470,7 +1470,7 @@ function demoCal(T){
   F0.length||ev.push({id:"demo-pm",d:h,n:"Afternoon open play",c:s(.35)});
   ev.push({id:"demo-now",d:h,n:"Cup event",t:!0,l:!0});
   const nx=new Date(t0);do nx.setDate(nx.getDate()+1);while(5!==nx.getDay());
-  ev.push({id:"demo-nx1",d:f(nx),n:"League event"});nx.setDate(nx.getDate()+7);{const a=new Date(nx),b=new Date(nx);a.setDate(a.getDate()-4);b.setDate(b.getDate()+2);ev.push({id:"demo-wk",d:f(a),e:f(b),n:"Challenge week: play any evening at the tavern"})}
+  ev.push({id:"demo-nx1",d:f(nx),n:"League event"});nx.setDate(nx.getDate()+7);{const a=new Date(nx),b=new Date(nx);a.setDate(a.getDate()-4);b.setDate(b.getDate()+2);ev.push({id:"demo-wk",d:f(a),e:f(b),n:"Challenge week: play any day at the tavern"})}
   return{ev,h,N,at,s,lg:f(new Date(t0.getFullYear(),t0.getMonth()-3,1)),drop:at(f(new Date(t0.getFullYear(),t0.getMonth()-1,1)),10)};
 }
 /* The demo's results, for the calendar C. Each player has a kit (Seeker,
