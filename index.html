@@ -885,6 +885,8 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .sp-nm{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 6px;font-size:11.5px;font-weight:600;color:var(--bone);text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-foot{margin:6px 0 0;font-size:11.5px}
 @media(max-width:620px){.sp-hero{min-height:260px}.sp-title{font-size:28px}.sp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+
+.nb-link{color:var(--brass);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
 </style><style>.mc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:10px 0 6px}
 .mc-hint{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-faint)}
 
@@ -3191,6 +3193,11 @@ function nbCanEdit(e){
   const n=(cache.myLeagues||[]).find(n=>n.id===e.league_id);
   return!!n&&(isOwnerOf(n)||isAdminOf(n));
 }
+/* Web addresses in a message become links. The text is escaped first, so a
+   link can only ever be http(s); this site's own addresses open in place. */
+function nbLinks(t){return esc(t).replace(/https?:\/\/[^\s<]+/g,u=>{let tail="";const m=u.match(/(?:[.,;:!?)\]]|&quot;|&#39;)+$/);m&&(tail=m[0],u=u.slice(0,-tail.length));
+  const own=/^https?:\/\/(www\.)?seekers-league\.com(\/|$)/i.test(u.replace(/&amp;/g,"&"));
+  return`<a class="nb-link" href="${u}"${own?"":' target="_blank" rel="noopener noreferrer nofollow"'}>${u.replace(/^https?:\/\/(www\.)?/i,"")}</a>${tail}`}).replace(/\n/g,"<br>")}
 function nbCard(e){
   const n=(cache.profNames||{})[e.author_id]||"";
   return`<article class="nb-card${e.league_id?"":" nb-global"}">
@@ -3199,7 +3206,7 @@ function nbCard(e){
       <span class="nb-when">${timeAgo(e.created_at)}</span>
       ${nbCanEdit(e)?`<button class="nb-x" title="Delete this message" aria-label="Delete this message" onclick="nbDelete(${jsq(e.id)})">&#215;</button>`:""}
     </div>
-    <p class="nb-body">${esc(e.body).replace(/\n/g,"<br>")}</p>
+    <p class="nb-body">${nbLinks(e.body)}</p>
     ${n?`<div class="nb-by">\u2014 ${esc(n)}</div>`:""}
   </article>`;
 }
