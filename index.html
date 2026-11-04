@@ -1625,7 +1625,7 @@ function showCardRulings(e){
 /* Share a card as a link to c/<slug>/: a small static page (made by
    tools/card-pages.ps1) whose preview shows the card, which then opens
    #/card/<slug>, the card's info on top of the home page. */
-function cardLink(c){return new URL("c/"+cardSlug(c.n)+"/",location.href).href}
+function cardLink(c){return"https://seekers-league.com/c/"+cardSlug(c.n)+"/"}
 function shareCard(e){const c=CARDS[e];if(!c)return;const url=cardLink(c);
   if(navigator.share)return void navigator.share({title:c.n,text:`${c.n} — Malediction card`,url}).catch(err=>{err&&"AbortError"===err.name||copyText(url,()=>toast("Link copied",!0))});
   copyText(url,()=>toast("Link copied",!0))}
