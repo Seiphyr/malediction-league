@@ -7259,3 +7259,92 @@ begin
    where id = p_user;
 end $$;
 revoke all on function erase_user_data(uuid) from public, anon, authenticated;
+
+-- ============================================================
+--  TOURNAMENT DECKS (2026-11-12)
+--  Decklists are required for tournament games: duel_join tags a tournament
+--  game only when both players picked a deck.
+-- ============================================================
+
+-- duel_join: as in the PLAY NETWORK TOURNAMENTS section, and a tournament
+-- game is tagged only when both players picked one of their decks. If one
+-- did not, the match is a plain one and the answer says t.skip = 'deck'.
+create or replace function public.duel_join(p_pin text, p_seeker text, p_terrain text, p_deck_id uuid default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := duel_caller();
+  v_seeker  text := duel_clean(p_seeker);
+  v_terrain text := duel_clean(p_terrain);
+  v_pin     text := btrim(coalesce(p_pin, ''));
+  d         duels%rowtype;
+  v_tid     uuid;
+  v_tref    text;
+  v_ttitle  text;
+  v_tlabel  text;
+  v_tskip   text;
+begin
+  if v_seeker is null or v_terrain is null then
+    raise exception 'Pick your Seeker and terrain first' using errcode = '22023';
+  end if;
+  if p_deck_id is not null
+     and not exists (select 1 from decks k where k.id = p_deck_id and k.user_id = v_uid) then
+    raise exception 'Pick one of your own decks' using errcode = '42501';
+  end if;
+  if v_pin !~ '^[0-9]{4}$' then
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+
+  perform duel_sweep();
+  perform pg_advisory_xact_lock(hashtext('duel_join:' || v_uid::text));
+  if (select count(*) from duel_join_attempts a
+      where a.user_id = v_uid and a.created_at > now() - interval '1 minute') >= 5
+     or (select count(*) from duel_join_attempts a
+         where a.user_id = v_uid and a.created_at > now() - interval '1 hour') >= 20
+     or (select count(*) from duel_join_attempts a
+         where a.user_id = v_uid and a.created_at > now() - interval '1 day') >= 60 then
+    return jsonb_build_object('ok', false, 'reason', 'rate_limited');
+  end if;
+  if (select count(*) from duel_join_attempts a
+      where a.created_at > now() - interval '10 minutes') >= 600 then
+    return jsonb_build_object('ok', false, 'reason', 'busy');
+  end if;
+
+  select * into d from duels x where x.pin = v_pin and x.status = 'waiting' for update;
+  if not found or d.pin_expires_at <= now() then
+    insert into duel_join_attempts (user_id) values (v_uid);
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+  if d.host_id = v_uid then
+    return jsonb_build_object('ok', false, 'reason', 'own_match');
+  end if;
+
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting';
+  begin
+    select g.tournament_id, g.t_ref, g.title, g.label, g.skip
+      into v_tid, v_tref, v_ttitle, v_tlabel, v_tskip
+      from t_game_for(d.host_id, v_uid, d.mode) g
+     limit 1;
+  exception when others then
+    v_tid := null; v_tref := null; v_ttitle := null; v_tlabel := null; v_tskip := null;
+  end;
+  -- A tournament game counts only when both players picked a deck.
+  if v_tid is not null and (d.host_deck_id is null or p_deck_id is null) then
+    v_tid := null; v_tref := null; v_tskip := 'deck';
+  end if;
+  update duels
+     set status = 'live', pin = null, guest_id = v_uid,
+         guest_seeker = v_seeker, guest_terrain = v_terrain, guest_deck_id = p_deck_id,
+         tournament_id = v_tid, t_ref = case when v_tid is not null then v_tref end,
+         started_at = now(), updated_at = now()
+   where id = d.id;
+
+  return jsonb_build_object(
+    'ok', true, 'id', d.id, 'host_id', d.host_id,
+    'host_name', (select p.display_name from profiles p where p.id = d.host_id),
+    'mode', d.mode, 'target', d.target,
+    'host_seeker', d.host_seeker, 'host_terrain', d.host_terrain,
+    'server_now', now(),
+    't', case when v_tid is not null or v_tskip is not null
+              then jsonb_build_object('id', v_tid, 'title', v_ttitle, 'label', v_tlabel, 'skip', v_tskip) end);
+end $$;

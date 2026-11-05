@@ -1588,6 +1588,9 @@ const SET_PREVIEW={name:"Fury and Dread",sub:"New Seeker Decks",dir:"preview/fur
    The notable improvements, newest first. Add a line here whenever something
    players would notice ships. */
 const CHANGELOG=[
+  ["2026-11-12",[
+    "Play a match: pick your Seeker first, then the deck list shows only your decks with that Seeker.",
+    "Tournament games need a decklist: both players pick one of their decks, or the match is not counted for the tournament."]],
   ["2026-11-11",[
     "Tournaments now run from Play Network events. The organizer who linked the event in the community's Events tab runs it as a tournament: groups first, then a finals bracket.",
     "The registered players are copied from the Play Network page, nicknames only. The organizer can update the list until the tournament starts, drop players and add players by hand.",
@@ -3160,9 +3163,20 @@ const DU_PICK="sl.duel.pick";
 function duPick(){if(!window._duPick){let e={};try{e=JSON.parse(localStorage.getItem(DU_PICK)||"{}")||{}}catch(n){}window._duPick={seeker:String(e.seeker||""),terrain:String(e.terrain||""),deck:String(e.deck||""),mode:"demo"===e.mode?"demo":"clash"}}const e=window._duPick;seekerList().some(n=>n.n===e.seeker)||(e.seeker=""),TERRAINS.includes(e.terrain)||(e.terrain=""),cache.myDecks&&e.deck&&!cache.myDecks.some(n=>n.id===e.deck)&&(e.deck="");return e}
 function duPickSave(){try{localStorage.setItem(DU_PICK,JSON.stringify(window._duPick||{}))}catch(e){}}
 /* The saved deck goes out only when it is one of this account's loaded decks. */
-function duDeck(p){return p.deck&&(cache.myDecks||[]).some(d=>d.id===p.deck)?p.deck:null}
-function duPickOk(){const e=duPick();return!(!e.seeker||!e.terrain)}
-function duPickSet(k,v){const e=duPick();if("deck"===k){e.deck=v||"";const d=(cache.myDecks||[]).find(n=>n.id===e.deck),s=d&&d.seeker&&seekerList().find(n=>normName(n.n)===normName(d.seeker));s&&(e.seeker=s.n)}else"seeker"===k?e.seeker=v||"":"terrain"===k?e.terrain=v||"":"mode"===k&&(e.mode="demo"===v?"demo":"clash");duPickSave(),duPickPaint()}
+/* Deck picker: only after a Seeker is picked, and only decks with that Seeker.
+   A pending tournament game needs a deck. */
+function duDeckFits(d,s){const n=normName(s),v=String(d&&d.seeker||"");/* Seeker names can hold a comma ("Vorendal, the Dreadheart"). */return!!n&&(normName(v)===n||v.split(",").some(x=>normName(x)===n))}
+function duNeedTxt(){const e=duPick();return!e.seeker||!e.terrain?"Pick your Seeker and terrain first":"Pick your deck: tournament games need a decklist"}
+function duDeckHtml(p,dk,req){
+  const lab=`<span>Deck <small class="du-opt">${req?"(required for tournament games)":"(optional)"}</small></span>`,hs='class="hint" style="margin:-2px 0 14px;font-size:12.5px"';
+  if(!dk)return req?`<p ${hs}>Loading your decks\u2026</p>`:"";
+  if(!p.seeker)return`<label class="field">${lab}<select id="du-deck" disabled><option>Pick your Seeker first</option></select></label>`;
+  const f=dk.filter(d=>duDeckFits(d,p.seeker));
+  if(!f.length)return`<p ${hs}>No saved deck with ${esc(p.seeker)}. ${req?"Tournament games need a decklist: build":"Build"} or import one in <button class="link" onclick="go('decks')">My decks</button>${req?".":" to link it to your matches."}</p>`;
+  return`<label class="field">${lab}<select id="du-deck" onchange="duPickSet('deck',this.value)"${req?' required aria-required="true"':""}><option value="">${req?"Pick your deck":"No deck"}</option>${f.map(d=>`<option value="${esc(d.id)}"${p.deck===d.id?" selected":""}>${esc(d.name||"Untitled deck")}</option>`).join("")}</select></label>`;
+}function duDeck(p){return p.deck&&(cache.myDecks||[]).some(d=>d.id===p.deck&&duDeckFits(d,p.seeker))?p.deck:null}
+function duPickOk(){const e=duPick();return!(!e.seeker||!e.terrain||t3DuNext()&&!duDeck(e))}
+function duPickSet(k,v){const e=duPick();if("deck"===k){e.deck=v||"";const d=(cache.myDecks||[]).find(n=>n.id===e.deck),s=d&&d.seeker&&seekerList().find(n=>normName(n.n)===normName(d.seeker));s&&(e.seeker=s.n)}else"seeker"===k?(e.seeker=v||"",e.deck&&!duDeck(e)&&(e.deck="")):"terrain"===k?e.terrain=v||"":"mode"===k&&(e.mode="demo"===v?"demo":"clash");duPickSave(),duPickPaint()}
 function renderTracker(){duBoot();if(DU)return tkDu=DU,void duPaint();tkDu=null,duFind(),duPickPaint(),me&&!cache.myDecks&&!window._duDk&&(window._duDk=1,fetchMyDecks().then(e=>{cache.myDecks=e||[]}).catch(()=>{}).finally(()=>{window._duDk=0,"tracker"===route.view&&!DU&&duPickPaint()}))}
 /* Play Network tournaments (v3) the signed-in player organizes or plays in, from t_mine,
    kept 30 s. The tracker, home's Next up and the notifications read them. Before the
@@ -3232,15 +3246,14 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
       <select id="du-seeker" required aria-required="true" onchange="duPickSet('seeker',this.value)"><option value="">Pick your Seeker</option>${sk.map(c=>`<option value="${esc(c.n)}"${c.n===p.seeker?" selected":""}>${esc(c.n)} \u00b7 ${esc(factionLabel(c.f))}</option>`).join("")}</select></div></div>
     <div class="field"><span class="du-lab" id="du-ter-l">Your terrain</span>
       <div class="du-ter" role="radiogroup" aria-labelledby="du-ter-l">${TERRAINS.map(t=>`<button type="button" role="radio" aria-checked="${p.terrain===t}" class="fchip${p.terrain===t?" on":""}" onclick="duPickSet('terrain',${jsq(t)})">${esc(t)}</button>`).join("")}</div></div>
-    ${dk?dk.length?`<label class="field"><span>Deck <small class="du-opt">(optional)</small></span>
-      <select id="du-deck" onchange="duPickSet('deck',this.value)"><option value="">No deck</option>${dk.map(d=>`<option value="${esc(d.id)}"${p.deck===d.id?" selected":""}>${esc(d.name||"Untitled deck")}${d.seeker?" \u00b7 "+esc(String(d.seeker).split(",")[0]):""}</option>`).join("")}</select></label>`:`<p class="hint" style="margin:-2px 0 14px;font-size:12.5px">No decks saved yet. Build or import one in <button class="link" onclick="go('decks')">My decks</button> to link it to your matches.</p>`:""}
+    ${duDeckHtml(p,dk,!!tn)}
     <div class="field"><span class="du-lab" id="du-mode-l">Mode <small class="du-opt">${tn?"(set by the tournament)":"(when you start the match)"}</small></span>
       <div class="seg du-mode" role="radiogroup" aria-labelledby="du-mode-l">${[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>{const s=p.mode===k;return`<button type="button" role="radio" aria-checked="${s}" class="seg-b${s?" on":""}" ${tn?'aria-disabled="true" onclick="t3DuLocked()"':`onclick="duPickSet('mode','${k}')"`}>${l}</button>`}).join("")}</div></div>
     <div class="du-acts">
       <button class="act gold" id="du-start" onclick="duStart()"${ok?"":" disabled"}>Start a match</button>
       <button class="ghost" id="du-have" onclick="duPinOpen()" aria-expanded="${open}"${ok?"":" disabled"}>I have a PIN</button>
     </div>
-    ${ok?"":`<p class="hint du-need">Pick your Seeker and terrain to start or join a match.</p>`}
+    ${ok?"":`<p class="hint du-need">${p.seeker&&p.terrain?"Pick your deck: tournament games need a decklist.":"Pick your Seeker and terrain to start or join a match."}</p>`}
     ${open?`<div class="du-pin">
       <label class="field"><span>Your opponent's PIN</span>
         <input id="du-pin" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="\\d{4}" maxlength="4" placeholder="0000" value="${pv}" aria-label="4-digit PIN" oninput="duPinIn(this)" onkeydown="if(event.key==='Enter')duJoin()"></label>
@@ -3404,17 +3417,17 @@ function duCancelAsk(){if(!DU)return;if("waiting"===DU.status)return void duCanc
 function duResetAsk(){if(!DU)return;if("waiting"===DU.status)return void duCancel(1);tkAsk("Reset the match?","Nothing is saved for this match. A new one starts with a new PIN to read out to your opponent.","Reset",()=>duCancel(1));const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
 async function duCancel(nw){const d=DU;if(!d||d._cc)return;d._cc=1;nw&&duSend("rs",{});try{const{data:r,error:x}=await sb.rpc("duel_cancel",{p_id:d.id});if(x)throw x;if(d!==DU)return;r&&(r.ok||/^(cancelled|expired)$/.test(r.status))?(duClear(),nw&&"tracker"===route.view?(renderTracker(),duStart()):(toast("Match cancelled",!0),"tracker"===route.view&&renderTracker())):duSync()}catch(e){toast(e)}finally{d._cc=0}}
 function duBusy(b){window._duBusy=b;b?["du-start","du-have","du-join"].forEach(i=>{const e=$(i);e&&(e.disabled=!0)}):DU||"tracker"!==route.view||duPickPaint()}
-async function duStart(){if(!me)return go("auth");if(!duPickOk())return toast("Pick your Seeker and terrain first");if(window._duBusy||DU)return;const p=duPick();duBusy(1);
+async function duStart(){if(!me)return go("auth");if(!duPickOk())return toast(duNeedTxt());if(window._duBusy||DU)return;const p=duPick();duBusy(1);
   try{const{data:r,error:x}=await sb.rpc("duel_open",{p_mode:p.mode,p_seeker:p.seeker,p_terrain:p.terrain,p_deck_id:duDeck(p)});if(x)throw x;if(!r||!r.id||!r.pin)throw new Error("Could not start the match. Try again.");
     DU=duMake({id:String(r.id).toLowerCase(),role:"host",uid:me.id,mode:"demo"===p.mode?"demo":"clash",target:"demo"===p.mode?25:40,status:"waiting",pin:String(r.pin),pinEnd:Date.now()+Math.max(0,(Date.parse(r.pin_expires_at)-Date.parse(r.server_now))||9e5),hid:me.id,hn:me.display_name,hs:p.seeker,ht:p.terrain});
     duInitTrk();duStore();duRun();"tracker"===route.view&&renderTracker()}catch(e){toast(e)}finally{duBusy(0)}}
-async function duJoin(){if(!me)return go("auth");if(!duPickOk())return toast("Pick your Seeker and terrain first");const e=(($("du-pin")||{}).value||"").trim();if(!/^\d{4}$/.test(e))return toast("Enter the 4-digit PIN");if(window._duBusy||DU)return;const p=duPick();duBusy(1);
+async function duJoin(){if(!me)return go("auth");if(!duPickOk())return toast(duNeedTxt());const e=(($("du-pin")||{}).value||"").trim();if(!/^\d{4}$/.test(e))return toast("Enter the 4-digit PIN");if(window._duBusy||DU)return;const p=duPick();duBusy(1);
   try{const{data:r,error:x}=await sb.rpc("duel_join",{p_pin:e,p_seeker:p.seeker,p_terrain:p.terrain,p_deck_id:duDeck(p)});if(x)throw x;
     if(!r||!r.ok||!r.id)return void toast({bad_pin:"That PIN is not valid or has expired",rate_limited:"Too many tries, wait a minute",own_match:"That is your own match: your opponent types this PIN on their phone",busy:"Too many matches are starting right now. Try again in a few minutes."}[r&&r.reason]||"Could not join the match. Try again.");
     window._duPinOpen=!1;DU=duMake({id:String(r.id).toLowerCase(),role:"guest",uid:me.id,mode:"demo"===r.mode?"demo":"clash",target:+r.target||("demo"===r.mode?25:40),status:"live",hid:r.host_id,hn:r.host_name,hs:r.host_seeker,ht:r.host_terrain,gid:me.id,gn:me.display_name,gs:p.seeker,gt:p.terrain});
     /* duel_join tags a Play Network tournament game (r.t.id), or says why it did not (r.t.skip). */
     const tt=r.t&&"object"==typeof r.t?r.t:null,sk=tt&&!tt.id?tt.skip:null;tt&&tt.id&&(DU.tId=String(tt.id),DU.tTitle=tt.title||null,DU.tLabel=tt.label||null);
-    duInitTrk();duStore();duRun();"mode"===sk?toast(`Not counted as a tournament game: the tournament plays ${"demo"===DU.mode?"Clash · 40":"Demo · 25"}. Cancel and start again in that mode to count it.`):"busy"===sk?toast("Not counted as a tournament game: another tracked match for this game is in progress."):toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);"tracker"===route.view&&renderTracker()}catch(x){toast(x)}finally{duBusy(0)}}
+    duInitTrk();duStore();duRun();"mode"===sk?toast(`Not counted as a tournament game: the tournament plays ${"demo"===DU.mode?"Clash · 40":"Demo · 25"}. Cancel and start again in that mode to count it.`):"deck"===sk?toast("Not counted as a tournament game: both players must pick a deck."):"busy"===sk?toast("Not counted as a tournament game: another tracked match for this game is in progress."):toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);"tracker"===route.view&&renderTracker()}catch(x){toast(x)}finally{duBusy(0)}}
 document.addEventListener("visibilitychange",()=>{DU&&(document.hidden?duCheckpoint():duResync())});
 window.addEventListener("online",()=>{DU&&duResync()});
 window.addEventListener("pagehide",()=>{DU&&duCheckpoint()});
