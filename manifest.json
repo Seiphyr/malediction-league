@@ -1,7 +1,7 @@
 {
   "name": "Seekers League",
   "short_name": "Seekers",
-  "description": "Free league tracker for Malediction: events, standings, tournaments, deck builder and collection.",
+  "description": "Free community site for Malediction: communities, tournaments, the meta, deck builder and collection.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

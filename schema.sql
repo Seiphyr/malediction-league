@@ -3673,3 +3673,486 @@ end $$;
 
 revoke all on function public.set_notice_pinned(uuid, boolean) from public, anon;
 grant execute on function public.set_notice_pinned(uuid, boolean) to authenticated;
+
+-- ============================================================
+--  COMMUNITIES AND PLAY NETWORK EVENTS (2026-11-08)
+-- ============================================================
+-- Replaces the "COMMUNITY PERMISSIONS (2026-11-07)" section (all of it is
+-- here). Run as migration-2026-11-08-communities.sql.
+-- What changes:
+--   * Deleting a community: only the site admin, through admin_delete_league()
+--     (the "Approve and delete" button on a deletion request in Admin), and
+--     only when the request was sent by the community's current creator.
+--     Anyone can send feedback, so a request from someone else is refused.
+--     The creator asks from Manage; the old "owner deletes league" policy goes.
+--     erase_user_data() keeps deleting empty communities of a deleted account
+--     (it runs as the database owner, so the policy never applied to it).
+--   * Archive and reopen: only the creator (and the site admin, as before).
+--   * Organizers: only the creator promotes or demotes, and drops or removes
+--     a co-organizer. A co-organizer can still leave by themselves. Nobody
+--     but the creator touches the creator's row, and the creator cannot leave
+--     their own community (hand it over first).
+--   * If the creator deleted their account (the community was kept, owned by
+--     the "Deleted player"), the organizers take over archive, reopen and the
+--     organizer changes, as before. Deleting such a community is done by the
+--     site admin in the SQL editor.
+--   * Unchanged: co-organizers still edit rules, notices and players.
+--   * pn_events: a community lists official Play Network events, filled in by
+--     the edge function play-network-event (fetch_ok = true) or typed in by
+--     an organizer when that fails (fetch_ok = false, the only editable ones).
+--   * pn_fetch_log / pn_fetch_allow(): the brake the edge function applies
+--     before each look-up of the official site.
+--   * Nothing is dropped or deleted: old league events, check-ins, matches
+--     and points stay in the database untouched; the site stops showing them.
+--     Organizers can no longer delete old events, check-ins or matches (the
+--     previous page still could), nor a tournament that has matches; only
+--     the site admin can.
+--   * public_leagues counts active players only and gains last_event.
+
+-- The creator of a community, for the guards and policies below. Security
+-- definer, but it answers only about a community the caller can see anyway
+-- (public, or one they belong to), so it reveals nothing new.
+create or replace function public.league_owner_id(p_league uuid)
+returns uuid language sql security definer stable set search_path = public as $$
+  select l.owner_id from leagues l
+  where l.id = p_league
+    and (l.is_public or l.owner_id = auth.uid() or is_league_member(l.id) or is_site_admin());
+$$;
+revoke all on function public.league_owner_id(uuid) from public, anon;
+grant execute on function public.league_owner_id(uuid) to authenticated;
+
+-- The creator's account was deleted. Same visibility rule as above.
+create or replace function public.league_creator_gone(p_league uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from leagues l join profiles p on p.id = l.owner_id
+    where l.id = p_league and p.deleted_at is not null
+      and (l.is_public or is_league_member(l.id) or is_site_admin())
+  );
+$$;
+revoke all on function public.league_creator_gone(uuid) from public, anon;
+grant execute on function public.league_creator_gone(uuid) to authenticated;
+
+-- 1. Deleting a community ------------------------------------------------
+drop policy if exists "owner deletes league" on public.leagues;
+
+-- p_request is the feedback row with the request. The community is deleted
+-- only if that row asks for it and was sent by its current creator.
+drop function if exists public.admin_delete_league(uuid);
+create or replace function public.admin_delete_league(p_request uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  f feedback%rowtype;
+  v_league uuid;
+  v_owner uuid;
+begin
+  if not is_site_admin() then
+    raise exception 'Only the site admin can delete a community' using errcode = '42501';
+  end if;
+  select * into f from feedback where id = p_request;
+  if not found or f.context->>'request' is distinct from 'delete_community' then
+    raise exception 'This is not a request to delete a community';
+  end if;
+  begin
+    v_league := (f.context->>'league_id')::uuid;
+  exception when others then
+    raise exception 'This is not a request to delete a community';
+  end;
+  if v_league is null then
+    raise exception 'This is not a request to delete a community';
+  end if;
+  select owner_id into v_owner from leagues where id = v_league for update;
+  if not found then
+    raise exception 'Community not found';
+  end if;
+  if f.user_id is null or f.user_id is distinct from v_owner then
+    raise exception 'This request was not sent by the creator of the community' using errcode = '42501';
+  end if;
+  -- Events, check-ins, matches, members, tournaments and notices go with it
+  -- (on delete cascade).
+  delete from leagues where id = v_league;
+end $$;
+revoke all on function public.admin_delete_league(uuid) from public, anon;
+grant execute on function public.admin_delete_league(uuid) to authenticated;
+
+-- 2. Archive and reopen: the creator only --------------------------------
+-- Not security definer on purpose: current_user is then the caller's role.
+create or replace function public.guard_league_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if not is_league_admin(old.id) then
+    if (to_jsonb(new) - 'archived_at') is distinct from (to_jsonb(old) - 'archived_at') then
+      raise exception 'A site admin can only archive or reopen a community' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if new.archived_at is distinct from old.archived_at
+     and auth.uid() is distinct from old.owner_id and not is_site_admin()
+     and not league_creator_gone(old.id) then
+    raise exception 'Only the creator can archive or reopen this community' using errcode = '42501';
+  end if;
+  if old.is_public and not new.is_public and new.join_code is not distinct from old.join_code then
+    new.join_code := gen_join_code();
+  end if;
+  return new;
+end $$;
+
+-- 3. Organizers and the creator's row ------------------------------------
+-- Not security definer on purpose: current_user is then the caller's role.
+-- membership_drop_stamp runs first, so a row being dropped already has
+-- is_admin = false here: that is leaving or being dropped, not a demotion.
+create or replace function public.guard_membership_update()
+returns trigger language plpgsql set search_path = public as $$
+declare
+  v_owner uuid;
+  v_dropping boolean;
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if new.league_id is distinct from old.league_id or new.user_id is distinct from old.user_id then
+    raise exception 'A membership cannot be moved';
+  end if;
+  if old.dropped_at is not null and new.dropped_at is null
+     and exists (select 1 from profiles p where p.id = old.user_id and p.deleted_at is not null) then
+    raise exception 'This account was deleted' using errcode = '42501';
+  end if;
+  if is_league_admin(old.league_id) then
+    v_owner := league_owner_id(old.league_id);
+    v_dropping := old.dropped_at is null and new.dropped_at is not null;
+    if v_dropping and old.user_id = v_owner then
+      raise exception 'The creator cannot leave their own community. Hand it over in Manage first.'
+        using errcode = '42501';
+    end if;
+    if auth.uid() is distinct from v_owner and not league_creator_gone(old.league_id) then
+      if old.user_id = v_owner then
+        raise exception 'Only the creator can change their own membership' using errcode = '42501';
+      end if;
+      if (new.is_admin and not old.is_admin)
+         or (old.is_admin and not new.is_admin and new.dropped_at is null) then
+        raise exception 'Only the creator can promote or demote organizers' using errcode = '42501';
+      end if;
+      if v_dropping and old.is_admin and old.user_id is distinct from auth.uid() then
+        raise exception 'Only the creator can drop an organizer' using errcode = '42501';
+      end if;
+    end if;
+    if old.dropped_at is not null and new.dropped_at is null
+       and old.user_id is distinct from auth.uid()
+       and old.dropped_by is not distinct from old.user_id then
+      raise exception 'This player left the community themselves. They can rejoin with the join code.'
+        using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  if new.is_admin is distinct from old.is_admin or new.joined_at is distinct from old.joined_at then
+    raise exception 'Only an organizer can change that';
+  end if;
+  if old.dropped_at is not null and new.dropped_at is null then
+    raise exception 'Use the join code to come back';
+  end if;
+  return new;
+end $$;
+
+-- Handing a community over: as before (only the creator, only to an active
+-- member), and the new creator's row is now marked organizer here, so that
+-- if they hand it over in turn they stay a co-organizer, as the old creator
+-- does. The app used to do it with a second request, which the guard above
+-- now refuses (it touches the creator's row).
+create or replace function public.guard_league_owner()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.owner_id is distinct from old.owner_id then
+    if auth.uid() <> old.owner_id then
+      raise exception 'Only the creator can hand the community over';
+    end if;
+    if auth.uid() is not null and not exists (
+      select 1 from memberships m
+      where m.league_id = new.id and m.user_id = new.owner_id and m.dropped_at is null
+    ) then
+      raise exception 'The new creator must be an active member of this community';
+    end if;
+    update memberships set is_admin = true
+     where league_id = new.id and user_id = new.owner_id and not is_admin;
+  end if;
+  return new;
+end;
+$$;
+
+-- Removing a row (the app never does, players are dropped instead): never
+-- the creator's row, and a co-organizer's row only by the creator.
+drop policy if exists "admin removes" on public.memberships;
+create policy "admin removes" on public.memberships
+  for delete using (
+    is_league_admin(league_id)
+    and user_id is distinct from league_owner_id(league_id)
+    and (is_league_owner(league_id) or not is_admin)
+  );
+
+-- 4. Play Network event listings -----------------------------------------
+-- A community's events are now listings of official Play Network events
+-- (https://malediction.gg/play-network/events/single/<id>/<slug>/).
+-- The edge function play-network-event reads the official page and writes
+-- the listing with fetch_ok = true, as the service role. When that fails, an
+-- organizer types the details by hand: those rows have fetch_ok = false, and
+-- only they can be edited from the site. A listing keeps how many players
+-- registered, never who.
+-- Old league events (sessions, check-ins, matches) stay in the database,
+-- untouched. The site no longer shows them.
+
+-- The canonical form of an event link, or null when it is not one. Accepts
+-- www., a missing trailing slash and a query or fragment (dropped). The slug
+-- is required: without it the official site answers with a broken redirect.
+create or replace function public.pn_canonical_url(p_url text)
+returns text language sql immutable set search_path = public as $$
+  select case when length(p_url) <= 500 then
+    'https://malediction.gg/play-network/events/single/' || m[1] || '/' || lower(m[2]) || '/'
+  end
+  from regexp_match(btrim(coalesce(p_url, '')),
+    '^https://(?:www\.)?malediction\.gg/play-network/events/single/([1-9][0-9]{0,8})/((?:[a-z0-9-]|%[0-9a-f]{2}){1,200})/?(?:[?#].*)?$',
+    'i') as m;
+$$;
+
+create table if not exists public.pn_events (
+  id                 uuid primary key default gen_random_uuid(),
+  league_id          uuid not null references public.leagues(id) on delete cascade,
+  pn_id              integer not null,
+  url                text not null,           -- canonical, see pn_canonical_url
+  title              text not null,
+  starts_at          timestamptz,
+  ends_at            timestamptz,
+  venue              text,                    -- store name, or the online platform
+  city               text,
+  country            text,
+  location_type      text,                    -- 'Local' or 'Online'
+  type_name          text,                    -- Tournament, Casual Play, ...
+  format             text,                    -- Swiss, ...
+  max_players        integer,
+  participants_count integer,                 -- how many registered, never who
+  fetch_ok           boolean not null default false, -- true: written by the edge function
+  fetched_at         timestamptz,
+  created_by         uuid default auth.uid() references public.profiles(id) on delete set null,
+  created_at         timestamptz default now(),
+  updated_at         timestamptz,
+  constraint pn_events_one_per_community unique (league_id, pn_id),
+  constraint pn_events_url_format check (url ~ '^https://malediction\.gg/play-network/events/single/[1-9][0-9]{0,8}/([a-z0-9-]|%[0-9a-f]{2}){1,200}/$'),
+  constraint pn_events_url_id check (pn_id = (substring(url from '/single/([0-9]+)/'))::integer),
+  constraint pn_events_title_len check (char_length(title) between 1 and 200),
+  constraint pn_events_venue_len check (venue is null or char_length(venue) between 1 and 200),
+  constraint pn_events_city_len check (city is null or char_length(city) between 1 and 100),
+  constraint pn_events_country_len check (country is null or char_length(country) between 1 and 100),
+  constraint pn_events_location_type check (location_type is null or location_type in ('Local', 'Online')),
+  constraint pn_events_type_len check (type_name is null or char_length(type_name) between 1 and 60),
+  constraint pn_events_format_len check (format is null or char_length(format) between 1 and 60),
+  constraint pn_events_counts check ((max_players is null or max_players between 0 and 100000)
+                                 and (participants_count is null or participants_count between 0 and 100000)),
+  constraint pn_events_dates check (ends_at is null or (starts_at is not null and ends_at >= starts_at)),
+  constraint pn_events_fetched check (not fetch_ok or fetched_at is not null)
+);
+create index if not exists idx_pn_events_league_start on public.pn_events(league_id, starts_at);
+create index if not exists idx_pn_events_created_by on public.pn_events(created_by);
+
+alter table public.pn_events enable row level security;
+drop policy if exists "pn events visible" on public.pn_events;
+drop policy if exists "organizers add pn events" on public.pn_events;
+drop policy if exists "organizers edit pn events" on public.pn_events;
+drop policy if exists "organizers remove pn events" on public.pn_events;
+-- Same reach as the notice board: public communities for everyone (signed
+-- out too), private ones for their members, and the site admin.
+create policy "pn events visible" on public.pn_events
+  for select using (league_is_public(league_id) or is_league_member(league_id) or is_site_admin());
+-- Hand-typed listings only (the guard below forces fetch_ok = false).
+create policy "organizers add pn events" on public.pn_events
+  for insert to authenticated with check (is_league_admin(league_id) and not fetch_ok);
+-- The guard refuses edits of a listing filled in from Play Network.
+create policy "organizers edit pn events" on public.pn_events
+  for update to authenticated using (is_league_admin(league_id)) with check (is_league_admin(league_id));
+create policy "organizers remove pn events" on public.pn_events
+  for delete to authenticated using (is_league_admin(league_id));
+
+revoke all on public.pn_events from anon, authenticated;
+grant select on public.pn_events to anon, authenticated;
+grant insert (league_id, pn_id, url, title, starts_at, ends_at, venue, city, country, location_type,
+              type_name, format, max_players, participants_count, fetch_ok)
+  on public.pn_events to authenticated;
+grant update (title, starts_at, ends_at, venue, city, country, location_type,
+              type_name, format, max_players, participants_count)
+  on public.pn_events to authenticated;
+grant delete on public.pn_events to authenticated;
+grant select, insert, update, delete on public.pn_events to service_role;
+
+-- Requests from the site. Not security definer on purpose: current_user is
+-- then the caller's role. The edge function (service_role) and functions
+-- owned by the database owner pass straight through.
+create or replace function public.guard_pn_event()
+returns trigger language plpgsql set search_path = public as $$
+declare
+  v_league uuid;
+  v_url text;
+begin
+  if tg_op = 'UPDATE' then
+    new.updated_at := now();
+  end if;
+  if current_user not in ('authenticated', 'anon') then
+    if tg_op = 'DELETE' then
+      return old;
+    end if;
+    return new;
+  end if;
+  if tg_op = 'DELETE' then
+    v_league := old.league_id;
+  else
+    v_league := new.league_id;
+  end if;
+  if tg_op = 'UPDATE' and new.league_id is distinct from old.league_id then
+    raise exception 'A listing cannot be moved to another community' using errcode = '42501';
+  end if;
+  if exists (select 1 from leagues l where l.id = v_league and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501';
+  end if;
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  if tg_op = 'INSERT' then
+    v_url := pn_canonical_url(new.url);
+    if v_url is null then
+      raise exception 'This is not a Play Network event link' using errcode = '22023';
+    end if;
+    -- Counts the listings there now, not every write: removing some makes room
+    -- again. It only affects the organizer's own community.
+    if (select count(*) from pn_events e
+        where e.league_id = new.league_id and e.created_at > now() - interval '1 day') >= 30 then
+      raise exception 'This community added 30 events in the last 24 hours. Try again tomorrow.'
+        using errcode = '42501';
+    end if;
+    new.url        := v_url;
+    new.pn_id      := (substring(v_url from '/single/([0-9]+)/'))::integer;
+    new.fetch_ok   := false;
+    new.fetched_at := null;
+    new.created_by := auth.uid();
+    new.created_at := now();
+    new.updated_at := null;
+  else
+    if old.fetch_ok then
+      raise exception 'This event is filled in from Play Network. Refresh it instead of editing it.'
+        using errcode = '42501';
+    end if;
+    if new.id is distinct from old.id
+       or new.pn_id is distinct from old.pn_id
+       or new.url is distinct from old.url
+       or new.fetch_ok is distinct from old.fetch_ok
+       or new.fetched_at is distinct from old.fetched_at
+       or new.created_by is distinct from old.created_by
+       or new.created_at is distinct from old.created_at then
+      raise exception 'Only the event details can be edited' using errcode = '42501';
+    end if;
+  end if;
+  new.title         := nullif(btrim(new.title), '');
+  new.venue         := nullif(btrim(new.venue), '');
+  new.city          := nullif(btrim(new.city), '');
+  new.country       := nullif(btrim(new.country), '');
+  new.location_type := nullif(btrim(new.location_type), '');
+  new.type_name     := nullif(btrim(new.type_name), '');
+  new.format        := nullif(btrim(new.format), '');
+  if new.title is null then
+    raise exception 'An event needs a title' using errcode = '23514';
+  end if;
+  return new;
+end $$;
+drop trigger if exists pn_event_guard on public.pn_events;
+create trigger pn_event_guard before insert or update or delete on public.pn_events
+  for each row execute function public.guard_pn_event();
+
+-- Every look-up of the official site is logged here first, so the edge
+-- function cannot be used to flood Play Network. Only an account id, a
+-- community and a time, purged after two days.
+create table if not exists public.pn_fetch_log (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null,
+  league_id  uuid,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_pn_fetch_log_user on public.pn_fetch_log(user_id, created_at);
+create index if not exists idx_pn_fetch_log_created on public.pn_fetch_log(created_at);
+alter table public.pn_fetch_log enable row level security;
+revoke all on public.pn_fetch_log from anon, authenticated;
+
+-- Called by the edge function AS THE CALLER before it fetches anything.
+-- True (and the look-up is logged) only for an organizer of a community that
+-- is not archived, under 20 look-ups by that account and 300 on the whole
+-- site in the last hour. Refused attempts are not logged, so nobody can
+-- use up the site's quota without fetching.
+create or replace function public.pn_fetch_allow(p_league uuid)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null or p_league is null then
+    return false;
+  end if;
+  if not is_league_admin(p_league) then
+    return false;
+  end if;
+  if exists (select 1 from leagues l where l.id = p_league and l.archived_at is not null) then
+    return false;
+  end if;
+  perform pg_advisory_xact_lock(hashtext('pn_fetch_allow'));
+  delete from pn_fetch_log where created_at < now() - interval '2 days';
+  if (select count(*) from pn_fetch_log
+      where user_id = v_uid and created_at > now() - interval '1 hour') >= 20 then
+    return false;
+  end if;
+  if (select count(*) from pn_fetch_log where created_at > now() - interval '1 hour') >= 300 then
+    return false;
+  end if;
+  insert into pn_fetch_log (user_id, league_id) values (v_uid, p_league);
+  return true;
+end $$;
+revoke all on function public.pn_fetch_allow(uuid) from public, anon;
+grant execute on function public.pn_fetch_allow(uuid) to authenticated;
+
+-- 5. Old league data stays: no deletes by organizers ----------------------
+-- Old league events, check-ins and matches are hidden, never deleted. The
+-- previous page (or a direct API call) could still delete them as an
+-- organizer, and deleting an event also deleted its check-ins and matches
+-- (on delete cascade). Now only the site admin can, as in the SQL editor.
+drop policy if exists "admins delete sessions" on public.sessions;
+drop policy if exists "delete own unconfirmed or admin" on public.matches;
+drop policy if exists "site admin deletes matches" on public.matches;
+create policy "site admin deletes matches" on public.matches
+  for delete using (is_site_admin());
+drop policy if exists "self or admin remove attendance" on public.attendance;
+drop policy if exists "site admin removes attendance" on public.attendance;
+create policy "site admin removes attendance" on public.attendance
+  for delete using (is_site_admin());
+-- A tournament from the time they were linked to events also stored its
+-- results as that event's matches (matches.tournament_id, on delete
+-- cascade), so only a tournament without such matches can be discarded.
+-- The site already refuses it ("it stays").
+drop policy if exists "admins delete tournaments" on public.tournaments;
+create policy "admins delete tournaments" on public.tournaments
+  for delete using (
+    is_league_admin(league_id)
+    and session_id is null
+    and not exists (select 1 from matches m where m.tournament_id = tournaments.id)
+  );
+
+-- 6. public_leagues: active players only, and the latest listed event -----
+-- member_count leaves out players who left or were dropped, as the community
+-- page does. last_event (appended, so the view keeps its grants) is the
+-- latest Play Network listing; the list sorts by it, since old league events
+-- (last_session) are no longer added. Still security_invoker.
+create or replace view public_leagues
+with (security_invoker = on) as
+select
+  l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
+  (select count(*) from memberships m where m.league_id = l.id and m.dropped_at is null) as member_count,
+  (select count(*) from sessions s where s.league_id = l.id)    as session_count,
+  (select max(s.date) from sessions s where s.league_id = l.id) as last_session,
+  l.lat, l.lon,
+  l.is_online, l.region, l.timezone,
+  (select max(e.starts_at) from pn_events e where e.league_id = l.id) as last_event
+from leagues l
+where l.is_public;
