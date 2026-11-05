@@ -6,19 +6,30 @@
 //
 //   POST { "league_id": "<uuid>", "url": "<event link>" }  add or refresh
 //   POST { "id": "<pn_events id>" }                        refresh a listing
+//   POST { "tournament_id": "<uuid>" }                     import the players
+//                                                          of a tournament
 //
 // Answers (always HTTP 200 with JSON, except OPTIONS and wrong methods):
 //   { "ok": true,  "event": <pn_events row> }
+//   { "ok": true,  "tournament": { id, rev, status: "draft" },
+//     "registrants": { total, added, removed, linked },
+//     "warning"?: "count_mismatch" | "too_many" }       (tournament mode)
 //   { "ok": false, "error": "<code>", "message": "<English text>" }
 //   codes: bad_url, not_allowed, rate_limited, event_not_found,
-//          upstream_error, parse_error, archived
+//          upstream_error, parse_error, archived, started
 //
-// The caller must be signed in and an organizer of a community that is not
-// archived. The function only ever requests
+// Listing mode: the caller must be signed in and an organizer of a community
+// that is not archived. Tournament mode: the caller must be the organizer of
+// a tournament still in draft (checked by t_fetch_allow, as the caller). The
+// function only ever requests
 //   https://malediction.gg/play-network/events/single/<id>/<slug>/
-// rebuilt from the parsed id and slug, so it is not an open proxy. It keeps
-// how many players registered, never who: names, Discord handles, avatars
-// and decks on the page are never read into the result or stored.
+// rebuilt from the parsed id and slug, so it is not an open proxy.
+// A listing keeps how many players registered, never who. Only the
+// tournament mode reads who: for each registered player the official
+// nickname and the malediction.gg profile id, nothing else (first and last
+// names, Discord handles, avatars and decks are never read), and hands them
+// to t_import, which keeps them inside that tournament only. The list is
+// never cached, logged or echoed back.
 //
 // "Verify JWT" is turned off for this function in the dashboard: the code
 // below verifies the user itself (auth.getUser), which also works with the
@@ -82,7 +93,8 @@ type Code =
   | "event_not_found"
   | "upstream_error"
   | "parse_error"
-  | "archived";
+  | "archived"
+  | "started";
 
 const MESSAGES: Record<Code, string> = {
   bad_url:
@@ -93,12 +105,20 @@ const MESSAGES: Record<Code, string> = {
   upstream_error: "Play Network could not be reached. Try again later, or enter the details by hand.",
   parse_error: "The event page could not be read. Enter the details by hand.",
   archived: "This community is archived. Its events can no longer be changed.",
+  started: "The tournament has started, so its list of players is fixed.",
 };
+
+// Tournament mode wording for two of the codes above.
+const T_NOT_ALLOWED = "Only the organizer of this tournament can update its players.";
+const T_PARSE_ERROR =
+  "The list of registered players could not be read from the Play Network page. Add players by hand.";
 
 type Json = Record<string, unknown>;
 type PnRef = { id: string; slug: string; url: string };
 
-// What is kept from a page. No player data in here, ever.
+// What is kept from a page for a listing (and the only thing cached). No
+// player data in here, ever: the tournament mode reads its registrants with
+// readRegistrants() and never stores them here.
 type EventData = {
   title: string;
   starts_at: string | null;
@@ -400,8 +420,10 @@ function readCalendar(html: string, id: string): { title: string | null; start: 
   return null;
 }
 
-// How many registered: a number only. The members list holds names, Discord
-// handles and decks; it is only counted, never parsed or kept.
+// How many registered: a number only, for the listing. The members list
+// holds names, Discord handles and decks; here it is only counted, never
+// parsed or kept. The tournament mode reads nicknames and profile ids with
+// readRegistrants() below, and nothing else.
 function readParticipants(html: string): number | null {
   const f = /name=\\?"registered_participants\\?"\s+value=\\?"(\d{1,6})\\?"/.exec(html);
   if (f) return toCount(f[1]);
@@ -453,6 +475,125 @@ function parseEvent(html: string, ref: PnRef): LookUp {
   };
 }
 
+// ---- registrants (pure) ----
+// Tournament mode only. Plain JavaScript on purpose: no TypeScript syntax
+// between this line and the end marker (types are in JSDoc, parameter types
+// come from defaults), so the test page can run this block in a browser. It
+// uses clean(), toCount(), literalStart(), sliceLiteral() and MAX_PAGE_BYTES
+// from above.
+//
+// From each registered player it reads ONLY member_status, user_public_id,
+// profile_url and nickname. The members literal on the page also carries
+// first_name, last_name, discord_handle, avatar, deck_*, seeker_* and
+// terrain_name: those are never read. Never console.* the literal, the list
+// or a name.
+
+const PID = /^[A-Za-z0-9]{6,32}$/;
+const PROFILE = /^https:\/\/(?:www\.)?malediction\.gg\/app\/profile\/([A-Za-z0-9]{6,32})\/?$/;
+const PROFILE_ROW =
+  /<a href="https:\/\/(?:www\.)?malediction\.gg\/app\/profile\/([A-Za-z0-9]{6,32})\/?"[^>]*compPlayerRowNickname[^>]*>\s*<span[^>]*>([^<]{0,200})<\/span>/g;
+const MAX_REGISTRANTS = 256;
+
+/**
+ * The array literal of `let playNetworkEventMembers = [...]`, parsed, or null.
+ * @param {string} html
+ * @returns {any[] | null}
+ */
+function membersArray(html = "") {
+  const at = literalStart(html, "playNetworkEventMembers");
+  if (at < 0) return null;
+  const lit = sliceLiteral(html, at, MAX_PAGE_BYTES);
+  if (!lit) return null;
+  try {
+    const v = JSON.parse(lit);
+    return Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Registered players from the JSON members literal, or null when it is
+ * missing or does not parse.
+ * @param {string} html
+ * @returns {{ list: { pid: string, name: string }[], capped: boolean } | null}
+ */
+function registrantsFromJson(html = "") {
+  const arr = membersArray(html);
+  if (!arr) return null;
+  const list = [];
+  const seen = new Set();
+  let capped = false;
+  for (const m of arr) {
+    if (!m || typeof m !== "object" || Array.isArray(m)) continue;
+    if (m.member_status !== "Joined") continue;
+    const pid = typeof m.user_public_id === "string" && PID.test(m.user_public_id)
+      ? m.user_public_id
+      : PROFILE.exec(typeof m.profile_url === "string" ? m.profile_url : "")?.[1];
+    if (!pid || seen.has(pid)) continue;
+    if (list.length >= MAX_REGISTRANTS) {
+      capped = true;
+      break;
+    }
+    seen.add(pid);
+    list.push({ pid, name: clean(m.nickname, 40) ?? "Player" });
+  }
+  return { list, capped };
+}
+
+/**
+ * Registered players from the server-rendered Players tab, or null when the
+ * list is not on the page. The Organizer block comes before it and is left out.
+ * @param {string} html
+ * @returns {{ list: { pid: string, name: string }[], capped: boolean } | null}
+ */
+function registrantsFromHtml(html = "") {
+  const s = html.indexOf('id="ActivePlayersListContainer"');
+  if (s < 0) return null;
+  let e = html.indexOf('data-content-type="matches"', s);
+  if (e < 0) e = s + 600000;
+  const part = html.slice(s, e);
+  const list = [];
+  const seen = new Set();
+  let capped = false;
+  for (const m of part.matchAll(PROFILE_ROW)) {
+    const pid = m[1];
+    if (seen.has(pid)) continue;
+    if (list.length >= MAX_REGISTRANTS) {
+      capped = true;
+      break;
+    }
+    seen.add(pid);
+    list.push({ pid, name: clean(m[2], 40) ?? "Player" });
+  }
+  return { list, capped };
+}
+
+/**
+ * Who registered for the event: profile id and nickname of each player.
+ * The JSON literal is preferred; the HTML list is the fallback. A list whose
+ * length equals the official count wins; else the JSON list, else a
+ * non-empty HTML list; else null (the caller answers parse_error).
+ * @param {string} html
+ * @returns {{ list: { pid: string, name: string }[], count: number | null, source: "json" | "html", capped: boolean } | null}
+ */
+function readRegistrants(html = "") {
+  const f = /name=\\?"registered_participants\\?"\s+value=\\?"(\d{1,6})\\?"/.exec(html);
+  const count = f ? toCount(f[1]) : null;
+  const json = registrantsFromJson(html);
+  if (json && (count === null || json.list.length === count)) {
+    return { list: json.list, count, source: "json", capped: json.capped };
+  }
+  const htm = registrantsFromHtml(html);
+  if (htm && count !== null && htm.list.length === count) {
+    return { list: htm.list, count, source: "html", capped: htm.capped };
+  }
+  if (json) return { list: json.list, count, source: "json", capped: json.capped };
+  if (htm && htm.list.length > 0) return { list: htm.list, count, source: "html", capped: htm.capped };
+  return null;
+}
+// ---- end registrants ----
+
 // ---------------------------------------------------------------- cache
 
 // Per Play Network id, for 60 s, in this instance only. Holds only the
@@ -481,6 +622,21 @@ async function lookUp(ref: PnRef): Promise<LookUp> {
   return result;
 }
 
+// The tournament mode always reads the page fresh, then leaves its EventData
+// (never the registrants) in the cache the same way lookUp() does.
+function rememberEvent(id: string, result: LookUp): void {
+  if (result.kind !== "ok" && result.code !== "event_not_found") return;
+  if (cache.size >= CACHE_MAX) {
+    const now = Date.now();
+    for (const [k, v] of cache) if (now - v.at >= CACHE_MS) cache.delete(k);
+    if (cache.size >= CACHE_MAX) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) cache.delete(oldest);
+    }
+  }
+  cache.set(id, { at: Date.now(), result });
+}
+
 // ---------------------------------------------------------------- endpoint
 
 const CLIENT_OPTIONS = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
@@ -503,9 +659,12 @@ Deno.serve(async (req: Request) => {
     const user = auth?.user;
     if (authErr || !user || user.is_anonymous) return fail("not_allowed", cors, "Sign in to add events.");
 
-    // 2. The request: { league_id, url } or { id }.
+    // 2. The request: { tournament_id }, { league_id, url } or { id }.
     const body = await readRequestJson(req);
     if (!body) return fail("bad_url", cors);
+    if (body.tournament_id !== undefined && body.tournament_id !== null) {
+      return await importRegistrants(caller, body.tournament_id, cors);
+    }
     let leagueId: string;
     let ref: PnRef | null;
     if (body.id !== undefined && body.id !== null) {
@@ -593,4 +752,105 @@ async function saveListing(leagueId: string, pnId: number, fields: Json, userId:
   return await service.from("pn_events")
     .insert({ ...fields, league_id: leagueId, pn_id: pnId, created_by: userId })
     .select("*").single();
+}
+
+// ---------------------------------------------------------------- tournaments
+
+function asCount(v: unknown): number {
+  return typeof v === "number" && Number.isFinite(v) ? v : 0;
+}
+
+// POST { tournament_id }: reads the registered players of the tournament's
+// Play Network event and merges them into the tournament (draft only). The
+// answer carries counts only; the client re-reads the tournament row.
+async function importRegistrants(caller: typeof service, raw: unknown, cors: Record<string, string>): Promise<Response> {
+  if (typeof raw !== "string" || !UUID.test(raw)) return fail("not_allowed", cors, T_NOT_ALLOWED);
+  const tid = raw;
+  const oops = "Something went wrong. Try again later.";
+
+  // 3. Organizer, draft, community not archived, 30 s since the last import
+  //    and the pn_fetch_log brake (it logs this look-up), asked as the caller
+  //    before anything leaves for malediction.gg.
+  const allow = await caller.rpc("t_fetch_allow", { p_tid: tid });
+  if (allow.error) {
+    console.error("play-network-event: t_fetch_allow failed", allow.error.code ?? "");
+    return fail("upstream_error", cors, oops);
+  }
+  const a = (allow.data && typeof allow.data === "object" ? allow.data : {}) as Json;
+  if (a.ok !== true) {
+    if (a.reason === "archived") return fail("archived", cors);
+    if (a.reason === "started") return fail("started", cors);
+    if (a.reason === "rate_limited") return fail("rate_limited", cors);
+    return fail("not_allowed", cors, T_NOT_ALLOWED);
+  }
+  const ref = parsePnUrl(a.url);
+  if (!ref) return fail("bad_url", cors, "The Play Network link of this tournament is not valid.");
+  const pnEventId = typeof a.pn_event_id === "string" && UUID.test(a.pn_event_id) ? a.pn_event_id : null;
+
+  // 4. The official page, fresh: the registrants are never cached.
+  const page = await fetchPage(ref);
+  if (page.kind === "not_found") {
+    rememberEvent(ref.id, { kind: "error", code: "event_not_found" });
+    return fail("event_not_found", cors);
+  }
+  if (page.kind === "error") return fail("upstream_error", cors);
+  const found = parseEvent(page.html, ref); // keeps the id and published/test checks
+  rememberEvent(ref.id, found);
+  if (found.kind === "error") return fail(found.code, cors);
+  const regs = readRegistrants(page.html);
+  if (!regs) return fail("parse_error", cors, T_PARSE_ERROR);
+
+  // 5. Merge (service role: t_import is not callable by users).
+  const imp = await service.rpc("t_import", { p_tid: tid, p_regs: regs.list, p_count: regs.count });
+  if (imp.error) {
+    console.error("play-network-event: t_import failed", imp.error.code ?? "");
+    return fail("upstream_error", cors, oops);
+  }
+  const r = (imp.data && typeof imp.data === "object" ? imp.data : {}) as Json;
+  if (r.ok !== true) {
+    if (r.reason === "status" || r.reason === "started") return fail("started", cors);
+    if (r.reason === "not_allowed") return fail("not_allowed", cors, T_NOT_ALLOWED);
+    if (r.reason === "archived") return fail("archived", cors);
+    console.error("play-network-event: t_import refused", typeof r.reason === "string" ? r.reason.slice(0, 40) : "");
+    return fail("upstream_error", cors, oops);
+  }
+
+  // 6. Refresh the listing's details and count too, when the tournament still
+  //    has one. Only that row is updated (never a new listing); errors ignored.
+  if (pnEventId) {
+    const ev = found.data;
+    const canonical = ev.slug ? pnRef(ref.id, ev.slug) : ref;
+    const upd = await service.from("pn_events").update({
+      url: canonical.url,
+      title: ev.title,
+      starts_at: ev.starts_at,
+      ends_at: ev.ends_at,
+      venue: ev.venue,
+      city: ev.city,
+      country: ev.country,
+      location_type: ev.location_type,
+      type_name: ev.type_name,
+      format: ev.format,
+      max_players: ev.max_players,
+      participants_count: ev.participants_count,
+      fetch_ok: true,
+      fetched_at: new Date().toISOString(),
+    }).eq("id", pnEventId).eq("pn_id", Number(ref.id));
+    if (upd.error) console.error("play-network-event: listing refresh failed", upd.error.code ?? "");
+  }
+
+  // 7. Counts only: the list itself is never echoed.
+  const warning = r.warning === "too_many" || r.warning === "count_mismatch"
+    ? r.warning
+    : regs.capped
+    ? "too_many"
+    : regs.count !== null && regs.list.length !== regs.count
+    ? "count_mismatch"
+    : null;
+  return reply({
+    ok: true,
+    tournament: { id: tid, rev: asCount(r.rev), status: "draft" },
+    registrants: { total: asCount(r.total), added: asCount(r.added), removed: asCount(r.removed), linked: asCount(r.linked) },
+    ...(warning ? { warning } : {}),
+  }, cors);
 }

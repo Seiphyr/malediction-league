@@ -791,6 +791,66 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .tnp-l{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
 .tnp-l small{font-family:Oswald,sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
 .tnp-l b{font-family:Oswald,sans-serif;font-weight:600;color:var(--brass)}
+.tnp-t{color:var(--bone);font-weight:600;overflow-wrap:anywhere}
+/* A Play Network tournament's page (#/tournaments/<id>) */
+.t3-back{margin:0 0 6px}
+.t3-lnk{display:inline-flex;align-items:center;min-height:40px;padding:0;background:0 0;border:0;cursor:pointer;font:inherit;font-size:13.5px;color:var(--bone-dim)}
+.t3-lnk:hover{color:var(--bone);text-decoration:underline}
+p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:underline}
+.t3-mis{display:flex;justify-content:center;margin-top:10px}
+.t3-hd .t3-title{margin:0 0 4px;overflow-wrap:anywhere}
+.t3-hd .hint{margin:0 0 4px}
+.t3-meta{display:flex;flex-wrap:wrap;gap:2px 12px}
+.t3-meta a{color:var(--bone)}
+.t3-note{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0 0;font-size:13.5px;color:var(--bone-dim)}
+.t3-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.t3-lead{margin:0;font-size:14.5px;color:var(--bone)}
+.t3-link{margin:8px 0 0}
+.t3-next{margin-bottom:14px}
+.t3-next .act{flex:0 0 auto;min-height:40px}
+.t3-next-h{flex:1 1 100%;margin:0;font-size:12.5px;color:var(--bone-dim)}
+.t3-pl-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.t3-src{margin:0 0 6px}
+.t3-list{display:flex;flex-direction:column;margin-top:8px}
+.t3-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line);min-width:0}
+.t3-row:first-child{border-top:0}
+.t3-who{flex:1 1 140px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.t3-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone);font-size:14px}
+.t3-row.me .t3-nm{color:var(--brass)}
+.t3-row.dr .t3-nm{color:var(--bone-dim)}
+.t3-ln{font-size:12px;color:var(--bone-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t3-ln a{color:var(--bone)}
+.t3-ln.none{color:var(--bone-faint)}
+.t3-chip{flex:0 0 auto;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);border:1px solid var(--line-2);border-radius:999px;padding:2px 8px}
+.t3-chip.dr{color:var(--crimson-txt);border-color:var(--crimson)}
+.t3-ra{display:flex;flex-wrap:wrap;gap:6px;flex:0 0 auto}
+.t3-b{min-height:40px;padding:0 12px}
+.t3-ops{display:flex;flex-direction:column;gap:8px}
+.t3-ops .ghost{width:100%}
+.t3-add{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.t3-add .field{flex:1 1 200px;min-width:0;margin:0}
+.t3-add input{width:100%;box-sizing:border-box}
+.t3-add .act{flex:0 0 auto;min-height:40px}
+.t3-mode{margin:4px 0 12px}
+.t3-tags{display:flex;flex-wrap:wrap;gap:4px 6px;margin:-2px 0 2px}
+.match .t3-tags{margin:6px 0 0}
+.t3-tag{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);border:1px solid var(--line-2);border-radius:999px;padding:1px 7px}
+.t3-tag.live{color:var(--brass);border-color:var(--brass-dim)}
+.t3-tag.dx{color:var(--crimson-txt);border-color:var(--crimson)}
+.t3-dr{margin-left:6px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--crimson-txt)}
+.pnl-tn{display:inline-flex;align-items:center;min-height:40px;color:var(--brass);font-size:14px}
+.pnl-run{flex:0 0 auto;min-height:40px}
+.du-tn{display:flex;flex-direction:column;gap:3px;margin:0 0 16px;padding:10px 12px;border:1px solid var(--crimson);border-radius:10px;background:linear-gradient(90deg,rgba(192,80,58,.16),rgba(200,165,104,.04));min-width:0}
+.du-tn small{font-family:Oswald,sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
+.du-tn b{font-family:Oswald,sans-serif;font-weight:600;font-size:15px;color:var(--bone);overflow-wrap:anywhere}
+.du-tn-vs{font-size:14px;color:var(--bone);overflow-wrap:anywhere}
+.du-tn p{margin:0;font-size:12.5px;color:var(--bone-dim);overflow-wrap:anywhere}
+.du-tn-a{display:flex;flex-wrap:wrap;gap:0 18px}
+.du-tn-a .link{display:inline-flex;align-items:center;min-height:40px}
+.du-mode .seg-b[aria-disabled=true]{cursor:default}
+.du-mode .seg-b[aria-disabled=true]:not(.on){opacity:.45}
+.du-tgt small{display:block;margin-top:1px;font-size:10px;letter-spacing:.08em;text-align:right;color:var(--bone-dim)}
+
 @media(max-width:620px){.fbp-head{flex-direction:column!important;align-items:stretch!important}}
 
 /* Community › About */
@@ -1528,6 +1588,12 @@ const SET_PREVIEW={name:"Fury and Dread",sub:"New Seeker Decks",dir:"preview/fur
    The notable improvements, newest first. Add a line here whenever something
    players would notice ships. */
 const CHANGELOG=[
+  ["2026-11-11",[
+    "Tournaments now run from Play Network events. The organizer who linked the event in the community's Events tab runs it as a tournament: groups first, then a finals bracket.",
+    "The registered players are copied from the Play Network page, nicknames only. The organizer can update the list until the tournament starts, drop players and add players by hand.",
+    "Matches played with the match tracker between two players paired in the tournament are recorded automatically. The organizer enters the rest.",
+    "Link your malediction.gg profile in Account › Profile to be matched to your Play Network registrations.",
+    "The privacy notice now explains what is copied from the Play Network page, how long it is kept and how to have your name removed."]],
   ["2026-11-09",[
     "Play a match: each player signs in on their own phone, picks a Seeker and terrain and joins with a 4-digit PIN. Mastery, Echo, the round and the clock stay in sync live on both phones, and your opponent confirms the result. A result nobody answers within 48 hours is saved as sent.",
     "Match history on every profile, with a setting for who sees your matches: everyone, signed-in players or only you.",
@@ -1620,14 +1686,14 @@ SL_DF=(o=>{try{return new Intl.DateTimeFormat(SL_LOC,o&&o.hour?{...o,hour12:SL_H
 const SL_ERR_MAP=[[/\b(?:this|the) league is archived\b/i,"This community is archived"],[/\bonly (?:an )?organi[sz]er of this league\b/i,"Only an organizer of this community can do that"],[/(?:TypeError: )?(?:Failed to fetch|NetworkError when attempting to fetch resource|Load failed|Network request failed|The Internet connection appears to be offline)|\bAbortError\b|The (?:user )?operation was aborted|signal is aborted|net::ERR_[A-Z_]+/i,"No connection. Check your internet and try again"],[/new row violates row-level security|violates row-level security policy|permission denied for (?:table|relation|function|schema|sequence)|\b42501\b/i,"You don't have permission to do that here"],[/duplicate key value violates unique constraint|\b23505\b/i,"That already exists"],[/violates foreign key constraint[^]*is still referenced/i,"It is still in use elsewhere, so it can't be removed"],[/violates foreign key constraint|\b23503\b/i,"Something it refers to no longer exists. Refresh and try again"],[/violates check constraint|\b23514\b/i,"Some values are not allowed"],[/violates not-null constraint|\b23502\b/i,"Something required is missing"],[/value too long for type/i,"Some text is too long"],[/invalid input syntax for type|\b22P02\b/i,"Some values are not in the right format"],[/JWT expired|Invalid JWT|JWSError|\bPGRST301\b/,"Your session expired. Sign in again"],[/statement timeout|canceling statement/i,"The server took too long. Try again in a moment"],[/Could not find the function|Could not find the '[^']*' column|schema cache|relation "[^"]*" does not exist|column "[^"]*" does not exist|\bPGRST20[24]\b|\b42883\b|\b42P01\b|\b42703\b/i,"This needs a site update that isn't live yet. Try again later"],[/^(?:TypeError|ReferenceError|SyntaxError|RangeError): /,"Something went wrong. Try again"]];
 function slHumanErr(e){const s=e&&"object"==typeof e?[e.code,e.message].filter(Boolean).join(" "):String(e??"");for(const[r,h]of SL_ERR_MAP){const m=r.exec(s);if(!m)continue;const p=s.slice(0,m.index).trim();return p&&/[:.!—-]$/.test(p)&&/\s/.test(p)?(q=>q+(/[.!]$/.test(q)?" ":". ")+h)(p.replace(/[:—-]$/,"").trim()):h}return slCommunityWords(e&&"object"==typeof e?e.message||String(e):s)}
 /* Database messages still say "league" for what the site calls a community. */
-function slCommunityWords(t){return String(t).replace(/\b([Ll])eague(s?)\b/g,(m,l,p)=>("L"===l?"C":"c")+"ommunit"+(p?"ies":"y"))}
+function slCommunityWords(t){return String(t).replace(/(?<!Seekers )\b([Ll])eague(s?)\b/g,(m,l,p)=>("L"===l?"C":"c")+"ommunit"+(p?"ies":"y"))}
 function slIsNetErr(e){const s=e&&"object"==typeof e?(e.name||"")+" "+(e.message||""):String(e??"");return SL_ERR_MAP[0][0].test(s)}
 function toast(e,n){const t=$("toast"),off=()=>{clearTimeout(t._t),t.className="toast"+(n?" ok":"")};n||(e=slHumanErr(e)),t.textContent=e,t.className="toast show"+(n?" ok":""),t.onclick=off,clearTimeout(t._t),t._t=setTimeout(off,n?2600:6e3)}function fmtDate(e){return slFmt(SL_DF_DAY,new Date(e+"T00:00:00"),String(e??""))}function timeAgo(e){if(!e)return"never";const n=Math.floor((Date.now()-new Date(e))/864e5);return n<=0?"today":1===n?"yesterday":n<30?n+"d ago":n<365?Math.floor(n/30)+"mo ago":Math.floor(n/365)+"y ago"}function safeUrl(e){if(!e)return null;const n=String(e).trim();if(!n)return null;try{const e=new URL(n);return"http:"===e.protocol||"https:"===e.protocol?e.href:null}catch(e){return null}}/* Join codes: six characters from 32 letters and digits (no I, O, 0, 1), from
    the browser's strong random source. The database only accepts a code that
    matches joinCodeOk (A-Z and 0-9, 4 to 12 long), and so does every box a
    code is typed into. */
 function joinCodeOk(c){return/^[A-Z0-9]{4,12}$/.test(String(c||""))}
-function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e||(window._mfTab="heralds"===e?"h":"c",window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
+function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e||(window._mfTab="heralds"===e?"h":"c",window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e&&route.tournamentId?"#/tournaments/"+route.tournamentId:"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
 /* ===== Dialogs: one behaviour for every overlay =====
    Popups are made in many places (a .tkov or .card-light div added to the
    body, the More sheet, the die roll), so they are found by watching the page
@@ -1917,7 +1983,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   const{data:d2}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
   if(d2)me=d2,nkSoon();
 }
-async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.memberDiscord=null,cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null}async function signOut(){await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues(){if(!me)return[];const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?[]:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}function slHasLeagues(){return!!me&&myLeaguesSafe().length>0}async function fetchLeague(e){fetchLeague.err=null;try{const{data:n,error:x}=await sb.from("leagues").select("*").eq("id",e).single();x&&"PGRST116"!==x.code&&"22P02"!==x.code&&(fetchLeague.err=x);return n}catch(x){fetchLeague.err=x;return null}}/* PostgREST hands back at most 1000 rows a request (Supabase's default Max
+async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.memberDiscord=null,cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null}async function signOut(){await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues(){if(!me)return[];const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?[]:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}function slHasLeagues(){return!!me&&myLeaguesSafe().length>0}async function fetchLeague(e){fetchLeague.err=null;try{const{data:n,error:x}=await sb.from("leagues").select("*").eq("id",e).single();x&&"PGRST116"!==x.code&&"22P02"!==x.code&&(fetchLeague.err=x);return n}catch(x){fetchLeague.err=x;return null}}/* PostgREST hands back at most 1000 rows a request (Supabase's default Max
    Rows) and says nothing when it stops there. slPaged asks for 1000 at a time
    with .range() until a page comes back short, so a small table still costs
    one request. mk() builds the query afresh for every page and gives it a
@@ -1939,7 +2005,7 @@ async function fetchTourneySes(){const u=me&&me.id||"";if(cache._tSesIds&&cache.
 async function fetchGames(du){const[m,t,s,d]=await Promise.all([fetchAllMatches(),fetchAllTourneys(),fetchTourneySes(),du?fetchMetaDuels():[]]);return metaTag(m.concat(tvAllSynth(t),d),s)}/* Matches played with the match tracker (Play › Match), as meta_duels() gives
    them: no player ids, the day only. They count as standard matches. Before
    that function exists the Meta simply goes without them. */
-async function fetchMetaDuels(){if(!sb)return[];const{data:d}=await slPaged(()=>sb.rpc("meta_duels").order("played_at",{ascending:!1}).order("id"));return(d||[]).filter(r=>r&&r.id).map(r=>({id:"du:"+r.id,created_at:r.played_at,winner_seeker:r.winner_seeker,loser_seeker:r.loser_seeker,winner_terrain:r.winner_terrain,loser_terrain:r.loser_terrain,winner_deck_id:r.winner_deck_id||null,loser_deck_id:r.loser_deck_id||null,duel:!0}))}function mbDrop(id){const m=(cache.members||[]).find(x=>x.id===id);dropPlayer(id,m?m.display_name:"this player")}
+async function fetchMetaDuels(){if(!sb)return[];const{data:d}=await slPaged(()=>sb.rpc("meta_duels").order("played_at",{ascending:!1}).order("id"));return(d||[]).filter(r=>r&&r.id).map(r=>({id:"du:"+r.id,created_at:r.played_at,winner_seeker:r.winner_seeker,loser_seeker:r.loser_seeker,winner_terrain:r.winner_terrain,loser_terrain:r.loser_terrain,winner_deck_id:r.winner_deck_id||null,loser_deck_id:r.loser_deck_id||null,duel:!0,tourney:!!r.in_tournament}))}function mbDrop(id){const m=(cache.members||[]).find(x=>x.id===id);dropPlayer(id,m?m.display_name:"this player")}
 function mbRestore(id){const m=(cache.members||[]).find(x=>x.id===id);restorePlayer(id,m?m.display_name:"this player")}
 function isOwnerOf(l){return !!(me&&l&&l.owner_id===me.id)}/* The creator deleted their account: the organizers take over the creator-only actions the database allows them (archive, reopen, organizers), as before communities had a creator role. */function lgCreatorGone(l){return !!(l&&(cache.members||[]).some(x=>x.id===l.owner_id&&x.deleted_at))}function canCreatorAct(l){return isOwnerOf(l)||!!(l&&showAsAdmin(l)&&lgCreatorGone(l))}
 function lgArchived(l){return !!(l&&l.archived_at)}
@@ -2316,7 +2382,7 @@ function navCtxLeague(){const L=me?myLeaguesSafe():[];if(!L.length)return null;r
 const SL_VIEW_TITLES={setpreview:"Set preview",tournaments:"Tournaments",leagues:"Communities",tracker:"Play a match","basic-tracker":"Basic tracker",meta:"Meta breakdown",rules:"Rules",privacy:"Privacy",terms:"Terms of use",cdecks:"Public decks",decks:"My decks",builder:"Deck builder",deck:"Deck",collection:"Collection",profile:"Profile",admin:"Admin",auth:"Sign in",join:"Join a community",league:"Community"};
 function slSetTitle(p){try{document.title=p?p+" · Seekers League":"Seekers League — Malediction community hub"}catch(e){}}
 function slViewTitle(){slSetTitle(SL_VIEW_TITLES[route.view]||"")}
-async function render(){return route.card&&cardFromRoute(),configured?(closeSheet(),duBoot(),"mine"===route.view&&(route.view="browse"),"freebattles"===route.view&&(route.view="profile",route.profileId=null),"league"===route.view&&isDemo(route.leagueId)&&(route.view="leagues"),"communities"===route.view&&(window._mfTab="c",route.view="leagues"),"finder"!==route.view&&"heralds"!==route.view||(window._mfTab="heralds"===route.view?"h":"c",window._mfScroll=1,route.view="leagues"),slViewTitle(),renderChrome(),document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),($(route.view)||$("browse")).classList.add("active"),"browse"===route.view?renderBrowse():"rules"===route.view?renderRules():"privacy"===route.view||"terms"===route.view?renderLegal(route.view):"setpreview"===route.view?renderSetPreview():"tournaments"===route.view?renderTournamentsPage():"leagues"===route.view?renderLeaguesPage():"tracker"===route.view?renderTracker():"basic-tracker"===route.view?renderBasicTracker():"meta"===route.view?renderMetaView():"profile"===route.view?renderProfile():"collection"===route.view?renderCollection():"builder"===route.view?renderBuilder():"decks"===route.view?renderDecks():"deck"===route.view?renderDeckPage():"cdecks"===route.view?renderCDecks():"admin"===route.view?renderAdmin():"league"===route.view?renderLeague():"join"===route.view?joinFromLink(route.code):"auth"===route.view?me?(ckHide(),authReturn()):ckMail?showCheckEmail(ckMail):(ckHide(),setAuthMode(authMode)):void 0):(document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),$("browse").classList.add("active"),void($("home-head").innerHTML=SL_LIBFAIL?slBootFailHtml():'<div class="banner warn">\n      <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and\n      anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.\n      Full steps are in <code>SETUP.md</code>.</div>'))}async function renderBrowse(){const e=null;e&&(e.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>'),cache.leagues=await fetchPublicLeagues();try{const{count:e}=await sb.from("tournaments").select("*",{count:"exact",head:!0});cache.tourneyCount=e||0}catch(e){cache.tourneyCount=0}try{const{count:e}=await sb.from("matches").select("*",{count:"exact",head:!0});cache.matchCount=e||0}catch(e){cache.matchCount=0}try{const{count:e}=await sb.from("profiles").select("*",{count:"exact",head:!0});cache.playerCount=e||0}catch(e){cache.playerCount=0}if(me){cache.myLeagues=await fetchMyLeagues(),cache.myDecks||(cache.myDecks=await fetchMyDecks());await homeLoad(),tOpenList(cache.homeTourneys).length&&await ensureProfNames(),cache.homeAll.ids.length&&tvNotifyOn()&&tvWatch()}else cache.homeAll=null;await loadBoard(),renderChrome(),paintHomeHead(),paintHomeBoard(),paintHomeNext(),paintHomeStats(),paintHomeCta()}/* A calendar date is read off the player's own calendar, never converted to
+async function render(){return route.card&&cardFromRoute(),configured?(closeSheet(),duBoot(),"mine"===route.view&&(route.view="browse"),"freebattles"===route.view&&(route.view="profile",route.profileId=null),"league"===route.view&&isDemo(route.leagueId)&&(route.view="leagues"),"communities"===route.view&&(window._mfTab="c",route.view="leagues"),"finder"!==route.view&&"heralds"!==route.view||(window._mfTab="heralds"===route.view?"h":"c",window._mfScroll=1,route.view="leagues"),slViewTitle(),renderChrome(),document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),($(route.view)||$("browse")).classList.add("active"),"browse"===route.view?renderBrowse():"rules"===route.view?renderRules():"privacy"===route.view||"terms"===route.view?renderLegal(route.view):"setpreview"===route.view?renderSetPreview():"tournaments"===route.view?renderTournamentsPage():"leagues"===route.view?renderLeaguesPage():"tracker"===route.view?renderTracker():"basic-tracker"===route.view?renderBasicTracker():"meta"===route.view?renderMetaView():"profile"===route.view?renderProfile():"collection"===route.view?renderCollection():"builder"===route.view?renderBuilder():"decks"===route.view?renderDecks():"deck"===route.view?renderDeckPage():"cdecks"===route.view?renderCDecks():"admin"===route.view?renderAdmin():"league"===route.view?renderLeague():"join"===route.view?joinFromLink(route.code):"auth"===route.view?me?(ckHide(),authReturn()):ckMail?showCheckEmail(ckMail):(ckHide(),setAuthMode(authMode)):void 0):(document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),$("browse").classList.add("active"),void($("home-head").innerHTML=SL_LIBFAIL?slBootFailHtml():'<div class="banner warn">\n      <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and\n      anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.\n      Full steps are in <code>SETUP.md</code>.</div>'))}async function renderBrowse(){const e=null;e&&(e.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>'),cache.leagues=await fetchPublicLeagues();try{const{count:e}=await sb.from("tournaments").select("*",{count:"exact",head:!0});cache.tourneyCount=e||0}catch(e){cache.tourneyCount=0}try{const{count:e}=await sb.from("matches").select("*",{count:"exact",head:!0});cache.matchCount=e||0}catch(e){cache.matchCount=0}try{const{count:e}=await sb.from("profiles").select("*",{count:"exact",head:!0});cache.playerCount=e||0}catch(e){cache.playerCount=0}if(me){cache.myLeagues=await fetchMyLeagues(),cache.myDecks||(cache.myDecks=await fetchMyDecks());await homeLoad(),tOpenList(cache.homeTourneys).length&&await ensureProfNames(),(cache.homeAll.ids.length||(cache.homeTourneys||[]).some(t=>t&&"running"===t.status))&&tvNotifyOn()&&tvWatch()}else cache.homeAll=null;await loadBoard(),renderChrome(),paintHomeHead(),paintHomeBoard(),paintHomeNext(),paintHomeStats(),paintHomeCta()}/* A calendar date is read off the player's own calendar, never converted to
    UTC first. toISOString() would do the conversion and move the day for
    anyone far enough east or west. */
 function dateStr(e){const n=e=>String(e).padStart(2,"0");return`${e.getFullYear()}-${n(e.getMonth()+1)}-${n(e.getDate())}`}
@@ -2808,11 +2874,15 @@ function nuRow(k,b,go,act){return`<div class="nu-row"><button type="button" clas
 function paintHomeNext(){
   const e=$("home-event");if(!e)return;
   const L=homeLeagues(),o=me?cache.homeAll:null;
-  if(!L.length||!o)return void(e.innerHTML="");
+  if(!o)return void(e.innerHTML="");
   const T=cache.homeTourneys||[],top=[];
   let tm=!1;
+  /* Play Network tournaments open on their own page, whatever community they belong to. */
+  const V=T.filter(x=>x&&"running"===x.status).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))),n3=tvMyNext(V);
+  n3&&(tm=!0,top.push(nuRow(`${esc(n3.title)} · Next match · ${esc(n3.stage)}`,`vs ${esc(n3.oppName)}${n3.table?` · <span class="nu-tb">Table ${n3.table|0}</span>`:""}`,`go('tournaments',{tournamentId:${jsq(n3.tid)}})`)));
+  me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,"enter the results, then close it",`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
-    const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id);
+    const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
     const n=tvMyNext(lt);
     n&&(tm=!0,top.push(nuRow(`${nm} · Next match · ${esc(n.stage)}`,`vs ${esc(tvOppName(n.opp))}${n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:""}`,`window._tPick=${jsq(n.tid)};goLeagueTab('tournament',${jsq(lid)})`)));
     adm&&tOpenList(lt).filter(x=>!(n&&n.tid===x.id)).forEach(x=>top.push(nuRow(`${nm} · Tournament running`,`${x.month?esc(monthLabel(x.month))+" · ":""}finish it, then finalize`,`window._tPick=${jsq(x.id)};goLeagueTab('tournament',${jsq(lid)})`)));
@@ -2834,8 +2904,10 @@ function paintHomeNext(){
 function homeLeagues(){const L=me?myLeaguesSafe().filter(l=>l&&!l.archived_at&&!isDemo(l.id)):[],h=getActiveLeagueId();return L.filter(l=>l.id===h).concat(L.filter(l=>l.id!==h))}
 async function homeLoad(){
   const ids=homeLeagues().map(l=>l.id),o={ids};
-  if(!me||!ids.length)return cache.homeTourneys=[],cache.homeListings=[],cache.homeAll=o;
-  [cache.homeTourneys,cache.homeListings]=await Promise.all([tvFetchOpen(ids).then(r=>r||[]),pnFetchHome(ids)]);
+  if(!me)return cache.homeTourneys=[],cache.homeListings=[],cache.homeAll=o;
+  /* Play Network tournaments (t_mine) count even when the player is in none of these communities. */
+  const[a,b,c]=await Promise.all([ids.length?tvFetchOpen(ids).then(r=>r||[]):[],ids.length?pnFetchHome(ids):[],t3MineGet(0)]);
+  cache.homeTourneys=t3Merge(a,c);cache.homeListings=b;
   return cache.homeAll=o;
 }
 /* Joining or starting a league makes it the home league only when there is
@@ -3092,6 +3164,57 @@ function duDeck(p){return p.deck&&(cache.myDecks||[]).some(d=>d.id===p.deck)?p.d
 function duPickOk(){const e=duPick();return!(!e.seeker||!e.terrain)}
 function duPickSet(k,v){const e=duPick();if("deck"===k){e.deck=v||"";const d=(cache.myDecks||[]).find(n=>n.id===e.deck),s=d&&d.seeker&&seekerList().find(n=>normName(n.n)===normName(d.seeker));s&&(e.seeker=s.n)}else"seeker"===k?e.seeker=v||"":"terrain"===k?e.terrain=v||"":"mode"===k&&(e.mode="demo"===v?"demo":"clash");duPickSave(),duPickPaint()}
 function renderTracker(){duBoot();if(DU)return tkDu=DU,void duPaint();tkDu=null,duFind(),duPickPaint(),me&&!cache.myDecks&&!window._duDk&&(window._duDk=1,fetchMyDecks().then(e=>{cache.myDecks=e||[]}).catch(()=>{}).finally(()=>{window._duDk=0,"tracker"===route.view&&!DU&&duPickPaint()}))}
+/* Play Network tournaments (v3) the signed-in player organizes or plays in, from t_mine,
+   kept 30 s. The tracker, home's Next up and the notifications read them. Before the
+   database has t_mine the list is simply empty. */
+function t3Title(t){return String(t&&t.payload&&t.payload.pn&&t.payload.pn.title||"").trim()||"Tournament"}
+function t3KeyName(t,k){const e=t3Ent0(t,k);return t3IdOk(k)&&(cache.profNames||{})[k]||e&&e.name||"your opponent"}
+function t3Merge(a,b){const o=(a||[]).slice();(b||[]).forEach(t=>{t&&t.id&&!o.some(x=>x&&x.id===t.id)&&o.push(t)});return o}
+function t3MineGet(age){
+  if(!me)return Promise.resolve([]);
+  const u=me.id,c=cache.t3Mine&&cache.t3Mine.uid===u?cache.t3Mine:null;
+  if(c&&c.p)return c.p;
+  if(c&&Date.now()-c.at<(null==age?3e4:age))return Promise.resolve(c.rows);
+  const p=(async()=>{await null;let rows=[];
+    try{const{data:d,error:x}=await sb.rpc("t_mine");!x&&Array.isArray(d)&&(rows=d.filter(t=>t&&t.id&&null!=t.status&&t.payload))}catch(x){}
+    try{rows.some(t=>"running"===t.status)&&await ensureProfNames()}catch(x){}
+    /* A sign-out or a finished match (cache.t3Mine=null) meanwhile drops this answer. */
+    const k=cache.t3Mine;k&&k.p===p&&(cache.t3Mine={uid:u,at:Date.now(),rows});return rows})();
+  cache.t3Mine={uid:u,at:c?c.at:0,rows:c?c.rows:[],p};
+  return p;
+}
+/* Tracker: the player's next tournament game, from the oldest running tournament. */
+function t3DuNext(){
+  const c=me&&cache.t3Mine;if(!c||c.uid!==me.id)return null;
+  const n=tvMyNext(c.rows.filter(t=>"running"===t.status).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))));
+  return n&&n.v3&&window._duTnOff!==n.tid+":"+n.key?n:null;
+}
+function t3DuSig(n){return n?[n.tid,n.key,n.opp,n.oppName,n.mode,n.title,n.stage,n.table].join("|"):""}
+function t3DuBlock(n){
+  const c=me&&cache.t3Mine;
+  if(me&&(!c||c.uid!==me.id||!c.p&&Date.now()-c.at>=3e4)){const k0=t3DuSig(n);t3MineGet().then(()=>{"tracker"===route.view&&!DU&&t3DuSig(t3DuNext())!==k0&&duPickPaint()})}
+  if(!n)return"";
+  return`<div class="du-tn" role="status"><small>Tournament game</small>
+      <b>${esc(n.title)} · ${esc(n.stage)}${n.table?" · Table "+(n.table|0):""}</b>
+      <span class="du-tn-vs">vs ${esc(n.oppName)}</span>
+      <p>Mode set by the tournament: ${esc(t3ModeLabel(n.mode))}</p>
+      ${t3IdOk(n.opp)?"":`<p>${esc(n.oppName)} has no Seekers League account linked, so the organizer enters this result.</p>`}
+      <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${jsq(n.tid)}})">Tournament page</button><button type="button" class="link" onclick="t3DuOff()">Not this game</button></div>
+    </div>`;
+}
+/* The tournament fixes the mode; Seeker and terrain are only filled in when empty. */
+function t3DuApply(n){
+  const p=duPick(),x=t3Ent0(n.t,me.id)||{},m="demo"===n.mode?"demo":"clash";let ch=p.mode!==m;p.mode=m;
+  !p.seeker&&x.seeker&&seekerList().some(s=>s.n===x.seeker)&&(p.seeker=x.seeker,ch=!0);
+  !p.terrain&&x.terrain&&TERRAINS.includes(x.terrain)&&(p.terrain=x.terrain,ch=!0);
+  ch&&duPickSave();
+}
+function t3DuOff(){const n=t3DuNext();n&&(window._duTnOff=n.tid+":"+n.key);duPickPaint()}
+function t3DuLocked(){toast("Your tournament game is played in "+t3ModeLabel((t3DuNext()||{}).mode)+". To play something else, tap Not this game.")}
+function duSavedTxt(d){
+  const t=esc(d.tTitle||"the tournament");
+  return"recorded"===d.tState?"✓ Saved to both profiles and recorded in "+t:"kept"===d.tState?"✓ Saved to both profiles. The organizer had already entered this result.":"closed"===d.tState?"✓ Saved to both profiles. The tournament was already closed.":"✓ Saved to both profiles";
+}
 function duPickPaint(){const e=$("tracker-body");if(!e)return;
   if(!me)return void(e.innerHTML=`<div class="panel du-wrap">
     <h2 class="du-h">Play a match</h2>
@@ -3099,11 +3222,11 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
     <div class="du-acts"><button class="act gold" onclick="go('auth')">Sign in to play</button><button class="ghost" onclick="go('basic-tracker')">Open the Basic tracker</button></div>
     <p class="hint du-foot">No account, one phone, or more than two players? The Basic tracker keeps score on this device only and saves nothing online.</p>
   </div>`);
-  const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
+  const tn=t3DuNext(),tnb=t3DuBlock(tn);tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
   e.innerHTML=`<div class="panel du-wrap">
     <h2 class="du-h">Play a match</h2>
     <p class="du-lead">Pick what you are playing, then start the match and read out the PIN, or join your opponent's with theirs. When it ends, the other player confirms the result and it is saved to both profiles.</p>
-    <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>
+    <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${tnb}
     <div class="field"><label class="du-lab" for="du-seeker">Your Seeker</label>
       <div class="du-sk"${hx?` style="--fac:${hx}"`:""}><span class="du-fi">${cur?fBadges(cur.f):""}</span>
       <select id="du-seeker" required aria-required="true" onchange="duPickSet('seeker',this.value)"><option value="">Pick your Seeker</option>${sk.map(c=>`<option value="${esc(c.n)}"${c.n===p.seeker?" selected":""}>${esc(c.n)} \u00b7 ${esc(factionLabel(c.f))}</option>`).join("")}</select></div></div>
@@ -3111,8 +3234,8 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
       <div class="du-ter" role="radiogroup" aria-labelledby="du-ter-l">${TERRAINS.map(t=>`<button type="button" role="radio" aria-checked="${p.terrain===t}" class="fchip${p.terrain===t?" on":""}" onclick="duPickSet('terrain',${jsq(t)})">${esc(t)}</button>`).join("")}</div></div>
     ${dk?dk.length?`<label class="field"><span>Deck <small class="du-opt">(optional)</small></span>
       <select id="du-deck" onchange="duPickSet('deck',this.value)"><option value="">No deck</option>${dk.map(d=>`<option value="${esc(d.id)}"${p.deck===d.id?" selected":""}>${esc(d.name||"Untitled deck")}${d.seeker?" \u00b7 "+esc(String(d.seeker).split(",")[0]):""}</option>`).join("")}</select></label>`:`<p class="hint" style="margin:-2px 0 14px;font-size:12.5px">No decks saved yet. Build or import one in <button class="link" onclick="go('decks')">My decks</button> to link it to your matches.</p>`:""}
-    <div class="field"><span class="du-lab" id="du-mode-l">Mode <small class="du-opt">(when you start the match)</small></span>
-      <div class="seg du-mode" role="radiogroup" aria-labelledby="du-mode-l">${[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>{const s=p.mode===k;return`<button type="button" role="radio" aria-checked="${s}" class="seg-b${s?" on":""}" onclick="duPickSet('mode','${k}')">${l}</button>`}).join("")}</div></div>
+    <div class="field"><span class="du-lab" id="du-mode-l">Mode <small class="du-opt">${tn?"(set by the tournament)":"(when you start the match)"}</small></span>
+      <div class="seg du-mode" role="radiogroup" aria-labelledby="du-mode-l">${[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>{const s=p.mode===k;return`<button type="button" role="radio" aria-checked="${s}" class="seg-b${s?" on":""}" ${tn?'aria-disabled="true" onclick="t3DuLocked()"':`onclick="duPickSet('mode','${k}')"`}>${l}</button>`}).join("")}</div></div>
     <div class="du-acts">
       <button class="act gold" id="du-start" onclick="duStart()"${ok?"":" disabled"}>Start a match</button>
       <button class="ghost" id="du-have" onclick="duPinOpen()" aria-expanded="${open}"${ok?"":" disabled"}>I have a PIN</button>
@@ -3180,7 +3303,7 @@ function duOut(){duFlush();const o={h:DU.sec.h,g:DU.sec.g,x:DU.sec.x,k:DU.sec.k}
 function duState(){return Object.assign({v:1},duOut())}
 function duHello(){DU_HOOKS.on()&&duSend("hello",{st:duOut()})}
 function duOnMsg(d,ev,p){if(d!==DU||!p||"object"!=typeof p||!DU_HOOKS.on())return;const h="host"===p.f;if("s"===ev)return void duApply((Array.isArray(p.u)?p.u:[]).filter(v=>v&&("x"===v.s||"k"===v.s||v.s===(h?"h":"g"))),h,0);const st=p.st&&"object"==typeof p.st?p.st:{};duApply(DU_SECS.map(s=>st[s]&&{s,c:st[s].c,d:st[s].d}),h,0);"hello"===ev&&duSend("state",{st:duOut()})}
-function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner ws ls sec L trk".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
+function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner ws ls sec L trk tId tTitle tLabel tState".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
 function duInitTrk(){const t=TRK_DEFAULT();t.mode=DU.mode;t.target=DU.target;t.players=2;t.nr=0;t.p.forEach(p=>p.er=0);t.wake=!_trkB||!1!==_trkB.wake;DU.trk=t;duNames();DU_SECS.forEach(s=>{DU.sec[s]={c:0,d:duOf(s)};DU.keys[s]=duKey(s)})}
 /* Resume the match this phone had open (after a reload or a sign-in). */
 function duBoot(){if(DU||!me||!sb||!sb.rpc||window._duBoot===me.id)return;window._duBoot=me.id;let r=null;try{r=JSON.parse(localStorage.getItem(DU_KEY)||"null")}catch(e){}if(!r||1!==r.v||r.uid!==me.id||!r.id||!/^(waiting|live|ending)$/.test(r.status))return;
@@ -3205,14 +3328,14 @@ async function duSync(){const d=DU;if(!d||!sb)return;if(d._sy)return void(d._sy2
 function duRow(r){const d=DU,was=d.status,cb=d.claimBy,s0=String(r.status||""),s="waiting"===s0&&r.pin_expires_at&&r.server_now&&Date.parse(r.server_now)>=Date.parse(r.pin_expires_at)?"expired":s0,nm=()=>[d.hn,d.gn,d.hs,d.gs,d.ht,d.gt].join("|"),n0=nm();if(!/^(waiting|live|ending|done|cancelled|expired)$/.test(s))return;
   d.hid=r.host_id||d.hid;d.gid=r.guest_id||d.gid;d.hn=r.host_name||d.hn;d.gn=r.guest_name||d.gn;d.hs=r.host_seeker||d.hs;d.ht=r.host_terrain||d.ht;d.gs=r.guest_seeker||d.gs;d.gt=r.guest_terrain||d.gt;d.mode="demo"===r.mode?"demo":"clash"===r.mode?"clash":d.mode;d.target=+r.target||d.target;d.trk&&(d.trk.mode=d.mode,d.trk.target=d.target);
   r.pin&&(d.pin=String(r.pin));r.pin_expires_at&&r.server_now&&(d.pinEnd=Date.now()+(Date.parse(r.pin_expires_at)-Date.parse(r.server_now)));
-  d.claimBy=r.claim_by||null;d.claimWinner=r.claim_winner||null;d.ws=r.winner_score;d.ls=r.loser_score;d.winner=r.winner_id||null;d.rounds=r.rounds;duNames();d.status=s;
+  d.claimBy=r.claim_by||null;d.claimWinner=r.claim_winner||null;d.ws=r.winner_score;d.ls=r.loser_score;d.winner=r.winner_id||null;d.rounds=r.rounds;duNames();d.status=s;"tournament_id"in r&&(d.tId=r.tournament_id||null,d.tTitle=r.t_title||null,d.tLabel=r.t_label||null,d.tState=r.t_state||null);
   if(("live"===s||"ending"===s)&&r.state&&"object"==typeof r.state){const a=r.state_at&&r.server_now?(Date.parse(r.server_now)-Date.parse(r.state_at))/1e3:0;duApply(DU_SECS.map(k=>r.state[k]&&{s:k,c:r.state[k].c,d:r.state[k].d}),!1,a>0?a:0)}
   if("waiting"===was&&"live"===s){toast(`${duOpp().name} joined: the match is on`,!0);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}duHello()}
   "ending"===was&&"live"===s&&(duHello(),cb===d.uid)&&toast(`${duOpp().name} says that result is not right. The match goes on.`,!0);
   if(/^(done|cancelled|expired)$/.test(s))return void duEnded(s);duStore();duView(s!==was||nm()!==n0)}
 /* Over (done, cancelled, expired or gone): stop syncing, forget it on this
    phone and show how it ended. DU stays until New match. */
-function duEnded(s){const d=DU;d.status=s;clearInterval(d.iv);d.iv=null;clearTimeout(d.ft);duUnsub();try{localStorage.removeItem(DU_KEY)}catch(e){}duSheet();const k=$("du-end");k&&k.remove();
+function duEnded(s){const d=DU;d.status=s;cache.t3Mine=null;clearInterval(d.iv);d.iv=null;clearTimeout(d.ft);duUnsub();try{localStorage.removeItem(DU_KEY)}catch(e){}duSheet();const k=$("du-end");k&&k.remove();
   if("tracker"===route.view)tkDu=d,duPaint();else"done"===s?toast(`Match over: ${d.winner===d.uid?"you won":duOpp().name+" won"}. Saved to both profiles.`,!0):"cancelled"===s&&toast("Your match was cancelled",!0)}
 function duClear(keep){const d=DU;if(d){clearInterval(d.iv);clearTimeout(d.ft);duUnsub()}clearInterval(window._duCd);DU=null;tkDu===d&&(tkDu=null);d&&trk===d.trk&&(clearInterval(_tkClock),trk=_trkB);if(!keep)try{localStorage.removeItem(DU_KEY)}catch(e){}["du-sheet","du-end"].forEach(i=>{const e=$(i);e&&e.remove()});tkWakeSync()}
 /* Another account (or none): drop the match from memory, keep it saved for its player. */
@@ -3224,7 +3347,7 @@ function duPaint(){const e=$("tracker-body"),d=DU;if(!e||!d)return;clearInterval
   clearInterval(_tkClock);window._tkFs&&(window._tkFs=!1,document.fullscreenElement&&document.exitFullscreen().catch(()=>{}));const k=$("du-end");k&&k.remove();
   e.innerHTML="waiting"===d.status?duWaitHtml():"done"===d.status?duResHtml():duEndHtml();"waiting"===d.status&&duCount();duSheet();tkWakeSync()}
 function duNameHtml(e){const s=duSide(0===e),c=s.seeker&&seekerList().find(x=>x.n===s.seeker),h=c&&facHex(c.f);return`<span class="tkl-name du-nm" id="tk-name-${e}">${esc(s.name)}<small>${s.seeker?`<i${h?` style="color:${h}"`:""}>${esc(s.seeker)}</i>`:""}${s.seeker&&s.terrain?" · ":""}${esc(s.terrain||"")}</small></span>`}
-function duStripIn(){const d=DU,o=esc(duOpp().name),[k,t]=d.joined?1===d.opp?["ok",o+" connected"]:2===d.opp?["wait",o+" reconnecting…"]:["wait","Waiting for "+o+"…"]:d.ever?["off","Reconnecting…"]:["wait","Connecting…"];return`<span class="du-conn s-${k}" role="status"><i aria-hidden="true"></i><span>${t}</span></span><span class="du-tgt">${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}</span>`}
+function duStripIn(){const d=DU,o=esc(duOpp().name),[k,t]=d.joined?1===d.opp?["ok",o+" connected"]:2===d.opp?["wait",o+" reconnecting…"]:["wait","Waiting for "+o+"…"]:d.ever?["off","Reconnecting…"]:["wait","Connecting…"];return`<span class="du-conn s-${k}" role="status"><i aria-hidden="true"></i><span>${t}</span></span><span class="du-tgt">${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}${d.tLabel?`<small>${esc(d.tLabel)}</small>`:""}</span>`}
 function duStrip(){const e=$("du-strip");e&&DU&&(e.innerHTML=duStripIn())}
 function duWaitHtml(){const d=DU,m=duMe(),p=String(d.pin||"");return`<div class="panel du-wrap du-wait">
     <h2 class="du-h">Your match PIN</h2>
@@ -3232,7 +3355,7 @@ function duWaitHtml(){const d=DU,m=duMe(),p=String(d.pin||"");return`<div class=
     <div class="du-bigpin" id="du-bigpin" aria-label="PIN ${esc(p.split("").join(" "))}">${esc(p)}</div>
     <p class="du-cd">Valid for <b id="du-cd">${tkFmt(Math.max(0,Math.round((d.pinEnd-Date.now())/1e3)))}</b></p>
     <p class="du-wt"><span class="du-conn s-wait" role="status"><i aria-hidden="true"></i><span>Waiting for your opponent…</span></span></p>
-    <p class="du-sum">${esc(m.seeker||"")} · ${esc(m.terrain||"")} · ${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}</p>
+    <p class="du-sum">${esc(m.seeker||"")} · ${esc(m.terrain||"")} · ${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}${d.tTitle?" · "+esc(d.tTitle)+(d.tLabel?" · "+esc(d.tLabel):""):""}</p>
     <div class="du-acts"><button class="ghost" onclick="duCancelAsk()">Cancel</button></div>
   </div>`}
 /* At 0:00 the countdown only asks the database again (every 4 s): duRow ends
@@ -3241,11 +3364,11 @@ function duWaitHtml(){const d=DU,m=duMe(),p=String(d.pin||"");return`<div class=
    left to duel_sweep(); duel_join already refuses an expired PIN. */
 function duCount(){clearInterval(window._duCd);const f=()=>{const e=$("du-cd");if(!e||!DU||"waiting"!==DU.status)return void clearInterval(window._duCd);const s=Math.max(0,Math.round((DU.pinEnd-Date.now())/1e3));e.textContent=tkFmt(s);s<=0&&Date.now()-(DU._xs||0)>4e3&&(DU._xs=Date.now(),duSync())};f();window._duCd=setInterval(f,1e3)}
 function duResHtml(){const d=DU,w=d.winner===d.uid,m=duMe(),o=duOpp(),f=v=>null==v?"–":esc(String(v));return`<div class="panel du-wrap du-res">
-    <p class="du-kick">${"demo"===d.mode?"Demo":"Clash"}${d.rounds?` · ${esc(String(d.rounds))} rounds`:""}</p>
+    ${d.tTitle?`<p class="du-kick">${esc(d.tTitle)}${d.tLabel?" · "+esc(d.tLabel):""}</p>`:""}<p class="du-kick">${"demo"===d.mode?"Demo":"Clash"}${d.rounds?` · ${esc(String(d.rounds))} rounds`:""}</p>
     <h2 class="du-h ${w?"du-w":"du-l"}" id="du-res-h">${w?"Victory":"Defeat"}</h2>
     <div class="du-score"><span><b>${f(w?d.ws:d.ls)}</b><small>${esc(m.name)}</small></span><i aria-hidden="true">–</i><span><b>${f(w?d.ls:d.ws)}</b><small>${esc(o.name)}</small></span></div>
     <p class="du-sum">${esc(m.seeker||"")} · ${esc(m.terrain||"")} <span class="du-vs">vs</span> ${esc(o.seeker||"")} · ${esc(o.terrain||"")}</p>
-    <p class="du-saved">✓ Saved to both profiles</p>
+    <p class="du-saved">${duSavedTxt(d)}</p>
     <div class="du-acts"><button class="act gold" onclick="duNew()">New match</button><button class="ghost" onclick="duMatches()">View my matches</button></div>
   </div>`}
 function duEndHtml(){const s=DU.status,[h,p]="expired"===s?["The PIN expired","Nobody joined within 15 minutes. Start again for a new PIN."]:"gone"===s?["Match not found","This match is no longer available. Nothing was saved."]:"cancelled"===s&&DU.rs&&Date.now()-DU.rs<6e4?["Match reset",esc(duOpp().name)+" reset the match. Nothing was saved for this one: ask them for the new PIN."]:["Match cancelled","The match was cancelled. Nothing was saved for either player."];return`<div class="panel du-wrap">
@@ -3289,7 +3412,9 @@ async function duJoin(){if(!me)return go("auth");if(!duPickOk())return toast("Pi
   try{const{data:r,error:x}=await sb.rpc("duel_join",{p_pin:e,p_seeker:p.seeker,p_terrain:p.terrain,p_deck_id:duDeck(p)});if(x)throw x;
     if(!r||!r.ok||!r.id)return void toast({bad_pin:"That PIN is not valid or has expired",rate_limited:"Too many tries, wait a minute",own_match:"That is your own match: your opponent types this PIN on their phone",busy:"Too many matches are starting right now. Try again in a few minutes."}[r&&r.reason]||"Could not join the match. Try again.");
     window._duPinOpen=!1;DU=duMake({id:String(r.id).toLowerCase(),role:"guest",uid:me.id,mode:"demo"===r.mode?"demo":"clash",target:+r.target||("demo"===r.mode?25:40),status:"live",hid:r.host_id,hn:r.host_name,hs:r.host_seeker,ht:r.host_terrain,gid:me.id,gn:me.display_name,gs:p.seeker,gt:p.terrain});
-    duInitTrk();duStore();duRun();toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})`,!0);"tracker"===route.view&&renderTracker()}catch(x){toast(x)}finally{duBusy(0)}}
+    /* duel_join tags a Play Network tournament game (r.t.id), or says why it did not (r.t.skip). */
+    const tt=r.t&&"object"==typeof r.t?r.t:null,sk=tt&&!tt.id?tt.skip:null;tt&&tt.id&&(DU.tId=String(tt.id),DU.tTitle=tt.title||null,DU.tLabel=tt.label||null);
+    duInitTrk();duStore();duRun();"mode"===sk?toast(`Not counted as a tournament game: the tournament plays ${"demo"===DU.mode?"Clash · 40":"Demo · 25"}. Cancel and start again in that mode to count it.`):"busy"===sk?toast("Not counted as a tournament game: another tracked match for this game is in progress."):toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);"tracker"===route.view&&renderTracker()}catch(x){toast(x)}finally{duBusy(0)}}
 document.addEventListener("visibilitychange",()=>{DU&&(document.hidden?duCheckpoint():duResync())});
 window.addEventListener("online",()=>{DU&&duResync()});
 window.addEventListener("pagehide",()=>{DU&&duCheckpoint()});
@@ -3565,7 +3690,7 @@ function pnCard(x,adm){
     ${w?`<div class="pnl-where">${esc(w)}</div>`:""}
     ${ch||null!==n?`<div class="pnl-tags">${ch}${null!==n?`<span class="pnl-reg"><b>${n}</b>${mx?" / "+mx:""} registered${asOf?` <small>as of ${esc(asOf)}</small>`:""}</span>`:""}</div>`:""}
     ${adm&&!x.fetch_ok?'<div class="pnl-hand">Details typed in by an organizer</div>':""}
-    <div class="pnl-acts">${u?`<a class="pnl-open" href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">Open on the Play Network ↗</a>`:""}${adm?`<span class="pnl-own">${x.fetch_ok?"":`<button class="ghost" onclick="pnEdit(${id})"${S.busy?" disabled":""}>Edit</button>`}<button class="ghost" onclick="pnRefresh(${id})"${S.busy?" disabled":""} title="Read the details again from the Play Network">${rf?"Refreshing…":x.fetch_ok?"Refresh":"Fill in automatically"}</button><button class="ghost pnl-del" onclick="pnRemove(${id})"${S.busy?" disabled":""}>Remove</button></span>`:""}</div>
+    <div class="pnl-acts">${u?`<a class="pnl-open" href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">Open on the Play Network ↗</a>`:""}${t3CardLink(x)}${adm?`<span class="pnl-own">${x.fetch_ok?"":`<button class="ghost" onclick="pnEdit(${id})"${S.busy?" disabled":""}>Edit</button>`}<button class="ghost" onclick="pnRefresh(${id})"${S.busy?" disabled":""} title="Read the details again from the Play Network">${rf?"Refreshing…":x.fetch_ok?"Refresh":"Fill in automatically"}</button><button class="ghost pnl-del" onclick="pnRemove(${id})"${S.busy?" disabled":""}>Remove</button></span>`:""}</div>
     ${ed?pnForm(S.hand||pnVals(x),x.id):""}
   </article>`;
 }
@@ -3589,7 +3714,7 @@ const PN_HAND=["upstream_error","parse_error","rate_limited","event_not_found"];
 /* The function always answers 200 with {ok,...}; an error object means it
    could not be reached at all (not deployed yet, offline, gateway trouble). */
 async function pnInvoke(b){let d=null,er=null;try{({data:d,error:er}=await sb.functions.invoke("play-network-event",{body:b}))}catch(x){er=x}
-  if(!er&&d&&"object"==typeof d){if(d.ok&&d.event)return{ok:!0,event:d.event};const c=String(d.error||"upstream_error"),h=PN_HAND.indexOf(c)>=0;return{ok:!1,code:c,hand:h,message:String(d.message||"The Play Network look-up failed.").trim()+(h?" You can type the details in below.":"")}}
+  if(!er&&d&&"object"==typeof d){if(d.ok&&(d.event||d.tournament))return{ok:!0,event:d.event||null,tournament:d.tournament||null,registrants:d.registrants||null,warning:d.warning||null};const c=String(d.error||"upstream_error"),h=PN_HAND.indexOf(c)>=0;return{ok:!1,code:c,hand:h,msg:String(d.message||"").trim(),message:String(d.message||"The Play Network look-up failed.").trim()+(h?" You can type the details in below.":"")}}
   const st=er&&er.context&&er.context.status,nm=er&&er.name||"";
   return{ok:!1,code:"unreachable",hand:!0,message:!1===navigator.onLine?"You seem to be offline. You can type the details in below.":404===st||/FunctionsFetchError|FunctionsRelayError|FunctionsHttpError/.test(nm)?"Automatic filling is not set up yet. You can type the details in below.":"The Play Network look-up failed. You can type the details in below."}}
 async function pnAdd(){pnKeep();const lg=cache.league,S=pnS;if(!lg||!S||!pnCan(lg)||S.busy)return;const p=pnUrl(S.url);
@@ -3643,7 +3768,7 @@ function paintAbout(){
     ${her.length?"":'<p class="hint" style="margin:10px 0 0">No Herald plays here yet. Heralds run demos and teach the game; find one on the Communities page.</p>'}
     ${me&&M.some(m=>m.id===me.id)&&me.id!==L.owner_id?'<div class="st-leave"><button class="ghost" style="color:var(--bone-dim)" onclick="leaveLeague()">Leave this community</button></div>':""}
   </div>`;
-}function nameOf(e){const n=cache.members.find(n=>n.id===e);return n?n.display_name:"—"}async function dropPlayer(e,n){n=nameOf(e);if(!await slConfirm({title:`Drop ${n} from the community?`,body:"Their history stays; they leave the players list.",ok:"Drop",danger:!0}))return;const{error:t}=await sb.from("memberships").update({dropped_at:(new Date).toISOString()}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n+" moved to Retired",!0),renderLeague()}async function restorePlayer(e,n){n=((cache.members||[]).find(x=>x.id===e)||{}).display_name||"The player";const{error:t}=await sb.from("memberships").update({dropped_at:null}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n+" is back in the community",!0),renderLeague()}async function leaveLeague(){if(cache.league&&me&&cache.league.owner_id===me.id)return toast("You own this community: hand it over in Manage before you leave");if(!await slConfirm({title:"Leave this community?",body:"Your history stays and you can rejoin with the code.",ok:"Leave",danger:!0}))return;const{error:e}=await sb.from("memberships").update({dropped_at:(new Date).toISOString()}).eq("league_id",cache.league.id).eq("user_id",me.id);if(e)return toast(e.message);slLeftSet(cache.league.id,!0),cache.myLeagues=[],toast("You left the community",!0),go("browse")}function h2hOpen(e){const n=(window._h2h||{})[e];if(!n||!n.ms.length)return;const t=(cache.profNames||{})[e]||"—",a=[...n.ms].sort((e,n)=>(n.when||"").localeCompare(e.when||""));let s=$("pl-modal");s||(s=document.createElement("div"),s.id="pl-modal",s.className="card-light",s.onclick=e=>{e.target===s&&s.remove()},document.body.appendChild(s)),s.innerHTML=`<div class="info-pop" onclick="event.stopPropagation()" style="max-width:min(94vw,440px);max-height:82vh;overflow:auto">\n    <div class="ip-head"><div><div class="ip-name">vs ${esc(t)}</div>\n      <div class="col-sub">${n.w}–${n.l} across ${n.ms.length} ${1===n.ms.length?"match":"matches"}</div></div>\n      <button class="bldd-x" style="align-self:flex-start" onclick="document.getElementById('pl-modal').remove()" aria-label="Close">×</button></div>\n    ${a.map(e=>`<div class="ip-row" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">\n      <span><b style="color:${e.win?"var(--win)":"var(--crimson-txt)"}">${e.win?"W":"L"}</b>\n        <span style="color:var(--bone-dim);font-size:12px">${e.when?fmtDateTs(e.when):""}</span>\n        ${e.mySk?esc(e.mySk.split(",")[0]):"—"} <span style="color:var(--bone-dim)">vs</span> ${e.oppSk?esc(e.oppSk.split(",")[0]):"—"}</span>\n      <span style="color:var(--bone-dim);font-size:12px;flex:0 0 auto">${e.myTer?esc(e.myTer):""}</span>\n    </div>`).join("")}\n  </div>`}
+}function nameOf(e){const x=cache.tNames&&cache.tNames[e];if(x)return x;const n=(cache.members||[]).find(n=>n.id===e);return n?n.display_name:"—"}async function dropPlayer(e,n){n=nameOf(e);if(!await slConfirm({title:`Drop ${n} from the community?`,body:"Their history stays; they leave the players list.",ok:"Drop",danger:!0}))return;const{error:t}=await sb.from("memberships").update({dropped_at:(new Date).toISOString()}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n+" moved to Retired",!0),renderLeague()}async function restorePlayer(e,n){n=((cache.members||[]).find(x=>x.id===e)||{}).display_name||"The player";const{error:t}=await sb.from("memberships").update({dropped_at:null}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n+" is back in the community",!0),renderLeague()}async function leaveLeague(){if(cache.league&&me&&cache.league.owner_id===me.id)return toast("You own this community: hand it over in Manage before you leave");if(!await slConfirm({title:"Leave this community?",body:"Your history stays and you can rejoin with the code.",ok:"Leave",danger:!0}))return;const{error:e}=await sb.from("memberships").update({dropped_at:(new Date).toISOString()}).eq("league_id",cache.league.id).eq("user_id",me.id);if(e)return toast(e.message);slLeftSet(cache.league.id,!0),cache.myLeagues=[],toast("You left the community",!0),go("browse")}function h2hOpen(e){const n=(window._h2h||{})[e];if(!n||!n.ms.length)return;const t=(cache.profNames||{})[e]||"—",a=[...n.ms].sort((e,n)=>(n.when||"").localeCompare(e.when||""));let s=$("pl-modal");s||(s=document.createElement("div"),s.id="pl-modal",s.className="card-light",s.onclick=e=>{e.target===s&&s.remove()},document.body.appendChild(s)),s.innerHTML=`<div class="info-pop" onclick="event.stopPropagation()" style="max-width:min(94vw,440px);max-height:82vh;overflow:auto">\n    <div class="ip-head"><div><div class="ip-name">vs ${esc(t)}</div>\n      <div class="col-sub">${n.w}–${n.l} across ${n.ms.length} ${1===n.ms.length?"match":"matches"}</div></div>\n      <button class="bldd-x" style="align-self:flex-start" onclick="document.getElementById('pl-modal').remove()" aria-label="Close">×</button></div>\n    ${a.map(e=>`<div class="ip-row" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">\n      <span><b style="color:${e.win?"var(--win)":"var(--crimson-txt)"}">${e.win?"W":"L"}</b>\n        <span style="color:var(--bone-dim);font-size:12px">${e.when?fmtDateTs(e.when):""}</span>\n        ${e.mySk?esc(e.mySk.split(",")[0]):"—"} <span style="color:var(--bone-dim)">vs</span> ${e.oppSk?esc(e.oppSk.split(",")[0]):"—"}</span>\n      <span style="color:var(--bone-dim);font-size:12px;flex:0 0 auto">${e.myTer?esc(e.myTer):""}</span>\n    </div>`).join("")}\n  </div>`}
 function evDate(d){if(String(d).slice(0,4)===todayStr().slice(0,4))return fmtDayWd(d);void 0===evDate.f&&(evDate.f=SL_DF({weekday:"short",day:"numeric",month:"short",year:"numeric"}));return slFmt(evDate.f,new Date(d+"T00:00:00"),fmtDate(d))}function evIn(d){const n=Math.round((new Date(d+"T00:00:00")-new Date(todayStr()+"T00:00:00"))/864e5);return n<=0?"today":1===n?"tomorrow":`in ${n} days`}
 async function saveLeague(){
   const lg=cache.league;if(!lg)return;
@@ -3786,7 +3911,8 @@ async function lgDeleteSend(){
    finals fill themselves in from the group results. Older tournaments carry no
    "v" and keep rendering through the original code path. */
 const TV_MIN=3;
-function tvIsV2(p){return !!(p&&2===p.v)}
+/* v3 (a Play Network tournament) keeps the v2 shape, so the engine reads both. */
+function tvIsV2(p){return !!(p&&(2===p.v||3===p.v))}
 function tvSel(){return window._tSel||(window._tSel={order:[],by:{}})}
 function tvSelHas(id){return !!tvSel().by[id]}
 function tvSelToggle(id){
@@ -3846,11 +3972,15 @@ function tvTable(p,gi){
   });
   return out;
 }
-function tvGroupsDone(p){return !!(p.gm||[]).length&&(p.gm||[]).every(m=>!!m.w)}
+/* In a Play Network tournament a game between two dropped players is never
+   played and has no result; it does not hold up the finals (as t_gm_done). */
+function tvGroupsDone(p){const D=3===p.v?t3DropSet(p):null;return !!(p.gm||[]).length&&(p.gm||[]).every(m=>!!m.w||!!D&&D.has(m.a)&&D.has(m.b))}
+function t3DropSet(p){return new Set((p.entrants||[]).filter(e=>e&&"drop"===e.st).map(e=>e.id))}
 function tvPlayed(p){return (p.gm||[]).filter(m=>!!m.w).length}
 function tvQualifiers(p,n){
-  const per=1===p.groups.length?4:2,out=[];
-  p.groups.forEach((_,gi)=>tvTable(p,gi).slice(0,per).forEach((r,pos)=>out.push({id:r.id,pos,g:gi,w:r.w,sos:r.sos||0})));
+  const per=1===p.groups.length?4:2,out=[],dr=3===p.v?new Set((p.entrants||[]).filter(e=>e&&"drop"===e.st).map(e=>e.id)):null;
+  /* A dropped player never qualifies: the next one in the group goes through. */
+  p.groups.forEach((_,gi)=>tvTable(p,gi).filter(r=>!dr||!dr.has(r.id)).slice(0,per).forEach((r,pos)=>out.push({id:r.id,pos,g:gi,w:r.w,sos:r.sos||0})));
   /* Seeding across groups used to end on the group's own number, so the whole
      of Group A outranked the whole of Group B on nothing at all. */
   out.sort((a,b)=>a.pos-b.pos||b.w-a.w||b.sos-a.sos||nameOf(a.id).localeCompare(nameOf(b.id)));
@@ -3920,20 +4050,16 @@ function tvBrought(p,id){
 }
 /* A tournament is a single event. It is filed under the month it happens in, and
    there is no limit on how many a month can hold, so there is nothing to ask. */
-/* A tournament may point at one of its community's listed Play Network events.
-   It is kept in the payload as pn {id,url,title}; the link is checked again
-   with pnUrl every time it is shown. */
-function tvPnPick(lst){const s=tvSel(),U=lgUpcoming(lst).filter(x=>x&&pnUrl(x.url));window._tPnL=U;if(!U.length)return"";
-  return`<div class="tm-label" style="margin-top:14px">Play Network event <span class="rel-count">optional</span></div>
-    <select class="tr-pick tv-pn-sel" aria-label="Play Network event" onchange="tvSelPn(this.value)"><option value="">None</option>${U.map(x=>`<option value="${esc(x.id)}"${s.pn&&s.pn.lid===x.id?" selected":""}>${esc((x.starts_at?fmtDateTs(x.starts_at)+" \u00b7 ":"")+(x.title||"Event"))}</option>`).join("")}</select>`}
-function tvSelPn(v){const s=tvSel(),x=(window._tPnL||[]).find(y=>y.id===v),u=x&&pnUrl(x.url);s.pn=u?{lid:x.id,id:u.id,url:u.url,title:String(x.title||"").slice(0,200)}:null}
+/* A tournament may point at its Play Network event, kept in the payload as
+   pn {id,url,title}; the link is checked again with pnUrl every time it is
+   shown. */
 function tvPnLink(p){const u=p&&p.pn&&pnUrl(p.pn.url);return u?`<a class="tv-pn" href="${esc(u.url)}" target="_blank" rel="noopener noreferrer"${p.pn.title?` title="${esc(p.pn.title)}"`:""}>Play Network event &#8599;</a>`:""}
 function tvSetup(members,lst){  const s=tvSel(),pool=(members||[]).filter(m=>!m.dropped_at);
   const seekers=seekerList(),terrains=CARDS.filter(c=>"T"===c.t),myDecks=cache.myDecks||[];
   return `<div class="panel">
     <h2 style="margin:0">${window._tEditing?"Change who is playing":"New tournament"}</h2>
     <p class="hint" style="margin:6px 0 0">${window._tEditing?"The groups are drawn again from this list. No result has been recorded yet, so nothing is lost.":"Tap who is playing. Results you record here count in win rates and the Meta breakdown, so don't log these games again elsewhere."}</p>
-    ${window._tEditing?"":tvPnPick(lst)}<div class="tm-label" style="margin-top:14px">Players <span class="rel-count">${s.order.length} in</span></div>
+    <div class="tm-label" style="margin-top:14px">Players <span class="rel-count">${s.order.length} in</span></div>
     <div class="entrants">${pool.map(m=>`<button class="ent ${tvSelHas(m.id)?"":"out"}" onclick="tvSelToggle(${jsq(m.id)})"
       title="${tvSelHas(m.id)?"Playing — tap to take out":"Tap to add"}">${esc(m.display_name)}</button>`).join("")||'<div class="empty">No members yet.</div>'}</div>
     ${s.order.length?`<details class="tv-br"${window._tBrOpen?" open":""} ontoggle="window._tBrOpen=this.open"><summary>What they brought <span aria-hidden="true">&middot;</span> <span class="tv-br-n" id="tv-br-n">${tvBrText()}</span></summary><div class="tv-br-in">
@@ -3967,20 +4093,20 @@ async function tvGenerate(){
   const q=Math.min(ids.length,1===groups.length?4:2*groups.length);
   payload.bracket=buildBracket(new Array(q).fill(null));
   const fix=window._tEditing||null;
-  if(fix){
+  /* Only a line-up change is saved here: new tournaments are made from a Play
+     Network event, by the database. */
+  if(!fix)return toast("New tournaments are made from a Play Network event: see Play › Tournaments");
+  {
     const{data:fr}=await sb.from("tournaments").select("payload").eq("id",fix).maybeSingle(),fp=fr&&fr.payload;
     if(!fp)return toast("This tournament no longer exists");
     if(fp.finalized||tvPlayed(fp))return window._tSel=null,window._tEditing=null,toast("A result is already in \u2014 the line-up can no longer change"),renderLeague();
     const o=window._tOrig||{};delete payload.pn;fp.pn&&(payload.pn=fp.pn);
     (fp.entrants||[]).forEach(fe=>{const pe=payload.entrants.find(x=>x.id===fe.id),oe=o[fe.id];pe&&oe&&["seeker","terrain","deck","deckId"].forEach(k=>{pe[k]===(oe[k]||"")&&(pe[k]=fe[k]||"")})});
   }
-  const row={league_id:cache.league.id,month,payload,created_by:me.id};
-  const{data:nt,error:err}=fix
-    ?await sb.from("tournaments").update({payload}).eq("id",fix)
-    :await sb.from("tournaments").insert(row).select("id").maybeSingle();
+  const{error:err}=await sb.from("tournaments").update({payload}).eq("id",fix);
   if(err)return toast(err.message);
-  window._tSel=null,window._tEditing=null,window._tNew=!1,window._tMonth=month,window._tPick=fix||nt&&nt.id||null,cache.allTourneys=null,cache._gwr=null;
-  toast(`${fix?"Line-up changed":"Tournament created"} — ${gm.length} group matches to play`,!0);
+  window._tSel=null,window._tEditing=null,window._tMonth=month,window._tPick=fix,cache.allTourneys=null,cache._gwr=null;
+  toast(`Line-up changed — ${gm.length} group matches to play`,!0);
   renderLeague();
 }
 /* Someone turns up late, someone goes home. While no result has been recorded
@@ -3989,7 +4115,7 @@ async function tvGenerate(){
    result, so it is refused. */
 async function tvEditLineup(){
   const t=cache.tourney;
-  if(!t||!tvIsV2(t.payload))return;
+  if(!t||!t.payload||2!==t.payload.v)return;
   {const{data:f}=await sb.from("tournaments").select("payload").eq("id",t.id).maybeSingle();f&&f.payload&&(t.payload=f.payload)}
   if(tvPlayed(t.payload)||t.payload.finalized)return renderLeague(),toast("A result is already in \u2014 discard the tournament to change who is playing");
   window._tOrig=Object.fromEntries((t.payload.entrants||[]).map(e=>[e.id,{seeker:e.seeker||"",terrain:e.terrain||"",deck:e.deck||"",deckId:e.deckId||""}]));
@@ -4007,6 +4133,7 @@ async function tvSave(t){
   renderLeague();
 }
 async function tvWin(i,who){
+  if(cache.tourney&&cache.tourney.payload&&3===cache.tourney.payload.v)return t3Game("g:"+i,who);
   const t=cache.tourney;
   if(!t||!tvIsV2(t.payload))return;
   if(t.payload.finalized)return toast("Tournament is finalized — reopen it to change results");
@@ -4022,12 +4149,14 @@ async function tvWin(i,who){
    matches can be listed for one round across all groups, in table order, with
    the same one-tap result buttons. The view sticks (this browser only); the
    round follows play until a different one is picked. */
+/* The page a tournament is drawn on: its own (v3) or its community's tab. */
+function tvRepaint(){const t=cache.tourney;"tournaments"===route.view&&t&&t.payload&&3===t.payload.v?t3Paint(t):renderLeague()}
 function tvViewGet(){if(window._tvView)return window._tvView;try{return"round"===localStorage.getItem("sl.tvview")?"round":"group"}catch(e){return"group"}}
-function tvView(v){v="round"===v?"round":"group";window._tvView=v;try{localStorage.setItem("sl.tvview",v)}catch(e){}renderLeague()}
+function tvView(v){v="round"===v?"round":"group";window._tvView=v;try{localStorage.setItem("sl.tvview",v)}catch(e){}tvRepaint()}
 function tvHasRounds(p){return!!(p&&tvIsV2(p)&&p.tables&&(p.gm||[]).some(m=>m.r))}
 function tvRoundMax(p){return(p.gm||[]).reduce((x,m)=>Math.max(x,m.r||0),0)}
 function tvRoundCur(p){const o=(p.gm||[]).filter(m=>m.r&&!m.w).reduce((x,m)=>Math.min(x,m.r),1/0);return isFinite(o)?o:tvRoundMax(p)}
-function tvRound(r,id){const t=id&&(cache.tourneyList||[]).find(x=>x.id===id)||cache.tourney;if(!t||!t.payload)return;r=r|0;window._tvRnd=r===tvRoundCur(t.payload)?null:{t:t.id,r};renderLeague()}
+function tvRound(r,id){const t=id&&(cache.tourneyList||[]).find(x=>x.id===id)||cache.tourney;if(!t||!t.payload)return;r=r|0;window._tvRnd=r===tvRoundCur(t.payload)?null:{t:t.id,r};tvRepaint()}
 function tvViewBar(p){
   if(!tvHasRounds(p))return'<h2 style="margin:0 0 10px">Groups</h2>';
   const R="round"===tvViewGet();
@@ -4038,7 +4167,9 @@ function tvRoundsHtml(p,admin,tid){
     list=(p.gm||[]).map((m,i)=>[m,i]).filter(([m])=>m.r===sel).sort((x,y)=>(x[0].tb||0)-(y[0].tb||0)||x[1]-y[1]),
     done=list.filter(([m])=>m.w).length,seat=new Set,many=(p.groups||[]).length>1;
   list.forEach(([m])=>{seat.add(m.a);seat.add(m.b)});
-  const sit=(p.entrants||[]).map(e=>e.id).filter(id=>!seat.has(id));
+  /* In a Play Network tournament the list also holds players dropped before
+     the start, who are in no group: only the grouped players can sit out. */
+  const sit=(3===p.v?(p.groups||[]).flat():(p.entrants||[]).map(e=>e.id)).filter(id=>!seat.has(id));
   return`<div class="tv-rv">
     <div class="tv-rnav">
       <button class="ghost" ${sel<=1?"disabled":""} onclick="tvRound(${sel-1},${jsq(tid)})" aria-label="Previous round">&#8249;</button>
@@ -4052,25 +4183,16 @@ function tvRoundsHtml(p,admin,tid){
         ${tvSideBtn(m,i,m.a,admin)}
         <span class="tv-vs">vs</span>
         ${tvSideBtn(m,i,m.b,admin)}
-      </div>`).join("")||'<div class="empty">No matches in this round.</div>'}</div>
+      </div>${t3Tags(p,m,"g:"+i)}`).join("")||'<div class="empty">No matches in this round.</div>'}</div>
     ${sit.length?`<p class="hint tv-sit">Sitting out: ${sit.map(id=>esc(nameOf(id))).join(", ")}</p>`:""}
   </div>`;
 }
-/* ===== A Tournament event and its tournament =====
-   A Tournament event takes its results from its tournament (session_id): its
-   card says how far the tournament has got and leads there, in place of the
-   match log. Organizers keep a small way to log a game played outside the
-   tournament, which counts once. An is_tournament event from before the link
-   ("old") keeps counting every match logged there double. */
-function evTOpen(tid){window._tPick=tid;goLeagueTab("tournament",cache.league&&cache.league.id)}
-
-function evWhere(lg,co){return[lg.location,lg.city,co&&lg.country].map(x=>String(x||"").trim()).filter(Boolean).join(", ")}
 /* One result button. A long name wraps to two lines and the whole of it is
    in the title; for a player the button is plain text, so only the winner
    stands out. */
 function tvSideBtn(m,i,id,admin){const nm=esc(nameOf(id)),my=!!(me&&id===me.id);return`<button class="tv-side${m.w===id?" win":""}${my?" mine":""}" title="${nm}${my?" (you)":""}" ${admin?`onclick="tvWin(${i},${jsq(id)})"`:"disabled"}><span>${nm}</span></button>`}
 function tvGroupsHtml(p,admin){
-  const done=tvGroupsDone(p),per=1===p.groups.length?4:2;
+  const done=tvGroupsDone(p),per=1===p.groups.length?4:2,qs=3===p.v&&done?new Set(tvQualifiers(p,0).map(r=>r.id)):null;
   let h='<div class="tv-gw"><div class="tv-groups">';
   p.groups.forEach((ids,gi)=>{
     /* Players level on everything share a rank ("1=", "1="), and nobody is
@@ -4080,7 +4202,7 @@ function tvGroupsHtml(p,admin){
     table.forEach((r,i)=>{const q=table[i-1];rk[i]=q&&q.w===r.w&&q.h2h===r.h2h&&q.sos===r.sos?rk[i-1]:i+1});
     h+=`<div class="group"><h3>Group ${String.fromCharCode(65+gi)}</h3><table><tbody>`
       +table.map((r,i)=>`<tr><td class="rank">${none?"&ndash;":rk[i]}${r.tied?`<span class="tv-tie" title="Level on every tie-breaker — settle it with a play-off or a roll">=</span>`:""}</td>
-        <td class="${me&&r.id===me.id?"me":""}">${esc(nameOf(r.id))}${done&&i<per&&per<ids.length?'<span class="qual">Qualified</span>':""}${tvBrought(p,r.id)}${me&&r.id===me.id&&tvCanSetMine(p)?`<button class="tv-mine" onclick="tvMineOpen()">${(e=>e&&(e.deck||e.deckId)?"Change my deck":"Set my deck")(p.entrants.find(e=>e.id===me.id))}</button>`:""}</td>
+        <td class="${me&&r.id===me.id?"me":""}">${esc(nameOf(r.id))}${t3DropTag(p,r.id)}${done&&(qs?qs.has(r.id):i<per)&&per<ids.length?'<span class="qual">Qualified</span>':""}${tvBrought(p,r.id)}${me&&r.id===me.id&&tvCanSetMine(p)?`<button class="tv-mine" onclick="tvMineOpen()">${(e=>e&&(e.deck||e.deckId)?"Change my deck":"Set my deck")(p.entrants.find(e=>e.id===me.id))}</button>`:""}</td>
         <td class="num">${r.w}W-${r.l}L${r.played>1?`<small class="tv-sos" title="Strength of schedule — games won by the players they faced">SOS ${r.sos}</small>`:""}</td></tr>`).join("")
       +"</tbody></table>";
     h+='<div class="tv-matches">'+(p.gm||[]).map((m,i)=>[m,i]).filter(([m])=>m.g===gi).sort((x,y)=>(x[0].r||0)-(y[0].r||0)||x[1]-y[1]).map(([m,i])=>`
@@ -4089,7 +4211,7 @@ function tvGroupsHtml(p,admin){
         ${tvSideBtn(m,i,m.a,admin)}
         <span class="tv-vs">vs</span>
         ${tvSideBtn(m,i,m.b,admin)}
-      </div>`).join("")+"</div></div>";
+      </div>${t3Tags(p,m,"g:"+i)}`).join("")+"</div></div>";
   });
   return h+"</div></div>";
 }
@@ -4118,7 +4240,7 @@ function tvGroupsPart(l,ed){
 }
 function tvBracketPart(h,click){
   const B=h.bracket||[];
-  return`<div class="bracket">`+B.map((rd,ri)=>`<div class="round"><div class="round-title">${tvRoundName(B.length,ri)}</div><div class="round-body">`+(rd||[]).map((x,k)=>`<div class="match">${h.tables?`<span class="m-tb">Table ${k%h.tables+1}</span>`:""}${slotHtml(ri,k,"a",x.a,x.winner,click)}<div class="vs"></div>${slotHtml(ri,k,"b",x.b,x.winner,click)}</div>`).join("")+"</div></div>").join("")+"</div>";
+  return`<div class="bracket">`+B.map((rd,ri)=>`<div class="round"><div class="round-title">${tvRoundName(B.length,ri)}</div><div class="round-body">`+(rd||[]).map((x,k)=>`<div class="match">${h.tables?`<span class="m-tb">Table ${k%h.tables+1}</span>`:""}${slotHtml(ri,k,"a",x.a,x.winner,click)}<div class="vs"></div>${slotHtml(ri,k,"b",x.b,x.winner,click)}${t3Tags(h,x,"b:"+ri+":"+k)}</div>`).join("")+"</div></div>").join("")+"</div>";
 }
 function tvBracketChamp(h){const B=h.bracket||[],f=B.length?B[B.length-1][0]:null,w=f&&f.winner?"a"===f.winner?f.a:f.b:null;return w||null}
 /* Discard sits at the end of the footer row; what it deletes is spelled out
@@ -4130,7 +4252,7 @@ function tvChampHtml(w){return w?`<div class="champion"><span aria-hidden="true"
 function tvLiveHtml(l,s){
   const h=l.payload,id=esc(l.id),np=tvPlayers(h),dt=l.created_at?esc(fmtDateTs(l.created_at)):"",w=tvBracketChamp(h);
   return`${tvNextBanner([l],!0)}<div class="panel plain tl-live" id="tl-${id}">
-    <div class="ev-kicker"><span class="tc-live"></span><span>${w?"Final played · waiting to be finalized":"Tournament running"}${l.month?" · "+esc(monthLabel(l.month)):""}</span>${s&&tvIsV2(h)&&!tvPlayed(h)?`<button type="button" class="tv-kb" onclick="tvEditLineup()" title="Change who is playing">Change line-up</button>`:""}</div>
+    <div class="ev-kicker"><span class="tc-live"></span><span>${w?"Final played · waiting to be finalized":"Tournament running"}${l.month?" · "+esc(monthLabel(l.month)):""}</span>${s&&2===h.v&&!tvPlayed(h)?`<button type="button" class="tv-kb" onclick="tvEditLineup()" title="Change who is playing">Change line-up</button>`:""}</div>
     <p class="hint" style="margin:0 0 12px">${dt?"Started "+dt+" · ":""}${np} player${1===np?"":"s"}${(k=>k?" &middot; "+k:"")(tvPnLink(h))}</p>
     ${tvViewBar(h)}${tvGroupsPart(l,s)}
   </div><div class="panel plain"><h2>Finals bracket</h2>
@@ -4153,14 +4275,16 @@ function tvRowHtml(x,open,run,s){
 }
 function tPastToggle(id){window._tPast=window._tPast===id?null:id;window._tScroll=window._tPast;renderLeague()}
 function tRunPick(id){window._tRun=id;window._tScroll=id;renderLeague()}
-function tNewCancel(){window._tNew=!1;window._tSel=null;renderLeague()}
+
 /* After a re-draw the page puts the reader back where they were; this runs
    after that. A link always lands on its tournament; a tap only scrolls when
    the row it opened has moved out of sight. */
 function tScrollTo(id,force){const f=()=>{const el=document.getElementById("tl-"+id);if(!el)return;const r=el.getBoundingClientRect(),hd=($("topbar")||{}).offsetHeight||0;(force||r.top<hd||r.top>innerHeight-80)&&el.scrollIntoView({block:"start"})};setTimeout(f,60);requestAnimationFrame(()=>setTimeout(f,0))}
 async function paintTournament(e,n,t,a,s){
+  cache.tNames=null;
+  /* Play Network tournaments (they have a status) open on their own page. */
   const i=$("league-body"),
-    tAll=(isDemo(e.id)?[...DEMO_TOURNEYS]:[...(cache.tourneys||[])]).filter(x=>x&&x.payload).sort((x,y)=>(y.created_at||"").localeCompare(x.created_at||"")),
+    tAll=(isDemo(e.id)?[...DEMO_TOURNEYS]:[...(cache.tourneys||[])]).filter(x=>x&&x.payload&&null==x.status).sort((x,y)=>(y.created_at||"").localeCompare(x.created_at||"")),
     run=tAll.filter(x=>!x.payload.finalized),past=tAll.filter(x=>x.payload.finalized);
   const pk=window._tPick,mo=window._tMonth,sc=window._tScroll;
   window._tPick=null;window._tMonth=null;window._tScroll=null;
@@ -4168,20 +4292,17 @@ async function paintTournament(e,n,t,a,s){
   hit&&(hit.payload.finalized?window._tPast=hit.id:window._tRun=hit.id);
   const l=run.find(x=>x.id===window._tRun)||run[0]||null,po=past.find(x=>x.id===window._tPast)||null;
   cache.tourney=l||po||null,cache.tourneyList=tAll;
-  const ed=!!window._tEditing,picked=!!(window._tSel&&window._tSel.order&&window._tSel.order.length);
+  const ed=!!window._tEditing;
   let m="";
-  /* The setup waits behind "+ New tournament". */
-  const open=!!(window._tNew||picked);
-  s&&!l&&!ed&&open&&(m+=`<div class="new-ev-row"><button class="ghost" onclick="tNewCancel()">Cancel new tournament</button></div>`);
-  s&&(ed||!l&&open)&&(m+=tvSetup(a,n));
+  /* New tournaments are made from a Play Network event (Play › Tournaments).
+     This tab only finishes the older ones; a line-up can still be changed
+     before the first result. */
+  s&&ed&&(m+=tvSetup(a,n));
   if(l){
     m+=tvLiveHtml(l,s);
     const o=run.filter(x=>x!==l);
     o.length&&(m+=`<div class="panel plain"><h2>Also running</h2><div class="tl-list">${o.map(x=>tvRowHtml(x,!1,!0,s)).join("")}</div></div>`);
-    s&&!ed&&(m+=window._tNew||picked?`<div class="new-ev-row"><button class="ghost" onclick="tNewCancel()">Cancel new tournament</button></div>${tvSetup(a,n)}`:`<div class="new-ev-row"><button class="ghost" onclick="window._tNew=true;renderLeague()">+ New tournament</button></div>`);
-  }else if(s&&!ed&&!open)m+=`<div class="panel plain"><div class="empty">${tAll.length?"No tournament is running right now. The results of past ones are below.":"No tournament yet. Set one up on the day."}</div><div class="t-new"><button class="act" onclick="window._tNew=true;renderLeague()">+ New tournament</button></div>${tHowto(1)}</div>`;
-  else if(!tAll.length&&!s)m+=`<div class="panel plain"><div class="empty">No tournament yet.</div>${tHowto()}</div>`;
-  else if(!s)m+=`<div class="panel plain"><div class="empty">No tournament is running right now. The results of past ones are below.</div>${tHowto()}</div>`;
+  }else m+=`<div class="panel plain"><div class="empty">${tAll.length?"No tournament is running right now. The results of past ones are below.":"No tournament here. Tournaments run from Play Network events: see Play &rsaquo; Tournaments."}</div></div>`;
   past.length&&(m+=`<div class="panel plain"><h2>Past tournaments</h2><p class="hint" style="margin:0 0 8px">${past.length} finished · tap one to see its groups and bracket.</p><div class="tl-list">${past.map(x=>tvRowHtml(x,x===po,!1,s)).join("")}</div></div>`);
   i.innerHTML=m;
   const to=hit?hit.id:sc;
@@ -4228,10 +4349,12 @@ function tvNextFor(p,uid){
 function tvMyNext(list){
   if(!me)return null;
   for(const t of tOpenList(list)){
-    const p=t.payload;
-    if(!tvIsV2(p)||!(p.entrants||[]).some(e=>e.id===me.id))continue;
+    const p=t.payload,v3=null!=t.status;
+    /* v3: running only, and not for a dropped player. */
+    if(!tvIsV2(p)||!(p.entrants||[]).some(e=>e&&e.id===me.id&&!(v3&&"drop"===e.st))||v3&&"running"!==t.status)continue;
     const n=tvNextFor(p,me.id);
-    if(n)return{...n,tid:t.id,month:t.month||"",lid:t.league_id||""};
+    /* A Play Network tournament (v3) has its own page and may belong to a community the player is not in: no lid. */
+    if(n)return v3?{...n,tid:t.id,month:t.month||"",lid:"",v3:!0,t,title:t3Title(t),mode:"demo"===t.mode?"demo":"clash",oppName:t3KeyName(t,n.opp)}:{...n,tid:t.id,month:t.month||"",lid:t.league_id||""};
   }
   return null;
 }
@@ -4296,17 +4419,19 @@ function tvNotifyOff(){try{localStorage.removeItem("sl.notify")}catch(e){}toast(
 async function tvNotify(title,body,data){
   try{
     const r="serviceWorker"in navigator?await navigator.serviceWorker.getRegistration():null;
-    const tag="sl-next"+(data&&data.lid?"-"+data.lid:"");
+    const tag="sl-next"+(data&&data.lid?"-"+data.lid:data&&data.tid?"-t"+data.tid:"");
     if(r&&r.showNotification)return void await r.showNotification(title,{body,tag,icon:"icons/icon-192.png",data:data||null});
     const n=new Notification(title,{body,tag});
     data&&(n.onclick=()=>{try{window.focus()}catch(e){}try{n.close()}catch(e){}tvOpenNote(data)});
   }catch(e){}
 }
-function tvNoteData(lid,tid,month){return{url:location.origin+location.pathname+"#/league/"+encodeURIComponent(lid)+"/tournament",lid:lid||null,tid:tid||null,month:month||null}}
+function tvNoteData(lid,tid,month,v3){return v3?{url:location.origin+location.pathname+"#/tournaments/"+encodeURIComponent(tid),lid:null,tid:tid||null,month:null}:{url:location.origin+location.pathname+"#/league/"+encodeURIComponent(lid)+"/tournament",lid:lid||null,tid:tid||null,month:month||null}}
 function tvOpenNote(d){
   try{
     const u=new URL(String(d&&d.url||""),location.href);
     if(u.origin!==location.origin)return;
+    const t3=/^#\/tournaments\/([0-9a-f-]{36})$/.exec(u.hash);
+    if(t3)return void go("tournaments",{tournamentId:t3[1]});
     const m=/^#\/league\/([A-Za-z0-9-]{1,64})\/tournament$/.exec(u.hash);
     if(!m)return;
     const ok=x=>"string"==typeof x&&/^[A-Za-z0-9-]{1,64}$/.test(x);
@@ -4331,16 +4456,17 @@ function tvLastClear(){try{for(let i=localStorage.length-1;i>=0;i--){const k=loc
 async function tvPoll(){
   if(!me)return;
   const L=myLeaguesSafe(),ids=L.filter(l=>!l.archived_at&&!isDemo(l.id)).map(l=>l.id);
-  if(!ids.length)return;
-  const list=await tvFetchOpen(ids);
-  if(!list||!me)return;
+  /* Play Network tournaments (t_mine) count too, even in a community the player is not in. */
+  const[l0,mine]=await Promise.all([ids.length?tvFetchOpen(ids):[],t3MineGet(0)]);
+  if(!l0||!me)return;
+  const list=t3Merge(l0,mine),old=list.filter(t=>null==t.status);
   list.length&&await ensureProfNames();
   /* Home's Next up reads the same list: running tournaments of every league. */
   cache.homeTourneys=list;
-  try{const o=localStorage.getItem("sl.lastmatch");if(null!==o){o&&ids.forEach(id=>{const n=tvMyNext(list.filter(t=>t.league_id===id));n&&n.tid+":"+n.key===o&&null===localStorage.getItem(tvLastKey(id))&&localStorage.setItem(tvLastKey(id),o)});localStorage.removeItem("sl.lastmatch")}}catch(e){}
+  try{const o=localStorage.getItem("sl.lastmatch");if(null!==o){o&&ids.forEach(id=>{const n=tvMyNext(old.filter(t=>t.league_id===id));n&&n.tid+":"+n.key===o&&null===localStorage.getItem(tvLastKey(id))&&localStorage.setItem(tvLastKey(id),o)});localStorage.removeItem("sl.lastmatch")}}catch(e){}
   let ch=!1;
   ids.forEach(id=>{
-    const n=tvMyNext(list.filter(t=>t.league_id===id)),key=n?n.tid+":"+n.key:"";
+    const n=tvMyNext(old.filter(t=>t.league_id===id)),key=n?n.tid+":"+n.key:"";
     let last="";
     try{last=localStorage.getItem(tvLastKey(id))||""}catch(e){}
     if(key===last)return;
@@ -4348,6 +4474,16 @@ async function tvPoll(){
     try{localStorage.setItem(tvLastKey(id),key)}catch(e){}
     const lg=ids.length>1?(L.find(l=>l.id===id)||{}).name:"";
     key&&tvNotifyOn()&&tvNotify("Your next match",`vs ${tvOppName(n.opp)}${n.table?" · Table "+n.table:""} · ${n.stage}${lg?" · "+lg:""}`,tvNoteData(id,n.tid,n.month));
+  });
+  /* One key per Play Network tournament; its note opens the tournament's page. */
+  list.filter(t=>"running"===t.status).forEach(t=>{
+    const n=tvMyNext([t]),key=n?n.tid+":"+n.key:"",k=tvLastKey("t."+t.id);
+    let last="";
+    try{last=localStorage.getItem(k)||""}catch(e){}
+    if(key===last)return;
+    ch=!0;
+    try{localStorage.setItem(k,key)}catch(e){}
+    key&&tvNotifyOn()&&tvNotify("Your next match",`vs ${n.oppName}${n.table?" · Table "+n.table:""} · ${n.stage} · ${n.title}`,tvNoteData("",t.id,t.month,!0));
   });
   ch&&"browse"===route.view&&paintHomeNext();
 }
@@ -4357,7 +4493,7 @@ async function tvPoll(){
    Seeker, terrain and deck. It goes through a database function that touches
    that one entrant and nothing else, and it shuts when the first result is
    recorded — a list is handed in before play, not swapped half way through. */
-function tvCanSetMine(p){return!!(me&&p&&tvIsV2(p)&&!p.finalized&&!tvPlayed(p)&&(p.entrants||[]).some(e=>e.id===me.id))}
+function tvCanSetMine(p){return!!(me&&p&&2===p.v&&!p.finalized&&!tvPlayed(p)&&(p.entrants||[]).some(e=>e.id===me.id))}
 function tvMineOpen(){
   const t=cache.tourney;
   if(!t||!tvCanSetMine(t.payload))return toast("Decks are locked once the first result is in");
@@ -4460,6 +4596,7 @@ async function tvMutate(fn,o){
 /* A knockout correction clears only what depended on it: the matches further
    along the same path. The other half of the bracket stays as it was. */
 async function pickWinner(r,i,side){
+  if(cache.tourney&&cache.tourney.payload&&3===cache.tourney.payload.v){const B=cache.tourney.payload.bracket,x=B&&B[r]&&B[r][i];return x&&x[side]?t3Game("b:"+r+":"+i,x[side].id):void 0}
   const t=cache.tourney;
   if(!t||!t.payload)return;
   if(t.payload.finalized)return toast("Tournament is finalized — reopen it to change the bracket");
@@ -4979,23 +5116,6 @@ async function tvFetchOpen(ids){
     return!r||r.error?null:tOpenList(r.data||[]);
   }catch(e){return null}
 }
-async function tFetchLeagueTourneys(id){
-  if(!id)return [];
-  if(isDemo(id))return[...DEMO_TOURNEYS];
-  try{const{data:d}=await sb.from('tournaments').select('*').eq('league_id',id).order('created_at',{ascending:!1});return d||[]}
-  catch(e){return []}
-}
-function tOpenBanner(list){
-  const open=tOpenList(list);
-  if(!open.length)return '';
-  const t=open[0],n=open.length;
-  return `<div class="t-warn" role="status">
-    <span class="t-warn-i">&#9873;</span>
-    <div class="t-warn-t"><b>${n>1?n+' tournaments are still running':'A tournament is still running'}</b>
-      <small>${t.month?esc(monthLabel(t.month))+' &mdash; ':''}finish the bracket, then finalize it to move it to Past tournaments.</small></div>
-    <button class="ghost" onclick="window._tPick=${jsq(t.id)};goLeagueTab('tournament',${jsq(t.league_id||'')})">Go to it</button>
-  </div>`;
-}
 async function tDiscardId(id){
   if(!id)return;
   /* A tournament from the time they were linked to events has its results
@@ -5007,28 +5127,25 @@ async function tDiscardId(id){
   const{error:e}=await sb.from('tournaments').delete().eq('id',id);
   if(e)return toast(e.message);
   if(cache.tourney&&cache.tourney.id===id)cache.tourney=null;
-  cache.leagueTourneys=(cache.leagueTourneys||[]).filter(t=>t.id!==id);
   window._tPick=null;toast('Tournament discarded',!0);renderLeague();
 }
-function tDiscard(){const t=cache.tourney;if(t&&t.id)tDiscardId(t.id)}
 function tHowto(end){
   return `<details class="t-howto${end?" t-howto-end":""}"><summary>How a tournament works</summary>
     <ol class="t-steps">
-      <li><b>Add who turned up.</b> Tap their names. Seeker, terrain and decklist are optional.</li>
-      <li><b>Generate.</b> Players go into groups of about four, and every pairing in a group gets its own row.</li>
       <li><b>Tap the winner</b> of each row once you have played it. Tap again to clear. If two players end level, the game between them decides.</li>
       <li><b>The bracket fills itself in</b> when the last group match is done. Top two of each group go through, or all four if there is only one group. Seeds are crossed, so nobody's first finals match is against a player from their own group.</li>
       <li><b>Tap through the bracket</b> the same way. Sixteen players or more get a Top 8 round.</li>
       <li><b>Finalize</b> when the final is done. The tournament locks and moves to Past tournaments. Reopen it to make changes.</li>
     </ol>
     <p class="t-note">Results tapped here count in win rates, deck records and the Meta breakdown, for both players with what they brought. Don't log these games again elsewhere.</p>
+    <p class="t-note">New tournaments run from a Play Network event: link the event in the Events tab, then run it as a tournament from there.</p>
   </details>`;
 }
 /* ===== Privacy notice and Terms of use =====
    Both open as a page (#/privacy, #/terms; linked from the footer) and as a
    dialog over the sign-up form (privacyOpen/termsOpen), so a half-filled form
    is never lost. The same HTML feeds both. */
-const SL_LEGAL_DATE="9 November 2026",SL_TERMS_VER="2026-11-09";
+const SL_LEGAL_DATE="11 November 2026",SL_TERMS_VER="2026-11-09";
 function lgLink(k,l){return`<button type="button" class="link lg-ln" onclick="legalNav(${jsq(k)})">${l}</button>`}
 function lgFb(l){return`<button type="button" class="link lg-ln" onclick="legalFeedback()">${l||"feedback form"}</button>`}
 function legalNav(k){$("pv-modal")?legalOpen(k):go(k)}
@@ -5057,16 +5174,17 @@ function privacyHtml(){return`
       <li><b>Your display name</b>, the date you joined and the role you picked (player or organizer).</li>
       <li><b>If you sign in with Google or Discord</b>, the provider sends your name, email address, account id and a link to your profile picture, and Supabase keeps them with your login. The app uses the email to sign you in. Of the name, only the first word (usually your first name) is used as your public name to begin with, and you are asked to choose a public name when you first sign in. The picture is never shown or loaded. We never see your Google or Discord password, and Seekers League cannot post or act on your behalf.</li>
       <li><b>Community activity.</b> The communities you create or join, the tournaments you play in (who won each game, Seekers, terrains, decks), the event listings you add as an organizer, and the notices you post. Results of matches from the earlier leagues are kept and still count in the meta and on player pages; their check-ins and points are kept too, but are no longer shown.</li>
-      <li><b>Play Network event listings.</b> When an organizer adds the link of an event on the official Malediction Play Network (malediction.gg), our server reads that public event page and keeps only the event's details: its name, date and time, place, type, format and the number of registered players. No player names or other player data are read or kept. The listing also records which organizer added it.</li>
+      <li><b>Play Network event listings.</b> When an organizer adds the link of an event on the official Malediction Play Network (malediction.gg), our server reads that public event page and keeps only the event's details: its name, date and time, place, type, format and the number of registered players. The listing also records which organizer added it.</li>
+      <li><b>Tournaments.</b> When an organizer runs a Play Network event as a tournament, our server copies from the public event page the nickname and the malediction.gg profile id of each registered player, nothing else: first and last names, Discord handles, avatars and decks are never read. They are kept with the tournament and deleted with it, and shown to whoever can see the tournament (anyone for a public community; members, the organizer and the tournament's players for a private one). The tournament also keeps its groups, pairings, results and who organizes it. If you add your malediction.gg profile link in Account &rsaquo; Profile, it is used to match you to your registrations and record your tournament matches automatically; once a tournament has started, its organizer confirms a new match. A malediction.gg profile can be linked to one Seekers League account only, the first one to add it. The organizer can unlink an account matched by mistake; if someone else has linked your profile, write to us through the ${lgFb()}.</li>
       <li><b>What you build.</b> Decks and your card collection.</li>
-      <li><b>Matches you play.</b> A match played with Play &rsaquo; Match is saved for both players: its date, both players, their Seekers and terrains, the deck each player chose to link (optional), the result, the score, the number of rounds and the tournament, if any. While it is played, the live score (Mastery, Echo, the round and the clock) passes between the two phones through Supabase Realtime, only to the two players of that match, and a copy of it is saved from time to time so a phone that drops out can catch up. The games you logged by hand before the match tracker are kept, only you can see them, and you can delete them from your profile.</li>
+      <li><b>Matches you play.</b> A match played with Play &rsaquo; Match is saved for both players: its date, both players, their Seekers and terrains, the deck each player chose to link (optional), the result, the score, the number of rounds and the tournament, if any. When the two players are paired in a running tournament, the result is also recorded as their game there, unless the organizer has already entered it. While it is played, the live score (Mastery, Echo, the round and the clock) passes between the two phones through Supabase Realtime, only to the two players of that match, and a copy of it is saved from time to time so a phone that drops out can catch up. The games you logged by hand before the match tracker are kept, only you can see them, and you can delete them from your profile.</li>
       <li><b>Community places.</b> An organizer can give a community a town and a spot on the map, or make it an online community with a region, can set the community's time zone (an online community needs one) and can add a link to the community's Discord server; for a public community these are shown to everyone.</li>
       <li><b>Optional profile details.</b> A Herald rank, a Discord name, a link to your malediction.gg profile and a pin on the map. You choose who sees your Discord name: everyone, or only the players who are in a community with you right now. Anyone with an account can join a public community, so in a public community that means anyone who joins it. Someone who leaves the community or is retired from it stops seeing it, and once a community is archived it no longer shares the name at all. All start empty. You set a pin by typing a town and pressing <i>Find</i>, by pressing <i>Use my location</i> (your browser asks you first), or by tapping the map; what we keep is rounded to about a kilometre, enough to say which town you play in, not which building. <i>Remove pin</i> deletes it.</li>
       <li><b>Anonymous usage statistics</b> and <b>feedback you send</b>, described below.</li>
     </ul>
     <h3 class="pv-h">What is public</h3>
     <p class="pv-p">Seekers League is a public community site, so some things can be seen by <b>anyone, signed in or not</b>: your display name and the date your account was created; public communities with their place, members, event listings, tournaments and results; any deck you mark public; and the optional profile details you fill in, except a Discord name you share only with your communities. Your player page (your record, the Seekers and terrains you bring, who you have played) can be opened by anyone, and is worked out only from the matches that visitor is already allowed to read.</p>
-    <p class="pv-p"><b>Not public.</b> Your email address is never shown to anyone. A private community's event listings, tournaments, matches and members are visible only to its own players. Your collection, the games you logged by hand and your private decks are only ever visible to you. A match you play with the match tracker (its date, both Seekers and terrains, the result and the tournament, if any) is saved for both players: your opponent always sees it, and other people see it, on your profile or as your opponent's match, only as your <i>Who sees your matches</i> setting allows (everyone, signed-in players, or only you). The Meta counts it with no names attached; a deck you linked shows there only if the deck is public and everyone may see your matches. A Discord name you share only with your communities is visible only to you and to the active players of the communities you are active in, as long as the community is not archived; in a public community that includes anyone who joins it. The site admin can see community data, private communities included, and the feedback you send, only to run the site and deal with abuse.</p>
+    <p class="pv-p"><b>Not public.</b> Your email address is never shown to anyone. A private community's event listings, tournaments, matches and members are visible only to its own players; one of its tournaments is also visible to its organizer and to its players who have a Seekers League account linked. Your collection, the games you logged by hand and your private decks are only ever visible to you. A match you play with the match tracker (its date, both Seekers and terrains, the result and the tournament, if any) is saved for both players: your opponent always sees it, and other people see it, on your profile or as your opponent's match, only as your <i>Who sees your matches</i> setting allows (everyone, signed-in players, or only you). The Meta counts it with no names attached; a deck you linked shows there only if the deck is public and everyone may see your matches. A Discord name you share only with your communities is visible only to you and to the active players of the communities you are active in, as long as the community is not archived; in a public community that includes anyone who joins it. The site admin can see community data, private communities included, and the feedback you send, only to run the site and deal with abuse.</p>
     <h3 class="pv-h">Why, and on what legal basis</h3>
     <ul class="pv-ul">
       <li><b>Running the site you signed up for</b>: your account, profile, communities, results, decks and collection. Basis: the agreement you make when you create an account (GDPR art. 6(1)(b)).</li>
@@ -5074,8 +5192,11 @@ function privacyHtml(){return`
       <li><b>Anonymous usage statistics</b>: learning which features help and what breaks. Basis: legitimate interest (art. 6(1)(f)); you can switch them off below at any time.</li>
       <li><b>Optional public details</b> (Herald rank, Discord name, profile link, map pin): published because you chose to fill them in (consent, art. 6(1)(a)). Clear a field and it stops being published.</li>
       <li><b>Feedback</b>: answering you and fixing what you report (legitimate interest, art. 6(1)(f)).</li>
+      <li><b>Tournaments from Play Network events</b>: copying the registered players and matching them to accounts, so the tournament can be run. Basis: the legitimate interest of the organizer and the players in running the tournament they registered for (art. 6(1)(f)).</li>
     </ul>
     <p class="pv-p">Nothing about you is sold or shared for advertising. There are no ads, no third-party trackers, no profiling and no automated decisions about you.</p>
+    <h3 class="pv-h">Registered on the Play Network, without an account</h3>
+    <p class="pv-p">If you registered for a Play Network event that an organizer runs here as a tournament, your nickname and your malediction.gg profile id are copied from the event's public page on malediction.gg, even if you have no Seekers League account. They are used only to run that tournament: its list of players, the pairings and the results. The legal basis is the legitimate interest of the organizer and the players in running the tournament (GDPR art. 6(1)(f)); this notice is the information owed under art. 14 when data does not come from you directly. They are kept while the tournament exists and deleted with it. You can object at any time: ask the tournament's organizer to remove your name (it becomes "Player" and a number, and your profile id is removed from the tournament; we keep only a one-way code made from it, which cannot be read from the site, so that the list is not filled in with you again), or write to us through the ${lgFb()} or its email address.</p>
     <h3 class="pv-h">Anonymous usage statistics</h3>
     <p class="pv-p">To see which pages get used, which features help and what breaks, the site counts page visits (with every id and invite code taken out of the address), taps on a few key buttons such as <i>Join</i> or <i>Generate</i> (a tournament), error messages, a coarse device type (phone, tablet or computer) and, with an error, the browser family. Each visit gets a random id that lasts only until you close the tab; nothing in the statistics links it to you or your account beyond a yes or no for whether someone was signed in, and they are sent without your sign-in token even when you are signed in. No names, nothing typed into a form, and no IP address or account id is stored with them (the database host, like any server, sees the address a request comes from). They go to the same database as everything else and are deleted automatically after 90 days. A browser that sends Global Privacy Control or Do Not Track is never counted.</p>
     <label class="rem-row" style="min-height:44px;margin:-4px 0 12px"><input type="checkbox" ${anEnabled()?"checked":""} ${anBlocked()?"disabled":""} onchange="anSetEnabled(this.checked);toast(this.checked?'Usage statistics on':'Usage statistics off',!0)"> <span>${anBlocked()?"Off: your browser asks sites not to track it":"Share anonymous usage statistics from this browser"}</span></label>
@@ -5092,14 +5213,15 @@ function privacyHtml(){return`
       <li><b>PayPal</b>, only if you use the <i>Buy the developer a coffee</i> button: the payment happens on PayPal's own site, under its own privacy statement, and nothing about it is stored here.</li>
       <li><b>Discord</b>, only if you open a community's Discord link: that page is Discord's, under its own privacy statement.</li>
       <li><b>OpenStreetMap's place lookup</b> (Nominatim, run by the OpenStreetMap Foundation, UK), only when you press <i>Find</i> on a map. It receives the words you typed and, like any server, your IP address, and sends back coordinates. It never runs on its own.</li>
-      <li><b>The Malediction Play Network</b> (malediction.gg), only when an organizer adds or refreshes an event listing: our server, not your browser, fetches that event's public page. Opening an event's link takes you to malediction.gg, under its own privacy statement.</li>
+      <li><b>The Malediction Play Network</b> (malediction.gg), only when an organizer adds or refreshes an event listing, and when the organizer of a tournament imports or refreshes its players: our server, not your browser, fetches that event's public page. Opening an event's link takes you to malediction.gg, under its own privacy statement.</li>
     </ul>
     <p class="pv-p">Fonts, scripts and the map's coastline are all served from this site: opening a page contacts no font service, script CDN, map-tile server or tracker.</p>
     <h3 class="pv-h">How long it is kept</h3>
     <ul class="pv-ul">
       <li><b>Account, profile, communities, results, matches, decks and collection</b>: as long as you keep your account.</li>
       <li><b>Matches that never started</b>: 7 days; <b>cancelled matches</b>: 30 days; <b>wrong PIN attempts</b>, kept against guessing: 2 days.</li>
-      <li><b>When you delete your account</b> your login and email address, profile details (your Discord name included), collection, private decks, games logged by hand and feedback are erased. A match still being played is cancelled. Your finished matches stay in your opponents' match history, and your tournament games and earlier league records in their communities, under the name <i>Deleted player</i>, so the other players' records stay correct; public decks and notices you posted stay under that name too. A community you own is deleted if nobody else ever used it, otherwise it is archived.</li>
+      <li><b>Players copied from a Play Network event</b> (nickname and profile id): as long as the tournament exists, and deleted with it; sooner on request, when the organizer uses <i>Remove name</i>.</li>
+      <li><b>When you delete your account</b> your login and email address, profile details (your Discord name included), collection, private decks, games logged by hand and feedback are erased. A match still being played is cancelled. Your finished matches stay in your opponents' match history, and your tournament games and earlier league records in their communities, under the name <i>Deleted player</i>, so the other players' records stay correct; public decks and notices you posted stay under that name too. A community you own is deleted if nobody else ever used it, otherwise it is archived. In every tournament, finished ones included, your account is unlinked: you stay listed by your Play Network nickname only, with your results under that nickname, and nothing there ties it to your deleted account. A tournament you organize can be taken over by the community's creator or organizers, as it can when you stop being one of its organizers.</li>
       <li><b>Anonymous usage statistics</b>: 90 days. <b>Feedback</b>: 12 months, sooner on request.</li>
       <li><b>Backup copies</b> of the database are kept privately and deleted after at most 90 days.</li>
     </ul>
@@ -5200,7 +5322,7 @@ async function tFinalize(){
     w=f&&f.winner?('a'===f.winner?f.a:f.b):null;
   if(!w)return toast('Pick the winner of the final first');
   if(!await slConfirm({title:'Finalize this tournament?',body:'The bracket is locked and the result moves to Past tournaments.',ok:'Finalize'}))return;
-  const ok=await tvMutate(p=>{if(p.finalized)return!1;const B=p.bracket||[],F=B.length?B[B.length-1][0]:null,W=F&&F.winner?('a'===F.winner?F.a:F.b):null;if(!W||W.id!==w.id)return toast('The bracket changed on another device \u2014 check it and try again'),!1;p.finalized=!0;p.champion=W.id;p.finalized_at=(new Date).toISOString();window._tPast=t.id;window._tPick=t.id;window._tNew=!1},{allowFinalized:!0});
+  const ok=await tvMutate(p=>{if(p.finalized)return!1;const B=p.bracket||[],F=B.length?B[B.length-1][0]:null,W=F&&F.winner?('a'===F.winner?F.a:F.b):null;if(!W||W.id!==w.id)return toast('The bracket changed on another device \u2014 check it and try again'),!1;p.finalized=!0;p.champion=W.id;p.finalized_at=(new Date).toISOString();window._tPast=t.id;window._tPick=t.id},{allowFinalized:!0});
   ok&&toast('Tournament finalized',!0);
 }
 async function tReopen(id){
@@ -5530,7 +5652,7 @@ function pfAccount(){
           <label class="field"><span>Discord name <span class="opt">optional</span></span>
             <input id="pf-discord" maxlength="40" value="${esc(me.discord||me._mdHandle||'')}" placeholder="Discord username"></label>${pfDcVis()}
           <label class="field"><span>Your profile on malediction.gg <span class="opt">optional</span></span>
-            <input type="url" id="pf-mg" value="${esc(me.malediction_url||'')}" placeholder="https://malediction.gg/..."></label>
+            <input type="url" id="pf-mg" value="${esc(me.malediction_url||'')}" placeholder="https://malediction.gg/app/profile/..." autocomplete="off"><small class="hint">It links you to your Play Network registrations, so your tournament matches are recorded automatically.</small></label>
           <p class="acc-note" id="pf-note">${window._noMd?'Other players see all three.':'Other players see your name and profile link. Your Discord name: everyone, or only the players in your communities, as you choose.'}</p>
           ${pfMvVis()}
           <button class="act acc-save" id="pf-prof-btn" onclick="pfSaveProfile()">Save profile</button>`)}
@@ -5586,7 +5708,10 @@ async function pfSaveProfile(){
     n=($('pf-discord').value||'').trim().replace(/^@+/,'').slice(0,40)||null,
     t=($('pf-mg').value||'').trim();
   if(!e)return toast('Pick a name');
-  if(t&&!safeUrl(t))return toast('The profile link must be a valid http(s) address');
+  /* Only a malediction.gg profile address is kept, in one canonical form, so
+     the server can match it to Play Network registrations (mg_public_id). */
+  const mp=t?mgPid(t):null;
+  if(t&&!mp)return toast('Paste the address of your malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/');
   /* Who sees the Discord name: everyone (profiles.discord, as before) or only
      the players of your leagues (member_discord). Only one of the two is kept. */
   const vs=!window._noMd&&document.querySelector('input[name="pf-dc-vis"]:checked'),lv=!!vs&&'leagues'===vs.value;
@@ -5595,17 +5720,17 @@ async function pfSaveProfile(){
   if(a){a.disabled=!0;a.textContent='Saving\u2026'}
   if(lv){let mx=null;try{mx=(n?await sb.from('member_discord').upsert({user_id:me.id,handle:n},{onConflict:'user_id'}):await sb.from('member_discord').delete().eq('user_id',me.id)).error}catch(x){mx=x}
     if(mx){if(a){a.disabled=!1;a.textContent='Save profile'}slNoCol(mx)&&(window._noMd=1);return toast(slNoCol(mx)?'Sharing a Discord name with your communities only needs a site update that is not live yet. Pick Everyone, or try again later.':mx.message||'Could not save your Discord name')}}
-  const s={display_name:e,discord:lv?null:n,malediction_url:t?safeUrl(t):null},{error:i}=await sb.from('profiles').update(s).eq('id',me.id);
+  const s={display_name:e,discord:lv?null:n,malediction_url:mp?"https://malediction.gg/app/profile/"+mp+"/":null},{error:i}=await sb.from('profiles').update(s).eq('id',me.id);
   /* Who sees your matches: written on its own, and only when it changed, so
      the rest still saves where the column is not there yet. */
   let mvErr=null;const mvi=document.querySelector('input[name="pf-mv"]:checked'),mv=mvi&&mvi.value;
   if(!i&&mv&&mv!==(me.matches_visibility||'public')){let y=null;try{y=(await sb.from('profiles').update({matches_visibility:mv}).eq('id',me.id)).error}catch(x){y=x}
     y?(mvErr=slNoCol(y)?'Your details were saved. Choosing who sees your matches needs a site update that is not live yet.':y.message||'Could not save who sees your matches'):(me.matches_visibility=mv)}
   if(a){a.disabled=!1;a.textContent='Save profile'}
-  if(i)return toast(i.message);
+  if(i)return toast("23505"===i.code||/mg_public_id/.test(i.message||"")?"This malediction.gg profile is already linked to another Seekers League account. If it is yours, write to us from Feedback.":i.message);
   if(vs&&!lv&&null!==me._mdHandle)try{await sb.from('member_discord').delete().eq('user_id',me.id)}catch(x){}
   vs&&(me._mdHandle=lv&&n?n:null);cache.memberDiscord=null;
-  Object.assign(me,s),cache.heralds=null,cache.profNames=null;
+  Object.assign(me,s),cache.heralds=null,cache.profNames=null,cache.t3Mine=null;
   toast(mvErr||'Profile saved',!mvErr),renderChrome(),renderProfile();
 }
 async function pfSaveHerald(){
@@ -5690,7 +5815,7 @@ async function renderProfile(){
   all.filter(m=>m.winner_id===u.id||m.loser_id===u.id).forEach(m=>{const w=m.winner_id===u.id;
     s.push({win:w,src:m.kind||"standard",when:m.created_at||"",league:m.league_id,mySk:w?m.winner_seeker:m.loser_seeker,oppSk:w?m.loser_seeker:m.winner_seeker,myTer:w?m.winner_terrain:m.loser_terrain,oppId:w?m.loser_id:m.winner_id})});
   fbs.forEach(f=>{s.push({id:f.id,win:"win"===f.result,src:"fb",when:f.played_on||f.created_at||"",mySk:f.my_seeker,oppSk:f.opp_seeker,myTer:f.my_terrain,oppTer:f.opp_terrain,oppName:f.opponent_name})});
-  dus.forEach(d=>{s.push({id:d.id,du:1,win:!!d.won,src:d.tournament_id?"tournament":"standard",when:d.played_at||"",mySk:d.my_seeker,oppSk:d.opp_seeker,myTer:d.my_terrain,oppTer:d.opp_terrain,oppId:d.opponent_id||null,oppName:d.opponent_name,tnName:d.tournament_name||""})});
+  dus.forEach(d=>{s.push({id:d.id,du:1,win:!!d.won,src:d.tournament_id?"tournament":"standard",when:d.played_at||"",mySk:d.my_seeker,oppSk:d.opp_seeker,myTer:d.my_terrain,oppTer:d.opp_terrain,oppId:d.opponent_id||null,oppName:d.opponent_name,tnName:d.tournament_name||"",tnId:d.tournament_id||""})});
   s.sort((a,b)=>(a.when||"").localeCompare(b.when||""));
   const scope=own&&(["standard","tournament"].includes(window._msScope)||"fb"===window._msScope&&fbs.length)?window._msScope:"",r=scope?s.filter(x=>x.src===scope):s,
     wins=r.filter(x=>x.win).length,losses=r.length-wins,last=r.slice(-10),wr=r.length?wins/r.length:0;
@@ -5776,7 +5901,7 @@ async function pmVis(id){try{const{data:d,error:x}=await sb.from("profiles").sel
 function pmSk(n,t){const k=n?seekerByNorm(normName(n)):null;return`<span class="pm-s">${k?fBadges(k.f):""}<span class="pm-sk"><b>${esc((n||"—").split(",")[0])}</b>${t?`<small>${esc(t)}</small>`:""}</span></span>`}
 function pmRow(x,own){const fb="fb"===x.src,dt=x.when?fb&&10===x.when.length?fmtDate(x.when):fmtDateTs(x.when):"",gone=!x.oppId||"Deleted player"===x.oppName,
     o=fb?`<span class="pm-on">${esc(x.oppName||"Unknown opponent")}</span><span class="pm-tag">logged by hand</span>`:gone?`<span class="pm-on">${esc(x.oppName||"Private player")}</span>`:`<a class="pm-on" href="#/profile/${esc(x.oppId)}">${esc(x.oppName||"A Seeker")}</a>`;
-  return`<div class="pm-row${fb?" fb":""}"><span class="pm-d">${dt}</span><span class="pm-o"><small class="pm-vs">vs</small>${o}</span><span class="pm-ss">${pmSk(x.mySk,x.myTer)}<i>vs</i>${pmSk(x.oppSk,x.oppTer)}</span><span class="pm-r ${x.win?"w":"l"}">${x.win?"Win":"Loss"}</span><span class="pm-n">${x.tnName?esc(x.tnName):""}</span>${own&&fb?`<button type="button" class="pm-x" aria-label="Delete this game" title="Delete this game" onclick="fbDel(${jsq(x.id)})">&#215;</button>`:'<span class="pm-xs"></span>'}</div>`}
+  return`<div class="pm-row${fb?" fb":""}"><span class="pm-d">${dt}</span><span class="pm-o"><small class="pm-vs">vs</small>${o}</span><span class="pm-ss">${pmSk(x.mySk,x.myTer)}<i>vs</i>${pmSk(x.oppSk,x.oppTer)}</span><span class="pm-r ${x.win?"w":"l"}">${x.win?"Win":"Loss"}</span>${x.tnName&&t3IdOk(x.tnId)?`<a class="pm-n" href="#/tournaments/${esc(x.tnId)}">${esc(x.tnName)}</a>`:`<span class="pm-n">${x.tnName?esc(x.tnName):""}</span>`}${own&&fb?`<button type="button" class="pm-x" aria-label="Delete this game" title="Delete this game" onclick="fbDel(${jsq(x.id)})">&#215;</button>`:'<span class="pm-xs"></span>'}</div>`}
 function pmList(){const L=window._pmL||[],own=!!window._pmOwn,n=window._pmN||25;
   if(!L.length)return`<div class="empty">${own?`No matches yet. <button class="link" onclick="go('tracker')">Start one from Play › Match</button>`:"No matches to show."}</div>`;
   return`<div class="pm-list"><div class="pm-row pm-head" aria-hidden="true"><span>Date</span><span>Opponent</span><span>Seeker</span><span>Their Seeker</span><span>Result</span><span>Tournament</span><span></span></div>${L.slice(0,n).map(x=>pmRow(x,own)).join("")}</div>${L.length>n?`<button class="ghost pm-more" onclick="pmMore()">Show more (${L.length-n} left)</button>`:""}`}
@@ -5790,48 +5915,499 @@ function pfLink(e){return location.origin+location.pathname+"#/profile/"+e}
 function pfShare(e){const n=pfLink(e);if(navigator.share)return void navigator.share({url:n}).catch(()=>copyText(n,()=>toast("Link copied",!0)));copyText(n,()=>toast("Link copied",!0))}
 async function fbDel(e){if(!await slConfirm({title:"Delete this game?",body:"You logged it by hand. Your stats will update.",ok:"Delete",danger:!0}))return;await slDeferDelete({kind:"fb",id:e,table:"free_battles",msg:"Game deleted",hide:()=>{cache.freeBattles=slHide("fb",cache.freeBattles)},done:()=>{cache.freeBattles=(cache.freeBattles||[]).filter(x=>x.id!==e)}})}
 /* ===== Play › Tournaments =====
-   Every tournament of the communities you are in: running ones first, then the
-   finished ones. A row opens it in its community. Organizers start a new one
-   from the community they pick. */
+   The tournaments you can take part in: those of the communities you are in,
+   plus the Play Network tournaments you organize or are registered for (t_mine).
+   A Play Network tournament opens on its own page, #/tournaments/<id>; an older
+   community tournament still opens in its community. New tournaments are made
+   from a Play Network event listed in a community's Events tab. */
 async function renderTournamentsPage(){
   const e=$("tnp-body");if(!e)return;
+  if(route.tournamentId)return t3Open(route.tournamentId);
+  t3Timer&&(clearInterval(t3Timer),t3Timer=null);
   if(!me)return void(e.innerHTML=`<div class="panel plain home-cta"><div><h2 style="margin:0 0 3px">Tournaments</h2>
-    <p class="hint" style="margin:0">Groups and a finals bracket, run by a community's organizers. Sign in to see the tournaments of your communities.</p></div>
+    <p class="hint" style="margin:0">Tournaments run from Play Network events. Sign in to see the tournaments you are registered for or organize.</p></div>
     <button class="act" onclick="go('auth')">Sign in</button></div>`);
   e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading tournaments\u2026</div></div>';
-  if(!cache.myLeagues)cache.myLeagues=await fetchMyLeagues();
-  const L=myLeaguesSafe(),ids=L.map(l=>l.id).filter(x=>DECK_ID_RE.test(x||""));
+  /* Sign-in empties the list ([]) before it is loaded; read it here then too. */if(!cache.myLeagues||!cache.myLeagues.length)cache.myLeagues=await fetchMyLeagues();
+  const L=myLeaguesSafe(),ids=L.map(l=>l.id).filter(t3IdOk);
   let T=[];
-  if(ids.length){const{data,error:er}=await sb.from("tournaments").select("id,league_id,month,payload,created_at").in("league_id",ids).order("created_at",{ascending:!1}).limit(60);
+  if(ids.length){const{data,error:er}=await sb.from("tournaments").select("*").in("league_id",ids).order("created_at",{ascending:!1}).limit(60);
     if(er)return void(e.innerHTML=`<div class="banner">${esc(er.message)}</div>`);T=data||[]}
-  if("tournaments"!==route.view)return;
-  const ln=id=>(L.find(l=>l.id===id)||{}).name||"Community",run=T.filter(t=>!(t.payload||{}).finalized_at),past=T.filter(t=>(t.payload||{}).finalized_at),
+  /* Before the database has t_mine this simply adds nothing. */
+  try{const{data:x,error:xe}=await sb.rpc("t_mine");!xe&&Array.isArray(x)&&x.forEach(r=>{r&&r.id&&!T.some(y=>y.id===r.id)&&T.push(r)})}catch(x){}
+  if("tournaments"!==route.view||route.tournamentId)return;
+  T=T.filter(t=>t&&t.payload).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+  /* A Play Network tournament says where it is in its status; an older one
+     is finished once its payload is finalized. */
+  const fin=t=>null!=t.status?"closed"===t.status:!!t.payload.finalized,
+    ln=id=>(L.find(l=>l.id===id)||{}).name||"",run=T.filter(t=>!fin(t)),past=T.filter(fin),
     org=L.filter(l=>!l.archived_at&&(isOwnerOf(l)||isAdminOf(l))),
-    row=(t,r)=>{const p=t.payload||{},np=tvPlayers(p),dt=tvWhen(t);return`<button type="button" class="nu-row tnp-row" onclick="tnpOpen(${jsq(t.league_id)},${jsq(t.id)},${r?1:0})">
-      <span class="tnp-l"><small>${esc(ln(t.league_id))}</small><span><b>${r?"Running":"&#9819; Finished"}</b>${dt?" · "+esc(dt):""} · ${np} player${1===np?"":"s"}</span></span>
+    row=t=>{const p=t.payload||{},np=tvPlayers(p),r=!fin(t),dt=tvWhen(t),c=ln(t.league_id),pl=`${np} player${1===np?"":"s"}`;
+      if(null!=t.status){const ti=String(p.pn&&p.pn.title||"").trim()||"Tournament";return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(t.id)}})">
+      <span class="tnp-l"><small>${esc(c||"Play Network event")}</small><span class="tnp-t">${esc(ti)}</span><span><b>${esc(t3StateLabel(t.status))}</b> · ${pl}</span></span>
+      <i class="nu-chev" aria-hidden="true">›</i></button>`}
+      return`<button type="button" class="nu-row tnp-row" onclick="tnpOpen(${jsq(t.league_id)},${jsq(t.id)},${r?1:0})">
+      <span class="tnp-l"><small>${esc(c||"Community")}</small><span><b>${r?"Running":"&#9819; Finished"}</b>${dt?" · "+esc(dt):""} · ${pl}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   e.innerHTML=`<div class="panel plain">
     <div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Tournaments</h2>
-      <p class="hint" style="margin:0">Groups and a finals bracket, run by a community's organizers.</p></div>
+      <p class="hint" style="margin:0">Play Network events run on Seekers League: groups, then a finals bracket. Matches played with the match tracker are recorded automatically.</p></div>
       ${org.length?`<button class="act" onclick="tnpNew()">+ New tournament</button>`:""}</div>
-    ${T.length?`${run.length?`<div class="ip-sec">Running</div><div class="nu-list">${run.map(t=>row(t,1)).join("")}</div>`:""}
-      ${past.length?`<div class="ip-sec">Finished</div><div class="nu-list">${past.map(t=>row(t,0)).join("")}</div>`:""}`
-      :`<div class="empty" style="margin-top:12px">${L.length?"No tournaments in your communities yet.":"Join a community to take part in its tournaments."}</div>`}
+    ${T.length?`${run.length?`<div class="ip-sec">Current</div><div class="nu-list">${run.map(row).join("")}</div>`:""}
+      ${past.length?`<div class="ip-sec">Finished</div><div class="nu-list">${past.map(row).join("")}</div>`:""}`
+      :`<div class="empty" style="margin-top:12px">No tournaments yet. Organizers start one from an event in their community's Events tab.</div>`}
   </div>`;
 }
 function tnpOpen(lid,id,r){r?(window._tRun=id):(window._tPast=id);window._tScroll=id;go("league",{leagueId:lid,tab:"tournament"})}
+/* "+ New tournament": the upcoming Play Network listings you linked yourself,
+   in communities that are not archived, that are not a tournament yet. */
 async function tnpNew(){
-  const org=myLeaguesSafe().filter(l=>!l.archived_at&&(isOwnerOf(l)||isAdminOf(l)));if(!org.length)return;
-  let lid=org[0].id;
-  if(org.length>1){const old=$("tnp-pick");old&&old.remove();
-    lid=await new Promise(res=>{const m=document.createElement("div");m.id="tnp-pick";m.className="tkov";m.onclick=e=>{e.target===m&&(m.remove(),res(null))};
-      m.innerHTML=`<div class="tkmodal"><h3>New tournament</h3><p class="tk-ask-t">Which community runs it?</p>
-        <div class="nu-list">${org.map(l=>`<button type="button" class="nu-row tnp-row" data-id="${esc(l.id)}"><span class="tnp-l"><span>${esc(l.name)}</span></span><i class="nu-chev" aria-hidden="true">›</i></button>`).join("")}</div>
-        <div class="tk-ask-row" style="margin-top:12px"><button class="ghost" data-x>Cancel</button></div></div>`;
-      m.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{m.remove();res(b.dataset.id)});
-      m.querySelector("[data-x]").onclick=()=>{m.remove();res(null)};document.body.appendChild(m)})}
-  if(!lid)return;
-  window._tNew=!0;go("league",{leagueId:lid,tab:"tournament"});
+  if(!me)return go("auth");
+  const L=myLeaguesSafe().filter(l=>!l.archived_at),ln=id=>(L.find(l=>l.id===id)||{}).name||"";
+  let rows=[];
+  try{const{data:d,error:er}=await sb.from("pn_events").select("*").eq("created_by",me.id).eq("fetch_ok",!0).order("starts_at",{ascending:!0}).limit(100);
+    if(er)return toast(er.message);rows=lgUpcoming(d||[]).filter(x=>L.some(l=>l.id===x.league_id))}catch(x){return toast("Not loaded \u2014 check your connection and try again")}
+  if(rows.length){try{const{data:u,error:ue}=await sb.from("tournaments").select("pn_event_id").in("pn_event_id",rows.map(x=>x.id));!ue&&(u||[]).forEach(r=>{rows=rows.filter(x=>x.id!==r.pn_event_id)})}catch(x){}}
+  const old=$("tnp-pick");old&&old.remove();
+  const m=document.createElement("div");m.id="tnp-pick";m.className="tkov";m.onclick=e=>{e.target===m&&m.remove()};
+  m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="tnp-pick-h"><h3 id="tnp-pick-h">New tournament</h3>${rows.length?`<p class="tk-ask-t">Which event do you want to run as a tournament?</p>
+    <div class="nu-list">${rows.map(x=>`<button type="button" class="nu-row tnp-row" data-id="${esc(x.id)}"><span class="tnp-l"><small>${esc(ln(x.league_id))}</small><span class="tnp-t">${esc(x.title||"Event")}</span><span>${esc(pnShort(x))}</span></span><i class="nu-chev" aria-hidden="true">›</i></button>`).join("")}</div>`
+    :`<p class="tk-ask-t">Link the event in your community's Events tab first, then run it as a tournament from there.</p>`}
+    <div class="tk-ask-row" style="margin-top:12px"><button class="ghost" data-close>${rows.length?"Cancel":"Close"}</button></div></div>`;
+  m.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{m.remove();const x=rows.find(y=>y.id===b.dataset.id);x&&t3Create(x.id,x)});
+  m.querySelector("[data-close]").onclick=()=>m.remove();
+  document.body.appendChild(m);
+}
+/* ===== A Play Network tournament (payload v3) =====
+   Made from a community's Play Network listing by the person who linked it
+   (the organizer), with the players copied from the official event page. It
+   keeps the v2 engine above (groups, schedule, standings, the finals draw),
+   but nothing here writes the row: every change is a database function that
+   checks the row's rev, so two devices, or a tracked match being recorded,
+   never overwrite each other. An entrant's key is their account id when the
+   registration is linked to an account, else "pn:<profile id>" or, for a
+   player added by hand, "h:<8 characters>". */
+const T3_WHY={not_allowed:"Only the organizer of this tournament can do that.",archived:"This community is archived.",status:"The tournament has moved on since this page was loaded. It has been reloaded.",bad_input:"That was not accepted. Check it and try again.",finals_drawn:"The finals are drawn; this player stays dropped.",has_results:"Results are already recorded, so this can no longer be done.",duplicate:"This player is already in the list.",round0_needed:"The finals could not be drawn. Reload the page and try again."};
+const T3_IMP={not_allowed:"Only the organizer of this tournament can update its players.",started:"The tournament has started, so its list of players is fixed.",archived:"This community is archived.",parse_error:"The list of registered players could not be read from the Play Network page. Add players by hand.",unreachable:"The Play Network could not be reached from here. Add players by hand, or try again later."};
+let t3Busy=!1,t3Timer=null;
+function t3IdOk(x){return/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(x||""))}
+/* The public id in a malediction.gg profile link, case kept (the same rule as
+   the database's mg_public_id). */
+function mgPid(u){const m=/^https?:\/\/(?:www\.)?malediction\.gg\/app\/profile\/([A-Za-z0-9]{6,32})\/?(?:[?#].*)?$/i.exec(String(u??"").trim());return m?m[1]:null}
+function t3St(t){return t&&t.status||"draft"}
+function t3StateLabel(s){return"running"===s?"Running":"closed"===s?"Finished":"Registration open"}
+/* The organizer runs it while still the creator or an organizer of the
+   community (the database checks the same; a demoted organizer's page shows
+   no controls). Until the user's communities are known, the database decides. */
+function t3IsOrg(t){return!!(me&&t&&(t.organizer_id===me.id&&t3AdminMe(t,!0)||isSiteAdmin()))}
+function t3AdminMe(t,soft){if(!me||!t)return!1;const l=t3Lg(t);if(l&&l.owner_id===me.id)return!0;const L=cache.myLeagues,m=myLeaguesSafe().find(x=>x.id===t.league_id);return m?!!m.is_admin:!!soft&&!(Array.isArray(L)&&L.length)}
+function t3Lg(t){return t&&(t.leagues||myLeaguesSafe().find(l=>l.id===t.league_id))||null}
+function t3Archived(t){const l=t3Lg(t);return!!(l&&l.archived_at)}
+function t3Ed(t){return t3IsOrg(t)&&!t3Archived(t)}
+function t3Ent0(t,k){return((t&&t.payload||{}).entrants||[]).find(e=>e&&e.id===k)||null}
+function t3Mine(t){return me?t3Ent0(t,me.id):null}
+function t3ModeLabel(m){return"demo"===m?"Demo \u00b7 25":"Clash \u00b7 40"}
+/* A result someone played for: not a bye, not a forfeit from a drop. */
+function t3Real(x){return!!x&&"drop"!==x.src&&"bye"!==x.src}
+function t3HasResults(p){return(p.gm||[]).some(m=>m&&m.w&&t3Real(m))||(p.bracket||[]).some(r=>(r||[]).some(m=>m&&m.winner&&m.a&&m.b&&t3Real(m)))}
+function t3Drawn(p){return((p.bracket||[])[0]||[]).some(m=>m&&(m.a||m.b))}
+/* The organizer's account was deleted, or they are no longer the creator or
+   an organizer of the community (t3Load checks): the community's creator or
+   one of its organizers can take the tournament over. */
+function t3CanTake(t){if(!me||!t||t.organizer_id&&(t.organizer_id===me.id||!t._orgGone))return!1;const l=t3Lg(t);return!!(l&&!l.archived_at&&t3AdminMe(t))}
+/* Names for nameOf: an account's display name, else the Play Network nickname. */
+function t3Names(t){const P=cache.profNames||{},o={};((t&&t.payload||{}).entrants||[]).forEach(e=>{e&&e.id&&(o[e.id]=t3IdOk(e.id)&&P[e.id]||e.name||"Player")});cache.tNames=o;return o}
+function t3DropTag(p,id){return p&&3===p.v&&"drop"===(t3Ent0({payload:p},id)||{}).st?'<span class="t3-dr">Dropped</span>':""}
+/* Under a game: a tracked match being played for it, how it was decided. */
+function t3Tags(p,m,ref){
+  if(!p||3!==p.v||!m)return"";
+  const lv=cache.t3Live&&cache.tourney&&cache.t3Live.tid===cache.tourney.id?cache.t3Live.m[ref]:null,o=[];
+  lv&&o.push(`<span class="t3-tag live">${"ending"===lv.status?"Waiting for confirmation":"Tracked match live"}</span>`);
+  "duel"===m.src&&o.push('<span class="t3-tag">tracked</span>');
+  "drop"===m.src&&o.push('<span class="t3-tag">forfeit</span>');
+  !m.w&&/^g:/.test(ref)&&(D=>D.has(m.a)&&D.has(m.b))(t3DropSet(p))&&o.push('<span class="t3-tag">not played: both dropped</span>');
+  m.dx&&o.push('<span class="t3-tag dx">Differs from the tracked match</span>');
+  return o.length?`<div class="t3-tags">${o.join("")}</div>`:"";
+}
+function t3LiveFor(t,ref){return!!(t&&cache.t3Live&&cache.t3Live.tid===t.id&&cache.t3Live.m[ref])}
+async function t3Load(id){
+  let q=await sb.from("tournaments").select("*,pn_events(starts_at,ends_at,venue,city,country,location_type),leagues(id,name,owner_id,archived_at,is_public)").eq("id",id).maybeSingle();
+  /* Without the embedded listing (an older database) the row alone still opens. */
+  q.error&&(q=await sb.from("tournaments").select("*").eq("id",id).maybeSingle());
+  if(q.error)return{error:q.error};
+  const t=q.data||null;
+  if(t&&null!=t.status&&t.payload){await ensureProfNames();t3Names(t);cache.tourney=t;
+    /* For the community's creator and organizers: is the organizer still one
+       of them? If not, they can take the tournament over. */
+    if(me&&t.organizer_id&&t.organizer_id!==me.id&&t3AdminMe(t)){const l=t3Lg(t);
+      if(l&&l.owner_id!==t.organizer_id)try{const r=await sb.from("memberships").select("is_admin,dropped_at").eq("league_id",t.league_id).eq("user_id",t.organizer_id).maybeSingle();r.error||(t._orgGone=!(r.data&&r.data.is_admin&&!r.data.dropped_at))}catch(x){}}}
+  return{row:t};
+}
+function t3Missing(e){e.innerHTML=`<div class="panel plain"><div class="empty">This tournament was not found, or you cannot see it.</div><div class="t3-mis"><button class="ghost" onclick="go('tournaments')">All tournaments</button></div></div>`}
+async function t3Open(id){
+  const e=$("tnp-body");if(!e)return;
+  if(!t3IdOk(id))return t3Missing(e);
+  cache.tourney&&cache.tourney.id===id&&$("t3-root")||(e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading the tournament\u2026</div></div>');
+  let r;try{r=await t3Load(id)}catch(x){r={error:x}}
+  if("tournaments"!==route.view||route.tournamentId!==id)return;
+  if(r.error)return void(e.innerHTML=`<div class="banner">${esc(r.error.message||"The tournament could not be loaded.")}</div>`);
+  const t=r.row;
+  if(!t)return t3Missing(e);
+  /* An older community tournament opens in its community, in place of this
+     address, so Back does not bounce here again. */
+  if(null==t.status){(t.payload||{}).finalized?window._tPast=t.id:window._tRun=t.id;window._tScroll=t.id;
+    try{history.replaceState(null,"","#/league/"+encodeURIComponent(t.league_id)+"/tournament")}catch(x){}
+    slmHref=location.href;route=parseHash();return render()}
+  t3Paint(t);t3Watch(id);t3After(t);
+}
+async function t3Reload(){
+  const t=cache.tourney,id=t&&t.id;if(!id)return;
+  let r;try{r=await t3Load(id)}catch(x){return}
+  if("tournaments"!==route.view||route.tournamentId!==id)return;
+  if(r.error)return toast(r.error.message||"The tournament could not be loaded");
+  if(!r.row){cache.tourney=null;const e=$("tnp-body");return void(e&&t3Missing(e))}
+  t3Paint(r.row);t3After(r.row);
+}
+async function t3After(t){try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
+function t3Typing(){const a=document.activeElement,b=$("tnp-body");return!!(a&&b&&b.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
+function t3Repaint(){const t=cache.tourney;"tournaments"===route.view&&t&&route.tournamentId===t.id&&!t3Typing()&&t3Paint(t)}
+/* Every 30 s while the page is open and in front: a changed rev or status
+   reloads it; then the finals draw and the tracked matches being played. */
+function t3Watch(id){t3Timer&&clearInterval(t3Timer);t3Timer=setInterval(()=>t3Poll(id),3e4)}
+async function t3Poll(id){
+  if("tournaments"!==route.view||route.tournamentId!==id){clearInterval(t3Timer);t3Timer=null;return}
+  if("hidden"===document.visibilityState||t3Busy)return;
+  const t=cache.tourney;if(!t||t.id!==id)return;
+  let r;try{r=await sb.from("tournaments").select("rev,status").eq("id",id).maybeSingle()}catch(x){return}
+  if(!r||r.error)return;
+  if(!r.data||r.data.rev!==t.rev||r.data.status!==t.status){t3Typing()||await t3Reload();return}
+  await t3After(t);
+}
+async function t3LiveLoad(t){
+  if(!t||"running"!==t3St(t)||!me||!(t3IsOrg(t)||t3Mine(t)))return;
+  let d=null;try{const r=await sb.rpc("t_live_duels",{p_tid:t.id});if(r.error)return;d=r.data}catch(x){return}
+  const m={};(Array.isArray(d)?d:[]).forEach(x=>{x&&x.t_ref&&(m[x.t_ref]={status:x.status,claim_winner:x.claim_winner||null,claimed_at:x.claimed_at||null})});
+  const was=cache.t3Live&&cache.t3Live.tid===t.id?JSON.stringify(cache.t3Live.m):"{}";
+  cache.t3Live={tid:t.id,m};
+  JSON.stringify(m)!==was&&cache.tourney===t&&t3Repaint();
+}
+/* One way to call the tournament's database functions: one call at a time,
+   a refusal said in plain words, and a stale page reloaded. */
+async function t3Rpc(name,args,why){
+  t3Rpc.last="busy";
+  if(t3Busy)return null;
+  t3Busy=!0;document.body.classList.add("tv-busy");t3Rpc.last="";
+  try{
+    const{data:d,error:er}=await sb.rpc(name,args);
+    if(er)return toast(/PGRST202|could not find the function/i.test((er.code||"")+" "+(er.message||""))?"Not available yet \u2014 the database needs its latest update":er.message),null;
+    if(d&&d.ok)return d;
+    const r=d&&d.reason||"";t3Rpc.last=r||"error";
+    if("stale"===r){t3Busy=!1;await t3Reload();toast("The tournament changed on another device. It has been reloaded; check it and tap again.");return null}
+    /* These refusals say exactly what stood in the way ("dropped before the
+       start", "the finals are already drawn"): the database's words first. */
+    toast(why&&why[r]||(/^(status|bad_input|finals_drawn)$/.test(r)&&d&&d.message)||T3_WHY[r]||d&&d.message||"That did not work. Reload the page and try again.");
+    ("status"===r||"finals_drawn"===r)&&(t3Busy=!1,t3Reload());
+    return null;
+  }catch(x){toast("Not saved \u2014 check your connection and tap again");return null}
+  finally{t3Busy=!1;document.body.classList.remove("tv-busy")}
+}
+/* The players, from the official event page, through the Edge Function. Only
+   the organizer, only before the start. */
+async function t3Import(t){
+  t=t||cache.tourney;if(!t||!t.id||t3Busy)return null;
+  t3Busy=!0;document.body.classList.add("tv-busy");
+  const b=$("t3-imp");b&&(b.disabled=!0,b.textContent="Updating\u2026");
+  let r;try{r=await pnInvoke({tournament_id:t.id})}finally{t3Busy=!1;document.body.classList.remove("tv-busy")}
+  if(r.ok&&r.tournament){const g=r.registrants||{};
+    toast(`Players updated from the Play Network: ${g.total|0} registered, ${g.added|0} new, ${g.removed|0} removed.`+("too_many"===r.warning?" Only the first 256 were copied.":"count_mismatch"===r.warning?" Some registrations could not be read: check the list against the event page.":""),!0)}
+  else toast(r.msg||T3_IMP[r.code]||"The players could not be updated from the Play Network.");
+  cache.tourney&&cache.tourney.id===t.id&&"tournaments"===route.view&&route.tournamentId===t.id&&await t3Reload();
+  return r;
+}
+/* "Run as a tournament", from a listing card or "+ New tournament". */
+async function t3Create(id,x){
+  if(!me)return go("auth");
+  x=x||(cache.listings||[]).find(y=>y&&y.id===id);if(!x||t3Busy)return;
+  const old=$("t3-new");old&&old.remove();
+  const mode=await new Promise(res=>{let md="clash";const m=document.createElement("div");m.id="t3-new";m.className="tkov";
+    const fin=v=>{m.remove();res(v)},seg=()=>[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join("");
+    m.onclick=e=>{e.target===m&&fin(null)};
+    m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="t3-new-h">
+      <h3 id="t3-new-h">Run this event as a tournament?</h3>
+      <p class="tk-ask-t"><b>${esc(x.title||"Event")}</b>${x.starts_at?"<br>"+esc(pnWhen(x)):""}</p>
+      <p class="tk-ask-t">You will be its organizer. The registered players are copied from the Play Network page (nicknames and profile links only). You can drop players, start the tournament and close it. Matches played with the match tracker between paired players are recorded automatically.</p>
+      <div class="tm-label">Game mode</div>
+      <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${seg()}</div>
+      <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close>Cancel</button><button class="act" data-ok>Create tournament</button></div></div>`;
+    const wire=()=>m.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{md=b.dataset.m;m.querySelector(".t3-mode").innerHTML=seg();wire()});wire();
+    m.querySelector("[data-close]").onclick=()=>fin(null);m.querySelector("[data-ok]").onclick=()=>fin(md);
+    document.body.appendChild(m)});
+  if(!mode)return;
+  const d=await t3Rpc("t_create",{p_pn_event:id,p_mode:mode},{duplicate:"This event already has a tournament."});
+  if(!d||!d.id)return;
+  toast("Tournament created. Copying the players from the Play Network\u2026",!0);
+  await t3Import({id:d.id});
+  cache.allTourneys=null;
+  go("tournaments",{tournamentId:d.id});
+}
+/* On a listing card: the tournament made from it, or the button that makes one. */
+function t3CardLink(x){
+  if(!x)return"";
+  const t=(cache.tourneys||[]).find(r=>r&&null!=r.status&&r.pn_event_id===x.id);
+  if(t)return`<a class="pnl-tn" href="#/tournaments/${esc(t.id)}">Tournament &middot; ${esc(t3StateLabel(t.status))} &rsaquo;</a>`;
+  return me&&x.created_by===me.id&&x.fetch_ok&&!lgArchived(cache.league)?`<button class="act pnl-run" onclick="t3Create(${jsq(x.id)})">Run as a tournament</button>`:"";
+}
+function t3ModeSel(t){const s=window._t3Mode;return s&&s.tid===t.id?s.m:"demo"===t.mode?"demo":"clash"}
+function t3SetMode(m){const t=cache.tourney;t&&(window._t3Mode={tid:t.id,m:"demo"===m?"demo":"clash"},t3Paint(t))}
+function t3TablesSel(t,n){const s=window._t3Tab;return s&&s.tid===t.id?s.n:Math.max(1,Math.floor(n/2)||1)}
+function t3SetTables(v){const t=cache.tourney;t&&(window._t3Tab={tid:t.id,n:Math.max(1,Math.min(64,v|0||1))},t3Paint(t))}
+function t3Active(p){return(p.entrants||[]).filter(e=>e&&"drop"!==e.st).map(e=>e.id)}
+function t3LinkHint(t){
+  if(!me||t3Mine(t)||"closed"===t3St(t))return"";
+  const mp=mgPid(me.malediction_url),run="running"===t3St(t);
+  if(mp)return run&&((t.payload||{}).entrants||[]).some(e=>e&&e.pid===mp&&e.wait)?'<p class="hint t3-link">Your malediction.gg profile link matches a registration. The tournament has started, so the organizer links your account.</p>':"";
+  return`<p class="hint t3-link">Registered on the Play Network? Add your malediction.gg profile link in <button type="button" class="t3-lnk" onclick="window._accTab='profile';pfAccount()">Account &rsaquo; Profile</button> to be matched${run?"; the tournament has started, so the organizer then links your account":""}.</p>`;
+}
+function t3Setup(t){
+  const p=t.payload||{},keys=t3Active(p),n=keys.length,mode=t3ModeSel(t),tb=t3TablesSel(t,n);
+  return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
+    <p class="hint" style="margin:0 0 10px">On the day of the event, check the players below and drop anyone who did not come, then start. Groups are played first, then a finals bracket.</p>
+    <div class="tm-label">Game mode</div>
+    <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>`<button type="button" class="seg-b${mode===k?" on":""}" role="radio" aria-checked="${mode===k}" onclick="t3SetMode(${jsq(k)})">${l}</button>`).join("")}</div>
+    ${n>=TV_MIN?`<label class="tv-tables"><span>Tables available</span><input type="number" inputmode="numeric" min="1" max="64" value="${tb}" aria-label="Tables available" onchange="t3SetTables(this.value)"><small>${(r=>`${r} round${1===r?"":"s"} of group play`)(tvRoundCount(keys,tb))}</small></label>`:""}
+    <div class="tv-plan">${tvPlan(n)}</div>
+    <div class="t-fin"><button class="act gold" onclick="t3Start()"${n<TV_MIN?" disabled":""}>Start the tournament</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button></div>
+  </div>`;
+}
+function t3NextHtml(t){
+  const x=t3Mine(t);if(!x||"drop"===x.st)return"";
+  const n=tvNextFor(t.payload||{},me.id);if(!n)return"";
+  const on=nameOf(n.opp);
+  return`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>Your next game &middot; ${esc(n.stage)}${n.table?" &middot; Table "+(n.table|0):""}</small><b>vs ${esc(on)}</b></div>
+    <div class="tv-next-act"><button class="act" onclick="go('tracker')">Start the match</button></div>
+    <p class="t3-next-h">${t3IdOk(n.opp)?`Play it with the match tracker in ${esc(t3ModeLabel(t.mode))}: the result is recorded here by itself.`:`${esc(on)} has no Seekers League account linked, so the organizer enters this result.`}</p></div>`;
+}
+/* In an archived community the list no longer changes, but a name can still
+   be removed on request (the organizer or the site admin). */
+function t3Forget(t){return t3IsOrg(t)&&t3Archived(t)}
+function t3MoreOps(t,x){
+  const st=t3St(t),o=[];
+  if("closed"!==st&&!t3Archived(t)){t3IdOk(x.id)?o.push(["unlink","Unlink account"]):x.lock&&o.push(["relink","Allow linking"]);"draft"===st&&"hand"===x.src&&o.push(["remove","Remove from the list"])}
+  (x.pid||!/^Player \d+$/.test(String(x.name||"")))&&o.push(["forget","Remove name"]);
+  return o;
+}
+/* A player dropped before the start is in no group: after the start they
+   cannot be brought back. */
+function t3Grouped(p,id){return(p.groups||[]).some(g=>(g||[]).includes(id))}
+function t3Row(t,x,ed){
+  const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,uid=t3IdOk(x.id),dn=uid?(cache.profNames||{})[x.id]||"":"",dr="drop"===x.st,k=jsq(x.id),my=!!(me&&x.id===me.id),
+    wt=!uid&&!!x.wait&&!x.lock&&!closed,
+    chip=dr?'<span class="t3-chip dr">Dropped</span>':"hand"===x.src?`<span class="t3-chip">${ed?"Added by you":"Added by the organizer"}</span>`:'<span class="t3-chip">Registered</span>';
+  let a="";
+  if(ed){!closed&&(a+=dr?run&&(t3Drawn(p)||!t3Grouped(p,x.id))?"":`<button class="ghost t3-b" onclick="t3Ent('undrop',${k})">Bring back</button>`:`<button class="ghost t3-b" onclick="t3Ent('drop',${k})">Drop</button>`);
+    wt&&(a+=`<button class="ghost t3-b" onclick="t3Ent('relink',${k})">Link the account</button>`);
+    t3MoreOps(t,x).length&&(a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`)}
+  else if(t3Forget(t)&&t3MoreOps(t,x).length)a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`;
+  return`<div class="t3-row${my?" me":""}${dr?" dr":""}"><div class="t3-who"><span class="t3-nm" title="${esc(x.name||"")}">${esc(x.name||"Player")}${my?" (you)":""}</span>${uid?`<span class="t3-ln">Seekers League: <a href="#/profile/${esc(x.id)}">${esc(dn||"Player")}</a></span>`:wt?'<span class="t3-ln none">A Seekers League account added this profile link after the start: the organizer links it</span>':'<span class="t3-ln none">No Seekers League account linked</span>'}</div>${chip}${a?`<span class="t3-ra">${a}</span>`:""}</div>`;
+}
+function t3Players(t,ed){
+  const p=t.payload||{},E=(p.entrants||[]).filter(Boolean),st=t3St(t),draft="draft"===st,closed="closed"===st,
+    nIn=E.filter(x=>"drop"!==x.st).length,nDr=E.length-nIn,A=window._t3Add&&window._t3Add.tid===t.id?window._t3Add:{n:"",l:""};
+  return`<div class="panel plain t3-pl" id="t3-pl">
+    <div class="t3-pl-h"><h2 style="margin:0">Players <span class="rel-count">${nIn} in${nDr?` &middot; ${nDr} dropped`:""}</span></h2>${ed&&draft?`<button class="ghost" id="t3-imp" onclick="t3Import()">Update from the Play Network</button>`:""}</div>
+    ${draft?`<p class="hint t3-src">${p.pn&&p.pn.at?`Copied from the Play Network ${esc(pnShort({starts_at:p.pn.at}))}${null!=p.pn.n?` &middot; ${p.pn.n|0} registered there`:""}.`:"Not copied from the Play Network yet."}</p>`:closed?"":'<p class="hint t3-src">The list was fixed when the tournament started.</p>'}
+    ${ed&&draft?'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Account &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
+    ${ed&&!draft&&!closed&&E.some(x=>x.wait&&!x.lock&&!t3IdOk(x.id))?'<p class="hint t3-wait">An account added a player\'s profile link after the start. Check that it is really them, then tap <b>Link the account</b> on their row.</p>':""}
+    <div class="t3-list">${E.map(x=>t3Row(t,x,ed)).join("")||`<div class="empty">No players yet.${ed&&draft?" Update the list from the Play Network, or add players by hand below.":""}</div>`}</div>
+    ${ed&&draft?`<div class="t3-add" role="group" aria-label="Add a player">
+      <label class="field"><span>Add a player</span><input id="t3-add-n" maxlength="40" autocomplete="off" placeholder="Nickname" value="${esc(A.n)}" oninput="t3AddKeep()"></label>
+      <label class="field"><span>malediction.gg profile link <span class="opt">optional</span></span><input id="t3-add-l" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="300" placeholder="https://malediction.gg/app/profile/…/" value="${esc(A.l)}" oninput="t3AddKeep()" onkeydown="'Enter'===event.key&&(event.preventDefault(),t3Add())"></label>
+      <button class="act" onclick="t3Add()">Add</button></div>`:""}
+  </div>`;
+}
+function t3Paint(t){
+  const e=$("tnp-body");if(!e||!t)return;
+  cache.tourney=t;t3Names(t);
+  const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,draft="draft"===st,ed=t3Ed(t),
+    ev=t.pn_events||null,title=String(p.pn&&p.pn.title||"").trim()||"Tournament",np=t3Active(p).length,
+    on=t.organizer_id?(cache.profNames||{})[t.organizer_id]||"":"",w=tvBracketChamp(p),lg=t3Lg(t),
+    meta=[t.organizer_id?`Organized by <b>${esc(on||"the organizer")}</b>`:"No organizer: their account was deleted",esc(t3ModeLabel(t.mode)),`${np} player${1===np?"":"s"}`,lg&&lg.name?`<a href="#/league/${esc(t.league_id)}/events">${esc(lg.name)}</a>`:"",tvPnLink(p)].filter(Boolean);
+  slSetTitle(title);
+  let h=`<div id="t3-root"><div class="t3-back"><button type="button" class="t3-lnk" onclick="go('tournaments')">&#8249; All tournaments</button></div>
+  <div class="panel plain t3-hd">
+    <div class="ev-kicker">${run?'<span class="tc-live"></span>':""}<span>${t3StateLabel(st)}</span></div>
+    <h2 class="t3-title">${esc(title)}</h2>
+    ${ev&&ev.starts_at?`<p class="hint t3-when">${esc(pnWhen(ev))}${(x=>x?" &middot; "+esc(x):"")(pnWhere(ev))}</p>`:""}
+    <p class="hint t3-meta">${meta.map(x=>`<span>${x}</span>`).join("")}</p>
+    ${t3Archived(t)?'<p class="t3-note">This community is archived, so the tournament can no longer change.</p>':""}
+    ${t3CanTake(t)?`<div class="t3-note">${t.organizer_id?"The organizer is no longer an organizer of this community.":"The organizer's account was deleted."} As an organizer of this community you can take over this tournament.<div class="t3-acts"><button class="ghost" onclick="t3TakeOver()">Take over as organizer</button></div></div>`:""}
+    ${draft?"":t3LinkHint(t)}
+  </div>`;
+  if(draft){
+    h+=ed?t3Setup(t):`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
+    h+=t3Players(t,ed);
+  }else{
+    const wait=run&&tvGroupsDone(p)&&!t3Drawn(p),act=ed&&run;
+    run&&(h+=t3NextHtml(t));
+    h+=`<div class="panel plain">${tvViewBar(p)}${tvGroupsPart({payload:p,id:t.id},act)}</div>
+    <div class="panel plain"><h2>Finals bracket</h2>
+      ${run?`<p class="hint">${wait?ed?`The group stage is over: the finals are drawn on this page. <button type="button" class="ghost t3-b" onclick="t3FillNow()">Draw the finals</button>`:"The finals are drawn when the organizer's page updates.":act?"Tap the winner of each match to advance them. Tracked matches between linked players are recorded by themselves.":"The organizer enters the results that are not tracked."}</p>`:""}
+      ${tvBracketPart(p,act)}${tvChampHtml(w)}
+      ${ed&&run?`<div class="t-fin">${w?"":'<span class="hint t-fin-h">The final has not been played yet.</span>'}<button class="act" onclick="t3Close()">Close the tournament</button>${t3HasResults(p)?"":'<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>'}</div>`:""}
+      ${ed&&closed?`<div class="t-fin"><span class="t-fin-tag">&#10003; Finished</span><button class="ghost" onclick="t3Reopen()">Reopen</button></div>`:""}
+    </div>`;
+    h+=t3Players(t,ed);
+  }
+  e.innerHTML=h+"</div>";
+}
+/* The start: groups, schedule and an empty bracket, drawn here with the v2
+   engine from the players still in, and checked again by the database. */
+async function t3Start(){
+  const t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t))return;
+  const keys=t3Active(t.payload||{}),n=keys.length;
+  if(n<TV_MIN)return toast(`At least ${TV_MIN} players are needed to start`);
+  const mode=t3ModeSel(t),tables=t3TablesSel(t,n);
+  if(!await slConfirm({title:"Start the tournament?",body:`Groups and the schedule are drawn from the ${n} players in the list. Players without a Seekers League account stay in; you enter their results.`,ok:"Start"}))return;
+  const groups=tvSplit(keys),gm=[];
+  groups.forEach((g,gi)=>tvPairs(g).forEach(([a,b])=>gm.push({g:gi,a,b,w:null})));
+  tvSchedule(gm,tables);
+  const q=Math.min(n,1===groups.length?4:2*groups.length),bracket=buildBracket(new Array(q).fill(null));
+  const d=await t3Rpc("t_start",{p_tid:t.id,p_rev:t.rev|0,p_mode:mode,p_engine:{groups,gm,tables,bracket}});
+  if(!d)return;
+  toast(`Tournament started \u2014 ${gm.length} group match${1===gm.length?"":"es"} to play`,!0);
+  await t3Reload();
+}
+/* A result tap from the groups (g:<i>, the winner's key) or the bracket
+   (b:<round>:<match>). The bracket the group results lead to is drawn here,
+   as in v2, and sent with the last group result. */
+async function t3Game(ref,who){
+  const t=cache.tourney;if(!t||!t.payload||!t3Ed(t))return;
+  if("running"!==t3St(t))return toast("closed"===t3St(t)?"The tournament is closed. Reopen it to change results.":"The tournament has not started yet.");
+  const p=t.payload,lv=t3LiveFor(t,ref),LIVE={title:"Enter the result by hand?",body:"A tracked match for this game is in progress. Enter the result anyway?",ok:"Enter result"};
+  let args;
+  if(/^g:\d+$/.test(ref)){
+    const c=JSON.parse(JSON.stringify(p)),m=(c.gm||[])[+ref.slice(2)];
+    if(!m||who!==m.a&&who!==m.b)return;
+    if(tvBracketStarted(p)&&!await slConfirm({title:"The finals have already started",body:"Changing a group result can change who plays in the finals. A finals result is kept only where the same two players still meet; the others are cleared. Continue?",ok:"Change result",danger:!0}))return;
+    if(lv&&!m.w&&!await slConfirm(LIVE))return;
+    m.w=m.w===who?null:who;tvSyncFinals(c);
+    args={p_ref:ref,p_winner:m.w};
+    tvGroupsDone(c)&&c.bracket&&c.bracket.length&&(args.p_round0=c.bracket[0].map(x=>[x.a&&x.a.id||null,x.b&&x.b.id||null]));
+  }else{
+    const g=/^b:(\d+):(\d+)$/.exec(ref);if(!g)return;
+    const r=+g[1],k=+g[2],B=p.bracket||[],m=B[r]&&B[r][k];
+    if(!m||!m.a||!m.b)return;
+    const side=m.a.id===who?"a":m.b.id===who?"b":null;if(!side)return;
+    let later=0;for(let x=r+1,j=k;x<B.length;x++){j=Math.floor(j/2);B[x][j]&&B[x][j].winner&&later++}
+    if(m.winner&&later&&!await slConfirm({title:"Change this result?",body:`${later} later result${1===later?"":"s"} that depend${1===later?"s":""} on it will be cleared. The other side of the bracket is kept.`,ok:"Change result",danger:!0}))return;
+    if(lv&&!m.winner&&!await slConfirm(LIVE))return;
+    args={p_ref:ref,p_winner:m.winner===side?null:m[side].id};
+  }
+  const d=await t3Rpc("t_result",{p_tid:t.id,p_rev:t.rev|0,...args});
+  if(!d)return;
+  try{anMutOk++}catch(x){}
+  await t3Reload();
+}
+/* The last group game came in from a tracked match: the organizer's page
+   draws the finals on its next load or poll. Tried once per rev; a call that
+   did not get through (no signal, a server error) is tried again on the next
+   poll, and "Draw the finals" (force) tries at once. */
+async function t3Fill(t,force){
+  if(!t||!t3Ed(t)||"running"!==t3St(t)||t3Busy)return;
+  const p=t.payload||{},B=p.bracket||[];
+  if(!B.length||!tvGroupsDone(p)||t3Drawn(p))return;
+  const key=t.id+":"+(t.rev|0);if(!force&&t3Fill.k===key)return;
+  const c=JSON.parse(JSON.stringify(p));tvSyncFinals(c);
+  const r0=c.bracket[0].map(x=>[x.a&&x.a.id||null,x.b&&x.b.id||null]);
+  if(!r0.some(x=>x[0]||x[1]))return;
+  t3Fill.k=key;
+  const d=await t3Rpc("t_fill",{p_tid:t.id,p_rev:t.rev|0,p_round0:r0},{finals_drawn:"The finals were already drawn on another device."});
+  if(d)return toast("The finals are drawn",!0),void await t3Reload();
+  /* No answer at all (no signal, a server error): try again on the next poll.
+     A refusal stays tried for this rev (a stale page or a draw made elsewhere
+     reloads it with a new rev), so a refusal never loops. */
+  t3Fill.k===key&&""===t3Rpc.last&&(t3Fill.k=null);
+}
+function t3FillNow(){const t=cache.tourney;t&&t3Fill(t,!0)}
+async function t3Close(){
+  const t=cache.tourney;if(!t||!t3Ed(t))return;
+  const w=tvBracketChamp(t.payload||{});
+  if(!await slConfirm(w?{title:"Close the tournament?",body:`Results are locked and ${nameOf(w.id)} is named champion. You can reopen it later.`,ok:"Close"}:{title:"Close the tournament?",body:"The final has not been played. Close anyway? No champion is named.",ok:"Close anyway",danger:!0}))return;
+  const d=await t3Rpc("t_close",{p_tid:t.id,p_rev:t.rev|0});
+  d&&(toast("Tournament closed",!0),await t3Reload());
+}
+async function t3Reopen(){
+  const t=cache.tourney;if(!t||!t3Ed(t))return;
+  if(!await slConfirm({title:"Reopen this tournament?",body:"Results can be changed again until you close it.",ok:"Reopen"}))return;
+  const d=await t3Rpc("t_reopen",{p_tid:t.id,p_rev:t.rev|0});
+  d&&(toast("Tournament reopened",!0),await t3Reload());
+}
+async function t3Unstart(){
+  const t=cache.tourney;if(!t||!t3Ed(t))return;
+  if(!await slConfirm({title:"Back to registration?",body:"The groups, the schedule and any forfeits are cleared. You can change the list of players and start again.",ok:"Back to registration",danger:!0}))return;
+  const d=await t3Rpc("t_unstart",{p_tid:t.id,p_rev:t.rev|0},{has_results:"Results are already recorded, so the tournament cannot go back to registration."});
+  d&&(toast("Back to registration",!0),await t3Reload());
+}
+async function t3Discard(){
+  const t=cache.tourney;if(!t||!t3Ed(t))return;
+  if(!await slConfirm({title:"Discard this tournament?",body:"Its list of players and schedule are deleted.",ok:"Discard",danger:!0}))return;
+  const d=await t3Rpc("t_discard",{p_tid:t.id},{has_results:"Results are already recorded, so the tournament cannot be discarded. Close it instead."});
+  if(!d)return;
+  cache.tourney=null;cache.tourneys=(cache.tourneys||[]).filter(x=>x&&x.id!==t.id);cache.allTourneys=null;
+  toast("Tournament discarded",!0);go("tournaments");
+}
+async function t3TakeOver(){
+  const t=cache.tourney;if(!t||!t3CanTake(t))return;
+  if(!await slConfirm({title:"Take over this tournament?",body:"You become its organizer: you manage its players and results.",ok:"Take over"}))return;
+  const d=await t3Rpc("t_take_over",{p_tid:t.id});
+  d&&(toast("You are now the organizer",!0),await t3Reload());
+}
+function t3More(key){
+  const t=cache.tourney,x=t3Ent0(t,key);if(!t||!x||!(t3Ed(t)||t3Forget(t)))return;
+  const ops=t3MoreOps(t,x);if(!ops.length)return;
+  const old=$("t3-more");old&&old.remove();
+  const m=document.createElement("div");m.id="t3-more";m.className="tkov";m.onclick=e=>{e.target===m&&m.remove()};
+  m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="t3-more-h"><h3 id="t3-more-h">${esc(x.name||"Player")}</h3>
+    <div class="t3-ops">${ops.map(([op,l])=>`<button class="ghost" data-op="${op}">${l}</button>`).join("")}</div>
+    <div class="tk-ask-row" style="margin-top:12px"><button class="ghost" data-close>Close</button></div></div>`;
+  m.querySelectorAll("[data-op]").forEach(b=>b.onclick=()=>{m.remove();t3Ent(b.dataset.op,key)});
+  m.querySelector("[data-close]").onclick=()=>m.remove();
+  document.body.appendChild(m);
+}
+/* Would dropping this player decide the last group games by forfeit (so the
+   finals are drawn next and they cannot be brought back)? */
+function t3DropEnds(p,key){
+  if(!(p.gm||[]).length||tvGroupsDone(p)||t3Drawn(p))return!1;
+  const D=t3DropSet(p);D.add(key);
+  return p.gm.every(m=>!!m.w||D.has(m.a)||D.has(m.b));
+}
+async function t3Ent(op,key){
+  const t=cache.tourney,x=t3Ent0(t,key);if(!t||!x||!(t3Ed(t)||"forget"===op&&t3Forget(t)))return;
+  const p=t.payload||{},nm=x.name||"this player",run="running"===t3St(t),drawn=run&&t3Drawn(p),C={
+    drop:run?{title:`Drop ${nm}?`,body:(drawn?"Their open finals match goes to their opponent, and they cannot be brought back, because the finals are drawn.":"Their remaining group games count as wins for their opponents."+(t3DropEnds(p,key)?" This decides the last group games, so the finals are drawn next and they can no longer be brought back.":""))+" These forfeits are not counted in the Meta.",ok:"Drop",danger:!0}:null,
+    undrop:run?{title:`Bring ${nm} back?`,body:"The forfeits from their drop are undone.",ok:"Bring back"}:null,
+    unlink:{title:`Unlink ${nm}'s account?`,body:"Their tracked matches are no longer recorded automatically, and the account is not linked again unless you allow it. Use this when the wrong account was matched.",ok:"Unlink",danger:!0},
+    relink:x.wait&&run?{title:`Link the account for ${nm}?`,body:"A Seekers League account added this player's malediction.gg profile link after the tournament started. Check that it is really them: once linked, their tracked matches are recorded automatically.",ok:"Link the account"}:null,
+    remove:{title:`Remove ${nm}?`,body:"They are taken off the list of players.",ok:"Remove",danger:!0},
+    forget:{title:"Remove this player's name?",body:`"${nm}" is replaced by a number and their malediction.gg profile link is removed from the tournament; a refresh from the Play Network does not add them back. Use this when the player asks for it.`,ok:"Remove name",danger:!0}}[op];
+  if(void 0===C)return;
+  if(C&&!await slConfirm(C))return;
+  const d=await t3Rpc("t_entrant",{p_tid:t.id,p_rev:t.rev|0,p_op:op,p_key:key,p_name:null,p_link:null});
+  if(!d)return;
+  toast({drop:`${nm} dropped`,undrop:`${nm} is back in`,unlink:"Account unlinked",relink:x.wait&&run?"Account linked":"Linking allowed",remove:`${nm} removed`,forget:"Name removed"}[op],!0);
+  await t3Reload();
+}
+function t3AddKeep(){const t=cache.tourney,n=$("t3-add-n"),l=$("t3-add-l");t&&n&&l&&(window._t3Add={tid:t.id,n:n.value,l:l.value})}
+async function t3Add(){
+  const t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t))return;
+  t3AddKeep();
+  const ni=$("t3-add-n"),n=String(ni&&ni.value||"").trim().replace(/\s+/g," "),l=String(($("t3-add-l")||{}).value||"").trim(),pid=l?mgPid(l):null;
+  if(!n||n.length>40){toast("Type the player's nickname (up to 40 characters)");ni&&ni.focus();return}
+  if(l&&!pid)return toast("Paste the address of a malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/");
+  const d=await t3Rpc("t_entrant",{p_tid:t.id,p_rev:t.rev|0,p_op:"add",p_key:null,p_name:n,p_link:pid?"https://malediction.gg/app/profile/"+pid+"/":null});
+  if(!d)return;
+  window._t3Add=null;toast(`${n} added`,!0);
+  await t3Reload();
 }function deckFacL(e){if(e.seeker){const n=seekerByNorm(normName(e.seeker));if(n&&n.f)return n.f}return e.faction&&{"Order of the Shattered Throne":"O","Primal Blood":"P","Conclave of the Spheres":"C","Legion of the Fallen":"L"}[e.faction]||""}function isTerrain(e){const n=CARDS[CARD_IDX[e]];return!!n&&"T"===n.t}function isLegacy(e){const n=CARDS[CARD_IDX[e]];return!!n&&"G"===n.t}function deckTerrains(e){return Object.keys(e.cards||{}).filter(n=>isTerrain(n)&&e.cards[n]>0)}function deckLegacies(e){return Object.keys(e.cards||{}).filter(n=>isLegacy(n)&&e.cards[n]>0)}function isSeekerCard(e){const n=CARDS[CARD_IDX[e]];return!!n&&(n.tr||[]).includes("Seeker")}function deckMainCount(e){return Object.keys(e||{}).filter(e=>!isTerrain(e)&&!isLegacy(e)&&!isSeekerCard(e)).reduce((n,t)=>n+e[t],0)}function deckLegal(e){if(!e.cards)return null;const n=deckMainCount(e.cards),t=deckTerrains(e).reduce((n,t)=>n+e.cards[t],0),a=deckLegacies(e).reduce((n,t)=>n+e.cards[t],0),s=e.side?Object.values(e.side).reduce((e,n)=>e+n,0):0,i=Object.keys(e.cards).every(n=>{const t=CARDS[CARD_IDX[n]];return!t||(e.cards[n]||0)+((e.side||{})[n]||0)<=maxCopies(t)})&&Object.keys(e.side||{}).every(n=>{const t=CARDS[CARD_IDX[n]];return!t||(e.cards[n]||0)+((e.side||{})[n]||0)<=maxCopies(t)}),r=[];if(n<30&&r.push(`${30-n} more ${30-n==1?"card":"cards"} needed — a deck runs 30 to 50`),n>50&&r.push(`${n-50} ${n-50==1?"card":"cards"} over the 50-card maximum`),0===t&&r.push("No terrain — every warband takes exactly one"),t>1&&r.push(`${t} terrains — only one is allowed`),0===a&&r.push("No Legacy — add the one bound to your Seeker"),a>1&&r.push(`${a} Legacies — only the Seeker's own counts`),s>7&&r.push(`Side deck has ${s} cards — 7 is the maximum`),!i){const n=[...new Set([...Object.keys(e.cards),...Object.keys(e.side||{})])].filter(n=>{const t=CARDS[CARD_IDX[n]];return t&&(e.cards[n]||0)+((e.side||{})[n]||0)>maxCopies(t)});n.slice(0,3).forEach(n=>{const t=CARDS[CARD_IDX[n]];r.push(`${n}: ${(e.cards[n]||0)+((e.side||{})[n]||0)} copies, ${RNAME[t.r]||"this rarity"} allows ${maxCopies(t)}`)}),n.length>3&&r.push(`…and ${n.length-3} more over the copy limit`)}return{tot:n,terr:t,leg:a,sTot:s,why:r,ok:n>=30&&n<=50&&s<=7&&i&&1===t&&1===a}}function deckWhyText(e){return e?e.ok?`Legal warband — ${e.tot} cards, 1 terrain, 1 Legacy, side ${e.sTot}/7`:"Not legal yet:\n• "+e.why.join("\n• "):""}function deckWhyOpen(e,n){const t=("pub"===n?cache.pubDecks||[]:cache.myDecks||[]).find(n=>n.id===e);if(!t)return;const a=deckLegal(t);if(!a)return;let s=$("why-modal");s||(s=document.createElement("div"),s.id="why-modal",s.className="tkov",s.onclick=e=>{e.target===s&&s.remove()},document.body.appendChild(s)),s.innerHTML=`<div class="tkmodal">\n    <button class="tkx" onclick="document.getElementById('why-modal').remove()" aria-label="Close">✕</button>\n    <h3>${a.ok?"Legal warband":"Not legal yet"}</h3>\n    ${a.ok?`<p class="fq-a" style="margin:0">${a.tot} cards in the main deck · 1 terrain · 1 Legacy · side deck ${a.sTot}/7 — this deck can be played in a tournament.</p>`:`<ul class="why-list">${a.why.map(e=>`<li>${esc(e)}</li>`).join("")}</ul>`}\n    <div class="ip-sec" style="margin-top:14px">The rules</div>\n    <p class="hint" style="margin:0">30–50 cards in the main deck, plus exactly one terrain and one Legacy — those two don't count toward the total. Side deck up to 7. Copies follow rarity: Basic 3, Elite 2, Unique and Legendary 1.</p>\n  </div>`}async function renderDecks(){if(!me)return go("auth");const e=$("decks-body");const dkAgain=!!e.innerHTML.trim()&&!!cache.myDecks,dkY=dkAgain?window.scrollY:0;if(!dkAgain)e.innerHTML='<div class="empty"><span class="spinner"></span> Loading decks…</div>';const n=(await fetchAllMatches()).concat(tvAllSynth(await fetchAllTourneys()));if(cache.myDecks=await fetchMyDecks(),!cache.collection){const{data:e}=await sb.from("collection").select("*").eq("user_id",me.id);cache.collection={},(e||[]).forEach(e=>cache.collection[e.card_key]=colNorm(e))}const t=n.filter(e=>e.winner_id===me.id||e.loser_id===me.id);e.innerHTML=`<div class="panel plain">\n    <div class="flex-between">\n      <div>\n        <h2 style="margin:0">My decks</h2>\n      </div>\n      <div style="display:flex;gap:8px;flex:0 0 auto">\n        <button class="ghost" style="min-height:40px" title="Paste a decklist exported from malediction.gg" onclick="dkImportOpen()">Import a list</button>\n      </div>\n    </div>\n\n    <div class="deck-grid dk-list" style="margin-top:14px">\n      ${cache.myDecks.map(e=>{const n=t.filter(n=>n.winner_id===me.id&&(n.winner_deck_id===e.id||e.url&&n.winner_decklist===e.url)).length,a=t.filter(n=>n.loser_id===me.id&&(n.loser_deck_id===e.id||e.url&&n.loser_decklist===e.url)).length,s=n+a,i=deckFacL(e),r=deckLegal(e);return`<div class="deck-card dk2 dk3" style="position:relative;border-left-color:${i?fColor(i):"var(--line-2)"};cursor:pointer"\n          onclick="if(event.target.closest('.dk-kebab,.dk-menu,a,button'))return;dkOpen(${jsq(e.id)})" role="button" tabindex="0">\n        <div class="dk-well" style="background:${i?`color-mix(in srgb, ${fColor(i)} 13%, transparent)`:"rgba(255,255,255,.04)"};border-color:${i?`color-mix(in srgb, ${fColor(i)} 40%, transparent)`:"var(--line-2)"}">${i?fBadges(i):""}</div>\n        <div class="dk-main">\n          <div class="dk-name" title="${esc(e.name)}">${esc(e.name)}</div>\n          <div class="dk-meta">${e.seeker?`<span class="dk-fac">${esc(e.seeker.split(",")[0])}</span>`:e.faction?`<span class="dk-fac">${fIcon(e.faction,!0)}${esc(e.faction)}</span>`:""}${r?`<span class="dk-valid ${r.ok?"":"bad"}" role="button" tabindex="0"\n              onclick="event.stopPropagation();deckWhyOpen(${jsq(e.id)},'mine')"\n              title="${esc(deckWhyText(r))}">${r.tot} ${r.ok?"✓":"⚠"}</span>`:""}${e.tag?`<span class="dk-tag t-${esc(e.tag)}">${DTAGS[e.tag]||esc(e.tag)}</span>`:""}<span class="dk-visl">${e.is_public?"🌐 Public":"🔒 Private"}</span></div>\n          ${e.cards?(()=>{const t=deckMainCount(e.cards),a=e.side?Object.values(e.side).reduce((e,n)=>e+n,0):0,s=missingCopies(e.cards,e.side);return`<div class="dk-build ${s?"":"ok"}" title="Checked against your whole collection: your other decks never count against this one">${t} cards${a?` +${a} side`:""} · ${s?`${s} ${1===s?"copy":"copies"} missing from collection`:"✓ buildable from your collection"}</div>`})():""}\n        </div>\n        <div class="dk-wr">${s?`<span class="dk-spark"><i style="width:${Math.round(n/s*100)}%;background:${wrTone(n/s)}"></i></span><b style="color:${wrTone(n/s)}">${pct(n/s)}</b>&nbsp;· ${n}W–${a}L`:"no logged matches yet"}</div>\n        <div class="dk-act"><button class="dk-kebab" aria-label="Deck options" onclick="event.stopPropagation();const m=this.nextElementSibling;document.querySelectorAll('.dk-menu.open').forEach(x=>{if(x!==m)x.classList.remove('open')});m.classList.toggle('open')">⋮</button>\n        <div class="dk-menu" onclick="this.classList.remove('open')">\n          <button class="dk-mi" onclick="go('builder',{deckId:${jsq(e.id)}})">✎ Edit in builder</button>\n          <button class="dk-mi" onclick="deckShare(${jsq(e.id)})">Share</button>\n          <button class="dk-mi" onclick="deckCopyList(${jsq(e.id)})">Copy list</button>\n          <button class="dk-mi" onclick="go('deck',{deckId:${jsq(e.id)}})">Open page</button>\n          ${e.cards?`<button class="dk-mi" onclick="dkPick('mine',${jsq(e.id)});dkExportList()">Download list</button>\n          <button class="dk-mi" onclick="dkPick('mine',${jsq(e.id)});dkExportProxies()">Print proxies…</button>`:""}\n          <button class="dk-mi" onclick="deckCopy(${jsq(e.id)})">⧉ Duplicate</button>\n          <button class="dk-mi" onclick="deckVis(${jsq(e.id)},${e.is_public?"false":"true"})">${e.is_public?"🔒 Make private":"🌐 Make public"}</button>\n          ${safeUrl(e.url)?`<a class="dk-mi" href="${esc(safeUrl(e.url))}" target="_blank" rel="noopener noreferrer">Official builder ↗</a>`:""}\n          <button class="dk-mi danger" onclick="deleteDeck(${jsq(e.id)})">× Delete</button>\n        </div></div>\n      </div>${window._dkOpen===e.id?'<div class="dk-drop">'+deckPanel(e,{mine:!0,close:`dkOpen(${jsq(e.id)})`,rerender:"renderDecks()"})+"</div>":""}`}).join("")}\n      <div class="dk-new" role="button" tabindex="0" onclick="go('builder')"\n        onkeydown="if(event.key==='Enter')go('builder')">+ New deck</div>\n    </div>\n  </div>`}/* A deck needs an address. Without one it cannot be sent to anyone: you could
    only tell them to go and look for it. This page answers #/deck/<id>, works
    signed out for a public deck, and is the thing the Share button points at. */
@@ -5996,18 +6572,23 @@ function tvSynthMatches(t){
      table (tournament_id) are left out wherever matches are read, so each
      game counts once. */
   if(!tvIsV2(p))return[];
+  /* A Play Network tournament (v3): a draft has no games; a game linked to a
+     tracked match counts once, through the match (meta_duels, player_matches);
+     forfeits and byes were never played; a player with no account has no id. */
+  const v3=3===p.v;
+  if(v3&&"draft"===t.status)return[];
   const ent={};(p.entrants||[]).forEach(e=>{ent[e.id]=e});
-  const sid="tv:"+t.id,out=[],
+  const sid="tv:"+t.id,out=[],uid=k=>v3&&!t3IdOk(k)?null:k,skip=m=>v3&&!!(m.du||"drop"===m.src||"bye"===m.src),
     row=(w,l)=>{const W=ent[w]||{},L=ent[l]||{};
       out.push({id:sid+":"+out.length,session_id:sid,league_id:t.league_id,created_at:t.created_at,
-        winner_id:w,loser_id:l,
+        winner_id:uid(w),loser_id:uid(l),
         winner_seeker:W.seeker||null,loser_seeker:L.seeker||null,
         winner_terrain:W.terrain||null,loser_terrain:L.terrain||null,
         winner_decklist:null,loser_decklist:null,
         winner_deck_id:W.deckId||null,loser_deck_id:L.deckId||null,
         reported_by:t.created_by||null,confirmed:!0,tourney:!0})};
-  (p.gm||[]).forEach(m=>{if(!m.w||m.w!==m.a&&m.w!==m.b)return;row(m.w,m.w===m.a?m.b:m.a)});
-  (p.bracket||[]).forEach(r=>r.forEach(m=>{const a=m.a&&m.a.id,b=m.b&&m.b.id;if(!m.winner||!a||!b)return;const w="a"===m.winner?a:b;row(w,w===a?b:a)}));
+  (p.gm||[]).forEach(m=>{if(!m.w||m.w!==m.a&&m.w!==m.b||skip(m))return;row(m.w,m.w===m.a?m.b:m.a)});
+  (p.bracket||[]).forEach(r=>r.forEach(m=>{const a=m.a&&m.a.id,b=m.b&&m.b.id;if(!m.winner||!a||!b||skip(m))return;const w="a"===m.winner?a:b;row(w,w===a?b:a)}));
   return out;
 }
 function tvAllSynth(e){return(e||[]).reduce((e,n)=>e.concat(tvSynthMatches(n)),[])}
