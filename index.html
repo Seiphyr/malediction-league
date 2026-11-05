@@ -5973,7 +5973,10 @@ async function renderTournamentsPage(){
   /* Before the database has t_mine this simply adds nothing. */
   try{const{data:x,error:xe}=await sb.rpc("t_mine");!xe&&Array.isArray(x)&&x.forEach(r=>{r&&r.id&&!T.some(y=>y.id===r.id)&&T.push(r)})}catch(x){}
   if("tournaments"!==route.view||route.tournamentId)return;
-  T=T.filter(t=>t&&t.payload).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+  /* Only the tournaments you organize or play in: your id is the organizer, the creator,
+     or anywhere in the payload (entrants, games, champion). */
+  const mine=t=>t.organizer_id===me.id||t.created_by===me.id||JSON.stringify(t.payload).includes(me.id);
+  T=T.filter(t=>t&&t.payload&&mine(t)).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
   /* A Play Network tournament says where it is in its status; an older one
      is finished once its payload is finalized. */
   const fin=t=>null!=t.status?"closed"===t.status:!!t.payload.finalized,
@@ -5988,11 +5991,11 @@ async function renderTournamentsPage(){
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   e.innerHTML=`<div class="panel plain">
     <div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Tournaments</h2>
-      <p class="hint" style="margin:0">Play Network events run on Seekers League: groups, then a finals bracket. Matches played with the match tracker are recorded automatically.</p></div>
+      <p class="hint" style="margin:0">The tournaments you organize or are registered for. Play Network events run here as groups, then a finals bracket; matches played with the match tracker are recorded automatically.</p></div>
       ${org.length?`<button class="act" onclick="tnpNew()">+ New tournament</button>`:""}</div>
     ${T.length?`${run.length?`<div class="ip-sec">Current</div><div class="nu-list">${run.map(row).join("")}</div>`:""}
       ${past.length?`<div class="ip-sec">Finished</div><div class="nu-list">${past.map(row).join("")}</div>`:""}`
-      :`<div class="empty" style="margin-top:12px">No tournaments yet. Organizers start one from an event in their community's Events tab.</div>`}
+      :`<div class="empty" style="margin-top:12px">You are not in any tournament yet. Tournaments you organize or are registered for show up here. Organizers start one from an event in their community's Events tab.</div>`}
   </div>`;
 }
 function tnpOpen(lid,id,r){r?(window._tRun=id):(window._tPast=id);window._tScroll=id;go("league",{leagueId:lid,tab:"tournament"})}
