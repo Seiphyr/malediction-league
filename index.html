@@ -786,6 +786,14 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .t3-ln.none{color:var(--bone-faint)}
 .t3-chip{flex:0 0 auto;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);border:1px solid var(--line-2);border-radius:999px;padding:2px 8px}
 .t3-chip.dr{color:var(--crimson-txt);border-color:var(--crimson)}
+.t3-chip.dk{color:var(--brass);border-color:var(--brass)}
+.t3-chip.dk.no{color:var(--bone-faint);border-color:var(--line-2)}
+.t3-dk-v{margin:0 0 6px;font-size:14.5px;color:var(--bone);overflow-wrap:anywhere}
+.t3-dk-h{margin:0 0 10px}
+.t3-dk .field{margin:0 0 10px}
+.t3-dk .t3-acts>button{flex:1 1 auto;min-height:44px}
+.t3-dk .t3-acts>.t3-dk-b{flex:1 1 100%}
+.t3-dk-n{margin:0 0 10px}
 .t3-ra{display:flex;flex-wrap:wrap;gap:6px;flex:0 0 auto}
 .t3-b{min-height:40px;padding:0 12px}
 .t3-ops{display:flex;flex-direction:column;gap:8px}
@@ -831,6 +839,7 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .sw-st tr.me .sw-nm>span:first-child{color:var(--brass)}
 .sw-st tr.dr td{color:var(--bone-dim)}
 .sw-leg{margin:8px 0 0;font-size:12px;color:var(--bone-dim)}
+.panel .hint.sw-ac{margin:12px 0 0}
 .sw-warn{margin:0 0 12px;padding:8px 10px;border:1px solid var(--crimson);border-radius:8px;font-size:13px;color:var(--bone)}
 .sw-pv{max-height:46vh;overflow-y:auto;margin:0 0 14px;border:1px solid var(--line);border-radius:10px}
 .sw-pv-r{display:flex;gap:10px;align-items:baseline;padding:8px 10px;border-top:1px solid var(--line);font-size:13.5px;color:var(--bone)}
@@ -856,6 +865,15 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .du-tn p{margin:0;font-size:12.5px;color:var(--bone-dim);overflow-wrap:anywhere}
 .du-tn-a{display:flex;flex-wrap:wrap;gap:0 18px}
 .du-tn-a .link{display:inline-flex;align-items:center;min-height:40px}
+.du-tn .du-tn-go{width:100%;min-height:44px;margin:8px 0 2px}
+.du-tn p.du-tn-inv{font-size:14px;font-weight:600;color:var(--bone)}
+.du-tn p.du-tn-dk{color:var(--bone)}
+.du-invn{position:fixed;left:12px;right:12px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:79;max-width:520px;margin:0 auto;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--crimson);border-left-width:3px;border-radius:10px;background:var(--surface-2);box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.du-invn p{margin:0;font-size:14px;color:var(--bone);overflow-wrap:anywhere}
+.du-invn p span{display:block;margin-top:2px;font-size:12.5px;color:var(--bone-dim)}
+.du-invn-a{display:flex;gap:10px;justify-content:flex-end}
+.du-invn-a button{min-height:44px;padding:0 16px}
+.nu-go{min-height:44px;padding:0 12px;font-size:13px;white-space:nowrap}
 .du-mode .seg-b[aria-disabled=true]{cursor:default}
 .du-mode .seg-b[aria-disabled=true]:not(.on){opacity:.45}
 .du-tgt small{display:block;margin-top:1px;font-size:10px;letter-spacing:.08em;text-align:right;color:var(--bone-dim)}
@@ -1470,7 +1488,7 @@ const CHANGELOG=[
     "Communities: your communities on one page, join with a code or start a new one, and a map of communities and Heralds.",
     "Events come from the Play Network: an organizer pastes the official link and the name, date and place fill in by themselves.",
     "Play a match: each player signs in on their own phone, picks a Seeker, terrain and deck, and joins with a 4-digit PIN. Scores stay in sync live, or one phone keeps score for both. The opponent confirms the result, a win or a draw (equal Mastery when time runs out); a result nobody answers is saved after 48 hours.",
-    "Tournaments run from Play Network events as Swiss rounds, the official format: the registered players are imported, round 1 is paired at random, then players with the same points meet and nobody meets the same opponent twice when it can be avoided. A victory is worth 3 points, a draw 2, a defeat 1 and a bye 3; the standings use tournament points, then mastery differential, and the champion tops them. Tracked matches are recorded automatically, and decks are required for tournament games.",
+    "Tournaments run from Play Network events as Swiss rounds, the official format: the registered players are imported, round 1 is paired at random, then players with the same points meet and nobody meets the same opponent twice when it can be avoided. A victory is worth 3 points, a draw 2, a defeat 1 and a bye 3; the standings use tournament points, then mastery differential, and the champion tops them. Each player registers a deck once, like the official deck list, and it is locked at the start; tournament games then start with one tap on each phone, with no PIN, and are recorded automatically. Each round is paired automatically when its last result is in, and the tournament closes by itself after the last round.",
     "Profiles show your match history, with a setting for who can see it. Link your malediction.gg profile to be matched to your Play Network registrations.",
     "The Meta reads every match, with filters for All, Standard matches and Tournaments.",
     "Deck builder, My decks with filters, your collection, public decks, the set preview, the rules and the Basic tracker for one phone and up to four players."]]
@@ -1831,7 +1849,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   const{data:d2}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
   if(d2)me=d2,nkSoon();
 }
-async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null}async function signOut(){await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues(){if(!me)return[];const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?[]:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}async function fetchLeague(e){fetchLeague.err=null;try{const{data:n,error:x}=await sb.from("leagues").select("*").eq("id",e).single();x&&"PGRST116"!==x.code&&"22P02"!==x.code&&(fetchLeague.err=x);return n}catch(x){fetchLeague.err=x;return null}}/* PostgREST hands back at most 1000 rows a request (Supabase's default Max
+async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote()}async function signOut(){await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues(){if(!me)return[];const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?[]:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}async function fetchLeague(e){fetchLeague.err=null;try{const{data:n,error:x}=await sb.from("leagues").select("*").eq("id",e).single();x&&"PGRST116"!==x.code&&"22P02"!==x.code&&(fetchLeague.err=x);return n}catch(x){fetchLeague.err=x;return null}}/* PostgREST hands back at most 1000 rows a request (Supabase's default Max
    Rows) and says nothing when it stops there. slPaged asks for 1000 at a time
    with .range() until a page comes back short, so a small table still costs
    one request. mk() builds the query afresh for every page and gives it a
@@ -2224,7 +2242,7 @@ function metaOpenSeeker(e){window._metaSeeker=e,window._metaRepaint&&window._met
 const SL_VIEW_TITLES={setpreview:"Set preview",tournaments:"Tournaments",leagues:"Communities",tracker:"Play a match","basic-tracker":"Basic tracker",meta:"Meta breakdown",rules:"Rules",privacy:"Privacy",terms:"Terms of use",cdecks:"Public decks",decks:"My decks",builder:"Deck builder",deck:"Deck",collection:"Collection",profile:"Profile",admin:"Admin",auth:"Sign in",join:"Join a community",league:"Community"};
 function slSetTitle(p){try{document.title=p?p+" · Seekers League":"Seekers League — Malediction community hub"}catch(e){}}
 function slViewTitle(){slSetTitle(SL_VIEW_TITLES[route.view]||"")}
-async function render(){return route.card&&cardFromRoute(),configured?(closeSheet(),duBoot(),"mine"===route.view&&(route.view="browse"),"freebattles"===route.view&&(route.view="profile",route.profileId=null),"league"===route.view&&isDemo(route.leagueId)&&(route.view="leagues"),"communities"===route.view&&(window._mfTab="c",route.view="leagues"),"finder"!==route.view&&"heralds"!==route.view||(window._mfTab="heralds"===route.view?"h":"c",window._mfScroll=1,route.view="leagues"),slViewTitle(),renderChrome(),document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),($(route.view)||$("browse")).classList.add("active"),"browse"===route.view?renderBrowse():"rules"===route.view?renderRules():"privacy"===route.view||"terms"===route.view?renderLegal(route.view):"setpreview"===route.view?renderSetPreview():"tournaments"===route.view?renderTournamentsPage():"leagues"===route.view?renderLeaguesPage():"tracker"===route.view?renderTracker():"basic-tracker"===route.view?renderBasicTracker():"meta"===route.view?renderMetaView():"profile"===route.view?renderProfile():"collection"===route.view?renderCollection():"builder"===route.view?renderBuilder():"decks"===route.view?renderDecks():"deck"===route.view?renderDeckPage():"cdecks"===route.view?renderCDecks():"admin"===route.view?renderAdmin():"league"===route.view?renderLeague():"join"===route.view?joinFromLink(route.code):"auth"===route.view?me?(ckHide(),authReturn()):ckMail?showCheckEmail(ckMail):(ckHide(),setAuthMode(authMode)):void 0):(document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),$("browse").classList.add("active"),void($("home-head").innerHTML=SL_LIBFAIL?slBootFailHtml():'<div class="banner warn">\n      <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and\n      anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.\n      Full steps are in <code>SETUP.md</code>.</div>'))}async function renderBrowse(){const e=null;e&&(e.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>'),cache.leagues=await fetchPublicLeagues();try{const{count:e}=await sb.from("tournaments").select("*",{count:"exact",head:!0});cache.tourneyCount=e||0}catch(e){cache.tourneyCount=0}try{const{count:e}=await sb.from("matches").select("*",{count:"exact",head:!0});cache.matchCount=e||0}catch(e){cache.matchCount=0}try{const{count:e}=await sb.from("profiles").select("*",{count:"exact",head:!0});cache.playerCount=e||0}catch(e){cache.playerCount=0}if(me){cache.myLeagues=await fetchMyLeagues(),cache.myDecks||(cache.myDecks=await fetchMyDecks());await homeLoad(),tOpenList(cache.homeTourneys).length&&await ensureProfNames(),(cache.homeAll.ids.length||(cache.homeTourneys||[]).some(t=>t&&"running"===t.status))&&tvNotifyOn()&&tvWatch()}else cache.homeAll=null;await loadBoard(),renderChrome(),paintHomeHead(),paintHomeBoard(),paintHomeNext(),paintHomeStats(),paintHomeCta()}/* A calendar date is read off the player's own calendar, never converted to
+async function render(){return route.card&&cardFromRoute(),configured?(closeSheet(),duBoot(),setTimeout(duInvNote,0),"mine"===route.view&&(route.view="browse"),"freebattles"===route.view&&(route.view="profile",route.profileId=null),"league"===route.view&&isDemo(route.leagueId)&&(route.view="leagues"),"communities"===route.view&&(window._mfTab="c",route.view="leagues"),"finder"!==route.view&&"heralds"!==route.view||(window._mfTab="heralds"===route.view?"h":"c",window._mfScroll=1,route.view="leagues"),slViewTitle(),renderChrome(),document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),($(route.view)||$("browse")).classList.add("active"),"browse"===route.view?renderBrowse():"rules"===route.view?renderRules():"privacy"===route.view||"terms"===route.view?renderLegal(route.view):"setpreview"===route.view?renderSetPreview():"tournaments"===route.view?renderTournamentsPage():"leagues"===route.view?renderLeaguesPage():"tracker"===route.view?renderTracker():"basic-tracker"===route.view?renderBasicTracker():"meta"===route.view?renderMetaView():"profile"===route.view?renderProfile():"collection"===route.view?renderCollection():"builder"===route.view?renderBuilder():"decks"===route.view?renderDecks():"deck"===route.view?renderDeckPage():"cdecks"===route.view?renderCDecks():"admin"===route.view?renderAdmin():"league"===route.view?renderLeague():"join"===route.view?joinFromLink(route.code):"auth"===route.view?me?(ckHide(),authReturn()):ckMail?showCheckEmail(ckMail):(ckHide(),setAuthMode(authMode)):void 0):(document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),$("browse").classList.add("active"),void($("home-head").innerHTML=SL_LIBFAIL?slBootFailHtml():'<div class="banner warn">\n      <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and\n      anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.\n      Full steps are in <code>SETUP.md</code>.</div>'))}async function renderBrowse(){const e=null;e&&(e.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>'),cache.leagues=await fetchPublicLeagues();try{const{count:e}=await sb.from("tournaments").select("*",{count:"exact",head:!0});cache.tourneyCount=e||0}catch(e){cache.tourneyCount=0}try{const{count:e}=await sb.from("matches").select("*",{count:"exact",head:!0});cache.matchCount=e||0}catch(e){cache.matchCount=0}try{const{count:e}=await sb.from("profiles").select("*",{count:"exact",head:!0});cache.playerCount=e||0}catch(e){cache.playerCount=0}if(me){cache.myLeagues=await fetchMyLeagues(),cache.myDecks||(cache.myDecks=await fetchMyDecks());await homeLoad(),tOpenList(cache.homeTourneys).length&&await ensureProfNames(),(cache.homeAll.ids.length||(cache.homeTourneys||[]).some(t=>t&&"running"===t.status))&&tvNotifyOn()&&tvWatch()}else cache.homeAll=null;await loadBoard(),renderChrome(),paintHomeHead(),paintHomeBoard(),paintHomeNext(),paintHomeStats(),paintHomeCta()}/* A calendar date is read off the player's own calendar, never converted to
    UTC first. toISOString() would do the conversion and move the day for
    anyone far enough east or west. */
 function dateStr(e){const n=e=>String(e).padStart(2,"0");return`${e.getFullYear()}-${n(e.getMonth()+1)}-${n(e.getDate())}`}
@@ -2712,7 +2730,11 @@ async function nbDelete(e){
 const NU_MAX=6;
 function nuRow(k,b,go,act){return`<div class="nu-row"><button type="button" class="nu-main" onclick="${go}"><small>${k}</small><b>${b}</b></button>${act?`<div class="nu-act">${act}</div>`:'<i class="nu-chev" aria-hidden="true">›</i>'}</div>`}
 /* Home's Next up, the organizer's row: what to do next in a running tournament. */
-function swOrgTodo(p){if(!swIsSwiss(p))return"enter the results, then close it";const c=swCur(p),R=p.rounds|0,nx=c<R?`pair round ${c+1}`:"close it";return swRoundDone(p)?`Round ${c} is complete: ${nx}`:`Round ${c}: enter the results, then ${nx}`}
+function swOrgTodo(p){if(!swIsSwiss(p))return"enter the results, then close it";const c=swCur(p),R=p.rounds|0,h=p.hold||{};
+  /* Rounds pair and the tournament closes by itself: only a pause, or a game nobody tracks, asks the organizer to act. */
+  if(swRoundDone(p))return c<R?h.pair===c+1?`Round ${c} is complete: pair round ${c+1}`:`Round ${c} is complete: round ${c+1} is paired automatically`:h.close?"Reopened: close it when you are done":"All rounds are played: it closes automatically";
+  const D=t3DropSet(p),u=(p.gm||[]).some(m=>m.r===c&&null==m.w&&null!=m.b&&!(D.has(m.a)&&D.has(m.b))&&(!t3IdOk(m.a)||!t3IdOk(m.b)));
+  return u?`Round ${c}: enter the results that are not tracked`:h.close?"Reopened: close it when you are done":`Round ${c}: waiting for the results`}
 function paintHomeNext(){
   const e=$("home-event");if(!e)return;
   const L=homeLeagues(),o=me?cache.homeAll:null;
@@ -2721,7 +2743,7 @@ function paintHomeNext(){
   let tm=!1;
   /* Play Network tournaments open on their own page, whatever community they belong to. */
   const V=T.filter(x=>x&&"running"===x.status).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))),n3=tvMyNext(V);
-  n3&&(tm=!0,top.push(nuRow(`${esc(n3.title)} · Next match · ${esc(n3.stage)}`,`vs ${esc(n3.oppName)}${n3.table?` · <span class="nu-tb">Table ${n3.table|0}</span>`:""}`,`go('tournaments',{tournamentId:${jsq(n3.tid)}})`)));
+  n3&&(tm=!0,top.push(duNuRow(n3)));
   V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuRow(`${esc(t3Title(x))} · Round ${by}`,"You have a bye: 3 points",`go('tournaments',{tournamentId:${jsq(x.id)}})`)))});
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
@@ -2751,6 +2773,7 @@ async function homeLoad(){
   /* Play Network tournaments (t_mine) count even when the player is in none of these communities. */
   const[a,b,c]=await Promise.all([ids.length?tvFetchOpen(ids).then(r=>r||[]):[],ids.length?pnFetchHome(ids):[],t3MineGet(0)]);
   cache.homeTourneys=t3Merge(a,c);cache.homeListings=b;
+  cache.homeTourneys.forEach(t=>{try{swKick(t)}catch(x){}});
   return cache.homeAll=o;
 }
 /* Joining or starting a league makes it the home league only when there is
@@ -2936,7 +2959,7 @@ function homeStartPanel(){
 function gsOpen(p){
   go("leagues");openPane=p;
   let k=0;const f=()=>{const n=$("join"===p?"join-code":"nl-name");n&&n.offsetParent?(n.scrollIntoView({block:"center"}),n.focus()):++k<50&&setTimeout(f,100)};f();
-}function paintFindList(){const e=$("find-list");if(!e)return;const n=(window._findQ||"").toLowerCase();let t=cache.leagues.filter(e=>!e.is_online).filter(e=>!n||[e.name,e.location,e.city,e.country].some(e=>(e||"").toLowerCase().includes(n)));const fo=findOrigin(),km={};fo&&t.forEach(e=>{!isDemo(e.id)&&null!=e.lat&&null!=e.lon&&(km[e.id]=findKm(fo,{lat:+e.lat,lon:+e.lon}))});t.sort((e,n)=>(isDemo(n.id)?1:0)-(isDemo(e.id)?1:0)||(fo?(e.id in km?n.id in km?km[e.id]-km[n.id]:-1:n.id in km?1:0):0)||new Date(n.last_event||n.created_at)-new Date(e.last_event||e.created_at));const a=t.slice(0,n?40:12);a.length?e.innerHTML=a.map(e=>{const n=myLeaguesSafe().some(n=>n.id===e.id),k=e.id in km?`<span class="fr-km">${fmtKm(km[e.id])}</span>`:"";return`<div class="find-row" onclick="go('league',{leagueId:${jsq(e.id)},tab:'about'})">\n      <div class="fr-main">\n        <div class="fr-name">${esc(e.name)}\n          ${isDemo(e.id)?'<span class="demo-badge">Demo</span>':""}\n          ${n?'<span class="mem-badge">Member</span>':""}</div>\n        <div class="fr-loc">${esc(e.location)}${e.city?" · "+esc(e.city):""}</div>\n      </div>\n      <div class="fr-side">${k}<span class="fr-count">${e.member_count||0} players</span>\n      <button class="ghost fr-view">View</button></div>\n    </div>`}).join(""):e.innerHTML='<div class="empty">No communities match. <button class="link" onclick="gsOpen(\'create\')">Start your own</button></div>'}const OFFICIAL_LINKS=[{title:"Complete Rulebook (July 2026)",url:"https://malediction.gg/wp-content/uploads/2026/07/Malediction_Rulebook_July2026.pdf",desc:"The full rules. Everything is in here — this is the authority when a table disagrees."},{title:"Rules FAQ (July 2026)",url:"https://malediction.gg/wp-content/uploads/2026/07/FAQ_July2026.pdf",desc:"Official answers to the edge cases. Updated alongside rules revisions."},{title:"Tournament Guide",url:"https://malediction.gg/wp-content/uploads/2025/10/OrganizedPlay.pdf",desc:"How organized play works: formats, pairings, tiebreakers, byes."},{title:"Designer commentary",url:"https://malediction.gg/designer-commentary-tidying-up-the-house/",desc:"Why the rules changed, in the designers' own words. Worth reading after a revision."}];function paintFaq(){const e=$("faq-body");if(!e)return;const n=(window._faqQ||"").trim().toLowerCase(),t=e=>!n||e.toLowerCase().includes(n);let a=0,lg="";const s=FAQS.map(e=>{const n=(e.q||[]).filter(([n,a])=>t(e.t)||t(n)||t(a)),s=(e.d||e.e)&&(t(e.t)||t(e.d||"")||t(e.e||""));return n.length||s?(a+=n.length||1,`${(e.g||"r")!==lg?(lg=e.g||"r",`<div class="fq-grp">${{r:"Rules",c:"Cards",k:"Abilities"}[lg]}</div>`):""}<div class="fq-sec">\n      <div class="fq-h">${esc(e.t)}</div>\n      ${e.d&&s?`<div class="fq-def">${esc(e.d)}</div>`:""}\n      ${e.e&&s?`<div class="fq-err">Errata — ${esc(e.e)}</div>`:""}\n      ${n.map(([e,n])=>`<div class="fq-item" style="border-left-color:var(--line-2)">\n        <div class="fq-q">Q · ${esc(e)}</div><div class="fq-a">A · ${esc(n)}</div></div>`).join("")}\n    </div>`):""}).join("");e.innerHTML=`<div class="fq-count">${a} ${1===a?"entry":"entries"}${n?" matching":""}</div>`+(s||'<div class="empty">Nothing matches that search.</div>')}let rulesTab="setup";function renderRules(){$("rules-body").innerHTML=`\n    <div class="panel plain docs-edge">\n      <details class="fold docs-fold">\n        <summary>How it works</summary>\n        <div class="fold-in">\n      <div class="lg-step"><span class="lg-n">1</span><div>\n        <b>A community is your group.</b> Someone creates it, shares the join code, and players join from their phones. Its page shows the organizers, the players and the notice board.</div></div>\n      <div class="lg-step"><span class="lg-n">2</span><div>\n        <b>Events live on the official Play Network.</b> Organizers add an event by its malediction.gg link; the community's Events tab shows when and where it is and how many players have registered.</div></div>\n      <div class="lg-step"><span class="lg-n">3</span><div>\n        <b>Tournaments run here, as Swiss rounds.</b> The organizer imports the players from a Play Network event and starts it. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. A victory is worth 3 points, a draw 2, a defeat 1 and a bye 3; the standings use tournament points, then mastery differential (Malediction Tournament Guide), and the champion tops them. Finished tournaments keep their standings and decks.</div></div>\n      <div class="lg-step"><span class="lg-n">4</span><div>\n        <b>Play a match.</b> Both players sign in and open Play &rsaquo; Match, pick a Seeker and terrain (and one of their decks, if they like), and one of them shares a 4-digit PIN. Mastery, Echo, the round and the clock stay in sync on both phones, or one phone keeps score for both and the other can be locked; when the match ends, the opponent confirms the result, a win or a draw (equal Mastery when time runs out), and it is saved to both profiles; a result nobody answers is saved as sent after 48 hours. With more than two players or without an account, the <button class="link" style="padding:0" onclick="go('basic-tracker')">Basic tracker</button> in Utilities keeps score on that device only.</div></div>\n      <div class="lg-step"><span class="lg-n">5</span><div>\n        <b>Your matches stay on your profile.</b> Its Matches list shows the date, the opponent, both Seekers and terrains and the result. Choose who sees it under Account &rsaquo; Profile: everyone, signed-in players or only you. You and your opponent always see a match you played together.</div></div>\n      <div class="lg-step"><span class="lg-n">6</span><div>\n        <b>The Meta shows what wins.</b> Which Seekers and terrains get picked and which ones win, across all games, standard matches or tournaments only. Matches played on two phones count with no names attached; a draw is a win for nobody, so the Meta leaves it out.</div></div>\n    </div>\n      </details>\n    </div>\n\n    <div class="panel docs-edge">\n      <details class="fold docs-fold" ontoggle="if(this.open)paintFaq()">\n        <summary>Rulings &amp; FAQ <span class="sum-note">from the official archive</span></summary>\n        <div class="fold-in">\n          <input type="search" id="faq-q" size="1" placeholder="Search a term, a question, a card…"\n            oninput="window._faqQ=this.value;paintFaq();const e=document.getElementById('faq-q');e.focus();e.setSelectionRange(e.value.length,e.value.length)">\n          <div id="faq-body" style="margin-top:12px"></div>\n        </div>\n      </details>\n    </div>\n\n    <div class="panel docs-edge">\n      <details class="fold docs-fold">\n        <summary>Official documents <span class="sum-note">on malediction.gg</span></summary>\n        <div class="fold-in">\n          <div class="link-grid">\n            ${OFFICIAL_LINKS.map(e=>`\n              <a class="doc-card" href="${e.url}" target="_blank" rel="noopener noreferrer">\n                <div class="doc-title">${esc(e.title)} <span class="ext">↗</span></div>\n                <div class="doc-desc">${esc(e.desc)}</div>\n              </a>`).join("")}\n          </div>\n        </div>\n      </details>\n    </div>\n\n    <div class="panel plain">\n      <div class="flex-between" style="margin-bottom:14px">\n        <div>\n          <h2 style="margin:0">Quick reference</h2>\n        </div>\n        <div class="seg" role="group" aria-label="Quick reference section">\n          <button type="button" class="seg-b ${"setup"===rulesTab?"on":""}" aria-pressed="${"setup"===rulesTab}" onclick="rulesTab='setup';renderRules()">Setup checklist</button>\n          <button type="button" class="seg-b ${"turn"===rulesTab?"on":""}" aria-pressed="${"turn"===rulesTab}" onclick="rulesTab='turn';renderRules()">Turns &amp; actions</button>\n        </div>\n      </div>\n      ${"setup"===rulesTab?RULES_SETUP:RULES_TURN}\n    </div>`}const RULES_SETUP='\n  <div class="rules-doc">\n    <h3>At a glance — standard 2-player game</h3>\n    <div class="glance-cards">\n      <div class="gcard">\n        <div class="gcard-title">The battlefield</div>\n        <div class="grow"><span class="k">Battlefield</span><span class="v">30" × 30"<i>≈76 × 76 cm</i></span></div>\n        <div class="grow"><span class="k">Deployment zone</span><span class="v">quarter circle<i>6" from corner</i></span></div>\n        <div class="grow"><span class="k">Husks on field</span><span class="v">4</span></div>\n        <div class="grow"><span class="k">Min. husk spacing</span><span class="v">10"</span></div>\n        <div class="grow"><span class="k">Terrain per player</span><span class="v">1 large, 1 medium<i>2 small</i></span></div>\n      </div>\n      <div class="gcard">\n        <div class="gcard-title">The cards</div>\n        <div class="grow"><span class="k">Opening hand</span><span class="v">7 cards<i>mulligan up to 5×, −1 each</i></span></div>\n        <div class="grow"><span class="k">Player deck</span><span class="v">30–50 cards</span></div>\n        <div class="grow"><span class="k">Relic deck</span><span class="v">15 cards</span></div>\n        <div class="grow"><span class="k">Relic display</span><span class="v">4 face up</span></div>\n      </div>\n      <div class="gcard">\n        <div class="gcard-title">Winning &amp; pace</div>\n        <div class="grow"><span class="k">Players</span><span class="v">2</span></div>\n        <div class="grow"><span class="k">Mastery to win</span><span class="v">40</span></div>\n        <div class="grow"><span class="k">Starting round</span><span class="v">1</span></div>\n        <div class="grow"><span class="k">Starting mastery</span><span class="v">0</span></div>\n      </div>\n    </div>\n\n    <details class="fold">\n      <summary>Before the game — what to bring</summary>\n      <div class="fold-in">\n        <p>Each player brings their own warband:</p>\n        <ul class="bring">\n          <li><b>1 Seeker</b> and its matching <b>Legacy</b> card</li>\n          <li><b>1 terrain card</b> with its terrain set</li>\n          <li>a deck of <b>30–50 cards</b> — units, spells and non-relic attachments</li>\n        </ul>\n        <p>Then, together:</p>\n        <ul class="bring">\n          <li>agree on a shared <b>15-card Relic deck</b></li>\n          <li>have ready: dice, rulers, Echo / Mastery / Round markers, initiative token, 4 husk markers</li>\n        </ul>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Battlefield setup — seven steps, in order</summary>\n      <div class="fold-in">\n    <div class="phase-list">\n      <div class="phase"><div class="ph-n">1</div><div class="ph-body"><b>Define the battlefield</b>\n        <p>Prepare a flat 30" × 30" surface (≈76 × 76 cm).</p></div></div>\n\n      <div class="phase"><div class="ph-n">2</div><div class="ph-body"><b>Place terrain</b>\n        <p>Roll a die: the winner places first. Alternate pieces, going from the largest to the\n        smallest of your own set. Each player places 4 pieces (1 large, 1 medium, 2 small).</p>\n        <p>Every piece must sit entirely within the field, outside all four deployment zones, and at\n        least 3" from other terrain. If both players agree a piece won\'t fit, the phase ends even\n        with pieces unplaced.</p></div></div>\n\n      <div class="phase"><div class="ph-n">3</div><div class="ph-body"><b>Place husks</b>\n        <p>Alternate, starting with whoever placed terrain second. Place 4 husks in total.</p>\n        <p>Each husk goes outside the deployment zones and clear of obstacles, with at least 10"\n        between husks.</p></div></div>\n\n      <div class="phase"><div class="ph-n">4</div><div class="ph-body"><b>Build the relic display</b>\n        <p>Shuffle the 15-card Relic deck and set it face down beside the field. Draw the top 4 and\n        lay them face up in a row next to the deck.</p></div></div>\n\n      <div class="phase"><div class="ph-n">5</div><div class="ph-body"><b>Set Echo, Mastery and Round</b>\n        <p>Starting Echo: the value printed on your Legacy card. Mastery: 0. Round tracker: 1.</p></div></div>\n\n      <div class="phase"><div class="ph-n">6</div><div class="ph-body"><b>Opening hand</b>\n        <p>Shuffle your deck and draw 7 cards. Mulligan is optional: reshuffle and redraw one card\n        fewer each time. Maximum 5 mulligans, and you must start with at least 1 card in hand.</p></div></div>\n\n      <div class="phase"><div class="ph-n">7</div><div class="ph-body"><b>Setup bid</b>\n        <p>Both players pick a card from hand and place it face down on the field, then reveal.\n        Highest cost wins; on a tie, roll a die.</p>\n        <p>The winner chooses first: <b>deployment zone</b> or <b>initiative token</b> for round 1. If they\n        take the zone, the opponent\'s zone is the diagonally opposite one. Cards used to bid are\n        <b>banished</b>.</p></div></div>\n    </div>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>How initiative works</summary>\n      <div class="fold-in">\n        <table class="spec"><tbody>\n          <tr><td style="width:130px">Deploy Phase</td><td>The player with initiative chooses to deploy first, or to defer — in which case the opponent deploys first. Then the other player completes their deployment.</td></tr>\n          <tr><td>Action Phase</td><td>The player with initiative chooses who activates the first unit: themselves, or defer to the opponent, who must then activate first. After that, alternate one unit at a time.</td></tr>\n        </tbody></table>\n      </div>\n    </details>\n  </div>',RULES_TURN='\n  <div class="rules-doc">\n    <details class="fold">\n      <summary>Round structure — four phases</summary>\n      <div class="fold-in">\n    <div class="phase-list">\n      <div class="phase"><div class="ph-n">1</div><div class="ph-body">\n        <b>Refresh Phase <span class="ph-note">skipped on round 1</span></b>\n        <ol>\n          <li>Ready your exhausted units.</li>\n          <li>Advance the round tracker by 1.</li>\n          <li>Draw 2 cards — <b>an empty deck means you lose</b> — and gain Echo equal to\n            <b>2× the round</b> (capped at round 5: 10 Echo). Echo is cumulative.</li>\n          <li>Initiative bid: the player without initiative bids first, then the one who has it;\n            compare the costs of the face-down cards.</li>\n        </ol></div></div>\n\n      <div class="phase"><div class="ph-n">2</div><div class="ph-body"><b>Deploy Phase</b>\n        <p>Whoever has initiative chooses to deploy first or defer. Pay the Echo cost (1 item per\n        unit, tucked under its card; equip on a unit being deployed or one that isn\'t engaged).\n        No limit beyond your Echo.</p>\n        <p><b>Standard:</b> place the unit entirely within your own deployment zone (quarter circle,\n        6" from the corner).</p>\n        <p><b>Reinforcement</b> (from round 2): place within 1" of one of your unengaged units that\n        has been on the field since a previous round. A unit deployed this round can\'t call\n        reinforcements.</p></div></div>\n\n      <div class="phase"><div class="ph-n">3</div><div class="ph-body"><b>Action Phase</b>\n        <p>Whoever has initiative chooses who activates first, then players alternate one unit at a\n        time. Activating means <b>exhausting the card</b> → the unit gets <b>2 AP</b> to spend on actions.\n        The phase ends when nobody has refreshed units left.</p></div></div>\n\n      <div class="phase"><div class="ph-n">4</div><div class="ph-body"><b>End Phase</b>\n        <p>Whoever has initiative chooses who claims a relic first, then the other; alternate.</p>\n        <p><b>Claim:</b> +10 Mastery, husk removed, new relic into the display. Then check for victory\n        (40 Mastery), or start a new round.</p></div></div>\n    </div>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Activation flow</summary>\n      <div class="fold-in">\n    <ol class="flow">\n      <li>Pick a refreshed unit and exhaust it.</li>\n      <li>It gets <b>2 AP</b>.</li>\n      <li>You may play a <b>Channel spell</b>.</li>\n      <li>Declare and resolve actions — repeatable while you have AP; one action must resolve before\n        starting another.</li>\n      <li>A second chance for a Channel spell (between the 1st and 2nd action), only if you haven\'t\n        already cast one this activation.</li>\n      <li>Pass the turn: <b>unspent AP are lost</b>.</li>\n    </ol>\n      </div>\n    </details>\n\n    <details class="fold" open>\n      <summary>Standard actions</summary>\n      <div class="fold-in">\n    <table class="spec act"><tbody>\n      <tr><td class="act-name"><b>Move</b><span class="ap-cost">1 AP</span></td>\n        <td>Move up to the unit\'s Speed. May curve around obstacles, but can\'t pass through models, husks or high terrain, nor through gaps narrower than its base. <b>Provokes retaliation.</b></td></tr>\n      <tr><td class="act-name"><b>Attack</b><span class="ap-cost">1 AP</span></td>\n        <td>Roll 1d20 + Accuracy vs the target\'s Defense. ≥ Defense = hit (full damage); &lt; = graze (reduced damage). Melee (enemy within 1" + LoE) or Ranged (within Range + LoS).</td></tr>\n      <tr><td class="act-name"><b>Charge</b><span class="ap-cost">2 AP</span></td>\n        <td>Move up to 2× Speed toward an unengaged enemy (needs LoS), then make a melee attack. The base must not leave the LoS path. <b>Provokes retaliation.</b></td></tr>\n      <tr><td class="act-name"><b>Shift</b><span class="ap-cost">2 AP</span></td>\n        <td>A single move up to Speed, in a straight line with clear LoS (no obstacles). <b>Does not provoke retaliation</b>; can pass through gaps narrower than the base.</td></tr>\n    </tbody></table>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Combat &amp; stats</summary>\n      <div class="fold-in">\n    <div class="two-col">\n      <table class="spec"><tbody>\n        <tr><td>Formula</td><td>1d20 + Accuracy vs target\'s Defense</td></tr>\n        <tr><td>Hit</td><td>Total ≥ Defense → full damage (left number of Power)</td></tr>\n        <tr><td>Graze</td><td>Total &lt; Defense → reduced damage (right number of Power)</td></tr>\n        <tr><td>Critical (nat. 20)</td><td>Critical hit: sum Power\'s hit + graze (before bonuses)</td></tr>\n        <tr><td>Fumble (nat. 1)</td><td>Critical graze: a flat 1 damage, no Power bonuses</td></tr>\n        <tr><td>Melee</td><td>Enemy within 1" + LoE = engaged</td></tr>\n        <tr><td>Ranged</td><td>Target within Range (&gt; 0) + LoS</td></tr>\n        <tr><td>Defeat</td><td>Damage ≥ Max Health → removed from the field</td></tr>\n      </tbody></table>\n      <table class="spec"><tbody>\n        <tr><td>Accuracy</td><td>Bonus to the attack roll</td></tr>\n        <tr><td>Power</td><td>Damage: full / reduced (e.g. 3/1)</td></tr>\n        <tr><td>Range</td><td>Reach in inches (0 = melee only)</td></tr>\n        <tr><td>Speed</td><td>Inches per move action</td></tr>\n        <tr><td>Defense</td><td>Threshold the attack must reach</td></tr>\n        <tr><td>Max Health</td><td>Damage taken before defeat</td></tr>\n        <tr><td>Stat "–" (null)</td><td>The unit can\'t use that stat (treated as 0)</td></tr>\n        <tr><td>Retaliation</td><td>Free melee attack when an engaged enemy moves/charges/shoots; resolved before the provoking action</td></tr>\n      </tbody></table>\n    </div>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Claiming a relic (End Phase)</summary>\n      <div class="fold-in">\n    <p>You claim if all three are true:</p>\n    <ul>\n      <li>near a husk (within 1")</li>\n      <li>not engaged</li>\n      <li>no enemy near the husk (within 1")</li>\n    </ul>\n    <p>Pick a relic from the display (then replace it) or draw the top card of the deck. Equip it\n    under the unit, remove the husk, and gain <b>+10 Mastery</b>.</p>\n      </div>\n    </details>\n  </div>',TRK_KEY="sl.tracker.2",TRK_MODES=[{id:"clash",label:"Clash (Standard Duel)",players:2,target:40,desc:"Standard duel — first to 40 Mastery wins"},{id:"demo",label:"Demo Game",players:2,target:25,desc:"Short intro game — first to 25 Mastery"},{id:"allegiance",label:"Allegiance 2v2",players:4,target:50,desc:"Team battle — first team to 50 shared Mastery"},{id:"nemesis",label:"Nemesis 2v1",players:3,target:50,desc:"One against two — first to 50 Mastery"},{id:"dominion",label:"Dominion FFA",players:3,target:40,desc:"Free-for-all, 3–4 players — first to 40 Mastery"}];function trkDefaultMins(e){return"allegiance"===e?120:60}const TRK_DEFAULT=()=>({mode:"clash",target:40,players:2,round:1,timer:{mins:60,left:3600,running:!1,at:0,custom:!1},wake:!0,teamMastery:[0,0],p:[1,2,3,4].map(e=>({name:"Player "+e,mastery:0,echo:0,relics:[!1,!1,!1,!1]}))});let trk=null,tkDu=null,_trkB=null;function trkLoad(){try{const e=localStorage.getItem(TRK_KEY);if(trk=e?JSON.parse(e):TRK_DEFAULT(),trk.p&&Array.isArray(trk.p)&&4===trk.p.length||(trk=TRK_DEFAULT()),!trk.timer){const e=trkDefaultMins(trk.mode);trk.timer={mins:e,left:60*e,running:!1,at:0,custom:!1}}void 0===trk.wake&&(trk.wake=!0),trk.round=Math.max(1,+trk.round||1),trk.players=Math.min(4,Math.max(1,+trk.players||2)),trk.target=+trk.target||40,Array.isArray(trk.teamMastery)&&2===trk.teamMastery.length||(trk.teamMastery=[0,0]),trk.p.forEach(e=>{e.mastery=Math.max(0,+e.mastery||0),e.echo=Math.max(0,+e.echo||0),Array.isArray(e.relics)&&4===e.relics.length||(e.relics=[!1,!1,!1,!1])})}catch(e){trk=TRK_DEFAULT()}}function tkTimeLeft(){const e=trk.timer||{};return e.running?Math.max(0,(0|e.left)-Math.round((Date.now()-(e.at||Date.now()))/1e3)):Math.max(0,0|e.left)}function tkFmt(e){return Math.floor(e/60)+":"+String(e%60).padStart(2,"0")}function tkToggleTimer(){tkAudio();const e=trk.timer;e.running?(e.left=tkTimeLeft(),e.running=!1,e.at=0):(e.left<=0&&(e.left=60*(e.mins||60)),e.at=Date.now(),e.running=!0),tTouch(),tkTick()}function tkResetTimer(){const e=trk.timer;e.left=60*(e.mins||60),e.running=!1,e.at=0,tTouch()}function tkSetMins(e){const n=Math.max(1,Math.min(300,parseInt(e,10)||60));trk.timer.mins=n,trk.timer.custom=!0,trk.timer.running||(trk.timer.left=60*n),tTouch()}/* Phones only let a page make sound after a tap, so the tap that starts the
+}function paintFindList(){const e=$("find-list");if(!e)return;const n=(window._findQ||"").toLowerCase();let t=cache.leagues.filter(e=>!e.is_online).filter(e=>!n||[e.name,e.location,e.city,e.country].some(e=>(e||"").toLowerCase().includes(n)));const fo=findOrigin(),km={};fo&&t.forEach(e=>{!isDemo(e.id)&&null!=e.lat&&null!=e.lon&&(km[e.id]=findKm(fo,{lat:+e.lat,lon:+e.lon}))});t.sort((e,n)=>(isDemo(n.id)?1:0)-(isDemo(e.id)?1:0)||(fo?(e.id in km?n.id in km?km[e.id]-km[n.id]:-1:n.id in km?1:0):0)||new Date(n.last_event||n.created_at)-new Date(e.last_event||e.created_at));const a=t.slice(0,n?40:12);a.length?e.innerHTML=a.map(e=>{const n=myLeaguesSafe().some(n=>n.id===e.id),k=e.id in km?`<span class="fr-km">${fmtKm(km[e.id])}</span>`:"";return`<div class="find-row" onclick="go('league',{leagueId:${jsq(e.id)},tab:'about'})">\n      <div class="fr-main">\n        <div class="fr-name">${esc(e.name)}\n          ${isDemo(e.id)?'<span class="demo-badge">Demo</span>':""}\n          ${n?'<span class="mem-badge">Member</span>':""}</div>\n        <div class="fr-loc">${esc(e.location)}${e.city?" · "+esc(e.city):""}</div>\n      </div>\n      <div class="fr-side">${k}<span class="fr-count">${e.member_count||0} players</span>\n      <button class="ghost fr-view">View</button></div>\n    </div>`}).join(""):e.innerHTML='<div class="empty">No communities match. <button class="link" onclick="gsOpen(\'create\')">Start your own</button></div>'}const OFFICIAL_LINKS=[{title:"Complete Rulebook (July 2026)",url:"https://malediction.gg/wp-content/uploads/2026/07/Malediction_Rulebook_July2026.pdf",desc:"The full rules. Everything is in here — this is the authority when a table disagrees."},{title:"Rules FAQ (July 2026)",url:"https://malediction.gg/wp-content/uploads/2026/07/FAQ_July2026.pdf",desc:"Official answers to the edge cases. Updated alongside rules revisions."},{title:"Tournament Guide",url:"https://malediction.gg/wp-content/uploads/2025/10/OrganizedPlay.pdf",desc:"How organized play works: formats, pairings, tiebreakers, byes."},{title:"Designer commentary",url:"https://malediction.gg/designer-commentary-tidying-up-the-house/",desc:"Why the rules changed, in the designers' own words. Worth reading after a revision."}];function paintFaq(){const e=$("faq-body");if(!e)return;const n=(window._faqQ||"").trim().toLowerCase(),t=e=>!n||e.toLowerCase().includes(n);let a=0,lg="";const s=FAQS.map(e=>{const n=(e.q||[]).filter(([n,a])=>t(e.t)||t(n)||t(a)),s=(e.d||e.e)&&(t(e.t)||t(e.d||"")||t(e.e||""));return n.length||s?(a+=n.length||1,`${(e.g||"r")!==lg?(lg=e.g||"r",`<div class="fq-grp">${{r:"Rules",c:"Cards",k:"Abilities"}[lg]}</div>`):""}<div class="fq-sec">\n      <div class="fq-h">${esc(e.t)}</div>\n      ${e.d&&s?`<div class="fq-def">${esc(e.d)}</div>`:""}\n      ${e.e&&s?`<div class="fq-err">Errata — ${esc(e.e)}</div>`:""}\n      ${n.map(([e,n])=>`<div class="fq-item" style="border-left-color:var(--line-2)">\n        <div class="fq-q">Q · ${esc(e)}</div><div class="fq-a">A · ${esc(n)}</div></div>`).join("")}\n    </div>`):""}).join("");e.innerHTML=`<div class="fq-count">${a} ${1===a?"entry":"entries"}${n?" matching":""}</div>`+(s||'<div class="empty">Nothing matches that search.</div>')}let rulesTab="setup";function renderRules(){$("rules-body").innerHTML=`\n    <div class="panel plain docs-edge">\n      <details class="fold docs-fold">\n        <summary>How it works</summary>\n        <div class="fold-in">\n      <div class="lg-step"><span class="lg-n">1</span><div>\n        <b>A community is your group.</b> Someone creates it, shares the join code, and players join from their phones. Its page shows the organizers, the players and the notice board.</div></div>\n      <div class="lg-step"><span class="lg-n">2</span><div>\n        <b>Events live on the official Play Network.</b> Organizers add an event by its malediction.gg link; the community's Events tab shows when and where it is and how many players have registered.</div></div>\n      <div class="lg-step"><span class="lg-n">3</span><div>\n        <b>Tournaments run here, as Swiss rounds.</b> The organizer imports the players from a Play Network event and starts it. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. A victory is worth 3 points, a draw 2, a defeat 1 and a bye 3; the standings use tournament points, then mastery differential (Malediction Tournament Guide), and the champion tops them. Players with a linked account register their deck once, like the official deck list, and it is locked at the start. A tournament game then starts with one tap on each phone, with no PIN, and its result is recorded by itself. When the last result of a round is in, the next round is paired automatically, and after the last round the tournament closes by itself; the organizer can undo a round's pairings or reopen it, and enters the results of players without an account. Finished tournaments keep their standings and show each player's Seeker and terrain; card lists stay private.</div></div>\n      <div class="lg-step"><span class="lg-n">4</span><div>\n        <b>Play a match.</b> Both players sign in and open Play &rsaquo; Match, pick a Seeker and terrain (and one of their decks, if they like), and one of them shares a 4-digit PIN. Mastery, Echo, the round and the clock stay in sync on both phones, or one phone keeps score for both and the other can be locked; when the match ends, the opponent confirms the result, a win or a draw (equal Mastery when time runs out), and it is saved to both profiles; a result nobody answers is saved as sent after 48 hours. With more than two players or without an account, the <button class="link" style="padding:0" onclick="go('basic-tracker')">Basic tracker</button> in Utilities keeps score on that device only.</div></div>\n      <div class="lg-step"><span class="lg-n">5</span><div>\n        <b>Your matches stay on your profile.</b> Its Matches list shows the date, the opponent, both Seekers and terrains and the result. Choose who sees it under Account &rsaquo; Profile: everyone, signed-in players or only you. You and your opponent always see a match you played together.</div></div>\n      <div class="lg-step"><span class="lg-n">6</span><div>\n        <b>The Meta shows what wins.</b> Which Seekers and terrains get picked and which ones win, across all games, standard matches or tournaments only. Matches played on two phones count with no names attached; a draw is a win for nobody, so the Meta leaves it out.</div></div>\n    </div>\n      </details>\n    </div>\n\n    <div class="panel docs-edge">\n      <details class="fold docs-fold" ontoggle="if(this.open)paintFaq()">\n        <summary>Rulings &amp; FAQ <span class="sum-note">from the official archive</span></summary>\n        <div class="fold-in">\n          <input type="search" id="faq-q" size="1" placeholder="Search a term, a question, a card…"\n            oninput="window._faqQ=this.value;paintFaq();const e=document.getElementById('faq-q');e.focus();e.setSelectionRange(e.value.length,e.value.length)">\n          <div id="faq-body" style="margin-top:12px"></div>\n        </div>\n      </details>\n    </div>\n\n    <div class="panel docs-edge">\n      <details class="fold docs-fold">\n        <summary>Official documents <span class="sum-note">on malediction.gg</span></summary>\n        <div class="fold-in">\n          <div class="link-grid">\n            ${OFFICIAL_LINKS.map(e=>`\n              <a class="doc-card" href="${e.url}" target="_blank" rel="noopener noreferrer">\n                <div class="doc-title">${esc(e.title)} <span class="ext">↗</span></div>\n                <div class="doc-desc">${esc(e.desc)}</div>\n              </a>`).join("")}\n          </div>\n        </div>\n      </details>\n    </div>\n\n    <div class="panel plain">\n      <div class="flex-between" style="margin-bottom:14px">\n        <div>\n          <h2 style="margin:0">Quick reference</h2>\n        </div>\n        <div class="seg" role="group" aria-label="Quick reference section">\n          <button type="button" class="seg-b ${"setup"===rulesTab?"on":""}" aria-pressed="${"setup"===rulesTab}" onclick="rulesTab='setup';renderRules()">Setup checklist</button>\n          <button type="button" class="seg-b ${"turn"===rulesTab?"on":""}" aria-pressed="${"turn"===rulesTab}" onclick="rulesTab='turn';renderRules()">Turns &amp; actions</button>\n        </div>\n      </div>\n      ${"setup"===rulesTab?RULES_SETUP:RULES_TURN}\n    </div>`}const RULES_SETUP='\n  <div class="rules-doc">\n    <h3>At a glance — standard 2-player game</h3>\n    <div class="glance-cards">\n      <div class="gcard">\n        <div class="gcard-title">The battlefield</div>\n        <div class="grow"><span class="k">Battlefield</span><span class="v">30" × 30"<i>≈76 × 76 cm</i></span></div>\n        <div class="grow"><span class="k">Deployment zone</span><span class="v">quarter circle<i>6" from corner</i></span></div>\n        <div class="grow"><span class="k">Husks on field</span><span class="v">4</span></div>\n        <div class="grow"><span class="k">Min. husk spacing</span><span class="v">10"</span></div>\n        <div class="grow"><span class="k">Terrain per player</span><span class="v">1 large, 1 medium<i>2 small</i></span></div>\n      </div>\n      <div class="gcard">\n        <div class="gcard-title">The cards</div>\n        <div class="grow"><span class="k">Opening hand</span><span class="v">7 cards<i>mulligan up to 5×, −1 each</i></span></div>\n        <div class="grow"><span class="k">Player deck</span><span class="v">30–50 cards</span></div>\n        <div class="grow"><span class="k">Relic deck</span><span class="v">15 cards</span></div>\n        <div class="grow"><span class="k">Relic display</span><span class="v">4 face up</span></div>\n      </div>\n      <div class="gcard">\n        <div class="gcard-title">Winning &amp; pace</div>\n        <div class="grow"><span class="k">Players</span><span class="v">2</span></div>\n        <div class="grow"><span class="k">Mastery to win</span><span class="v">40</span></div>\n        <div class="grow"><span class="k">Starting round</span><span class="v">1</span></div>\n        <div class="grow"><span class="k">Starting mastery</span><span class="v">0</span></div>\n      </div>\n    </div>\n\n    <details class="fold">\n      <summary>Before the game — what to bring</summary>\n      <div class="fold-in">\n        <p>Each player brings their own warband:</p>\n        <ul class="bring">\n          <li><b>1 Seeker</b> and its matching <b>Legacy</b> card</li>\n          <li><b>1 terrain card</b> with its terrain set</li>\n          <li>a deck of <b>30–50 cards</b> — units, spells and non-relic attachments</li>\n        </ul>\n        <p>Then, together:</p>\n        <ul class="bring">\n          <li>agree on a shared <b>15-card Relic deck</b></li>\n          <li>have ready: dice, rulers, Echo / Mastery / Round markers, initiative token, 4 husk markers</li>\n        </ul>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Battlefield setup — seven steps, in order</summary>\n      <div class="fold-in">\n    <div class="phase-list">\n      <div class="phase"><div class="ph-n">1</div><div class="ph-body"><b>Define the battlefield</b>\n        <p>Prepare a flat 30" × 30" surface (≈76 × 76 cm).</p></div></div>\n\n      <div class="phase"><div class="ph-n">2</div><div class="ph-body"><b>Place terrain</b>\n        <p>Roll a die: the winner places first. Alternate pieces, going from the largest to the\n        smallest of your own set. Each player places 4 pieces (1 large, 1 medium, 2 small).</p>\n        <p>Every piece must sit entirely within the field, outside all four deployment zones, and at\n        least 3" from other terrain. If both players agree a piece won\'t fit, the phase ends even\n        with pieces unplaced.</p></div></div>\n\n      <div class="phase"><div class="ph-n">3</div><div class="ph-body"><b>Place husks</b>\n        <p>Alternate, starting with whoever placed terrain second. Place 4 husks in total.</p>\n        <p>Each husk goes outside the deployment zones and clear of obstacles, with at least 10"\n        between husks.</p></div></div>\n\n      <div class="phase"><div class="ph-n">4</div><div class="ph-body"><b>Build the relic display</b>\n        <p>Shuffle the 15-card Relic deck and set it face down beside the field. Draw the top 4 and\n        lay them face up in a row next to the deck.</p></div></div>\n\n      <div class="phase"><div class="ph-n">5</div><div class="ph-body"><b>Set Echo, Mastery and Round</b>\n        <p>Starting Echo: the value printed on your Legacy card. Mastery: 0. Round tracker: 1.</p></div></div>\n\n      <div class="phase"><div class="ph-n">6</div><div class="ph-body"><b>Opening hand</b>\n        <p>Shuffle your deck and draw 7 cards. Mulligan is optional: reshuffle and redraw one card\n        fewer each time. Maximum 5 mulligans, and you must start with at least 1 card in hand.</p></div></div>\n\n      <div class="phase"><div class="ph-n">7</div><div class="ph-body"><b>Setup bid</b>\n        <p>Both players pick a card from hand and place it face down on the field, then reveal.\n        Highest cost wins; on a tie, roll a die.</p>\n        <p>The winner chooses first: <b>deployment zone</b> or <b>initiative token</b> for round 1. If they\n        take the zone, the opponent\'s zone is the diagonally opposite one. Cards used to bid are\n        <b>banished</b>.</p></div></div>\n    </div>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>How initiative works</summary>\n      <div class="fold-in">\n        <table class="spec"><tbody>\n          <tr><td style="width:130px">Deploy Phase</td><td>The player with initiative chooses to deploy first, or to defer — in which case the opponent deploys first. Then the other player completes their deployment.</td></tr>\n          <tr><td>Action Phase</td><td>The player with initiative chooses who activates the first unit: themselves, or defer to the opponent, who must then activate first. After that, alternate one unit at a time.</td></tr>\n        </tbody></table>\n      </div>\n    </details>\n  </div>',RULES_TURN='\n  <div class="rules-doc">\n    <details class="fold">\n      <summary>Round structure — four phases</summary>\n      <div class="fold-in">\n    <div class="phase-list">\n      <div class="phase"><div class="ph-n">1</div><div class="ph-body">\n        <b>Refresh Phase <span class="ph-note">skipped on round 1</span></b>\n        <ol>\n          <li>Ready your exhausted units.</li>\n          <li>Advance the round tracker by 1.</li>\n          <li>Draw 2 cards — <b>an empty deck means you lose</b> — and gain Echo equal to\n            <b>2× the round</b> (capped at round 5: 10 Echo). Echo is cumulative.</li>\n          <li>Initiative bid: the player without initiative bids first, then the one who has it;\n            compare the costs of the face-down cards.</li>\n        </ol></div></div>\n\n      <div class="phase"><div class="ph-n">2</div><div class="ph-body"><b>Deploy Phase</b>\n        <p>Whoever has initiative chooses to deploy first or defer. Pay the Echo cost (1 item per\n        unit, tucked under its card; equip on a unit being deployed or one that isn\'t engaged).\n        No limit beyond your Echo.</p>\n        <p><b>Standard:</b> place the unit entirely within your own deployment zone (quarter circle,\n        6" from the corner).</p>\n        <p><b>Reinforcement</b> (from round 2): place within 1" of one of your unengaged units that\n        has been on the field since a previous round. A unit deployed this round can\'t call\n        reinforcements.</p></div></div>\n\n      <div class="phase"><div class="ph-n">3</div><div class="ph-body"><b>Action Phase</b>\n        <p>Whoever has initiative chooses who activates first, then players alternate one unit at a\n        time. Activating means <b>exhausting the card</b> → the unit gets <b>2 AP</b> to spend on actions.\n        The phase ends when nobody has refreshed units left.</p></div></div>\n\n      <div class="phase"><div class="ph-n">4</div><div class="ph-body"><b>End Phase</b>\n        <p>Whoever has initiative chooses who claims a relic first, then the other; alternate.</p>\n        <p><b>Claim:</b> +10 Mastery, husk removed, new relic into the display. Then check for victory\n        (40 Mastery), or start a new round.</p></div></div>\n    </div>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Activation flow</summary>\n      <div class="fold-in">\n    <ol class="flow">\n      <li>Pick a refreshed unit and exhaust it.</li>\n      <li>It gets <b>2 AP</b>.</li>\n      <li>You may play a <b>Channel spell</b>.</li>\n      <li>Declare and resolve actions — repeatable while you have AP; one action must resolve before\n        starting another.</li>\n      <li>A second chance for a Channel spell (between the 1st and 2nd action), only if you haven\'t\n        already cast one this activation.</li>\n      <li>Pass the turn: <b>unspent AP are lost</b>.</li>\n    </ol>\n      </div>\n    </details>\n\n    <details class="fold" open>\n      <summary>Standard actions</summary>\n      <div class="fold-in">\n    <table class="spec act"><tbody>\n      <tr><td class="act-name"><b>Move</b><span class="ap-cost">1 AP</span></td>\n        <td>Move up to the unit\'s Speed. May curve around obstacles, but can\'t pass through models, husks or high terrain, nor through gaps narrower than its base. <b>Provokes retaliation.</b></td></tr>\n      <tr><td class="act-name"><b>Attack</b><span class="ap-cost">1 AP</span></td>\n        <td>Roll 1d20 + Accuracy vs the target\'s Defense. ≥ Defense = hit (full damage); &lt; = graze (reduced damage). Melee (enemy within 1" + LoE) or Ranged (within Range + LoS).</td></tr>\n      <tr><td class="act-name"><b>Charge</b><span class="ap-cost">2 AP</span></td>\n        <td>Move up to 2× Speed toward an unengaged enemy (needs LoS), then make a melee attack. The base must not leave the LoS path. <b>Provokes retaliation.</b></td></tr>\n      <tr><td class="act-name"><b>Shift</b><span class="ap-cost">2 AP</span></td>\n        <td>A single move up to Speed, in a straight line with clear LoS (no obstacles). <b>Does not provoke retaliation</b>; can pass through gaps narrower than the base.</td></tr>\n    </tbody></table>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Combat &amp; stats</summary>\n      <div class="fold-in">\n    <div class="two-col">\n      <table class="spec"><tbody>\n        <tr><td>Formula</td><td>1d20 + Accuracy vs target\'s Defense</td></tr>\n        <tr><td>Hit</td><td>Total ≥ Defense → full damage (left number of Power)</td></tr>\n        <tr><td>Graze</td><td>Total &lt; Defense → reduced damage (right number of Power)</td></tr>\n        <tr><td>Critical (nat. 20)</td><td>Critical hit: sum Power\'s hit + graze (before bonuses)</td></tr>\n        <tr><td>Fumble (nat. 1)</td><td>Critical graze: a flat 1 damage, no Power bonuses</td></tr>\n        <tr><td>Melee</td><td>Enemy within 1" + LoE = engaged</td></tr>\n        <tr><td>Ranged</td><td>Target within Range (&gt; 0) + LoS</td></tr>\n        <tr><td>Defeat</td><td>Damage ≥ Max Health → removed from the field</td></tr>\n      </tbody></table>\n      <table class="spec"><tbody>\n        <tr><td>Accuracy</td><td>Bonus to the attack roll</td></tr>\n        <tr><td>Power</td><td>Damage: full / reduced (e.g. 3/1)</td></tr>\n        <tr><td>Range</td><td>Reach in inches (0 = melee only)</td></tr>\n        <tr><td>Speed</td><td>Inches per move action</td></tr>\n        <tr><td>Defense</td><td>Threshold the attack must reach</td></tr>\n        <tr><td>Max Health</td><td>Damage taken before defeat</td></tr>\n        <tr><td>Stat "–" (null)</td><td>The unit can\'t use that stat (treated as 0)</td></tr>\n        <tr><td>Retaliation</td><td>Free melee attack when an engaged enemy moves/charges/shoots; resolved before the provoking action</td></tr>\n      </tbody></table>\n    </div>\n      </div>\n    </details>\n\n    <details class="fold">\n      <summary>Claiming a relic (End Phase)</summary>\n      <div class="fold-in">\n    <p>You claim if all three are true:</p>\n    <ul>\n      <li>near a husk (within 1")</li>\n      <li>not engaged</li>\n      <li>no enemy near the husk (within 1")</li>\n    </ul>\n    <p>Pick a relic from the display (then replace it) or draw the top card of the deck. Equip it\n    under the unit, remove the husk, and gain <b>+10 Mastery</b>.</p>\n      </div>\n    </details>\n  </div>',TRK_KEY="sl.tracker.2",TRK_MODES=[{id:"clash",label:"Clash (Standard Duel)",players:2,target:40,desc:"Standard duel — first to 40 Mastery wins"},{id:"demo",label:"Demo Game",players:2,target:25,desc:"Short intro game — first to 25 Mastery"},{id:"allegiance",label:"Allegiance 2v2",players:4,target:50,desc:"Team battle — first team to 50 shared Mastery"},{id:"nemesis",label:"Nemesis 2v1",players:3,target:50,desc:"One against two — first to 50 Mastery"},{id:"dominion",label:"Dominion FFA",players:3,target:40,desc:"Free-for-all, 3–4 players — first to 40 Mastery"}];function trkDefaultMins(e){return"allegiance"===e?120:60}const TRK_DEFAULT=()=>({mode:"clash",target:40,players:2,round:1,timer:{mins:60,left:3600,running:!1,at:0,custom:!1},wake:!0,teamMastery:[0,0],p:[1,2,3,4].map(e=>({name:"Player "+e,mastery:0,echo:0,relics:[!1,!1,!1,!1]}))});let trk=null,tkDu=null,_trkB=null;function trkLoad(){try{const e=localStorage.getItem(TRK_KEY);if(trk=e?JSON.parse(e):TRK_DEFAULT(),trk.p&&Array.isArray(trk.p)&&4===trk.p.length||(trk=TRK_DEFAULT()),!trk.timer){const e=trkDefaultMins(trk.mode);trk.timer={mins:e,left:60*e,running:!1,at:0,custom:!1}}void 0===trk.wake&&(trk.wake=!0),trk.round=Math.max(1,+trk.round||1),trk.players=Math.min(4,Math.max(1,+trk.players||2)),trk.target=+trk.target||40,Array.isArray(trk.teamMastery)&&2===trk.teamMastery.length||(trk.teamMastery=[0,0]),trk.p.forEach(e=>{e.mastery=Math.max(0,+e.mastery||0),e.echo=Math.max(0,+e.echo||0),Array.isArray(e.relics)&&4===e.relics.length||(e.relics=[!1,!1,!1,!1])})}catch(e){trk=TRK_DEFAULT()}}function tkTimeLeft(){const e=trk.timer||{};return e.running?Math.max(0,(0|e.left)-Math.round((Date.now()-(e.at||Date.now()))/1e3)):Math.max(0,0|e.left)}function tkFmt(e){return Math.floor(e/60)+":"+String(e%60).padStart(2,"0")}function tkToggleTimer(){tkAudio();const e=trk.timer;e.running?(e.left=tkTimeLeft(),e.running=!1,e.at=0):(e.left<=0&&(e.left=60*(e.mins||60)),e.at=Date.now(),e.running=!0),tTouch(),tkTick()}function tkResetTimer(){const e=trk.timer;e.left=60*(e.mins||60),e.running=!1,e.at=0,tTouch()}function tkSetMins(e){const n=Math.max(1,Math.min(300,parseInt(e,10)||60));trk.timer.mins=n,trk.timer.custom=!0,trk.timer.running||(trk.timer.left=60*n),tTouch()}/* Phones only let a page make sound after a tap, so the tap that starts the
    clock also wakes the audio; the chime at zero then plays without one. */
 function tkAudio(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;window._tkAc=window._tkAc||new C;"suspended"===window._tkAc.state&&window._tkAc.resume();return window._tkAc}catch(e){return null}}
 function tkChime(){const a=tkAudio();if(!a)return;const t0=a.currentTime+.05;[0,.5,1].forEach(d=>[[880,.22],[1760,.06]].forEach(([f,v])=>{const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(1e-4,t0+d);g.gain.exponentialRampToValueAtTime(v,t0+d+.015);g.gain.exponentialRampToValueAtTime(1e-4,t0+d+1.1);o.connect(g);g.connect(a.destination);o.start(t0+d);o.stop(t0+d+1.2)}))}
@@ -3006,7 +3029,9 @@ function duPickSave(){try{localStorage.setItem(DU_PICK,JSON.stringify(window._du
 /* Deck picker: only after a Seeker is picked, and only decks with that Seeker.
    A pending tournament game needs a deck. */
 function duDeckFits(d,s){const n=normName(s),v=String(d&&d.seeker||"");/* Seeker names can hold a comma ("Vorendal, the Dreadheart"). */return!!n&&(normName(v)===n||v.split(",").some(x=>normName(x)===n))}
-function duNeedTxt(){const e=duPick();return!e.seeker||!e.terrain?"Pick your Seeker and terrain first":"Pick your deck: tournament games need a decklist"}
+function duNeedTxt(){const e=duPick();return!e.seeker||!e.terrain||!t3DuGrp()?"Pick your Seeker and terrain first":"Pick your deck: tournament games need a decklist"}
+/* A pending game of an older groups tournament: the casual picker with a required deck. Swiss games use the registered deck instead. */
+function t3DuGrp(){const n=t3DuNext();return!!n&&!swIsSwiss(n.t&&n.t.payload)}
 function duDeckHtml(p,dk,req){
   const lab=`<span>Deck <small class="du-opt">${req?"(required for tournament games)":"(optional)"}</small></span>`,hs='class="hint" style="margin:-2px 0 14px;font-size:12.5px"';
   if(!dk)return req?`<p ${hs}>Loading your decks\u2026</p>`:"";
@@ -3015,7 +3040,7 @@ function duDeckHtml(p,dk,req){
   if(!f.length)return`<p ${hs}>No saved deck with ${esc(p.seeker)}. ${req?"Tournament games need a decklist: build":"Build"} or import one in <button class="link" onclick="go('decks')">My decks</button>${req?".":" to link it to your matches."}</p>`;
   return`<label class="field">${lab}<select id="du-deck" onchange="duPickSet('deck',this.value)"${req?' required aria-required="true"':""}><option value="">${req?"Pick your deck":"No deck"}</option>${f.map(d=>`<option value="${esc(d.id)}"${p.deck===d.id?" selected":""}>${esc(d.name||"Untitled deck")}</option>`).join("")}</select></label>`;
 }function duDeck(p){return p.deck&&(cache.myDecks||[]).some(d=>d.id===p.deck&&duDeckFits(d,p.seeker))?p.deck:null}
-function duPickOk(){const e=duPick();return!(!e.seeker||!e.terrain||t3DuNext()&&!duDeck(e))}
+function duPickOk(){const e=duPick();return!(!e.seeker||!e.terrain||t3DuGrp()&&!duDeck(e))}
 function duPickSet(k,v){const e=duPick();if("deck"===k){e.deck=v||"";const d=(cache.myDecks||[]).find(n=>n.id===e.deck),s=d&&d.seeker&&seekerList().find(n=>normName(n.n)===normName(d.seeker));s&&(e.seeker=s.n)}else"seeker"===k?(e.seeker=v||"",e.deck&&!duDeck(e)&&(e.deck="")):"terrain"===k?e.terrain=v||"":"mode"===k&&(e.mode="demo"===v?"demo":"clash");duPickSave(),duPickPaint()}
 function renderTracker(){duBoot();if(DU)return tkDu=DU,void duPaint();tkDu=null,duFind(),duPickPaint(),me&&!cache.myDecks&&!window._duDk&&(window._duDk=1,fetchMyDecks().then(e=>{cache.myDecks=e||[]}).catch(()=>{}).finally(()=>{window._duDk=0,"tracker"===route.view&&!DU&&duPickPaint()}))}
 /* Play Network tournaments (v3) the signed-in player organizes or plays in, from t_mine,
@@ -3033,7 +3058,10 @@ function t3MineGet(age){
     try{const{data:d,error:x}=await sb.rpc("t_mine");!x&&Array.isArray(d)&&(rows=d.filter(t=>t&&t.id&&null!=t.status&&t.payload))}catch(x){}
     try{rows.some(t=>"running"===t.status)&&await ensureProfNames()}catch(x){}
     /* A sign-out or a finished match (cache.t3Mine=null) meanwhile drops this answer. */
-    const k=cache.t3Mine;k&&k.p===p&&(cache.t3Mine={uid:u,at:Date.now(),rows});return rows})();
+    const k=cache.t3Mine;k&&k.p===p&&(cache.t3Mine={uid:u,at:Date.now(),rows},setTimeout(duInbox,0));
+    /* The last state seen of each tournament, kept when cache.t3Mine is dropped (a finished match), so a round ping can say what changed. */
+    try{const S=cache.t3Seen&&cache.t3Seen.uid===u?cache.t3Seen:cache.t3Seen={uid:u,m:{}};rows.forEach(t=>{S.m[t.id]={id:t.id,status:t.status,payload:t.payload}})}catch(x){}
+    return rows})();
   cache.t3Mine={uid:u,at:c?c.at:0,rows:c?c.rows:[],p};
   return p;
 }
@@ -3049,6 +3077,7 @@ function t3DuBlock(n){
   if(me&&(!c||c.uid!==me.id||!c.p&&Date.now()-c.at>=3e4)){const k0=t3DuSig(n);t3MineGet().then(()=>{"tracker"===route.view&&!DU&&t3DuSig(t3DuNext())!==k0&&duPickPaint()})}
   if(!n)return"";
   const sw=swIsSwiss(n.t&&n.t.payload);
+  if(sw)return duTnCard(n);
   return`<div class="du-tn" role="status"><small>Tournament game</small>
       ${sw?`<b>${esc(n.title)}</b>
       <span class="du-tn-vs">${esc(n.stage)}${n.table?" · Table "+(n.table|0):""} · vs ${esc(n.oppName)}</span>`:`<b>${esc(n.title)} · ${esc(n.stage)}${n.table?" · Table "+(n.table|0):""}</b>
@@ -3078,7 +3107,7 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
     <div class="du-acts"><button class="act gold" onclick="go('auth')">Sign in to play</button><button class="ghost" onclick="go('basic-tracker')">Open the Basic tracker</button></div>
     <p class="hint du-foot">No account, or more than two players? The Basic tracker keeps score on this device only and saves nothing online.</p>
   </div>`);
-  const tn=t3DuNext(),tnb=t3DuBlock(tn);tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
+  const tn=t3DuNext(),tnb=t3DuBlock(tn);duInvNote();if(tn&&swIsSwiss(tn.t&&tn.t.payload))return void(e.innerHTML=duTnPage(tnb));tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
   e.innerHTML=`<div class="panel du-wrap">
     <h2 class="du-h">Play a match</h2>
     <p class="du-lead">Pick what you are playing, then start the match and read out the PIN, or join your opponent's with theirs. Once you are both in, one phone can keep score for both. When it ends, the other player confirms the result and it is saved to both profiles.</p>
@@ -3185,17 +3214,17 @@ function duIn(u,h,adj){const d=DU;u=(Array.isArray(u)?u:[]).filter(v=>v&&"object
   ra&&d===DU&&DU_HOOKS.on()&&(DU.dirty[m]=1,duSave())}
 /* The other phone runs this version (it sends o): only then is one-phone mode offered, as an older page would ignore it. */
 function duNewer(){const d=DU;if(!d||d.oo)return;d.oo=1;duStore();"live"===d.status&&duView(!0)}
-function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner isDraw ws ls sec L trk tId tTitle tLabel tState one ow oo".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
+function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner isDraw ws ls sec L trk tId tTitle tLabel tState one ow oo inv tRef lv".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
 function duInitTrk(){const t=TRK_DEFAULT();t.mode=DU.mode;t.target=DU.target;t.players=2;t.nr=0;t.p.forEach(p=>p.er=0);t.wake=!_trkB||!1!==_trkB.wake;DU.trk=t;duNames();DU_SECS.forEach(s=>{DU.sec[s]={c:0,d:duOf(s)};DU.keys[s]=duKey(s)})}
 /* Resume the match this phone had open (after a reload or a sign-in). */
 function duBoot(){if(DU||!me||!sb||!sb.rpc||window._duBoot===me.id)return;window._duBoot=me.id;let r=null;try{r=JSON.parse(localStorage.getItem(DU_KEY)||"null")}catch(e){}if(!r||1!==r.v||r.uid!==me.id||!r.id||!/^(waiting|live|ending)$/.test(r.status))return;
   const d=DU=duMake(r),t=r.trk;d.one=duOneOk(d.one);d.ow="h"===d.ow||"g"===d.ow?d.ow:null;d.oo=d.oo?1:0;if(t&&Array.isArray(t.p)&&4===t.p.length&&t.timer&&r.sec){t.p.forEach(p=>{Array.isArray(p.relics)&&4===p.relics.length||(p.relics=[!1,!1,!1,!1])});d.L=Math.max(0,0|d.L);DU_SECS.forEach(s=>{d.sec[s]&&"number"==typeof d.sec[s].c||(d.sec[s]={c:0,d:duOf(s)});d.keys[s]=duKey(s)})}else d.sec={},d.L=0,d.rst=1,duInitTrk();duRun()}
 /* No match saved on this phone: ask the database once for one still open
    (another phone or a cleared browser), when the Match page opens. */
-async function duFind(){if(DU||!me||!sb||!sb.from||window._duFind===me.id)return;const u=me.id;window._duFind=u;try{const{data:r}=await sb.from("duels").select("id,status,host_id,mode,target").or(`host_id.eq.${u},guest_id.eq.${u}`).in("status",["waiting","live","ending"]).order("updated_at",{ascending:!1}).limit(1);const x=r&&r[0];if(!x||DU||!me||me.id!==u)return;
-  DU=duMake({id:String(x.id).toLowerCase(),role:x.host_id===u?"host":"guest",uid:u,mode:"demo"===x.mode?"demo":"clash",target:+x.target||40,status:"live"===x.status||"ending"===x.status?x.status:"waiting",pinEnd:Date.now()+6e4,rst:1});duInitTrk();duRun();"tracker"===route.view&&renderTracker()}catch(e){}}
+async function duFind(){if(DU||!me||!sb||!sb.from||window._duFind===me.id)return;const u=me.id;window._duFind=u;try{const{data:r}=await sb.from("duels").select("id,status,host_id,guest_id,mode,target,tournament_id,t_ref").or(`host_id.eq.${u},guest_id.eq.${u}`).in("status",["waiting","live","ending"]).order("updated_at",{ascending:!1}).limit(5);/* An invitation waiting for this account is in the inbox, not its match. */const x=(r||[]).find(x=>x&&!("waiting"===x.status&&x.guest_id===u));if(!x||DU||!me||me.id!==u)return;
+  DU=duMake({id:String(x.id).toLowerCase(),role:x.host_id===u?"host":"guest",uid:u,mode:"demo"===x.mode?"demo":"clash",target:+x.target||40,status:"live"===x.status||"ending"===x.status?x.status:"waiting",pinEnd:Date.now()+6e4,rst:1,inv:"waiting"===x.status&&x.guest_id?1:0,tId:x.tournament_id||null,tRef:x.t_ref||null});duInitTrk();duRun();"tracker"===route.view&&renderTracker()}catch(e){}}
 function duRun(){const d=DU;clearInterval(d.iv);d.iv=setInterval(duTick,5e3);duConnect();duSync()}
-function duTick(){const d=DU;if(!d)return;d.n=(d.n||0)+1;if("waiting"===d.status)return void duSync();if(!DU_HOOKS.on())return;(d.n%2==0||d.cpR)&&duCheckpoint();!d.joined&&d.downAt&&Date.now()-d.downAt>2e4&&duConnect();(("ending"===d.status||!d.joined)&&d.n%3==0||d.n%6==0)&&duSync();d.joined&&d.n%6==3&&duHello()}
+function duTick(){const d=DU;if(!d)return;d.n=(d.n||0)+1;if("waiting"===d.status){d.inv&&"host"===d.role&&duInvKeep(d);return void duSync()}if(!DU_HOOKS.on())return;(d.n%2==0||d.cpR)&&duCheckpoint();!d.joined&&d.downAt&&Date.now()-d.downAt>2e4&&duConnect();(("ending"===d.status||!d.joined)&&d.n%3==0||d.n%6==0)&&duSync();d.joined&&d.n%6==3&&duHello()}
 async function duConnect(){const d=DU;if(!d||!sb||!sb.channel||d._cn)return;d._cn=1;try{const o=d.ch;d.ch=null;d.joined=!1;d.downAt=Date.now();duStrip();
   o&&await Promise.race([Promise.resolve().then(()=>sb.removeChannel(o)).catch(()=>{}),new Promise(r=>setTimeout(r,4e3))]);
   try{sb.realtime&&sb.realtime.setAuth&&await sb.realtime.setAuth()}catch(e){}
@@ -3210,7 +3239,7 @@ async function duSync(){const d=DU;if(!d||!sb)return;if(d._sy)return void(d._sy2
 function duRow(r){const d=DU,was=d.status,cb=d.claimBy,s0=String(r.status||""),s="waiting"===s0&&r.pin_expires_at&&r.server_now&&Date.parse(r.server_now)>=Date.parse(r.pin_expires_at)?"expired":s0,nm=()=>[d.hn,d.gn,d.hs,d.gs,d.ht,d.gt].join("|"),n0=nm();if(!/^(waiting|live|ending|done|cancelled|expired)$/.test(s))return;
   d.hid=r.host_id||d.hid;d.gid=r.guest_id||d.gid;d.hn=r.host_name||d.hn;d.gn=r.guest_name||d.gn;d.hs=r.host_seeker||d.hs;d.ht=r.host_terrain||d.ht;d.gs=r.guest_seeker||d.gs;d.gt=r.guest_terrain||d.gt;d.mode="demo"===r.mode?"demo":"clash"===r.mode?"clash":d.mode;d.target=+r.target||d.target;d.trk&&(d.trk.mode=d.mode,d.trk.target=d.target);
   r.pin&&(d.pin=String(r.pin));r.pin_expires_at&&r.server_now&&(d.pinEnd=Date.now()+(Date.parse(r.pin_expires_at)-Date.parse(r.server_now)));
-  d.claimBy=r.claim_by||null;d.claimWinner=r.claim_winner||null;d.isDraw=!!r.is_draw;d.ws=r.winner_score;d.ls=r.loser_score;d.winner=r.winner_id||null;d.rounds=r.rounds;duNames();d.status=s;"tournament_id"in r&&(d.tId=r.tournament_id||null,d.tTitle=r.t_title||null,d.tLabel=r.t_label||null,d.tState=r.t_state||null);
+  d.claimBy=r.claim_by||null;d.claimWinner=r.claim_winner||null;d.isDraw=!!r.is_draw;d.ws=r.winner_score;d.ls=r.loser_score;d.winner=r.winner_id||null;d.rounds=r.rounds;duNames();d.status=s;"t_ref"in r&&(d.tRef=r.t_ref||null);r.t_invite&&(d.inv=1);("live"===s||"ending"===s)&&(d.lv=1);"tournament_id"in r&&(d.tId=r.tournament_id||null,d.tTitle=r.t_title||null,d.tLabel=r.t_label||null,d.tState=r.t_state||null);
   if(("live"===s||"ending"===s)&&r.state&&"object"==typeof r.state){const a=r.state_at&&r.server_now?(Date.parse(r.server_now)-Date.parse(r.state_at))/1e3:0;duIn(DU_SECS.map(k=>r.state[k]&&{s:k,c:r.state[k].c,d:r.state[k].d}),!1,a>0?a:0)}
   if("waiting"===was&&"live"===s){toast(`${duOpp().name} joined: the match is on`,!0);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}duHello()}
   "ending"===was&&"live"===s&&(duHello(),cb===d.uid)&&toast(`${duOpp().name} says that result is not right. The match goes on.`,!0);
@@ -3218,13 +3247,15 @@ function duRow(r){const d=DU,was=d.status,cb=d.claimBy,s0=String(r.status||""),s
 /* Over (done, cancelled, expired or gone): stop syncing, forget it on this
    phone and show how it ended. DU stays until New match. */
 function duEnded(s){const d=DU;d.status=s;cache.t3Mine=null;clearInterval(d.iv);d.iv=null;clearTimeout(d.ft);duUnsub();try{localStorage.removeItem(DU_KEY)}catch(e){}duSheet();const k=$("du-end");k&&k.remove();
-  if("tracker"===route.view)tkDu=d,duPaint();else"done"===s?toast(`Match over: ${d.isDraw?"a draw":d.winner===d.uid?"you won":duOpp().name+" won"}. Saved to both profiles.`,!0):"cancelled"===s&&toast("Your match was cancelled",!0)}
+  if("tracker"===route.view)tkDu=d,duPaint();else"done"===s?toast(`Match over: ${d.isDraw?"a draw":d.winner===d.uid?"you won":duOpp().name+" won"}. Saved to both profiles.`,!0):"cancelled"===s&&toast("Your match was cancelled",!0);
+  /* A tournament result: this may be the round's last one, so ask for the next round (or the close). */
+  "done"===s&&d.tId&&swKickId(d.tId,d.id)}
 function duClear(keep){const d=DU;if(d){clearInterval(d.iv);clearTimeout(d.ft);duUnsub()}clearInterval(window._duCd);DU=null;tkDu===d&&(tkDu=null);d&&trk===d.trk&&(clearInterval(_tkClock),trk=_trkB);if(!keep)try{localStorage.removeItem(DU_KEY)}catch(e){}["du-sheet","du-end"].forEach(i=>{const e=$(i);e&&e.remove()});tkWakeSync()}
 /* Another account (or none): drop the match from memory, keep it saved for its player. */
 function duDrop(){window._duBoot=null;window._duFind=null;DU&&duClear(!0)}
 function duNew(){duClear();"tracker"===route.view&&renderTracker()}
 function duMatches(){duClear();window._pfMx=1;go("profile")}
-function duView(full){if(!DU)return;if("tracker"!==route.view||tkDu!==DU)return void duSheet();if(!DU_HOOKS.on())return void((full||!$("du-bigpin"))&&duPaint());if(duParked())return void(full||!$("du-park")?duPaint():(duParkPatch(),duStrip(),duSheet()));if(full||!$("tk-card-0"))return void duPaint();trk===DU.trk&&(tPatch(),tkTick(),duStrip());duSheet();const k=$("du-end");if(k){const s=[DU.trk.p[0].mastery,DU.trk.p[1].mastery],bs=k.querySelectorAll(".du-who b");(s[0]===s[1]&&duDrawOk(DU))!==(bs.length>2)?duEndPaint():bs.forEach((b,i)=>b.textContent=i<2?s[i]:s[0]+"–"+s[1])}}
+function duView(full){if(!DU)return;if("tracker"!==route.view||tkDu!==DU)return void duSheet();if(!DU_HOOKS.on())return void((full||!$("du-bigpin")&&!$("du-invw"))&&duPaint());if(duParked())return void(full||!$("du-park")?duPaint():(duParkPatch(),duStrip(),duSheet()));if(full||!$("tk-card-0"))return void duPaint();trk===DU.trk&&(tPatch(),tkTick(),duStrip());duSheet();const k=$("du-end");if(k){const s=[DU.trk.p[0].mastery,DU.trk.p[1].mastery],bs=k.querySelectorAll(".du-who b");(s[0]===s[1]&&duDrawOk(DU))!==(bs.length>2)?duEndPaint():bs.forEach((b,i)=>b.textContent=i<2?s[i]:s[0]+"–"+s[1])}}
 function duPaint(){const e=$("tracker-body"),d=DU;if(!e||!d)return;clearInterval(window._duCd);if(DU_HOOKS.on()&&!duParked())return tkDu=d,trk=d.trk,paintTracker(),void duSheet();
   clearInterval(_tkClock);window._tkFs&&(window._tkFs=!1,document.fullscreenElement&&document.exitFullscreen().catch(()=>{}));const k=$("du-end");k&&k.remove();
   if(DU_HOOKS.on()){tkDu=d;trk=d.trk;window._tkSet=!1;const q=$("tk-ask");q&&q.remove()}
@@ -3248,7 +3279,7 @@ function duParkHtml(){const d=DU,o=esc(duOpp().name),t=d.trk;return`<div class="
 function duParkPatch(){const t=DU.trk,f=(i,v)=>{const e=$(i);e&&e.textContent!==String(v)&&(e.textContent=v)};f("du-pk-0",t.p[0].mastery);f("du-pk-1",t.p[1].mastery);f("du-pk-r",duParkSum())}
 function duOneHere(){const d=DU;if(!d||"live"!==d.status||duScorer())return;duFlush();d.one=String(d.uid).toLowerCase();d.ow=duMine();duGrants();duSave();duFlush();duView(!0);toast(`You keep score for both players. ${duOpp().name} can lock their phone.`,!0)}
 function duBoth(){const d=DU;if(!d||"live"!==d.status||!d.one)return;duFlush();d.one=null;d.ow=duMine();d.dirty[duMine()]=1;duGrants();duSave();duFlush();duView(!0);toast("Each phone keeps its own player's score again",!0)}
-function duWaitHtml(){const d=DU,m=duMe(),p=String(d.pin||"");return`<div class="panel du-wrap du-wait">
+function duWaitHtml(){if(DU.inv)return duInvWaitHtml();const d=DU,m=duMe(),p=String(d.pin||"");return`<div class="panel du-wrap du-wait">
     <h2 class="du-h">Your match PIN</h2>
     <p class="du-lead">Your opponent opens Play › Match on their phone, picks their Seeker and terrain, taps <b>I have a PIN</b> and types:</p>
     <div class="du-bigpin" id="du-bigpin" aria-label="PIN ${esc(p.split("").join(" "))}">${esc(p)}</div>
@@ -3270,7 +3301,11 @@ function duResHtml(){const d=DU,dr=!!d.isDraw,w=!dr&&d.winner===d.uid,m=duMe(),o
     <p class="du-saved">${duSavedTxt(d)}</p>
     <div class="du-acts"><button class="act gold" onclick="duNew()">New match</button><button class="ghost" onclick="duMatches()">View my matches</button></div>
   </div>`}
-function duEndHtml(){const s=DU.status,[h,p]="expired"===s?["The PIN expired","Nobody joined within 15 minutes. Start again for a new PIN."]:"gone"===s?["Match not found","This match is no longer available. Nothing was saved."]:"cancelled"===s&&DU.rs&&Date.now()-DU.rs<6e4?["Match reset",esc(duOpp().name)+" reset the match. Nothing was saved for this one: ask them for the new PIN."]:["Match cancelled","The match was cancelled. Nothing was saved for either player."];return`<div class="panel du-wrap">
+function duEndHtml(){if(DU.inv&&DU.tId&&"cancelled"===DU.status&&DU.rs&&Date.now()-DU.rs<6e4)return`<div class="panel du-wrap">
+    <h2 class="du-h" id="du-end-t">Match reset</h2>
+    <p class="du-lead">${esc(duOpp().name)} reset the match. Nothing was saved for this one. They start your tournament game again: tap “Join your tournament game” when it appears.</p>
+    <div class="du-acts"><button class="act gold" onclick="duNew()">Back</button></div>
+  </div>`;if(DU.inv&&!DU.lv&&/^(cancelled|expired)$/.test(DU.status))return duInvEndHtml();const s=DU.status,[h,p]="expired"===s?["The PIN expired","Nobody joined within 15 minutes. Start again for a new PIN."]:"gone"===s?["Match not found","This match is no longer available. Nothing was saved."]:"cancelled"===s&&DU.rs&&Date.now()-DU.rs<6e4?["Match reset",esc(duOpp().name)+" reset the match. Nothing was saved for this one: ask them for the new PIN."]:["Match cancelled","The match was cancelled. Nothing was saved for either player."];return`<div class="panel du-wrap">
     <h2 class="du-h" id="du-end-t">${h}</h2>
     <p class="du-lead">${p}</p>
     <div class="du-acts">${"cancelled"===s&&DU.rs&&Date.now()-DU.rs<6e4?`<button class="act gold" onclick="window._duPinOpen=!1;duNew();duPinOpen()">I have a PIN</button><button class="ghost" onclick="duNew()">Back</button>`:"expired"===s?`<button class="act gold" onclick="duNew();duStart()">Start a new match</button><button class="ghost" onclick="duNew()">Back</button>`:`<button class="act gold" onclick="duNew()">New match</button>`}</div>
@@ -3306,8 +3341,8 @@ async function duClaim(){const d=DU,w=window._duW;if(!d||"live"!==d.status||!w||
 function duCancelAsk(){if(!DU)return;if("waiting"===DU.status)return void duCancel();tkAsk("Cancel this match?","Nothing is saved for either player. Starting again gives a new PIN.","Cancel match",duCancel);const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
 /* Reset: this match ends with nothing saved and a new one opens at once, with
    a new PIN, for whoever pressed it. The other phone is told first ("rs"). */
-function duResetAsk(){if(!DU)return;if("waiting"===DU.status)return void duCancel(1);tkAsk("Reset the match?","Nothing is saved for this match. A new one starts with a new PIN to read out to your opponent.","Reset",()=>duCancel(1));const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
-async function duCancel(nw){const d=DU;if(!d||d._cc)return;d._cc=1;nw&&duSend("rs",{});try{const{data:r,error:x}=await sb.rpc("duel_cancel",{p_id:d.id});if(x)throw x;if(d!==DU)return;r&&(r.ok||/^(cancelled|expired)$/.test(r.status))?(duClear(),nw&&"tracker"===route.view?(renderTracker(),duStart()):(toast("Match cancelled",!0),"tracker"===route.view&&renderTracker())):duSync()}catch(e){toast(e)}finally{d._cc=0}}
+function duResetAsk(){if(!DU)return;if("waiting"===DU.status)return void duCancel(1);tkAsk("Reset the match?",DU.inv&&DU.tId?"Nothing is saved for this match. Your tournament game starts again, and your opponent taps “Join your tournament game”.":"Nothing is saved for this match. A new one starts with a new PIN to read out to your opponent.","Reset",()=>duCancel(1));const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
+async function duCancel(nw){const d=DU;if(!d||d._cc)return;d._cc=1;nw&&duSend("rs",{});try{const{data:r,error:x}=await sb.rpc("duel_cancel",{p_id:d.id});if(x)throw x;if(d!==DU)return;r&&(r.ok||/^(cancelled|expired)$/.test(r.status))?(duClear(),nw&&"tracker"===route.view?(renderTracker(),d.inv&&d.tId?duStartT(d.tId):duStart()):(toast("Match cancelled",!0),"tracker"===route.view&&renderTracker())):duSync()}catch(e){toast(e)}finally{d._cc=0}}
 function duBusy(b){window._duBusy=b;b?["du-start","du-have","du-join"].forEach(i=>{const e=$(i);e&&(e.disabled=!0)}):DU||"tracker"!==route.view||duPickPaint()}
 async function duStart(){if(!me)return go("auth");if(!duPickOk())return toast(duNeedTxt());if(window._duBusy||DU)return;const p=duPick();duBusy(1);
   try{const{data:r,error:x}=await sb.rpc("duel_open",{p_mode:p.mode,p_seeker:p.seeker,p_terrain:p.terrain,p_deck_id:duDeck(p)});if(x)throw x;if(!r||!r.id||!r.pin)throw new Error("Could not start the match. Try again.");
@@ -3320,6 +3355,230 @@ async function duJoin(){if(!me)return go("auth");if(!duPickOk())return toast(duN
     /* duel_join tags a Play Network tournament game (r.t.id), or says why it did not (r.t.skip). */
     const tt=r.t&&"object"==typeof r.t?r.t:null,sk=tt&&!tt.id?tt.skip:null;tt&&tt.id&&(DU.tId=String(tt.id),DU.tTitle=tt.title||null,DU.tLabel=tt.label||null);
     duInitTrk();duStore();duRun();"mode"===sk?toast(`Not counted as a tournament game: the tournament plays ${"demo"===DU.mode?"Clash · 40":"Demo · 25"}. Cancel and start again in that mode to count it.`):"deck"===sk?toast("Not counted as a tournament game: both players must pick a deck."):"busy"===sk?toast("Not counted as a tournament game: another tracked match for this game is in progress."):toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);"tracker"===route.view&&renderTracker()}catch(x){toast(x)}finally{duBusy(0)}}
+/* Tournament games with no PIN (Swiss, 2026-11-15). The player taps Start the
+   match: t_duel_start makes an invitation (a waiting match with no PIN) with
+   the deck registered for the tournament, or joins the opponent's when they
+   tapped first. The opponent hears of it on the private topic user:<id>
+   (duInbox) or by polling t_inbox, and joins with t_duel_accept. Without a
+   registered deck the deck sheet asks first (t3DeckSheet). The match itself is
+   the usual synced match (DU), marked inv. */
+const DU_TWHY={no_game:"You have no game to play in this round.",opp_no_account:"Your opponent has no linked account, so this game is not tracked. Play it and tell the organizer the result.",busy:"This game is already being played on another phone.",dropped:"You have dropped from this tournament.",not_entrant:"Link your malediction.gg profile in Account › Profile, then ask the organizer to add you.",status:"This tournament is not running.",rate_limited:"You started 30 matches in the last hour. Try again later.",full:"Too many matches are waiting for an opponent right now. Try again in a few minutes.",gone:"This invitation has ended.",not_allowed:"This invitation has ended."};
+/* The database key of a Swiss game (tvNextFor's key g5 is the game g:5). */
+function t3Ref(n){return n&&/^g\d+$/.test(n.key)?"g:"+n.key.slice(1):""}
+/* What the player can do about their next Swiss game n of tournament t:
+   start, waiting (their invitation is open on this phone), invited (the
+   opponent's invitation is open), live, untracked (the opponent has no
+   account) or nodeck (no deck registered: the sheet asks at Start). */
+function t3GameState(t,n){
+  if(!me||!t||!n||!t3IdOk(n.opp))return"untracked";
+  const ref=t3Ref(n),d=DU,L=cache.t3Live&&cache.t3Live.tid===t.id?cache.t3Live.m[ref]:null,r=t3Dk(t);
+  if(d&&d.tId===t.id&&d.tRef===ref&&/^(live|ending)$/.test(d.status))return"live";
+  if(d&&d.inv&&d.tId===t.id&&d.tRef===ref&&"waiting"===d.status)return"waiting";
+  if(duInvFor(t.id,ref))return"invited";
+  if(L&&/^(live|ending)$/.test(L.status))return"live";
+  return r&&"running"===r.status&&!r.mine&&"ok"===r.can?"nodeck":"start";
+}
+async function duTRpc(n,a){
+  try{const{data:r,error:x}=await sb.rpc(n,a);if(x)return toast(/PGRST202|could not find the function/i.test((x.code||"")+" "+(x.message||""))?"Not available yet — the database needs its latest update":x),null;return r&&"object"==typeof r?r:{ok:!1}}
+  catch(e){toast("Not started — check your connection and tap again");return null}
+}
+function duTOpen(){return!!DU&&/^(live|ending)$/.test(DU.status)}
+async function duStartT(tid,again){
+  if(!me)return go("auth");if(window._duBusy||!tid)return;
+  if(duTOpen()&&DU.tId!==tid)return toast("Finish your open match first"),void go("tracker");
+  duBusy(1);const r=await duTRpc("t_duel_start",{p_tid:tid});duBusy(0);if(!r)return;
+  if(!r.ok){const k=r.reason;
+    if("stale"===k&&!again)return duStartT(tid,1);
+    if("no_deck"===k)return void t3DeckSheet(tid,()=>duStartT(tid),"Save and start");
+    /^(no_game|opp_no_account|dropped|not_entrant|status|stale)$/.test(k)&&(cache.t3Mine=null,duInvRepaint());
+    return void toast(DU_TWHY[k]||r.message||"Could not start the match. Try again.")}
+  if("guest"===r.role&&r.accept)return duJoinT(r.id,tid);
+  const id=String(r.id||"").toLowerCase();if(!id)return;
+  if(DU&&DU.id===id&&/^(waiting|live|ending)$/.test(DU.status))return void go("tracker");
+  DU&&duClear();
+  const t=r.t&&"object"==typeof r.t?r.t:{},o=r.opp&&"object"==typeof r.opp?r.opp:{},m="demo"===r.mode?"demo":"clash";
+  DU="waiting"===r.status?duMake({id,role:"host",uid:me.id,mode:m,target:+r.target||("demo"===m?25:40),status:"waiting",inv:1,pinEnd:Date.now()+Math.max(0,(Date.parse(r.expires_at)-Date.parse(r.server_now))||18e5),hid:me.id,hn:me.display_name,hs:r.host_seeker,ht:r.host_terrain,gid:o.id||null,gn:o.name||null,tId:String(t.id||tid),tTitle:t.title||null,tLabel:t.label||null,tRef:t.ref||null})
+    /* A match of this game already being played by this account (another phone, a cleared browser): resume it. */
+    :duMake({id,role:"guest"===r.role?"guest":"host",uid:me.id,mode:m,target:"demo"===m?25:40,status:"ending"===r.status?"ending":"live",inv:1,lv:1,tId:tid,pinEnd:Date.now()+6e4,rst:1});
+  duInitTrk();duStore();duRun();duInvNote();"tracker"===route.view?renderTracker():go("tracker");
+}
+async function duJoinT(id,tid){
+  if(!me)return go("auth");id=String(id||"").toLowerCase();if(window._duBusy||!id)return;
+  if(DU&&DU.id===id&&/^(live|ending)$/.test(DU.status))return void go("tracker");
+  if(duTOpen())return toast("Finish your open match first"),void go("tracker");
+  tid=tid||(duInvById(id)||{}).tid||"";
+  duBusy(1);const r=await duTRpc("t_duel_accept",{p_id:id});duBusy(0);if(!r)return;
+  if(!r.ok){const k=r.reason;
+    if("no_deck"===k&&tid)return void t3DeckSheet(tid,()=>duJoinT(id,tid),"Save and join");
+    duInvDel(id);duInvRepaint();return void toast(DU_TWHY[k]||r.message||"Could not join the match. Try again.")}
+  duInvDel(id);DU&&duClear();
+  const t=r.t&&"object"==typeof r.t?r.t:{},m="demo"===r.mode?"demo":"clash";
+  DU=duMake({id:String(r.id).toLowerCase(),role:"guest",uid:me.id,mode:m,target:+r.target||("demo"===m?25:40),status:"live",inv:1,lv:1,hid:r.host_id,hn:r.host_name,hs:r.host_seeker,ht:r.host_terrain,gid:me.id,gn:me.display_name,tId:t.id?String(t.id):tid||null,tTitle:t.title||null,tLabel:t.label||null,tRef:t.ref||null});
+  duInitTrk();duStore();duRun();duInvRepaint();
+  toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);
+  "tracker"===route.view?renderTracker():go("tracker");
+}
+/* The host's open page keeps the invitation open: with less than 5 minutes
+   left, t_duel_start gives it 30 more (at most once a minute). */
+function duInvKeep(d){
+  /* Only an invitation still open is kept open: one past its 30 minutes is ended by duSync, never made again here. */
+  if(!d.tId||d.pinEnd<=Date.now()||d.pinEnd-Date.now()>3e5||Date.now()-(d._kp||0)<6e4)return;d._kp=Date.now();
+  Promise.resolve(sb.rpc("t_duel_start",{p_tid:d.tId})).then(q=>{const r=q&&q.data,x=r&&String(r.id||"").toLowerCase();
+    /* This invitation ended meanwhile (declined, expired) and t_duel_start made a new one: withdraw it; duSync ends this one. */
+    if(r&&r.ok&&"host"===r.role&&"waiting"===r.status&&x&&x!==d.id){DU&&DU.id===x||Promise.resolve(sb.rpc("duel_cancel",{p_id:x})).catch(()=>{});return}
+    if(d!==DU||!r||!r.ok||"host"!==r.role||x!==d.id||!r.expires_at||!r.server_now)return;d.pinEnd=Date.now()+(Date.parse(r.expires_at)-Date.parse(r.server_now));duStore()}).catch(()=>{});
+}
+function duInvWaitHtml(){const d=DU,m=duMe(),o=esc(duOpp().name);return`<div class="panel du-wrap du-wait" id="du-invw">
+    <h2 class="du-h">Your tournament game</h2>
+    ${d.tTitle?`<p class="du-kick">${esc(d.tTitle)}${d.tLabel?" · "+esc(d.tLabel):""}</p>`:""}
+    <p class="du-wt"><span class="du-conn s-wait" role="status"><i aria-hidden="true"></i><span>Waiting for ${o} to join</span></span></p>
+    <p class="du-lead">${o} sees “Join your tournament game” when the site is open on their phone. The invitation stays open while this page is open.</p>
+    <p class="du-sum">${esc(t3DkSk(m.seeker||""))} · ${esc(m.terrain||"")} · ${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}</p>
+    <div class="du-acts"><button class="ghost" onclick="duCancelAsk()">Cancel</button></div>
+  </div>`}
+function duInvEndHtml(){const x="expired"===DU.status;return`<div class="panel du-wrap">
+    <h2 class="du-h" id="du-end-t">${x?"The invitation expired":"The invitation ended"}</h2>
+    <p class="du-lead">${x?"Nobody joined within 30 minutes. Start the match again when your opponent is ready.":esc(duOpp().name)+" declined, or the game changed on the tournament page. Nothing was saved."}</p>
+    <div class="du-acts"><button class="act gold" onclick="duNew()">Back</button></div>
+  </div>`}
+/* The tracker's pick page when the next game is a Swiss tournament game. */
+function duTnPage(tnb){const nm=me.display_name||"You";return`<div class="panel du-wrap">
+    <h2 class="du-h">Play a match</h2>
+    <p class="du-lead">Your tournament game is next. It starts with one tap, with the deck you registered and the tournament's mode, and no PIN: your opponent joins it from their phone.</p>
+    <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${tnb}
+    <p class="hint du-foot">Each player needs a Seekers League account. To play without one, or with more than two players, use the <button class="link" onclick="go('basic-tracker')">Basic tracker</button>.</p>
+  </div>`}
+/* The registered deck for the tracker's card (t_deck_get, once). */
+function duTnDk(t){const r=t3Dk(t);if(r||!me||!sb||window._duTnDk===t.id)return r;window._duTnDk=t.id;
+  Promise.resolve(sb.rpc("t_deck_get",{p_tid:t.id})).then(q=>{q&&!q.error&&q.data&&q.data.ok&&(cache.t3Dk={k:t3DkKey(t),r:q.data,due:!1})}).catch(()=>{}).finally(()=>{window._duTnDk=null;"tracker"===route.view&&!DU&&t3Dk(t)&&duPickPaint()});return null}
+function duTnCard(n){
+  const t=n.t,s=t3GameState(t,n),iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,dk="untracked"===s?null:duTnDk(t),mn=dk&&dk.mine,tj=jsq(n.tid),
+    dl=mn?`Your deck: ${esc(t3DkSk(mn.seeker))} · ${esc(mn.terrain||"")}`:dk?"No deck registered yet: you choose it when you start.":"",
+    a="untracked"===s?"":iv?`<button type="button" class="act gold du-tn-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:`<button type="button" class="act gold du-tn-go" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`;
+  return`<div class="du-tn du-tn-sw" role="status"><small>Tournament game</small>
+      <b>${esc(n.title)}</b>
+      <span class="du-tn-vs">${esc(n.stage)}${n.table?" · Table "+(n.table|0):""} · vs ${esc(n.oppName)}</span>
+      ${iv?`<p class="du-tn-inv">${esc(iv.host_name||n.oppName)} is waiting for you</p>`:""}
+      ${"untracked"===s?`<p>${esc(n.oppName)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.</p>`:dl?`<p class="du-tn-dk">${dl}</p>`:""}
+      <p>Mode: ${esc(t3ModeLabel(n.mode))}, set by the tournament</p><p>Time ran out with equal Mastery? End the match and choose Draw.</p>
+      ${a}
+      <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${tj}})">Tournament page</button><button type="button" class="link" onclick="t3DuOff()">Play a casual match instead</button>${iv?`<button type="button" class="link" onclick="duInvDecline(${jsq(iv.id)})">Decline</button>`:""}</div>
+    </div>`}
+/* The tournament page's "Your next game" for a Swiss game. */
+function t3NextSw(t,n,on){
+  const s=t3GameState(t,n),iv="invited"===s?duInvFor(t.id,t3Ref(n)):null,tj=jsq(t.id),hd=`Your next game &middot; ${esc(n.stage)}${n.table?" &middot; Table "+(n.table|0):""}`,
+    b=iv?`${esc(iv.host_name||on)} is waiting for you`:`vs ${esc(on)}`,
+    a="untracked"===s?"":iv?`<button class="act" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:"waiting"===s?`<button class="act" onclick="go('tracker')">Open the match</button>`:`<button class="act" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`,
+    h="untracked"===s?`${esc(on)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.`
+      :"waiting"===s?`Waiting for ${esc(on)} to join. They see “Join your tournament game” when the site is open on their phone.`
+      :iv?"One tap and the match is live, with your registered deck. No PIN."
+      :"live"===s?"This game is being played with the match tracker."
+      :"nodeck"===s?"Choose your deck when you start: it is locked as soon as you save it."
+      :`One tap starts it in ${esc(t3ModeLabel(t.mode))} with your registered deck, no PIN. The result is recorded here by itself.`;
+  return`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>${hd}</small><b>${b}</b></div>${a?`<div class="tv-next-act">${a}</div>`:""}
+    <p class="t3-next-h">${h}</p></div>`;
+}
+/* Home's Next up: the next game, with Start the match or Join for a Swiss one. */
+function duNuRow(n){
+  const t=n.t,sw=!!t&&swIsSwiss(t.payload),s=sw?t3GameState(t,n):"",iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,tb=n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:"",tj=jsq(n.tid);
+  return nuRow(`${esc(n.title)} · Next match · ${esc(n.stage)}`,iv?`${esc(iv.host_name||n.oppName)} is waiting for you${tb}`:`vs ${esc(n.oppName)}${tb}`,`go('tournaments',{tournamentId:${tj}})`,
+    iv?`<button type="button" class="act nu-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join</button>`:"start"===s||"nodeck"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj})">Start the match</button>`:"");
+}
+/* The invitations waiting for this account: cache.duInv {uid, list}. */
+function duInvList(){const c=cache.duInv;return me&&c&&c.uid===me.id?c.list:[]}
+function duInvFor(tid,ref){return duInvList().find(x=>x.tid===tid&&x.ref===ref)||null}
+function duInvById(id){return duInvList().find(x=>x.id===id)||null}
+function duInvDel(id){const c=cache.duInv;if(!me||!c||c.uid!==me.id)return!1;const n=c.list.length;c.list=c.list.filter(x=>x.id!==id);return c.list.length!==n}
+/* add: the list from a Realtime message (only adds); otherwise t_inbox's whole list. */
+function duInvSet(L,add){
+  if(!me)return;const c=cache.duInv&&cache.duInv.uid===me.id?cache.duInv:cache.duInv={uid:me.id,list:[]};
+  const nw=(Array.isArray(L)?L:[]).filter(x=>x&&x.id).map(x=>({id:String(x.id).toLowerCase(),tid:String(x.tid||""),ref:String(x.ref||""),host_id:x.host_id||null,host_name:String(x.host_name||""),title:String(x.title||""),label:String(x.label||"")})),
+    old=c.list,was=JSON.stringify(old);
+  c.list=add?old.filter(y=>!nw.some(x=>x.id===y.id)).concat(nw.map(x=>Object.assign({},old.find(y=>y.id===x.id)||{},x))):nw;
+  const A=window._duInvAnn=window._duInvAnn||{};
+  c.list.forEach(x=>{if(!x.host_name||A[x.id])return;A[x.id]=1;
+    try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}
+    "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(`${x.host_name} is waiting for you`,`Join your tournament game${x.label?" · "+x.label:""}${x.title?" · "+x.title:""}`,tvNoteData(null,x.tid,null,!0))});
+  JSON.stringify(c.list)!==was&&duInvRepaint();
+}
+function duInvRepaint(){"tracker"===route.view&&!DU&&duPickPaint();"tournaments"===route.view&&t3Repaint();"browse"===route.view&&paintHomeNext();duInvNote()}
+/* On any other page: a bar with Join and Not now. Not on the Match page (its
+   card says it), nor on that tournament's page, nor during a match. */
+function duInvNote(){
+  let m=$("du-invn");const H=window._duInvHid||{},it=duInvList().find(x=>x.host_name&&!H[x.id]);
+  /* Hidden where the page shows the invitation itself: the tracker's tournament card (when it is on screen) and that tournament's own page. */
+  const n="tracker"===route.view&&!DU&&t3DuNext(),lc=x=>String(x||"").toLowerCase();
+  if(!it||n&&lc(n.tid)===lc(it.tid)||"tournaments"===route.view&&route.tournamentId&&lc(route.tournamentId)===lc(it.tid)||DU&&/^(waiting|live|ending)$/.test(DU.status)){m&&m.remove();return}
+  m||(m=document.createElement("div"),m.id="du-invn",m.className="du-invn",m.setAttribute("role","status"),document.body.appendChild(m));
+  const k=it.id+"|"+it.host_name+"|"+it.label;if(m.dataset.k===k)return;m.dataset.k=k;
+  m.innerHTML=`<p><b>${esc(it.host_name)} is waiting for your tournament game</b>${it.label||it.title?`<span>${esc([it.title,it.label].filter(Boolean).join(" · "))}</span>`:""}</p>
+    <div class="du-invn-a"><button type="button" class="ghost" onclick="duInvHide(${jsq(it.id)})">Not now</button><button type="button" class="act gold" onclick="duJoinT(${jsq(it.id)},${jsq(it.tid)})">Join</button></div>`;
+}
+function duInvHide(id){(window._duInvHid=window._duInvHid||{})[id]=1;duInvNote()}
+async function duInvDecline(id){const r=await duTRpc("duel_cancel",{p_id:id});if(!r)return;duInvDel(id);duInvRepaint();toast("Invitation declined",!0)}
+/* The inbox: the private topic user:<id> while this account plays in or
+   organizes a running Swiss tournament, and t_inbox every 20 s while the
+   Match, tournament or home page is in front (a dropped socket, a phone that
+   slept). 'invite' and 'invite_end' keep cache.duInv; 'tournament' (a round
+   paired, the start, the close) reloads what the page shows. */
+function duInbNeed(){const c=me&&cache.t3Mine;return!!(c&&c.uid===me.id&&(c.rows||[]).some(t=>t&&"running"===t.status&&swIsSwiss(t.payload)&&(t.organizer_id===me.id||(t.payload.entrants||[]).some(e=>e&&e.id===me.id&&"drop"!==e.st))))}
+function duInbox(){
+  if(!me||!sb||!sb.channel)return;
+  const c=cache.t3Mine;if(!c||c.uid!==me.id)return void t3MineGet();
+  const I=window._duInb;
+  if(!duInbNeed())return void(I&&duInboxStop());
+  if(!I||I.uid!==me.id){duInboxStop();window._duInb={uid:me.id,ch:null,ok:0,at:0,tm:setInterval(duInboxPoll,2e4)};duInbSub();duInboxPoll(1)}
+  else!I.ok&&!I.busy&&Date.now()-I.at>3e4&&duInbSub();
+}
+function duInboxStop(){const I=window._duInb;window._duInb=null;if(!I)return;clearInterval(I.tm);const c=I.ch;I.ch=null;c&&Promise.resolve().then(()=>sb.removeChannel(c)).catch(()=>{})}
+async function duInbSub(){
+  const I=window._duInb;if(!I||I.busy)return;I.busy=1;I.at=Date.now();
+  try{const o=I.ch;I.ch=null;I.ok=0;o&&await Promise.race([Promise.resolve().then(()=>sb.removeChannel(o)).catch(()=>{}),new Promise(r=>setTimeout(r,4e3))]);
+    try{sb.realtime&&sb.realtime.setAuth&&await sb.realtime.setAuth()}catch(e){}
+    if(I!==window._duInb)return;
+    const c=sb.channel("user:"+I.uid,{config:{private:!0}}),f=k=>m=>duInbMsg(I,k,m&&m.payload);I.ch=c;
+    c.on("broadcast",{event:"invite"},f("invite")).on("broadcast",{event:"invite_end"},f("invite_end")).on("broadcast",{event:"tournament"},f("tournament"))
+     .subscribe(st=>{if(I!==window._duInb||I.ch!==c)return;I.ok="SUBSCRIBED"===st?1:0;I.ok||(I.at=Date.now())})}
+  catch(e){}finally{I.busy=0}
+}
+function duInbMsg(I,k,p){
+  if(I!==window._duInb||!me||I.uid!==me.id||!p||"object"!=typeof p)return;
+  const id=String(p.id||"").toLowerCase();
+  if("invite"===k){if(!/^[0-9a-f-]{36}$/.test(id))return;duInvSet([{id,tid:p.tid,ref:p.ref}],1);duInboxPoll(1)}
+  else if("invite_end"===k)duInvDel(id)&&duInvRepaint();
+  else"tournament"===k&&p.tid&&duInbT(String(p.tid));
+}
+async function duInboxPoll(force){
+  const I=window._duInb;if(!I||!me||I.uid!==me.id||I.pb)return;
+  if(!force&&("hidden"===document.visibilityState||!/^(tracker|tournaments|browse)$/.test(route.view)))return;
+  I.pb=1;let r=null;try{const q=await sb.rpc("t_inbox");r=!q.error&&q.data&&q.data.ok?q.data:null}catch(e){}finally{I.pb=0}
+  if(!r||I!==window._duInb||!me||I.uid!==me.id)return;
+  duInvSet(r.invites);
+  /* A tournament whose rev or status moved without a ping reaching this phone. */
+  const c=cache.t3Mine,ch=c&&c.uid===me.id&&!c.p&&Array.isArray(r.mine)?r.mine.find(x=>{const t=x&&(c.rows||[]).find(y=>y&&y.id===x.id);return t&&null!=t.rev&&(t.rev!==x.rev||t.status!==x.status)}):null;
+  ch&&duInbT(String(ch.id));
+}
+/* A 'tournament' ping (or a moved rev seen by the poll): reload and say what changed. */
+function duInbT(tid){
+  if(!me)return;const c=cache.t3Mine,s=cache.t3Seen,o=(c&&c.uid===me.id?(c.rows||[]).find(t=>t&&t.id===tid):null)||(s&&s.uid===me.id?s.m[tid]:null)||null,o0=o&&swIsSwiss(o.payload)?swCur(o.payload):0,os=o&&o.status;
+  cache.t3Mine=null;
+  "tournaments"===route.view&&cache.tourney&&cache.tourney.id===tid&&t3Poll(tid);
+  return t3MineGet().then(R=>{if(!me)return;const t=(R||[]).find(x=>x&&x.id===tid);
+    t&&Array.isArray(cache.homeTourneys)&&(cache.homeTourneys=cache.homeTourneys.filter(x=>x&&x.id!==tid).concat([t]));
+    duInvRepaint();
+    /* Automatic pairing and close ask the server from here too (swKick, when the page has it). */
+    t&&"function"==typeof window.swKick&&window.swKick(t);
+    if(!t||!o||!swIsSwiss(t.payload))return;
+    const cur=swCur(t.payload),T=t3Title(t);let a="",b="";
+    if("running"===t.status&&cur>o0){const n=tvMyNext([t]);a=`Round ${cur} is paired`;b=n?`Your next game: vs ${n.oppName}${n.table?", table "+n.table:""}.`:swMyBye(t)?"You have a bye.":""}
+    /* The same words as swDid, whichever of the two hears of the close first. */
+    else if("closed"===t.status&&"closed"!==os){const p=t.payload||{},S=Array.isArray(p.standings)?p.standings:[],ch=p.champion||swChampion(S);a="The tournament is closed";b=ch?`Champion: ${swNmIn(tid,ch,R)}`:S.length?"First place is shared.":"See the final standings."}
+    if(!a)return;
+    if(!swSay(tid,t.rev|0,`${a}.${b?" "+b:""}`))return;
+    "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(a,(b?b+" ":"")+T,tvNoteData(null,tid,null,!0));
+  });
+}
+document.addEventListener("visibilitychange",()=>{document.hidden||duInboxPoll()});
 document.addEventListener("visibilitychange",()=>{DU&&(document.hidden?duCheckpoint():duResync())});
 window.addEventListener("online",()=>{DU&&duResync()});
 window.addEventListener("pagehide",()=>{DU&&duCheckpoint()});
@@ -4051,6 +4310,25 @@ function swNextPairs(p){
   if(1===r)return swPairRound1(swActive(p),p.seed>>>0);
   const s=swPair(swOrder(p),swMet(p),swByes(p));s.round=r;return s;
 }
+/* Automation. The tournament-auto Edge Function runs this same block (copied
+   by tools/sync-swiss-engine.sh) on the stored payload, so no phone chooses
+   the pairings. payload.hold.pair = N pauses the automatic pairing of round
+   N (set when the organizer undoes it); payload.hold.close stops the
+   automatic close (set by Reopen). swCloseRows is what t_close and
+   t_auto_close take as the final standings. */
+function swCloseRows(p){return swTable(p).map(r=>({id:r.id,rk:r.rk,tp:r.tp,w:r.w,d:r.d,l:r.l,md:r.md,sos:r.sos,drop:r.drop}))}
+/* What is due once a round is complete: "pair", "close" or null. */
+function swAutoDue(p){
+  if(!swIsSwiss(p)||!swRoundDone(p))return null;
+  const cur=swCur(p),R=p.rounds|0,h=p.hold||{};
+  if(cur<R&&swActive(p).length>=2)return h.pair===cur+1?null:"pair";
+  return h.close?null:"close";
+}
+function swAutoStep(p){
+  const k=swAutoDue(p);
+  if("pair"===k){const s=swNextPairs(p);return{kind:"pair",round:s.round,pairs:s.pairs,rematch:s.rematches>0}}
+  return"close"===k?{kind:"close",standings:swCloseRows(p)}:{kind:"none"};
+}
 /* End of the Swiss engine. */
 /* In a Play Network tournament a game between two dropped players is never
    played and has no result; it does not hold up the finals (as t_gm_done). */
@@ -4540,6 +4818,7 @@ async function tvPoll(){
   list.length&&await ensureProfNames();
   /* Home's Next up reads the same list: running tournaments of every league. */
   cache.homeTourneys=list;
+  list.forEach(t=>{try{swKick(t)}catch(x){}});
   try{const o=localStorage.getItem("sl.lastmatch");if(null!==o){o&&ids.forEach(id=>{const n=tvMyNext(old.filter(t=>t.league_id===id));n&&n.tid+":"+n.key===o&&null===localStorage.getItem(tvLastKey(id))&&localStorage.setItem(tvLastKey(id),o)});localStorage.removeItem("sl.lastmatch")}}catch(e){}
   let ch=!1;
   ids.forEach(id=>{
@@ -6176,7 +6455,7 @@ function t3DropTag(p,id){return p&&3===p.v&&"drop"===(t3Ent0({payload:p},id)||{}
 function t3Tags(p,m,ref){
   if(!p||3!==p.v||!m)return"";
   const lv=cache.t3Live&&cache.tourney&&cache.t3Live.tid===cache.tourney.id?cache.t3Live.m[ref]:null,o=[];
-  lv&&o.push(`<span class="t3-tag live">${"ending"===lv.status?"Waiting for confirmation":"Tracked match live"}</span>`);
+  lv&&o.push(`<span class="t3-tag live">${"ending"===lv.status?"Waiting for confirmation":"waiting"===lv.status?"Invited":"Tracked match live"}</span>`);
   "duel"===m.src&&o.push('<span class="t3-tag">tracked</span>');
   "drop"===m.src&&o.push('<span class="t3-tag">forfeit</span>');
   m.rm&&o.push('<span class="t3-tag">rematch</span>');
@@ -6184,7 +6463,7 @@ function t3Tags(p,m,ref){
   m.dx&&o.push('<span class="t3-tag dx">Differs from the tracked match</span>');
   return o.length?`<div class="t3-tags">${o.join("")}</div>`:"";
 }
-function t3LiveFor(t,ref){return!!(t&&cache.t3Live&&cache.t3Live.tid===t.id&&cache.t3Live.m[ref])}
+function t3LiveFor(t,ref){const v=t&&cache.t3Live&&cache.t3Live.tid===t.id&&cache.t3Live.m[ref];return!!v&&"waiting"!==v.status}
 async function t3Load(id){
   let q=await sb.from("tournaments").select("*,pn_events(starts_at,ends_at,venue,city,country,location_type),leagues(id,name,owner_id,archived_at,is_public)").eq("id",id).maybeSingle();
   /* Without the embedded listing (an older database) the row alone still opens. */
@@ -6223,7 +6502,7 @@ async function t3Reload(){
   if(!r.row){cache.tourney=null;const e=$("tnp-body");return void(e&&t3Missing(e))}
   t3Paint(r.row);t3After(r.row);
 }
-async function t3After(t){try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
+async function t3After(t){duInbox();try{await t3DeckLoad(t)}catch(x){}try{swKick(t)}catch(x){}try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
 function t3Typing(){const a=document.activeElement,b=$("tnp-body");return!!(a&&b&&b.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
 function t3Repaint(){const t=cache.tourney;"tournaments"===route.view&&t&&route.tournamentId===t.id&&!t3Typing()&&t3Paint(t)}
 /* Every 30 s while the page is open and in front: a changed rev or status
@@ -6326,6 +6605,7 @@ function t3NextHtml(t){
   const x=t3Mine(t);if(!x||"drop"===x.st)return"";
   const n=tvNextFor(t.payload||{},me.id);if(!n)return swWaitHtml(t);
   const on=nameOf(n.opp);
+  if(swIsSwiss(t.payload))return t3NextSw(t,n,on);
   return`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>Your next game &middot; ${esc(n.stage)}${n.table?" &middot; Table "+(n.table|0):""}</small><b>vs ${esc(on)}</b></div>
     <div class="tv-next-act"><button class="act" onclick="go('tracker')">Start the match</button></div>
     <p class="t3-next-h">${t3IdOk(n.opp)?`Play it with the match tracker in ${esc(t3ModeLabel(t.mode))}: the result is recorded here by itself.`:`${esc(on)} has no Seekers League account linked, so the organizer enters this result.`}</p></div>`;
@@ -6345,13 +6625,140 @@ function t3Grouped(p,id){return(p.groups||[]).some(g=>(g||[]).includes(id))}
 function t3Row(t,x,ed){
   const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,uid=t3IdOk(x.id),dn=uid?(cache.profNames||{})[x.id]||"":"",dr="drop"===x.st,k=jsq(x.id),my=!!(me&&x.id===me.id),
     wt=!uid&&!!x.wait&&!x.lock&&!closed,
-    chip=dr?'<span class="t3-chip dr">Dropped</span>':"hand"===x.src?`<span class="t3-chip">${ed?"Added by you":"Added by the organizer"}</span>`:'<span class="t3-chip">Registered</span>';
+    chip=dr?'<span class="t3-chip dr">Dropped</span>':"hand"===x.src?`<span class="t3-chip">${ed?"Added by you":"Added by the organizer"}</span>`:'<span class="t3-chip">Registered</span>',
+    [dkc,dkl]=t3DkRow(t,x);
   let a="";
   if(ed){!closed&&(a+=dr?run&&(t3Drawn(p)||!t3Grouped(p,x.id)||swIsSwiss(p)&&(x.dr|0)<swCur(p))?"":`<button class="ghost t3-b" onclick="t3Ent('undrop',${k})">Bring back</button>`:`<button class="ghost t3-b" onclick="t3Ent('drop',${k})">Drop</button>`);
     wt&&(a+=`<button class="ghost t3-b" onclick="t3Ent('relink',${k})">Link the account</button>`);
     t3MoreOps(t,x).length&&(a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`)}
   else if(t3Forget(t)&&t3MoreOps(t,x).length)a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`;
-  return`<div class="t3-row${my?" me":""}${dr?" dr":""}"><div class="t3-who"><span class="t3-nm" title="${esc(x.name||"")}">${esc(x.name||"Player")}${my?" (you)":""}</span>${uid?`<span class="t3-ln">Seekers League: <a href="#/profile/${esc(x.id)}">${esc(dn||"Player")}</a></span>`:wt?'<span class="t3-ln none">A Seekers League account added this profile link after the start: the organizer links it</span>':'<span class="t3-ln none">No Seekers League account linked</span>'}</div>${chip}${a?`<span class="t3-ra">${a}</span>`:""}</div>`;
+  return`<div class="t3-row${my?" me":""}${dr?" dr":""}"><div class="t3-who"><span class="t3-nm" title="${esc(x.name||"")}">${esc(x.name||"Player")}${my?" (you)":""}</span>${uid?`<span class="t3-ln">Seekers League: <a href="#/profile/${esc(x.id)}">${esc(dn||"Player")}</a></span>`:wt?'<span class="t3-ln none">A Seekers League account added this profile link after the start: the organizer links it</span>':'<span class="t3-ln none">No Seekers League account linked</span>'}${dkl}</div>${chip}${dkc}${a?`<span class="t3-ra">${a}</span>`:""}</div>`;
+}
+/* ===== Deck registration (Swiss tournaments) =====
+   A player with a linked account registers one deck, like the official deck
+   list. It is locked at the start (or as soon as a late player saves it), and
+   every tracked game of the tournament uses it. Card lists never leave the
+   database. t_deck_get gives the player their own registration and, in its
+   list (org), who registered; it sends a Seeker and terrain only to the
+   organizer. At the close the database writes the Seeker and terrain into the
+   players of the payload, so everyone who can see the tournament sees them
+   then; reopening hides them again. The page shows what it is sent. */
+function t3DkOn(t){const p=t&&t.payload||{};return!!t&&null!=t.status&&3===p.v&&("draft"===t3St(t)||swIsSwiss(p))}
+function t3DkKey(t){return t.id+":"+(me&&me.id||"")}
+function t3Dk(t){const c=cache.t3Dk;return t&&c&&c.k===t3DkKey(t)?c.r:null}
+async function t3DeckLoad(t){
+  if(!me||!t3DkOn(t)||"closed"===t3St(t))return;
+  const x=t3Mine(t);let got=!1;
+  if(x&&"drop"!==x.st&&!Array.isArray(cache.myDecks)){cache.myDecks=await fetchMyDecks();got=!0}
+  let r=null;try{const q=await sb.rpc("t_deck_get",{p_tid:t.id});if(q.error||!q.data||!q.data.ok)return;r=q.data}catch(e){return}
+  const k=t3DkKey(t),c=cache.t3Dk,same=c&&c.k===k,due=got||!same||JSON.stringify(c.r)!==JSON.stringify(r)||c.due;
+  cache.t3Dk={k,r,due:!1};
+  if(!due||!cache.tourney||cache.tourney.id!==t.id||"tournaments"!==route.view)return;
+  t3Typing()?cache.t3Dk.due=!0:t3Repaint();
+}
+function t3DkSk(s){const n=normName(s),k=n&&seekerList().find(x=>normName(x.n)===n);return k?k.n:String(s||"").trim()}
+/* Why a deck cannot be registered ("" when it can). */
+function t3DkWhy(d){const L=d&&deckLegal(d);return L?L.ok?String(d.seeker||"").trim()?"":"no Seeker":L.why[0]||"not legal yet":"no cards"}
+function t3DkReady(){return(cache.myDecks||[]).filter(d=>!t3DkWhy(d))}
+function t3DkOpts(sel){return(cache.myDecks||[]).map(d=>{const w=t3DkWhy(d),nm=d.name||"Untitled deck";
+  return`<option value="${esc(d.id)}"${w?" disabled":sel===d.id?" selected":""}>${esc(w?`${nm} · not ready: ${w}`:`${nm} · ${t3DkSk(d.seeker)} · ${deckTerrains(d)[0]}`)}</option>`}).join("")}
+/* The deck picked by default: the saved one, else the only ready one. */
+function t3DkDef(m){const s=window._t3DkSel,t=cache.tourney,R=t3DkReady();
+  return s&&t&&s.tid===t.id?s.v:m&&m.deck_id&&R.some(d=>d.id===m.deck_id)?m.deck_id:1===R.length?R[0].id:""}
+function t3DkLine(m){return`${esc(m.name||"Untitled deck")} &middot; ${esc(t3DkSk(m.seeker))} &middot; ${esc(m.terrain||"")}`}
+/* The deck in My decks no longer matches the locked copy (the database says
+   so in mine.changed; older answers are checked here). */
+function t3DkMoved(m){if(m&&"boolean"==typeof m.changed)return m.changed;const D=cache.myDecks;if(!m||!Array.isArray(D))return!1;const d=D.find(x=>x.id===m.deck_id);if(!d)return!0;
+  return!!(m.locked_at&&d.updated_at&&Date.parse(d.updated_at)>Date.parse(m.locked_at))||(d.name||"")!==(m.name||"")||normName(d.seeker)!==normName(m.seeker)||!(d.cards&&d.cards[m.terrain]>0)}
+function t3DeckBlock(t){
+  if(!t3DkOn(t)||!me)return"";
+  const st=t3St(t),x=t3Mine(t),r=t3Dk(t);
+  if("closed"===st||!x||"drop"===x.st||!r)return"";
+  const m=r.mine||null,draft="draft"===st,ed=draft&&window._t3DkEd===t.id,D=cache.myDecks;
+  let b;
+  if(m&&!ed)b=draft?`<p class="t3-dk-v">Registered: <b>${t3DkLine(m)}</b></p><p class="hint t3-dk-h">It is locked when the tournament starts. You can change it until then.</p><div class="t3-acts"><button class="ghost" onclick="t3DeckEdit(1)">Change</button></div>`
+    :`<p class="t3-dk-v">Your deck (locked): <b>${t3DkLine(m)}</b></p>${t3DkMoved(m)?'<p class="hint t3-dk-h">Changes made in My decks after the start do not count here.</p>':""}`;
+  else if(!draft&&"ok"!==r.can)return"";
+  else if(!Array.isArray(D))b='<p class="hint t3-dk-h">Loading your decks…</p>';
+  else if(!t3DkReady().length)b=`<p class="t3-dk-v">You have no deck ready for a tournament (30 to 50 cards, one terrain, one legacy).</p><div class="t3-acts"><button class="act t3-dk-b" onclick="go('decks')">Open My decks</button></div>`;
+  else b=`<p class="hint t3-dk-h">${draft?"Register the deck you will play, like the official deck list. It is locked when the tournament starts, and every tracked game uses it.":"Choose your deck before your first game. It is locked as soon as you save it."}</p>
+    <label class="field t3-dk-f"><span>Deck</span><select id="t3-dk-sel" onchange="t3DeckPick(this.value)"><option value="">Pick your deck</option>${t3DkOpts(t3DkDef(m))}</select></label>
+    <div class="t3-acts"><button class="act t3-dk-b" id="t3-dk-save" onclick="t3DeckSave()">${draft?"Save deck":"Save and lock"}</button>${m?'<button class="ghost" onclick="t3DeckEdit(0)">Cancel</button>':""}</div>`;
+  return`<div class="panel plain t3-dk" id="t3-dk"><h2 style="margin:0 0 6px">${!draft&&m?"Your deck":"Your deck for this tournament"}</h2>${b}</div>`;
+}
+function t3DeckEdit(on){const t=cache.tourney;if(!t)return;window._t3DkEd=on?t.id:null;window._t3DkSel=null;t3Paint(t)}
+function t3DeckPick(v){const t=cache.tourney;t&&(window._t3DkSel={tid:t.id,v:String(v||"")})}
+const T3_DK={not_allowed:"Sign in first, then reload the page.",locked:"Your deck is locked for this tournament.",not_yours:"Pick one of your own decks.",no_seeker:"This deck has no Seeker.",no_terrain:"This deck has no terrain.",
+  not_entrant:"Link your malediction.gg profile in Account › Profile, then ask the organizer to add you.",dropped:"You have dropped from this tournament."};
+/* Saves the registration; returns the saved deck, or null (the reason is toasted). */
+async function t3DeckSet(tid,id){
+  const d=(cache.myDecks||[]).find(x=>x.id===id);
+  if(!d||t3DkWhy(d))return toast("Pick one of your decks that is ready for a tournament"),null;
+  const r=await t3Rpc("t_deck_set",{p_tid:tid,p_deck_id:id,p_terrain:deckTerrains(d)[0]},T3_DK);
+  if(!r)return null;
+  const c=cache.t3Dk,v=r.deck||{deck_id:id,name:d.name||"",seeker:d.seeker,terrain:deckTerrains(d)[0],locked:!1};
+  if(c&&c.r&&c.k===tid+":"+(me&&me.id||"")){c.r.mine=v;Array.isArray(c.r.org)&&c.r.org.forEach(e=>{e&&me&&e.id===me.id&&(e.registered=!0)})}
+  return v;
+}
+async function t3DeckSave(){
+  const t=cache.tourney;if(!t||!me)return;
+  const s=$("t3-dk-sel"),id=s&&s.value||"";
+  if(!id)return toast("Pick your deck first");
+  const b=$("t3-dk-save");b&&(b.disabled=!0);
+  const v=await t3DeckSet(t.id,id);
+  b&&b.isConnected&&(b.disabled=!1);
+  if(!v)return;
+  window._t3DkEd=null;window._t3DkSel=null;
+  toast(v.locked?"Your deck is saved and locked for this tournament":"Your deck is registered",!0);
+  cache.tourney&&cache.tourney.id===t.id&&"tournaments"===route.view&&t3Paint(cache.tourney);
+  t3DeckLoad(t);
+}
+/* Asked once, before a player's first tournament game when no deck is
+   registered yet. Resolves with the saved deck, or null; then(deck) runs after
+   a save. */
+async function t3DeckSheet(tid,then,okText){
+  if(!me||!tid)return null;
+  Array.isArray(cache.myDecks)||(cache.myDecks=await fetchMyDecks());
+  const old=$("t3-dks");old&&old.remove();
+  const R=t3DkReady(),one=1===R.length?R[0].id:"";
+  const v=await new Promise(res=>{
+    const m=document.createElement("div");m.id="t3-dks";m.className="tkov";
+    m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="t3-dks-h"><h3 id="t3-dks-h">Choose your deck for this tournament</h3>
+      <p class="tk-ask-t">It is locked once you save it.</p>
+      ${R.length?`<label class="field"><span>Deck</span><select id="t3-dks-sel"><option value="">Pick your deck</option>${t3DkOpts(one)}</select></label>`:'<p class="tk-ask-t">You have no deck ready for a tournament (30 to 50 cards, one terrain, one legacy).</p>'}
+      <p class="sw-err" id="t3-dks-e" role="alert"></p>
+      <div class="tk-ask-row"><button class="ghost" data-close>Not now</button>${R.length?`<button class="act" data-ok>${esc(okText||"Save deck")}</button>`:'<button class="act" data-decks>Open My decks</button>'}</div></div>`;
+    const fin=x=>{m.remove();res(x)};
+    m.onclick=e=>{e.target===m&&fin(null)};
+    m.querySelector("[data-close]").onclick=()=>fin(null);
+    const dk=m.querySelector("[data-decks]");dk&&(dk.onclick=()=>{fin(null);go("decks")});
+    const ok=m.querySelector("[data-ok]");
+    ok&&(ok.onclick=async()=>{const id=m.querySelector("#t3-dks-sel").value,e=m.querySelector("#t3-dks-e");
+      if(!id)return void(e.textContent="Pick your deck first.");
+      e.textContent="";ok.disabled=!0;const r=await t3DeckSet(tid,id);ok.disabled=!1;r&&fin(r)});
+    document.body.appendChild(m);
+  });
+  if(!v)return null;
+  toast("Your deck is saved and locked for this tournament",!0);
+  cache.tourney&&cache.tourney.id===tid&&t3Repaint();
+  then&&await then(v);
+  return v;
+}
+/* The organizer's count: players with a linked account who registered. */
+function t3DkCount(t){const r=t3Dk(t);if(!r||!Array.isArray(r.org))return null;const m={};r.org.forEach(x=>{x&&(m[x.id]=x)});
+  const k=t3Active(t.payload||{}).filter(t3IdOk);return{n:k.length,reg:k.filter(id=>m[id]&&m[id].registered).length}}
+function t3DkSetup(t){const c=t3DkCount(t);return c&&c.n?`<p class="hint t3-dk-n">Deck lists: ${c.reg} of ${c.n} player${1===c.n?"":"s"} with a linked account registered a deck.</p>`:""}
+function t3DkMiss(t){const c=t3DkCount(t),k=c?c.n-c.reg:0;return k>0?` ${k} player${1===k?" has":"s have"} not registered a deck yet. They choose it before their first game, and it is locked as soon as they do.`:""}
+/* A player row: the chip (draft and running, from t_deck_get's list) and the
+   Seeker and terrain: from the list for the organizer, from the payload once
+   the tournament is closed. */
+function t3DkRow(t,x){
+  if(!t3DkOn(t)||!t3IdOk(x.id))return["",""];
+  const ln=(s,tr)=>String(s||"").trim()?`<span class="t3-ln t3-dk-l">Deck: ${esc(t3DkSk(s))}${tr?" &middot; "+esc(tr):""}</span>`:"";
+  if("closed"===t3St(t))return["",ln(x.seeker,x.terrain)];
+  const r=t3Dk(t);if(!r||!Array.isArray(r.org))return["",""];
+  const e=r.org.find(y=>y&&y.id===x.id),g=!!(e&&e.registered);
+  return["drop"===x.st?"":g?'<span class="t3-chip dk">Deck registered</span>':'<span class="t3-chip dk no">No deck yet</span>',g?ln(e.seeker,e.terrain):""];
 }
 function t3Players(t,ed){
   const p=t.payload||{},E=(p.entrants||[]).filter(Boolean),st=t3St(t),draft="draft"===st,closed="closed"===st,
@@ -6384,7 +6791,7 @@ function swSetupHtml(t){
     pnr=Number.isInteger(pr)&&pr>=1&&pr<=100&&ok&&pr!==swRoundsFor(n),min=Number((p.pn||{}).minutes)|0||60;
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
     <p class="hint" style="margin:0 0 10px">On the day of the event, check the players below and drop anyone who did not come, then start. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. Standings: tournament points, then mastery differential (Malediction Tournament Guide).</p>
-    <div class="tm-label">Game mode</div>
+    ${t3DkSetup(t)}<div class="tm-label">Game mode</div>
     <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${[["clash","Clash · 40"],["demo","Demo · 25"]].map(([k,l])=>`<button type="button" class="seg-b${mode===k?" on":""}" role="radio" aria-checked="${mode===k}" onclick="t3SetMode(${jsq(k)})">${l}</button>`).join("")}</div>
     ${ok?`<label class="tv-tables"><span>Rounds</span><input type="number" inputmode="numeric" min="1" max="${swMaxRounds(n)}" value="${r}" aria-label="Rounds" onchange="swSetRounds(this.value)"><small>${pnr?`The Play Network event lists ${pr} round${1===pr?"":"s"}. `:""}${esc(swGuide(n))}</small></label>`:""}
     <div class="tv-plan">${ok?swPlan(n,r,min):`At least ${TV_MIN} players are needed to start.`}</div>
@@ -6455,14 +6862,74 @@ async function swPlanAsk(){
 }
 /* For the organizer: once per round, a toast when the last result of the round
    came in (a tracked match, another device) and the next round can be paired. */
-function swNote(t){const p=t.payload||{},cur=swCur(p),k=t.id+":"+cur;if(!swRoundDone(p)||cur>=(p.rounds|0)||swNote.k===k)return;swNote.k=k;toast(`Round ${cur} is complete. Pair round ${cur+1}.`,!0)}
+/* For the organizer, once per round: automatic pairing is paused (they undid
+   this round's pairings) and the round is complete again. */
+function swNote(t){const p=t.payload||{},cur=swCur(p),k=t.id+":"+cur;if(!swRoundDone(p)||cur>=(p.rounds|0)||(p.hold||{}).pair!==cur+1||swNote.k===k)return;swNote.k=k;toast(`Round ${cur} is complete. Automatic pairing is paused: pair round ${cur+1} when you are ready.`,!0)}
+/* ===== Automatic pairing and close (Swiss) =====
+   When the last result of a round is in, the Edge Function tournament-auto
+   pairs the next round with this same engine, reading the database's own
+   copy of the tournament; after the last round it closes the tournament.
+   A page only asks it to check a tournament: the organizer's page and every
+   player's (the tournament page on each load and poll, home, the end of a
+   tracked match, the round ping). One ask per tournament and rev, asked
+   again after 60 s only when nothing answered. Undoing a round's pairings
+   pauses it (payload.hold.pair); reopening stops the automatic close
+   (payload.hold.close). Signed-out visitors never ask. If the function is
+   not deployed, the asks fail quietly and the buttons still work. */
+function swKickOk(t){const p=t&&t.payload;if(!me||!sb||!sb.functions||!t||!t.id||"running"!==t.status||!swIsSwiss(p)||t3Archived(t))return!1;if(t3IsOrg(t))return!0;const x=t3Mine(t);return!!x&&"drop"!==x.st}
+function swKick(t){
+  if(!swKickOk(t)||!swAutoDue(t.payload))return;
+  const K=window._swK||(window._swK={}),k=K[t.id],rev=t.rev|0;
+  if(k&&(k.busy||k.rev===rev&&(k.ok||Date.now()-k.at<6e4)))return;
+  swInvoke(t.id,rev);
+}
+/* The end of a tracked tournament match, on both phones: the page may not
+   hold the tournament, so it asks without checking first; once per match. */
+function swKickId(tid,id){
+  if(!me||!sb||!sb.functions||!tid||!id)return;
+  const c=cache.t3Mine,r=c&&c.uid===me.id&&(c.rows||[]).find(x=>x&&x.id===tid);if(r&&!swIsSwiss(r.payload))return;
+  const D=window._swKD||(window._swKD={});if(D[id])return;D[id]=1;
+  swInvoke(tid,null);
+}
+async function swInvoke(tid,rev){
+  const K=window._swK||(window._swK={}),k=K[tid]={rev,at:Date.now(),ok:0,busy:1},u=me&&me.id;
+  let d=null,er=null;
+  try{({data:d,error:er}=await sb.functions.invoke("tournament-auto",{body:{tid}}))}catch(x){er=x}
+  /* Any answer (a refusal, an error status) is not asked again for this rev; a failed connection is, after 60 s. */
+  k.busy=0;k.ok=d&&"object"==typeof d||er&&er.context&&er.context.status?1:0;
+  if(!me||me.id!==u||!d||!d.ok||"paired"!==d.did&&"closed"!==d.did)return;
+  await swDid(tid,d);
+}
+/* Said once per tournament and rev: the round ping may say it first. */
+function swSay(tid,rev,m){const S=window._swSaid||(window._swSaid={}),x=tid+":"+rev;if(S[x])return!1;S[x]=1;toast(m,!0);return!0}
+function swNmIn(tid,k,R){if(cache.tourney&&cache.tourney.id===tid)return nameOf(k);
+  for(const t of(R||[]).concat(cache.t3Mine&&cache.t3Mine.rows||[],cache.homeTourneys||[])){const e=t&&t.id===tid&&t3Ent0(t,k);if(e)return t3IdOk(k)&&(cache.profNames||{})[k]||e.name||"Player"}
+  return nameOf(k)}
+/* The function paired or closed: reload what shows the tournament and say it. */
+async function swDid(tid,d){
+  /* The champion's name from the fresh list; said before duInbT, which then has nothing new to say about the close. */
+  if("closed"===d.did){let R=[];cache.t3Mine=null;try{R=await t3MineGet()}catch(x){}if(!me)return;
+    swSay(tid,d.rev|0,d.champion?`The tournament is closed. Champion: ${swNmIn(tid,d.champion,R)}`:"The tournament is closed. First place is shared.")}
+  try{await duInbT(tid)}catch(x){}
+  "paired"===d.did&&swSay(tid,d.rev|0,`Round ${d.round|0} is paired.`);
+}
+/* What comes next, for everyone but the organizer (who has swActsHtml). */
+function swRunHint(p){
+  const cur=swCur(p),R=p.rounds|0,h=p.hold||{},hp=h.pair===cur+1;if(!cur)return"";
+  const s=swRoundDone(p)?cur<R?hp?`Round ${cur} is complete. The organizer pairs round ${cur+1}.`:`Round ${cur} is complete. Round ${cur+1} is paired automatically in a moment.`
+      :h.close?"All rounds are played. The organizer closes the tournament.":"All rounds are played. The tournament closes automatically in a moment."
+    :(p.auto&&p.auto.r===cur?`Round ${cur} was paired automatically. `:"")+(cur<R?hp?`The organizer pairs round ${cur+1} when every result is in.`:`Round ${cur+1} starts automatically when every result is in.`
+      :h.close?"The organizer closes the tournament after the last result.":"The tournament closes automatically after the last result.");
+  return`<p class="hint sw-wait">${esc(s)}</p>`;
+}
 function swActsHtml(t){
   const p=t.payload||{},cur=swCur(p),R=p.rounds|0,done=swRoundDone(p),D=t3DropSet(p),G=(p.gm||[]).filter(m=>m.r===cur),
-    open=G.filter(m=>null==m.w&&!(D.has(m.a)&&null!=m.b&&D.has(m.b))).length,o=[];
+    open=G.filter(m=>null==m.w&&!(D.has(m.a)&&null!=m.b&&D.has(m.b))).length,h=p.hold||{},hp=h.pair===cur+1,o=[];
   let msg;
-  if(done&&cur<R){msg=`Round ${cur} is complete.`;o.push(`<button class="act gold" onclick="swPairNext()">Pair round ${cur+1}</button>`)}
-  else if(done)msg=`All ${R} rounds are played. Close the tournament to name the champion.`;
-  else msg=`Round ${cur} of ${R}: ${open} game${1===open?"":"s"} without a result. ${cur<R?`Round ${cur+1} is paired when every result is in.`:"When every result is in, close the tournament."}`;
+  /* "Pair round N" stays whenever a round is complete: the fallback if the automatic pairing does not answer. */
+  if(done&&cur<R){msg=hp?`Automatic pairing is paused for round ${cur+1}. Pair it when you are ready.`:`Round ${cur} is complete. Round ${cur+1} is paired automatically in a moment, or you can pair it now.`;o.push(`<button class="act gold" onclick="swPairNext()">Pair round ${cur+1}</button>`)}
+  else if(done)msg=h.close?`All ${R} rounds are played. You reopened the tournament, so it does not close by itself: close it when you are done.`:`All ${R} rounds are played. The tournament closes automatically in a moment, or you can close it now.`;
+  else msg=`${p.auto&&p.auto.r===cur?`Round ${cur} was paired automatically. `:""}Round ${cur} of ${R}: ${open} game${1===open?"":"s"} without a result. ${cur<R?hp?`Automatic pairing is paused for round ${cur+1}: pair it when every result is in.`:`Round ${cur+1} is paired automatically when every result is in.`:h.close?"When every result is in, close the tournament.":"The tournament closes automatically after the last result."}`;
   cur>=2&&!G.some(m=>"org"===m.src||"duel"===m.src)&&o.push(`<button class="ghost" onclick="swUnpair()">Undo round ${cur} pairings</button>`);
   o.push('<button class="ghost" onclick="swPlanAsk()">Change the number of rounds</button>');
   return`<div class="sw-acts" role="status"><p>${msg}</p><div class="t3-acts">${o.join("")}</div></div>`;
@@ -6516,10 +6983,10 @@ function swChampHtml(p,rows){
 function swBody(t,ed){
   const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,act=ed&&run,cur=swCur(p),R=p.rounds|0,
     rows=closed&&Array.isArray(p.standings)&&p.standings.length?p.standings:swTable(p);
-  let h=run?t3NextHtml(t):"";
-  closed&&(h+=`<div class="panel plain"><h2>Final standings</h2>${swChampHtml(p,rows)}${swStandingsHtml(p,rows,!0)}${ed?'<div class="t-fin"><span class="t-fin-tag">&#10003; Finished</span><button class="ghost" onclick="t3Reopen()">Reopen</button></div>':""}</div>`);
+  let h=run?t3DeckBlock(t)+t3NextHtml(t):"";
+  closed&&(h+=`<div class="panel plain"><h2>Final standings</h2>${swChampHtml(p,rows)}${swStandingsHtml(p,rows,!0)}${p.ac?'<p class="hint sw-ac">Closed automatically after the last result.</p>':""}${ed?'<div class="t-fin"><span class="t-fin-tag">&#10003; Finished</span><button class="ghost" onclick="t3Reopen()">Reopen</button></div>':""}</div>`);
   h+=`<div class="panel plain"><div class="tv-vh"><h2 style="margin:0">Rounds</h2><span class="sw-fmt">Swiss &middot; ${R} round${1===R?"":"s"}</span></div>
-    ${act?swActsHtml(t):run&&swRoundDone(p)&&cur<R?`<p class="hint sw-wait">Round ${cur} is complete. The organizer pairs round ${cur+1}.</p>`:""}
+    ${act?swActsHtml(t):run?swRunHint(p):""}
     ${swRoundHtml(t,act)}
     ${act?`<div class="t-fin"><button class="act" onclick="t3Close()">Close the tournament</button>${t3HasResults(p)?"":'<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>'}</div>`:""}
   </div>`;
@@ -6531,8 +6998,9 @@ function swBody(t,ed){
 function swWaitHtml(t){
   const p=t.payload||{};if(!swIsSwiss(p)||!me||p.finalized)return"";
   const cur=swCur(p),R=p.rounds|0;if(!cur)return"";
-  const done=swRoundDone(p),by=(p.gm||[]).some(m=>m.r===cur&&"bye"===m.src&&m.a===me.id),nx=cur<R?` Round ${cur+1} is paired when every game of round ${cur} has a result.`:"",
-    [b,s]=done?cur<R?[`Round ${cur} is complete`,`Waiting for the organizer to pair round ${cur+1}.`]:["All rounds are played","The organizer closes the tournament and names the champion."]
+  const done=swRoundDone(p),h=p.hold||{},hp=h.pair===cur+1,by=(p.gm||[]).some(m=>m.r===cur&&"bye"===m.src&&m.a===me.id),
+    nx=cur<R?hp?` The organizer pairs round ${cur+1} when every game of round ${cur} has a result.`:` Round ${cur+1} starts automatically when every game of round ${cur} has a result.`:h.close?"":" The tournament closes automatically after the last result.",
+    [b,s]=done?cur<R?[`Round ${cur} is complete`,hp?`Waiting for the organizer to pair round ${cur+1}.`:`Round ${cur+1} is paired automatically in a moment.`]:["All rounds are played",h.close?"The organizer closes the tournament and names the champion.":"The tournament closes automatically in a moment, with the final standings."]
       :by?["You have a bye",`You have a bye in round ${cur}: 3 points and 20 mastery differential.${nx}`]:["Your result is in",`Waiting for the other games of round ${cur}.${nx}`];
   return`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>Round ${cur} of ${R}</small><b>${esc(b)}</b></div><p class="t3-next-h">${esc(s)}</p></div>`;
 }
@@ -6591,7 +7059,7 @@ function t3Paint(t){
   </div>`;
   if(draft){
     h+=ed?swSetupHtml(t):`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
-    h+=t3Players(t,ed);
+    h+=t3DeckBlock(t)+t3Players(t,ed);
   }else if(swIsSwiss(p))h+=swBody(t,ed);
   else{
     const wait=run&&tvGroupsDone(p)&&!t3Drawn(p),act=ed&&run;
@@ -6614,7 +7082,7 @@ async function t3Start(){
   const keys=t3Active(t.payload||{}),n=keys.length;
   if(n<TV_MIN)return toast(`At least ${TV_MIN} players are needed to start`);
   const mode=t3ModeSel(t),rounds=swRoundsSel(t,n),seed=crypto.getRandomValues(new Uint32Array(1))[0],s=swPairRound1(keys,seed);
-  if(!await swAsk({title:"Start the tournament?",lead:`Round 1 is paired at random from the ${n} players in the list, for ${rounds} round${1===rounds?"":"s"} in all. Players without a Seekers League account stay in; you enter their results.`,s,ok:"Start"}))return;
+  if(!await swAsk({title:"Start the tournament?",lead:`Round 1 is paired at random from the ${n} players in the list, for ${rounds} round${1===rounds?"":"s"} in all. Players without a Seekers League account stay in; you enter their results.${t3DkMiss(t)}`,s,ok:"Start"}))return;
   const d=await t3Rpc("t_start",{p_tid:t.id,p_rev:t.rev|0,p_mode:mode,p_engine:{fmt:"swiss",rounds,seed,pairs:s.pairs}});
   if(!d)return;
   window._swRnd=null;toast(swPaired(s),!0);
@@ -6684,11 +7152,11 @@ async function t3Close(){
   const t=cache.tourney;if(!t||!t3Ed(t))return;
   if(swIsSwiss(t.payload)){
     /* The champion tops the standings; the standings are frozen at the close. */
-    const p=t.payload,rows=swTable(p),c=swChampion(rows),cur=swCur(p),R=p.rounds|0,
+    const p=t.payload,rows=swCloseRows(p),c=swChampion(rows),cur=swCur(p),R=p.rounds|0,
       early=swRoundDone(p)?cur<R?`Only ${cur} of ${R} rounds are played. `:"":`Round ${cur} of ${R} is not finished. `,
       who=c?`${nameOf(c)} tops the standings and is named champion.`:rows.some(r=>!r.drop)?"First place is shared, so no champion is named.":"No champion is named.";
     if(!await slConfirm(early?{title:"Close the tournament?",body:`${early}Close anyway? The standings count the results entered so far. ${who}`,ok:"Close anyway",danger:!0}:{title:"Close the tournament?",body:`${who} Results are locked; you can reopen it later.`,ok:"Close"}))return;
-    const d=await t3Rpc("t_close",{p_tid:t.id,p_rev:t.rev|0,p_standings:rows.map(r=>({id:r.id,rk:r.rk,tp:r.tp,w:r.w,d:r.d,l:r.l,md:r.md,sos:r.sos,drop:r.drop}))});
+    const d=await t3Rpc("t_close",{p_tid:t.id,p_rev:t.rev|0,p_standings:rows});
     return void(d&&(toast("Tournament closed",!0),await t3Reload()));
   }
   const w=tvBracketChamp(t.payload||{});
@@ -6698,7 +7166,7 @@ async function t3Close(){
 }
 async function t3Reopen(){
   const t=cache.tourney;if(!t||!t3Ed(t))return;
-  if(!await slConfirm({title:"Reopen this tournament?",body:"Results can be changed again until you close it.",ok:"Reopen"}))return;
+  if(!await slConfirm({title:"Reopen this tournament?",body:swIsSwiss(t.payload)?(c=>c<(t.payload.rounds|0)?`Results can be changed again. Round ${c+1} is not paired automatically, and the tournament does not close by itself again: pair the round, then close it when you are done.`:"Results can be changed again. It will not close by itself again; close it when you are done.")(swCur(t.payload)):"Results can be changed again until you close it.",ok:"Reopen"}))return;
   const d=await t3Rpc("t_reopen",{p_tid:t.id,p_rev:t.rev|0});
   d&&(toast("Tournament reopened",!0),await t3Reload());
 }

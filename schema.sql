@@ -9264,3 +9264,1574 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.player_matches(uuid) from public;
 grant execute on function public.player_matches(uuid) to anon, authenticated;
+
+-- ============================================================
+--  TOURNAMENT AUTOMATION (2026-11-15)
+-- ============================================================
+-- Run as migration-2026-11-15-tournament-auto.sql.
+-- What changes:
+--   * Deck once. A player with a linked account registers one of their
+--     decks for a Swiss tournament (t_deck_set, read back with t_deck_get),
+--     like the official deck list. The copy is kept in the new table
+--     tournament_decks, which nobody reads directly: card lists never
+--     leave the server. Before the start the player can change it; at the
+--     start it is refreshed from the deck and locked; a player who
+--     registers after the start is locked at once. While the tournament is
+--     in registration or running, the Seeker and terrain are shown only to
+--     its organizer (and to the player). When it closes they are written
+--     into the players of the payload, so everyone who can see the
+--     tournament sees them; reopening hides them again.
+--   * Tournament games without a PIN. t_duel_start makes an invitation
+--     (duels.t_invite, no PIN, 30 minutes, refreshed while the host's page
+--     is open) for the caller's game of the current round, with the
+--     registered deck; the opponent accepts it with t_duel_accept. If both
+--     start at once, the second one joins the first. t_inbox lists the
+--     caller's invitations (the polling fallback). The private Realtime
+--     topic user:<account id> carries 'invite', 'invite_end' and
+--     'tournament' (a round paired, a status change) to that account only.
+--   * Automatic pairing and close. The edge function tournament-auto runs
+--     the page's own Swiss engine and calls t_auto_pair or t_auto_close
+--     (service role only), after t_auto_allow (as the caller: the
+--     organizer or a player). Both lock the row and check rev, so each
+--     round is paired once. Undoing a round's pairings pauses automatic
+--     pairing for that round (payload.hold.pair) until the organizer pairs
+--     it; reopening stops the automatic close (payload.hold.close)
+--     and pauses the pairing of the next round (hold.pair), so the
+--     organizer decides what happens after a reopen. t_auto_allow has
+--     hourly brakes (t_auto_log), like t_fetch_allow.
+--     payload.auto {r} marks a round paired automatically and payload.ac a
+--     tournament closed automatically.
+--   * Changed: t_close's Swiss part moves to t_sw_close_apply (the same
+--     checks and answers); t_game_for leaves Swiss tournaments out, so a
+--     PIN match is a casual one there; t_unpair and t_unstart leave
+--     invitations tagged (the trigger cancels them); t_rekey clears the
+--     moved player's seeker, terrain, deck and deckId; t_live_duels also
+--     lists invitations; erase_user_data deletes the registrations;
+--     meta_duels and player_matches leave out the matches of a Swiss
+--     tournament still in registration or running (its Seekers and
+--     terrains are the organizer's until the close).
+--     Earlier groups-and-finals tournaments are not touched by any of it.
+
+-- 1. duels: tournament invitations -------------------------------------------
+-- An invitation is a waiting match with no PIN, made by t_duel_start for a
+-- Swiss game: t_invite is true, guest_id is the opponent (who may read the
+-- row, as any guest), tournament_id and t_ref are set, and pin_expires_at
+-- is 30 minutes ahead, so duel_sweep expires it like a PIN. Only the guest
+-- can accept it (t_duel_accept); either player can cancel it (duel_cancel).
+-- duel_open and duel_join cancel the caller's own waiting matches, so an
+-- invitation the caller made is withdrawn when they start or join another
+-- match. tournament_id is not required: it is set null when the tournament
+-- is deleted, and t_duel_accept then answers 'gone'. There is no unique
+-- index on (tournament_id, t_ref): the tournament row lock is what keeps
+-- one open match per game.
+alter table public.duels add column if not exists t_invite boolean not null default false;
+alter table public.duels drop constraint if exists duels_pin_only_waiting;
+alter table public.duels add constraint duels_pin_only_waiting
+  check ((pin is not null) = (status = 'waiting' and not t_invite));
+alter table public.duels drop constraint if exists duels_invite_guest;
+alter table public.duels add constraint duels_invite_guest
+  check (not t_invite or guest_id is not null);
+
+-- 2. tournament_decks: the deck each player registered ------------------------
+-- One row per player (an account) and tournament: a copy of the deck as it
+-- was registered (refreshed at the start), locked from the start
+-- (locked_at). deck_id goes null when the deck is deleted; the copy stays.
+-- RLS on and no policies: it is read and written only by the functions
+-- below, so card lists never reach a page. erase_user_data deletes a
+-- player's rows.
+create table if not exists public.tournament_decks (
+  tournament_id uuid not null references public.tournaments(id) on delete cascade,
+  user_id       uuid not null references public.profiles(id) on delete cascade,
+  deck_id       uuid references public.decks(id) on delete set null,
+  name          text not null default '',
+  seeker        text not null,
+  terrain       text not null,
+  cards         jsonb not null,
+  side          jsonb,
+  registered_at timestamptz not null default now(),
+  locked_at     timestamptz,
+  primary key (tournament_id, user_id)
+);
+create index if not exists idx_tournament_decks_user on public.tournament_decks(user_id);
+create index if not exists idx_tournament_decks_deck on public.tournament_decks(deck_id);
+alter table public.tournament_decks enable row level security;
+revoke all on public.tournament_decks from anon, authenticated;
+
+-- t_auto_log: the asks t_auto_allow let through, for its hourly brakes.
+-- Only an account id and a time, kept two days (t_auto_allow purges it,
+-- erase_user_data deletes an account's rows). Nobody reads it directly.
+create table if not exists public.t_auto_log (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_t_auto_log_user on public.t_auto_log(user_id, created_at);
+create index if not exists idx_t_auto_log_at on public.t_auto_log(created_at);
+alter table public.t_auto_log enable row level security;
+revoke all on public.t_auto_log from anon, authenticated;
+
+-- 3. Helpers (not callable over the API) ---------------------------------------
+-- The caller's game in the current round of a Swiss payload, for
+-- t_duel_start: i (its index in gm) and opp (the opponent's key), or why:
+-- 'not_entrant', 'dropped', 'no_game' (no undecided game with an opponent
+-- in this round, or the opponent dropped) or 'opp_no_account' (i and opp
+-- are then set).
+create or replace function public.t_my_game(p jsonb, p_me text, out i int, out opp text, out why text)
+language plpgsql immutable security definer set search_path = public as $$
+declare
+  v_e   jsonb;
+  v_cur int := t_sw_cur(p);
+begin
+  select q.x into v_e
+    from jsonb_array_elements(case when jsonb_typeof(p->'entrants') = 'array' then p->'entrants' else '[]'::jsonb end) q(x)
+   where q.x->>'id' = p_me
+   limit 1;
+  if v_e is null then
+    why := 'not_entrant';
+    return;
+  end if;
+  if v_e->>'st' = 'drop' then
+    why := 'dropped';
+    return;
+  end if;
+  select q.o - 1, case when q.x->>'a' = p_me then q.x->>'b' else q.x->>'a' end
+    into i, opp
+    from jsonb_array_elements(case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end) with ordinality q(x, o)
+   where jsonb_typeof(q.x) = 'object'
+     and q.x->>'r' = v_cur::text and q.x->>'w' is null and q.x->>'b' is not null
+     and p_me in (q.x->>'a', q.x->>'b')
+   order by q.o
+   limit 1;
+  if i is null then
+    why := 'no_game';
+    return;
+  end if;
+  if exists (select 1 from jsonb_array_elements(p->'entrants') q(x)
+              where q.x->>'id' = opp and q.x->>'st' = 'drop') then
+    i := null;
+    opp := null;
+    why := 'no_game';
+    return;
+  end if;
+  if not t_acct(opp) then
+    why := 'opp_no_account';
+  end if;
+end $$;
+
+-- An invitation still matches an open game: p is a Swiss payload, p_ref is
+-- 'g:<i>', that game is in the current round with no result and is between
+-- the two accounts (either way round), and neither of them dropped.
+create or replace function public.t_invite_ok(p jsonb, p_ref text, p_host uuid, p_guest uuid)
+returns boolean language plpgsql immutable security definer set search_path = public as $$
+declare
+  v_m jsonb;
+  v_h text := p_host::text;
+  v_g text := p_guest::text;
+begin
+  if p is null or p->>'fmt' is distinct from 'swiss' or p_ref is null or p_ref !~ '^g:[0-9]{1,4}$'
+     or v_h is null or v_g is null or jsonb_typeof(p->'gm') is distinct from 'array' then
+    return false;
+  end if;
+  v_m := p->'gm'->(substr(p_ref, 3)::int);
+  if v_m is null or jsonb_typeof(v_m) <> 'object' or v_m->>'w' is not null or v_m->>'b' is null then
+    return false;
+  end if;
+  if v_m->>'r' is distinct from t_sw_cur(p)::text then
+    return false;
+  end if;
+  if not coalesce((v_m->>'a' = v_h and v_m->>'b' = v_g) or (v_m->>'a' = v_g and v_m->>'b' = v_h), false) then
+    return false;
+  end if;
+  if exists (select 1 from jsonb_array_elements(coalesce(p->'entrants', '[]'::jsonb)) y(e)
+              where y.e->>'id' in (v_h, v_g) and y.e->>'st' = 'drop') then
+    return false;
+  end if;
+  return true;
+end $$;
+
+-- The players of a payload with their seeker and terrain emptied: they
+-- stay hidden while the tournament is in registration or running.
+create or replace function public.t_deck_hide(p jsonb)
+returns jsonb language sql immutable security definer set search_path = public as $$
+  select case when jsonb_typeof(p->'entrants') is distinct from 'array' then p else
+    p || jsonb_build_object('entrants', coalesce((
+           select jsonb_agg(case when jsonb_typeof(q.x) = 'object'
+                                 then q.x || '{"seeker":"","terrain":""}'::jsonb else q.x end
+                            order by q.o)
+             from jsonb_array_elements(p->'entrants') with ordinality q(x, o)), '[]'::jsonb))
+  end;
+$$;
+
+-- The players of a payload with the Seeker and terrain of their registered
+-- deck (empty when they registered none), written at close. Never the
+-- deck's name or cards.
+create or replace function public.t_deck_pub(p jsonb, p_tid uuid)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when jsonb_typeof(p->'entrants') is distinct from 'array' then p else
+    p || jsonb_build_object('entrants', coalesce((
+           select jsonb_agg(case when jsonb_typeof(q.x) = 'object'
+                                 then q.x || jsonb_build_object('seeker', coalesce(k.seeker, ''),
+                                                                'terrain', coalesce(k.terrain, ''))
+                                 else q.x end
+                            order by q.o)
+             from jsonb_array_elements(p->'entrants') with ordinality q(x, o)
+             left join tournament_decks k
+               on k.tournament_id = p_tid and k.user_id::text = q.x->>'id'), '[]'::jsonb))
+  end;
+$$;
+
+-- 4. Players: the registered deck ----------------------------------------------
+-- Refusals answer {ok:false, reason, message} as the other t_* functions.
+
+-- t_deck_set: the caller registers one of their decks for this tournament.
+-- The caller must be signed in (not anonymous) and be a player of it with
+-- their account (entrant id = account id), not dropped. Before the start
+-- (draft) p_deck_id null removes the registration, and another deck
+-- replaces it. Once a Swiss tournament is running, a player with no
+-- registration can register once and it is locked at once; a registered
+-- one is refused ('locked'). The Seeker comes from the deck; p_terrain must
+-- be one of the deck's cards (with at least one copy): the page sends the
+-- deck's terrain, and checks the deck is legal (the server has no card
+-- list). Never touches the payload, rev or duels.
+-- Answers {ok:true, deck:{deck_id, name, seeker, terrain, locked}} (deck
+-- null when removed).
+create or replace function public.t_deck_set(p_tid uuid, p_deck_id uuid, p_terrain text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_t   tournaments%rowtype;
+  v_e   jsonb;
+  v_k   decks%rowtype;
+  v_has boolean;
+  v_ter text := btrim(coalesce(p_terrain, ''));
+  v_row tournament_decks%rowtype;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+     or not exists (select 1 from profiles pr where pr.id = v_uid and pr.deleted_at is null) then
+    return t_no('not_allowed', 'Sign in first.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if not (v_t.status = 'draft' or (v_t.status = 'running' and v_t.payload->>'fmt' = 'swiss')) then
+    return t_no('status', 'Decks are registered before the start, or during a Swiss tournament before your first game.');
+  end if;
+  select q.x into v_e
+    from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+   where q.x->>'id' = v_uid::text
+   limit 1;
+  if v_e is null then
+    return t_no('not_entrant', 'Link your malediction.gg profile in Account › Profile, then ask the organizer to add you.');
+  end if;
+  if v_e->>'st' = 'drop' then
+    return t_no('dropped', 'You have dropped from this tournament.');
+  end if;
+  perform 1 from tournament_decks k where k.tournament_id = p_tid and k.user_id = v_uid;
+  v_has := found;
+  if v_t.status = 'running' and v_has then
+    return t_no('locked', 'Your deck is locked for this tournament.');
+  end if;
+  if v_t.status = 'draft' and p_deck_id is null then
+    delete from tournament_decks where tournament_id = p_tid and user_id = v_uid;
+    return jsonb_build_object('ok', true, 'deck', null);
+  end if;
+  select * into v_k from decks k where k.id = p_deck_id and k.user_id = v_uid;
+  if not found then
+    return t_no('not_yours', 'Pick one of your own decks.');
+  end if;
+  if duel_clean(v_k.seeker) is null then
+    return t_no('no_seeker', 'This deck has no Seeker.');
+  end if;
+  if duel_clean(v_ter) is null or jsonb_typeof(v_k.cards) is distinct from 'object'
+     or coalesce(v_k.cards->>v_ter, '') !~ '^[1-9][0-9]{0,3}$' then
+    return t_no('no_terrain', 'This deck has no terrain.');
+  end if;
+  insert into tournament_decks (tournament_id, user_id, deck_id, name, seeker, terrain, cards, side,
+                                registered_at, locked_at)
+  values (p_tid, v_uid, v_k.id, coalesce(v_k.name, ''), duel_clean(v_k.seeker), duel_clean(v_ter), v_k.cards, v_k.side,
+          now(), case when v_t.status = 'running' then now() end)
+  on conflict (tournament_id, user_id) do update
+     set deck_id = excluded.deck_id, name = excluded.name, seeker = excluded.seeker,
+         terrain = excluded.terrain, cards = excluded.cards, side = excluded.side,
+         registered_at = excluded.registered_at, locked_at = excluded.locked_at
+  returning * into v_row;
+  return jsonb_build_object('ok', true, 'deck', jsonb_build_object(
+           'deck_id', v_row.deck_id, 'name', v_row.name, 'seeker', v_row.seeker,
+           'terrain', v_row.terrain, 'locked', v_row.locked_at is not null));
+end $$;
+
+-- t_deck_get: what the tournament page shows about registered decks.
+-- {ok:true, status, mine, can, org}:
+--   mine  the caller's registration {deck_id, name, seeker, terrain, locked,
+--         changed (the deck in My decks no longer matches the copy, or was
+--         deleted)}, or null;
+--   can   'ok' (t_deck_set would accept a deck now), 'not_entrant',
+--         'dropped', 'locked' or 'status';
+--   org   for the organizer only: one {id, registered, seeker, terrain} per
+--         player, in list order (seeker and terrain null when not
+--         registered); null for everyone else. Never a card list.
+-- Refused ('not_allowed') when the caller cannot see the tournament.
+-- Read-only, no locks.
+create or replace function public.t_deck_get(p_tid uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_e    jsonb;
+  v_org  boolean;
+  v_row  tournament_decks%rowtype;
+  v_has  boolean := false;
+  v_can  text;
+  v_mine jsonb;
+  v_list jsonb;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  v_org := coalesce(t_is_org(v_t), false);
+  if v_uid is not null then
+    select q.x into v_e
+      from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+     where q.x->>'id' = v_uid::text
+     limit 1;
+  end if;
+  if not v_org and v_e is null
+     and not coalesce(is_league_member(v_t.league_id) or league_is_public(v_t.league_id), false) then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if v_e is not null then
+    select * into v_row from tournament_decks k where k.tournament_id = p_tid and k.user_id = v_uid;
+    v_has := found;
+  end if;
+  v_can := case when not (v_t.status = 'draft' or (v_t.status = 'running' and v_t.payload->>'fmt' = 'swiss')) then 'status'
+                when v_e is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then 'not_entrant'
+                when v_e->>'st' = 'drop' then 'dropped'
+                when v_t.status = 'running' and v_has then 'locked'
+                else 'ok' end;
+  if v_has then
+    v_mine := jsonb_build_object(
+      'deck_id', v_row.deck_id, 'name', v_row.name, 'seeker', v_row.seeker, 'terrain', v_row.terrain,
+      'locked', v_row.locked_at is not null,
+      'changed', v_row.deck_id is null
+                 or exists (select 1 from decks k
+                             where k.id = v_row.deck_id
+                               and (k.cards is distinct from v_row.cards or k.side is distinct from v_row.side
+                                    or duel_clean(k.seeker) is distinct from v_row.seeker)));
+  end if;
+  if v_org then
+    select coalesce(jsonb_agg(jsonb_build_object('id', q.x->>'id', 'registered', k.user_id is not null,
+                                                 'seeker', k.seeker, 'terrain', k.terrain) order by q.o), '[]'::jsonb)
+      into v_list
+      from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) with ordinality q(x, o)
+      left join tournament_decks k on k.tournament_id = p_tid and k.user_id::text = q.x->>'id';
+  end if;
+  return jsonb_build_object('ok', true, 'status', v_t.status, 'mine', v_mine, 'can', v_can, 'org', v_list);
+end $$;
+
+-- 5. Players: tournament games without a PIN -----------------------------------
+-- t_duel_start: the caller starts their game of the current round of a
+-- running Swiss tournament. The game is found here, never sent by the page.
+-- Lock order, as t_record_duel, duel_join and t_unpair: the game's open
+-- matches, then the caller's other waiting matches (cancelled, as
+-- duel_open does), then the tournament. Then:
+--   * a match of this game already live or waiting for confirmation: the
+--     caller's own is answered {ok, role, id, status} (resume), anyone
+--     else's is refused ('busy');
+--   * the caller's own invitation: its 30 minutes start again and it is
+--     answered like a new one (the host's page calls this to keep it open);
+--   * an invitation from the opponent: {ok, role:'guest', id, accept:true},
+--     and the page calls t_duel_accept (so two players who tap at the same
+--     moment end up in one match);
+--   * otherwise, with a registered deck, a new invitation to the opponent
+--     (mode and target from the tournament, the caller's Seeker, terrain
+--     and deck from the registration):
+--     {ok, role:'host', id, status:'waiting', expires_at, server_now, mode,
+--      target, opp:{id, name}, t:{id, title, label, ref}, host_seeker,
+--      host_terrain}.
+-- Refusals: 'status', 'not_entrant', 'dropped', 'no_game', 'opp_no_account'
+-- (the opponent has no linked account: the game is not tracked), 'busy',
+-- 'no_deck', 'rate_limited' and 'full' (the duel_open brakes), and 'stale'
+-- (the tournament or the game changed meanwhile: the page tries once more).
+-- duel_sweep() is not run here (cron runs it every 10 minutes): its 48-hour
+-- auto-save records results, which would lock a tournament before the
+-- matches. An invitation of this game past its 30 minutes is ended here
+-- instead, under the lock of (a).
+create or replace function public.t_duel_start(p_tid uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid    uuid := duel_caller();
+  v_me     text := v_uid::text;
+  v_t      tournaments%rowtype;
+  v_g      record;
+  v_g2     record;
+  v_ref    text;
+  v_ids    uuid[] := '{}';
+  v_d      duels%rowtype;
+  v_reg    tournament_decks%rowtype;
+  v_target int;
+  v_id     uuid;
+  v_exp    timestamptz;
+  v_tj     jsonb;
+  v_oppj   jsonb;
+begin
+  perform pg_advisory_xact_lock(hashtext('duel_open:' || v_me));
+
+  -- the game, read without a lock
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is distinct from 'running' or v_t.payload->>'fmt' is distinct from 'swiss' then
+    return t_no('status', 'This tournament is not running.');
+  end if;
+  select * into v_g from t_my_game(v_t.payload, v_me);
+  if v_g.why = 'not_entrant' then
+    return t_no('not_entrant', 'Link your malediction.gg profile in Account › Profile, then ask the organizer to add you.');
+  elsif v_g.why = 'dropped' then
+    return t_no('dropped', 'You have dropped from this tournament.');
+  elsif v_g.why = 'no_game' then
+    return t_no('no_game', 'You have no game to play in this round.');
+  elsif v_g.why = 'opp_no_account' then
+    return t_no('opp_no_account', 'Your opponent has no linked account, so this game is not tracked. Play it and tell the organizer the result.');
+  end if;
+  v_ref := 'g:' || v_g.i;
+
+  -- (a) the game's open matches
+  for v_d in
+    select * from duels x
+     where x.tournament_id = p_tid and x.t_ref = v_ref and x.status in ('waiting','live','ending')
+     order by x.created_at
+     for update
+  loop
+    v_ids := v_ids || v_d.id;
+  end loop;
+  update duels set status = 'expired', pin = null, ended_at = now(), updated_at = now()
+   where id = any(v_ids) and status = 'waiting' and pin_expires_at <= now();
+  -- (b) the caller's other waiting matches
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting' and not (id = any(v_ids));
+  -- (c) the tournament
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is distinct from 'running' or v_t.payload->>'fmt' is distinct from 'swiss' then
+    return t_no('stale', 'The tournament changed. Try again.');
+  end if;
+  select * into v_g2 from t_my_game(v_t.payload, v_me);
+  if v_g2.why is not null or v_g2.i is distinct from v_g.i or v_g2.opp is distinct from v_g.opp then
+    return t_no('stale', 'The tournament changed. Try again.');
+  end if;
+  if exists (select 1 from duels x
+              where x.tournament_id = p_tid and x.t_ref = v_ref and x.status in ('waiting','live','ending')
+                and not (x.id = any(v_ids))) then
+    return t_no('stale', 'The tournament changed. Try again.');
+  end if;
+
+  v_tj := jsonb_build_object('id', v_t.id, 'title', nullif(btrim(v_t.payload #>> '{pn,title}'), ''),
+                             'label', t_game_label(v_t.payload, v_ref), 'ref', v_ref);
+  v_oppj := jsonb_build_object('id', v_g.opp, 'name', coalesce(
+              (select q.x->>'name' from jsonb_array_elements(v_t.payload->'entrants') q(x)
+                where q.x->>'id' = v_g.opp limit 1),
+              (select pr.display_name from profiles pr where pr.id = v_g.opp::uuid)));
+
+  -- a match of this game being played
+  select * into v_d from duels x
+   where x.id = any(v_ids) and x.status in ('live','ending')
+   order by x.created_at
+   limit 1;
+  if found then
+    if v_uid in (v_d.host_id, v_d.guest_id) then
+      return jsonb_build_object('ok', true, 'role', case when v_d.host_id = v_uid then 'host' else 'guest' end,
+                                'id', v_d.id, 'status', v_d.status);
+    end if;
+    return t_no('busy', 'This game is already being played on another phone.');
+  end if;
+  -- the caller's own invitation: kept open for 30 more minutes
+  select * into v_d from duels x
+   where x.id = any(v_ids) and x.status = 'waiting' and x.t_invite
+     and x.host_id = v_uid and x.guest_id::text = v_g.opp
+   order by x.created_at desc
+   limit 1;
+  if found then
+    v_exp := now() + interval '30 minutes';
+    update duels set pin_expires_at = v_exp, updated_at = now() where id = v_d.id;
+    return jsonb_build_object('ok', true, 'role', 'host', 'id', v_d.id, 'status', 'waiting',
+                              'expires_at', v_exp, 'server_now', now(), 'mode', v_d.mode, 'target', v_d.target,
+                              'opp', v_oppj, 't', v_tj,
+                              'host_seeker', v_d.host_seeker, 'host_terrain', v_d.host_terrain);
+  end if;
+  -- the opponent's invitation: the caller joins it
+  select * into v_d from duels x
+   where x.id = any(v_ids) and x.status = 'waiting' and x.t_invite
+     and x.guest_id = v_uid and x.host_id::text = v_g.opp
+   order by x.created_at
+   limit 1;
+  if found then
+    return jsonb_build_object('ok', true, 'role', 'guest', 'id', v_d.id, 'accept', true);
+  end if;
+  -- anything else waiting on this game (made for an earlier seat) goes
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where id = any(v_ids) and status = 'waiting';
+
+  select * into v_reg from tournament_decks k where k.tournament_id = p_tid and k.user_id = v_uid;
+  if not found then
+    return t_no('no_deck', 'Register your deck for this tournament first.');
+  end if;
+  if (select count(*) from duels d
+      where d.host_id = v_uid and d.created_at > now() - interval '1 hour') >= 30 then
+    return t_no('rate_limited', 'You started 30 matches in the last hour. Try again later.');
+  end if;
+  if (select count(*) from duels d where d.status = 'waiting') >= 2000 then
+    return t_no('full', 'Too many matches are waiting for an opponent right now. Try again in a few minutes.');
+  end if;
+  v_target := case v_t.mode when 'clash' then 40 when 'demo' then 25 end;
+  if v_target is null then
+    return t_no('status', 'This tournament has no mode set.');
+  end if;
+  v_exp := now() + interval '30 minutes';
+  insert into duels (pin, pin_expires_at, status, mode, target, host_id, guest_id,
+                     host_seeker, host_terrain, host_deck_id, tournament_id, t_ref, t_invite)
+  values (null, v_exp, 'waiting', v_t.mode, v_target, v_uid, v_g.opp::uuid,
+          v_reg.seeker, v_reg.terrain, v_reg.deck_id, p_tid, v_ref, true)
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'role', 'host', 'id', v_id, 'status', 'waiting',
+                            'expires_at', v_exp, 'server_now', now(), 'mode', v_t.mode, 'target', v_target,
+                            'opp', v_oppj, 't', v_tj,
+                            'host_seeker', v_reg.seeker, 'host_terrain', v_reg.terrain);
+end $$;
+
+-- t_duel_accept: the invited player joins the invitation p_id. Lock order:
+-- the match, then the caller's own waiting matches (cancelled, as
+-- duel_join does), then the tournament. The game is checked again under
+-- the tournament lock (running, Swiss, the same mode, still the open game
+-- of the current round between these two players, neither dropped);
+-- otherwise the invitation is cancelled ('gone'). A player with no
+-- registered deck is refused ('no_deck') and the invitation stays: the page
+-- asks for the deck and tries again. Accepting twice answers the same.
+-- Answers as duel_join: {ok, id, host_id, host_name, mode, target,
+-- host_seeker, host_terrain, server_now}, plus t:{id, title, label, ref}.
+-- Refusals: 'not_allowed' (not this caller's invitation), 'gone', 'no_deck'.
+create or replace function public.t_duel_accept(p_id uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+  v_t   tournaments%rowtype;
+  v_reg tournament_decks%rowtype;
+  v_ok  boolean;
+begin
+  select * into d from duels x where x.id = p_id for update;
+  if not found or d.guest_id is distinct from v_uid then
+    return t_no('not_allowed', 'This is not one of your matches.');
+  end if;
+  if d.status in ('live','ending') then
+    select * into v_t from tournaments x where x.id = d.tournament_id;
+  elsif d.status <> 'waiting' or not d.t_invite then
+    return t_no('gone', 'This invitation has ended.');
+  elsif d.pin_expires_at <= now() then
+    update duels set status = 'expired', pin = null, ended_at = now(), updated_at = now() where id = d.id;
+    return t_no('gone', 'This invitation has ended.');
+  else
+    update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+     where host_id = v_uid and status = 'waiting' and id <> d.id;
+    v_ok := d.tournament_id is not null;
+    if v_ok then
+      select * into v_t from tournaments x where x.id = d.tournament_id for update;
+      v_ok := found and v_t.status = 'running' and v_t.mode = d.mode
+              and t_invite_ok(v_t.payload, d.t_ref, d.host_id, d.guest_id);
+    end if;
+    if not coalesce(v_ok, false) then
+      update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now() where id = d.id;
+      return t_no('gone', 'This invitation has ended.');
+    end if;
+    select * into v_reg from tournament_decks k where k.tournament_id = d.tournament_id and k.user_id = v_uid;
+    if not found then
+      return t_no('no_deck', 'Register your deck for this tournament first.');
+    end if;
+    update duels
+       set status = 'live', guest_seeker = v_reg.seeker, guest_terrain = v_reg.terrain,
+           guest_deck_id = v_reg.deck_id, started_at = now(), updated_at = now()
+     where id = d.id;
+  end if;
+  return jsonb_build_object(
+    'ok', true, 'id', d.id, 'host_id', d.host_id,
+    'host_name', (select p.display_name from profiles p where p.id = d.host_id),
+    'mode', d.mode, 'target', d.target,
+    'host_seeker', d.host_seeker, 'host_terrain', d.host_terrain,
+    'server_now', now(),
+    't', case when v_t.id is not null and d.t_ref is not null
+              then jsonb_build_object('id', v_t.id, 'title', nullif(btrim(v_t.payload #>> '{pn,title}'), ''),
+                                      'label', t_game_label(v_t.payload, d.t_ref), 'ref', d.t_ref) end);
+end $$;
+
+-- t_inbox: the polling fallback of the user:<id> topic, cheap.
+-- {ok:true, invites, mine}:
+--   invites  the caller's open invitations, oldest first:
+--            [{id, tid, ref, host_id, host_name, title, label, expires_at}]
+--   mine     the running or closed tournaments the caller plays in or
+--            organizes (as t_mine, at most 50, newest first), without
+--            payloads: [{id, rev, status}]
+create or replace function public.t_inbox()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_inv  jsonb;
+  v_mine jsonb;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    return t_no('not_allowed', 'Sign in first.');
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id', d.id, 'tid', d.tournament_id, 'ref', d.t_ref, 'host_id', d.host_id,
+           'host_name', coalesce((select q.x->>'name'
+                                    from jsonb_array_elements(coalesce(t.payload->'entrants', '[]'::jsonb)) q(x)
+                                   where q.x->>'id' = d.host_id::text limit 1), p.display_name),
+           'title', nullif(btrim(t.payload #>> '{pn,title}'), ''),
+           'label', t_game_label(t.payload, d.t_ref),
+           'expires_at', d.pin_expires_at) order by d.created_at), '[]'::jsonb)
+    into v_inv
+    from duels d
+    left join tournaments t on t.id = d.tournament_id
+    left join profiles p on p.id = d.host_id
+   where d.guest_id = v_uid and d.status = 'waiting' and d.t_invite and d.pin_expires_at > now();
+  select coalesce(jsonb_agg(jsonb_build_object('id', x.id, 'rev', x.rev, 'status', x.status)
+                            order by x.created_at desc), '[]'::jsonb)
+    into v_mine
+    from (select t.id, t.rev, t.status, t.created_at
+            from tournaments t
+           where t.status in ('running','closed')
+             and ((t.organizer_id = v_uid and is_league_admin(t.league_id))
+                  or t.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', v_uid::text)))
+           order by t.created_at desc
+           limit 50) x;
+  return jsonb_build_object('ok', true, 'invites', v_inv, 'mine', v_mine);
+end $$;
+
+-- t_auto_allow: called by the edge function tournament-auto AS THE CALLER,
+-- before it pairs or closes with the service role: {ok:true} when the
+-- caller is signed in (not anonymous) and organizes this Swiss tournament,
+-- or plays in it with their account and has not dropped. The edge function
+-- itself does nothing unless the tournament is running. Brakes, as
+-- t_fetch_allow: 60 asks an hour per account and 3000 on the site
+-- ('rate_limited'; a page asks only when a round looks complete and when a
+-- tracked game ends, a few times a round). The asks let through are logged
+-- in t_auto_log; refusals are not.
+create or replace function public.t_auto_allow(p_tid uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_t   tournaments%rowtype;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) or p_tid is null then
+    return t_no('not_allowed', 'Sign in first.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null or v_t.payload->>'fmt' is distinct from 'swiss' then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if coalesce(t_is_org(v_t), false)
+     or exists (select 1 from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+                 where q.x->>'id' = v_uid::text and q.x->>'st' is distinct from 'drop') then
+    delete from t_auto_log where created_at < now() - interval '2 days';
+    if (select count(*) from t_auto_log
+        where user_id = v_uid and created_at > now() - interval '1 hour') >= 60
+       or (select count(*) from t_auto_log where created_at > now() - interval '1 hour') >= 3000 then
+      return t_no('rate_limited', 'Too many automatic checks in the last hour. Pair or close it by hand, or try again later.');
+    end if;
+    insert into t_auto_log (user_id) values (v_uid);
+    return jsonb_build_object('ok', true);
+  end if;
+  return t_no('not_allowed', 'Only the organizer or a player of this tournament can do this.');
+end $$;
+
+-- 6. The edge function: automatic pairing and close (service role only) ------
+-- t_auto_pair: the next round, paired by the edge function with the page's
+-- own engine (swNextPairs) and checked here as t_pair checks the
+-- organizer's, without the organizer check: the row is locked; it must be
+-- running and Swiss, the community not archived ('status'); p_rev the
+-- current rev and p_round the next round ('stale'); within the planned
+-- rounds ('rounds_done'); every game of the current round decided
+-- ('not_done'); automatic pairing not paused for this round ('hold'); at
+-- least 2 players still in ('status'); valid pairings ('bad_pairs'). The
+-- round is marked payload.auto = {r}. Answers {ok:true, rev, round}.
+create or replace function public.t_auto_pair(p_tid uuid, p_rev int, p_round int, p_pairs jsonb, p_rematch boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_t      tournaments%rowtype;
+  v_p      jsonb;
+  v_cur    int;
+  v_rounds int;
+  v_rev    int;
+begin
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is distinct from 'running' or v_t.payload->>'fmt' is distinct from 'swiss'
+     or exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    return t_no('status', 'The tournament is not running.');
+  end if;
+  if p_rev is distinct from v_t.rev then
+    return t_no('stale', 'The tournament changed meanwhile.') || jsonb_build_object('rev', v_t.rev);
+  end if;
+  v_p := v_t.payload;
+  v_cur := t_sw_cur(v_p);
+  v_rounds := case when v_p->>'rounds' ~ '^[0-9]{1,3}$' then (v_p->>'rounds')::int else 0 end;
+  if p_round is distinct from v_cur + 1 then
+    return t_no('stale', 'The tournament changed meanwhile.') || jsonb_build_object('rev', v_t.rev);
+  end if;
+  if p_round > v_rounds then
+    return t_no('rounds_done', 'All ' || v_rounds || ' rounds are paired.');
+  end if;
+  if not t_gm_done(v_p) then
+    return t_no('not_done', 'Round ' || v_cur || ' still has games without a result.');
+  end if;
+  if (v_p #>> '{hold,pair}') = p_round::text then
+    return t_no('hold', 'Automatic pairing is paused for round ' || p_round || '.');
+  end if;
+  if cardinality(t_active(v_p)) < 2 then
+    return t_no('status', 'At least 2 players must still be in to pair a round.');
+  end if;
+  if t_sw_pairs_ok(v_p, p_pairs, coalesce(p_rematch, false)) is not null then
+    return t_no('bad_pairs', 'These pairings are not valid.');
+  end if;
+  v_p := t_sw_append(v_p, p_pairs, p_round) || jsonb_build_object('auto', jsonb_build_object('r', p_round));
+  if octet_length(v_p::text) > 1048576 then
+    return t_no('bad_input', 'This tournament is too large.');
+  end if;
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev, 'round', p_round);
+end $$;
+
+-- t_sw_close_apply: t_close's Swiss part, shared with t_auto_close. The
+-- caller has locked the row and checked it is running. p_standings are
+-- checked and frozen exactly as described at t_close (SWISS TOURNAMENTS);
+-- with p_ac the payload is also marked ac (closed automatically). Answers
+-- {ok:true, rev, champion} (champion null when first place is shared) or
+-- t_close's refusals.
+create or replace function public.t_sw_close_apply(p_tid uuid, p_standings jsonb, p_ac boolean default false)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_t     tournaments%rowtype;
+  v_p     jsonb;
+  v_ch    text;
+  v_rev   int;
+  v_bad   jsonb := t_no('bad_input', 'The standings do not match the results. Reload the page and close again.');
+  v_ids   text[];
+  v_drops text[];
+  v_score jsonb;
+  v_row   jsonb;
+  v_prev  jsonb;
+  v_i     int := 0;
+  v_rk    int;
+  v_rows  jsonb := '[]'::jsonb;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  v_p := v_t.payload;
+  if p_standings is null or jsonb_typeof(p_standings) is distinct from 'array' then
+    return t_no('bad_input', 'Reload the page and close again.');
+  end if;
+  v_ids := t_grouped(v_p);
+  if jsonb_array_length(p_standings) <> cardinality(v_ids)
+     or (select count(distinct q.x->>'id') from jsonb_array_elements(p_standings) q(x)) <> cardinality(v_ids) then
+    return v_bad;
+  end if;
+  select coalesce(array_agg(q.x->>'id'), '{}') into v_drops
+    from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) q(x)
+   where q.x->>'st' = 'drop';
+  select jsonb_object_agg(s.id, jsonb_build_array(s.tp, s.w, s.d, s.l, s.md)) into v_score
+    from t_sw_score(v_p) s;
+  for v_row in select q.x from jsonb_array_elements(p_standings) with ordinality q(x, o) order by q.o loop
+    if jsonb_typeof(v_row) is distinct from 'object'
+       or jsonb_typeof(v_row->'id') is distinct from 'string'
+       or jsonb_typeof(v_row->'drop') is distinct from 'boolean' then
+      return v_bad;
+    end if;
+    if exists (select 1 from unnest(array['rk','tp','w','d','l','md','sos']) f
+                where jsonb_typeof(v_row->f) is distinct from 'number' or (v_row->>f) !~ '^[0-9]{1,7}$') then
+      return v_bad;
+    end if;
+    if not ((v_row->>'id') = any(v_ids))
+       or jsonb_build_array((v_row->>'tp')::int, (v_row->>'w')::int, (v_row->>'d')::int,
+                            (v_row->>'l')::int, (v_row->>'md')::int) is distinct from v_score->(v_row->>'id')
+       or (v_row->'drop' = 'true'::jsonb) <> ((v_row->>'id') = any(v_drops)) then
+      return v_bad;
+    end if;
+    v_rk := (v_row->>'rk')::int;
+    if v_i = 0 then
+      if v_rk <> 1 then
+        return v_bad;
+      end if;
+    else
+      if (v_row->>'tp')::int > (v_prev->>'tp')::int
+         or ((v_row->>'tp')::int = (v_prev->>'tp')::int and (v_row->>'md')::int > (v_prev->>'md')::int) then
+        return v_bad;
+      end if;
+      if v_rk = (v_prev->>'rk')::int then
+        if (v_row->>'tp')::int <> (v_prev->>'tp')::int or (v_row->>'md')::int <> (v_prev->>'md')::int then
+          return v_bad;
+        end if;
+      elsif v_rk <> v_i + 1 then
+        return v_bad;
+      end if;
+    end if;
+    v_rows := v_rows || jsonb_build_array(jsonb_build_object(
+                'id', v_row->>'id', 'rk', v_rk, 'tp', (v_row->>'tp')::int, 'w', (v_row->>'w')::int,
+                'd', (v_row->>'d')::int, 'l', (v_row->>'l')::int, 'md', (v_row->>'md')::int,
+                'sos', (v_row->>'sos')::int, 'drop', v_row->'drop'));
+    v_prev := v_row;
+    v_i := v_i + 1;
+  end loop;
+  select q.x->>'id', (q.x->>'rk')::int into v_ch, v_rk
+    from jsonb_array_elements(v_rows) with ordinality q(x, o)
+   where q.x->'drop' = 'false'::jsonb
+   order by q.o
+   limit 1;
+  if v_ch is not null and (select count(*) from jsonb_array_elements(v_rows) q(x)
+                            where q.x->'drop' = 'false'::jsonb and (q.x->>'rk')::int = v_rk) > 1 then
+    v_ch := null;
+  end if;
+  update tournaments
+     set payload = (payload - 'champion')
+                   || jsonb_build_object('finalized', true, 'finalized_at', now(), 'standings', v_rows)
+                   || case when v_ch is not null then jsonb_build_object('champion', v_ch) else '{}'::jsonb end
+                   || case when coalesce(p_ac, false) then '{"ac":true}'::jsonb else '{}'::jsonb end,
+         status = 'closed', rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev, 'champion', v_ch);
+end $$;
+
+-- t_close: as in the SWISS TOURNAMENTS section; its Swiss part is now
+-- t_sw_close_apply (the same checks and the same answers).
+create or replace function public.t_close(p_tid uuid, p_rev int, p_standings jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid   uuid := duel_caller();
+  v_no    jsonb;
+  v_t     tournaments%rowtype;
+  v_p     jsonb;
+  v_fin   jsonb;
+  v_ch    text;
+  v_rev   int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'running' then
+    return t_no('status', 'Only a running tournament can be closed.');
+  end if;
+  v_p := v_t.payload;
+
+  if v_p->>'fmt' = 'swiss' then
+    return t_sw_close_apply(p_tid, p_standings) - 'champion';
+  end if;
+
+  if jsonb_typeof(v_p->'bracket') = 'array' and jsonb_array_length(v_p->'bracket') > 0 then
+    v_fin := v_p->'bracket'->(jsonb_array_length(v_p->'bracket') - 1)->0;
+    v_ch := case v_fin->>'winner' when 'a' then v_fin #>> '{a,id}' when 'b' then v_fin #>> '{b,id}' end;
+  end if;
+  update tournaments
+     set payload = (payload - 'champion')
+                   || jsonb_build_object('finalized', true, 'finalized_at', now())
+                   || case when v_ch is not null then jsonb_build_object('champion', v_ch) else '{}'::jsonb end,
+         status = 'closed', rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_auto_close: the tournament closed by the edge function with the
+-- standings of the page's own engine (swCloseRows), after the last result:
+-- the row is locked; it must be running and Swiss, the community not
+-- archived ('status'); p_rev the current rev ('stale'); every game of the
+-- current round decided, and either the last planned round or fewer than 2
+-- players still in ('not_done'); the organizer has not reopened it
+-- ('hold'). Then t_sw_close_apply, marked ac. Answers {ok:true, rev,
+-- champion} (champion null when first place is shared).
+create or replace function public.t_auto_close(p_tid uuid, p_rev int, p_standings jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_t      tournaments%rowtype;
+  v_p      jsonb;
+  v_rounds int;
+begin
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is distinct from 'running' or v_t.payload->>'fmt' is distinct from 'swiss'
+     or exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    return t_no('status', 'The tournament is not running.');
+  end if;
+  if p_rev is distinct from v_t.rev then
+    return t_no('stale', 'The tournament changed meanwhile.') || jsonb_build_object('rev', v_t.rev);
+  end if;
+  v_p := v_t.payload;
+  v_rounds := case when v_p->>'rounds' ~ '^[0-9]{1,3}$' then (v_p->>'rounds')::int else 0 end;
+  if not t_gm_done(v_p) or not (t_sw_cur(v_p) >= v_rounds or cardinality(t_active(v_p)) < 2) then
+    return t_no('not_done', 'The tournament still has games to play.');
+  end if;
+  if (v_p #>> '{hold,close}') = 'true' then
+    return t_no('hold', 'The organizer reopened this tournament, so it closes by hand.');
+  end if;
+  return t_sw_close_apply(p_tid, p_standings, true);
+end $$;
+
+-- 7. Changed functions (each from its latest definition, with one change) ----
+-- t_game_for: as in the PLAY NETWORK TOURNAMENTS section, and Swiss
+-- tournaments are left out: their games are played as invitations
+-- (t_duel_start), so a match joined with a PIN is a casual one there and
+-- never locks or tags a Swiss tournament. Earlier tournaments as before.
+create or replace function public.t_game_for(p_host uuid, p_guest uuid, p_mode text)
+returns table (tournament_id uuid, t_ref text, title text, label text, skip text)
+language plpgsql volatile security definer set search_path = public as $$
+#variable_conflict use_column
+declare
+  v_t      record;
+  v_h      text := p_host::text;
+  v_g      text := p_guest::text;
+  v_ref    text;
+  v_skip   text;
+  v_stitle text;
+  v_slabel text;
+begin
+  if p_host is null or p_guest is null or p_host = p_guest then
+    return;
+  end if;
+  for v_t in
+    select x.id, x.payload, x.mode
+      from tournaments x
+     where x.status = 'running'
+       and coalesce(x.payload->>'fmt', '') <> 'swiss'
+       and x.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', v_h))
+       and x.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', v_g))
+     order by x.created_at
+     for update
+  loop
+    if exists (select 1 from jsonb_array_elements(v_t.payload->'entrants') y(e)
+                where y.e->>'id' in (v_h, v_g) and y.e->>'st' = 'drop') then
+      continue;
+    end if;
+    v_ref := null;
+    select 'g:' || (y.o - 1) into v_ref
+      from jsonb_array_elements(coalesce(v_t.payload->'gm', '[]'::jsonb)) with ordinality y(m, o)
+     where y.m->>'w' is null
+       and ((y.m->>'a' = v_h and y.m->>'b' = v_g) or (y.m->>'a' = v_g and y.m->>'b' = v_h))
+     order by case when y.m->>'r' ~ '^[0-9]{1,3}$' then (y.m->>'r')::int else 0 end, y.o
+     limit 1;
+    if v_ref is null then
+      select 'b:' || (y.o - 1) || ':' || (z.o - 1) into v_ref
+        from jsonb_array_elements(coalesce(v_t.payload->'bracket', '[]'::jsonb)) with ordinality y(rd, o),
+             jsonb_array_elements(y.rd) with ordinality z(m, o)
+       where z.m->>'winner' is null
+         and ((z.m #>> '{a,id}' = v_h and z.m #>> '{b,id}' = v_g)
+              or (z.m #>> '{a,id}' = v_g and z.m #>> '{b,id}' = v_h))
+       order by y.o, z.o
+       limit 1;
+    end if;
+    if v_ref is null then
+      continue;
+    end if;
+    if v_t.mode is distinct from p_mode then
+      if v_skip is null then
+        v_skip := 'mode';
+        v_stitle := nullif(btrim(v_t.payload #>> '{pn,title}'), '');
+        v_slabel := t_game_label(v_t.payload, v_ref);
+      end if;
+      continue;
+    end if;
+    if exists (select 1 from duels d
+                where d.tournament_id = v_t.id and d.t_ref = v_ref and d.status in ('live','ending')) then
+      if v_skip is null then
+        v_skip := 'busy';
+        v_stitle := nullif(btrim(v_t.payload #>> '{pn,title}'), '');
+        v_slabel := t_game_label(v_t.payload, v_ref);
+      end if;
+      continue;
+    end if;
+    return query select v_t.id, v_ref, nullif(btrim(v_t.payload #>> '{pn,title}'), ''),
+                        t_game_label(v_t.payload, v_ref), null::text;
+    return;
+  end loop;
+  if v_skip is not null then
+    return query select null::uuid, null::text, v_stitle, v_slabel, v_skip;
+  end if;
+end $$;
+
+-- t_unpair: as in the SWISS TOURNAMENTS section, and invitations are not
+-- untagged: once the round is gone, t_auto_after cancels them (and pauses
+-- automatic pairing for that round).
+create or replace function public.t_unpair(p_tid uuid, p_rev int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := duel_caller();
+  v_no   jsonb;
+  v_t    tournaments%rowtype;
+  v_r    int;
+  v_refs text[];
+  v_rev  int;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null or not t_is_org(v_t) then
+    return t_no('not_allowed', 'Only the organizer of this tournament can change it.');
+  end if;
+  v_r := t_sw_cur(v_t.payload);
+  select coalesce(array_agg('g:' || (q.o - 1)), '{}') into v_refs
+    from jsonb_array_elements(coalesce(v_t.payload->'gm', '[]'::jsonb)) with ordinality q(x, o)
+   where q.x->>'r' = v_r::text;
+  begin
+    update duels set tournament_id = null, t_ref = null
+     where tournament_id = p_tid and t_ref = any(v_refs) and status not in ('live','ending')
+       and not (status = 'waiting' and t_invite);
+    v_no := t_lock(p_tid, p_rev);
+    if v_no is null then
+      select * into v_t from tournaments x where x.id = p_tid;
+      if v_t.status <> 'running' then
+        v_no := t_no('status', 'The tournament is not running.');
+      elsif v_t.payload->>'fmt' is distinct from 'swiss' then
+        v_no := t_no('status', 'Only the rounds of a Swiss tournament can be undone.');
+      elsif t_sw_cur(v_t.payload) <> v_r then
+        v_no := t_no('stale', 'The tournament changed on another device. It has been reloaded; check it and try again.')
+                || jsonb_build_object('rev', v_t.rev);
+      elsif v_r < 2 then
+        v_no := t_no('status', 'Use Back to registration to undo round 1.');
+      elsif exists (select 1 from jsonb_array_elements(v_t.payload->'gm') q(x)
+                     where q.x->>'r' = v_r::text and q.x->>'src' in ('org','duel')) then
+        v_no := t_no('has_results', 'Round ' || v_r || ' already has results, so its pairings cannot be undone. Clear them first.');
+      elsif exists (select 1 from duels d
+                     where d.tournament_id = p_tid and d.t_ref = any(v_refs) and d.status in ('live','ending')) then
+        v_no := t_no('busy', 'A tracked match of round ' || v_r || ' is being played or waits for confirmation. Try again when it has ended.');
+      end if;
+    end if;
+    if v_no is not null then
+      raise exception 't_unpair refused' using errcode = 'SL001';
+    end if;
+    update tournaments
+       set payload = jsonb_set(payload, '{gm}', coalesce((
+                       select jsonb_agg(q.x order by q.o)
+                         from jsonb_array_elements(payload->'gm') with ordinality q(x, o)
+                        where (q.x->>'r') is distinct from v_r::text), '[]'::jsonb)),
+           rev = rev + 1
+     where id = p_tid returning rev into v_rev;
+  exception when sqlstate 'SL001' then
+    return v_no;
+  end;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_unstart: as in the SWISS TOURNAMENTS section, and invitations are not
+-- untagged: t_auto_after cancels them once the tournament is back in
+-- registration.
+create or replace function public.t_unstart(p_tid uuid, p_rev int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_no  jsonb;
+  v_t   tournaments%rowtype;
+  v_rev int;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null or not t_is_org(v_t) then
+    return t_no('not_allowed', 'Only the organizer of this tournament can change it.');
+  end if;
+  begin
+    update duels set tournament_id = null, t_ref = null
+     where tournament_id = p_tid and not (status = 'waiting' and t_invite);
+    v_no := t_lock(p_tid, p_rev);
+    if v_no is null then
+      select * into v_t from tournaments x where x.id = p_tid;
+      if v_t.status <> 'running' then
+        v_no := t_no('status', 'The tournament has not started.');
+      elsif t_has_results(v_t.payload) then
+        v_no := t_no('has_results', 'Results are already in, so the tournament cannot go back to registration.');
+      end if;
+    end if;
+    if v_no is not null then
+      raise exception 't_unstart refused' using errcode = 'SL001';
+    end if;
+    update tournaments
+       set payload = (payload - 'fmt' - 'rounds' - 'cut' - 'seed' - 'standings')
+                     || jsonb_build_object('groups', '[]'::jsonb, 'gm', '[]'::jsonb, 'tables', 0,
+                                           'bracket', '[]'::jsonb, 'finalized', false,
+                                           'entrants', coalesce((
+                                             select jsonb_agg(q.x - 'dr' order by q.o)
+                                               from jsonb_array_elements(coalesce(payload->'entrants', '[]'::jsonb))
+                                                    with ordinality q(x, o)), '[]'::jsonb)),
+           status = 'draft', rev = rev + 1
+     where id = p_tid returning rev into v_rev;
+  exception when sqlstate 'SL001' then
+    return v_no;
+  end;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_rekey: as in the SWISS TOURNAMENTS section, and the moved player's
+-- seeker, terrain, deck and deckId are emptied: a registered deck belongs
+-- to an account (tournament_decks), so a seat that changes account never
+-- shows the previous account's deck.
+create or replace function public.t_rekey(p jsonb, p_old text, p_new text)
+returns jsonb language sql immutable security definer set search_path = public as $$
+  select case when p is null or p_old is null or p_new is null or p_old = p_new then p else
+    p
+    || jsonb_build_object('entrants', coalesce((
+         select jsonb_agg(case when q.x->>'id' = p_old
+                               then q.x || jsonb_build_object('id', p_new, 'seeker', '', 'terrain', '', 'deck', '', 'deckId', '')
+                               else q.x end
+                          order by q.o)
+           from jsonb_array_elements(coalesce(p->'entrants', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || jsonb_build_object('groups', coalesce((
+         select jsonb_agg(coalesce((
+                  select jsonb_agg(case when y.k #>> '{}' = p_old then to_jsonb(p_new) else y.k end order by y.o)
+                    from jsonb_array_elements(q.x) with ordinality y(k, o)), '[]'::jsonb) order by q.o)
+           from jsonb_array_elements(coalesce(p->'groups', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || jsonb_build_object('gm', coalesce((
+         select jsonb_agg(q.x || jsonb_strip_nulls(jsonb_build_object(
+                  'a', case when q.x->>'a' = p_old then p_new end,
+                  'b', case when q.x->>'b' = p_old then p_new end,
+                  'w', case when q.x->>'w' = p_old then p_new end)) order by q.o)
+           from jsonb_array_elements(coalesce(p->'gm', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || jsonb_build_object('bracket', coalesce((
+         select jsonb_agg(coalesce((
+                  select jsonb_agg(y.m || jsonb_strip_nulls(jsonb_build_object(
+                           'a', case when y.m #>> '{a,id}' = p_old then jsonb_build_object('id', p_new) end,
+                           'b', case when y.m #>> '{b,id}' = p_old then jsonb_build_object('id', p_new) end))
+                           order by y.o)
+                    from jsonb_array_elements(q.x) with ordinality y(m, o)), '[]'::jsonb) order by q.o)
+           from jsonb_array_elements(coalesce(p->'bracket', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || case when p->>'champion' = p_old then jsonb_build_object('champion', p_new) else '{}'::jsonb end
+    || case when jsonb_typeof(p->'standings') = 'array' then jsonb_build_object('standings', coalesce((
+         select jsonb_agg(case when q.x->>'id' = p_old then q.x || jsonb_build_object('id', p_new) else q.x end
+                          order by q.o)
+           from jsonb_array_elements(p->'standings') with ordinality q(x, o)), '[]'::jsonb))
+       else '{}'::jsonb end
+  end;
+$$;
+
+-- t_live_duels: as in the PLAY NETWORK TOURNAMENTS section, plus open
+-- invitations (status 'waiting'), so the page can show "Invited".
+create or replace function public.t_live_duels(p_tid uuid)
+returns table (t_ref text, status text, claim_winner uuid, claimed_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select d.t_ref, d.status, d.claim_winner, d.claimed_at
+    from duels d
+    join tournaments t on t.id = d.tournament_id
+   where d.tournament_id = p_tid
+     and (d.status in ('live','ending') or (d.status = 'waiting' and d.t_invite))
+     and t.status is not null
+     and auth.uid() is not null
+     and ((t.organizer_id = auth.uid() and is_league_admin(t.league_id))
+          or is_site_admin()
+          or t.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', auth.uid()::text)))
+   order by d.t_ref;
+$$;
+
+-- erase_user_data(): as in the PLAY NETWORK TOURNAMENTS section, and the
+-- account's registered tournament decks and t_auto_log rows are deleted.
+-- The account's private decks and its registrations go after its
+-- tournaments are re-keyed: a tournament is locked before its
+-- registrations (as at the start, t_auto_before, and in t_deck_set), and
+-- deleting a deck also writes the registrations that point at it
+-- (deck_id set null). The matches it points at are finished ones (the
+-- open ones are cancelled above, before any tournament is locked).
+create or replace function erase_user_data(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  l record;
+  v_t record;
+  v_e jsonb;
+  v_k text;
+begin
+  if p_user is null then
+    return;
+  end if;
+  for l in select id, name, archived_at from leagues where owner_id = p_user for update loop
+    if not exists (select 1 from memberships m where m.league_id = l.id and m.user_id <> p_user)
+       and not exists (select 1 from matches mt where mt.league_id = l.id)
+       and not exists (select 1 from attendance a join sessions s on s.id = a.session_id
+                       where s.league_id = l.id and a.user_id <> p_user) then
+      delete from leagues where id = l.id;
+    elsif l.archived_at is null and exists (
+      select 1 from memberships m
+      where m.league_id = l.id and m.user_id <> p_user and m.dropped_at is null
+    ) then
+      raise exception 'This account owns the league "%", which still has players. Hand it over to one of them or archive it first (Manage).', l.name
+        using errcode = 'P0001', hint = 'sl_owns_league';
+    else
+      update leagues set archived_at = coalesce(archived_at, now()) where id = l.id;
+    end if;
+  end loop;
+
+  delete from collection     where user_id = p_user;
+  delete from free_battles   where user_id = p_user;
+  delete from feedback       where user_id = p_user;
+  delete from site_admins    where user_id = p_user;
+  delete from member_discord where user_id = p_user;
+  delete from duel_join_attempts where user_id = p_user;
+  delete from t_auto_log     where user_id = p_user;
+
+  update duels
+     set status = 'cancelled', pin = null, ended_at = coalesce(ended_at, now()), updated_at = now()
+   where status in ('waiting','live','ending') and (host_id = p_user or guest_id = p_user);
+
+  update tournaments set organizer_id = null where organizer_id = p_user;
+  begin
+    for v_t in
+      select x.id, x.payload
+        from tournaments x
+       where x.status is not null
+         and x.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', p_user::text))
+       order by x.created_at
+       for update
+    loop
+      select q.x into v_e
+        from jsonb_array_elements(v_t.payload->'entrants') q(x)
+       where q.x->>'id' = p_user::text
+       limit 1;
+      v_k := case when coalesce(v_e->>'pid', '') ~ '^[A-Za-z0-9]{6,32}$'
+                       and not (v_t.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', 'pn:' || (v_e->>'pid'))))
+                  then 'pn:' || (v_e->>'pid') else t_rand_key(v_t.payload) end;
+      update tournaments set payload = t_rekey(payload, p_user::text, v_k), rev = rev + 1 where id = v_t.id;
+    end loop;
+  exception when others then
+    raise warning 'erase_user_data tournaments: %', sqlerrm;
+  end;
+  delete from decks            where user_id = p_user and not is_public;
+  delete from tournament_decks where user_id = p_user;
+
+  update memberships
+     set dropped_at = coalesce(dropped_at, now()), is_admin = false
+   where user_id = p_user and (dropped_at is null or is_admin);
+
+  update profiles
+     set display_name = 'Deleted player',
+         role = 'player',
+         herald_rank = null,
+         discord = null,
+         malediction_url = null,
+         lat = null,
+         lon = null,
+         place = null,
+         matches_visibility = 'private',
+         deleted_at = coalesce(deleted_at, now())
+   where id = p_user;
+end $$;
+
+-- meta_duels and player_matches: as in the SWISS TOURNAMENTS section
+-- (draws), without the finished matches of a Swiss tournament still in
+-- registration or running. Owner decision: its players' Seekers and
+-- terrains are shown only to its organizer until the close, and a tracked
+-- game is recorded into the public payload with its match id (gm[].du) as
+-- it ends, so a match there would tell who played what. The Meta gets them
+-- at the close (a reopen takes them out again); player_matches still shows
+-- them to the two players of the match and to the tournament's organizer.
+-- The columns do not change, so the functions are not dropped.
+create or replace function public.meta_duels(p_since timestamptz default null)
+returns table (id uuid, played_at timestamptz,
+               winner_seeker text, loser_seeker text,
+               winner_terrain text, loser_terrain text,
+               winner_deck_id uuid, loser_deck_id uuid,
+               in_tournament boolean, is_draw boolean)
+language sql stable security definer set search_path = public as $$
+  select d.id,
+         date_trunc('day', d.ended_at),
+         case when x.wh then d.host_seeker  else d.guest_seeker  end,
+         case when x.wh then d.guest_seeker  else d.host_seeker  end,
+         case when x.wh then d.host_terrain else d.guest_terrain end,
+         case when x.wh then d.guest_terrain else d.host_terrain end,
+         case when wk.is_public and wp.matches_visibility = 'public' then wk.id end,
+         case when lk.is_public and lp.matches_visibility = 'public' then lk.id end,
+         d.tournament_id is not null,
+         d.is_draw
+    from duels d
+    cross join lateral (select d.is_draw or d.winner_id = d.host_id as wh) x
+    join profiles wp on wp.id = case when x.wh then d.host_id else d.guest_id end
+    join profiles lp on lp.id = case when x.wh then d.guest_id else d.host_id end
+    left join decks wk on wk.id = case when x.wh then d.host_deck_id else d.guest_deck_id end
+    left join decks lk on lk.id = case when x.wh then d.guest_deck_id else d.host_deck_id end
+    left join tournaments t on t.id = d.tournament_id
+   where d.status = 'done'
+     and (p_since is null or d.ended_at >= p_since)
+     and not coalesce(t.status in ('draft','running') and t.payload->>'fmt' = 'swiss', false)
+   order by d.ended_at desc;
+$$;
+
+create or replace function public.player_matches(p_user uuid)
+returns table (id uuid, played_at timestamptz, opponent_id uuid, opponent_name text,
+               my_seeker text, my_terrain text, opp_seeker text, opp_terrain text,
+               won boolean, my_score int, opp_score int,
+               tournament_id uuid, tournament_name text, is_draw boolean)
+language sql stable security definer set search_path = public as $$
+  with v as (
+    select auth.uid() as viewer,
+           auth.uid() is not null
+             and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+             and exists (select 1 from profiles vp where vp.id = auth.uid() and vp.deleted_at is null) as signed_in,
+           (select p.matches_visibility from profiles p where p.id = p_user) as vis
+  )
+  select d.id,
+         d.ended_at,
+         case when s.shown then op.id end,
+         case when s.shown then op.display_name
+              when op.deleted_at is not null then 'Deleted player'
+              else 'Private player' end,
+         case when d.host_id = p_user then d.host_seeker  else d.guest_seeker  end,
+         case when d.host_id = p_user then d.host_terrain else d.guest_terrain end,
+         case when s.shown then case when d.host_id = p_user then d.guest_seeker  else d.host_seeker  end end,
+         case when s.shown then case when d.host_id = p_user then d.guest_terrain else d.host_terrain end end,
+         case when d.is_draw then null else d.winner_id = p_user end,
+         case when d.winner_id = p_user then d.winner_score else d.loser_score end,
+         case when d.winner_id = p_user then d.loser_score else d.winner_score end,
+         case when l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false)
+              then t.id end,
+         case when l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false)
+              then coalesce(nullif(btrim(t.payload #>> '{pn,title}'), ''),
+                            nullif(btrim(t.payload->>'name'), ''),
+                            l.name || ' ' || t.month) end,
+         d.is_draw
+    from duels d
+    cross join v
+    join profiles op on op.id = case when d.host_id = p_user then d.guest_id else d.host_id end
+    cross join lateral (
+      select coalesce(v.viewer in (d.host_id, d.guest_id), false)
+             or op.matches_visibility = 'public'
+             or (op.matches_visibility = 'players' and v.signed_in) as shown
+    ) s
+    left join tournaments t on t.id = d.tournament_id
+    left join leagues l on l.id = t.league_id
+   where d.status = 'done'
+     and p_user in (d.host_id, d.guest_id)
+     and (v.viewer = p_user
+          or v.viewer = d.host_id or v.viewer = d.guest_id
+          or v.vis = 'public'
+          or (v.vis = 'players' and v.signed_in))
+     and not coalesce(t.status in ('draft','running') and t.payload->>'fmt' = 'swiss'
+                      and not coalesce(v.viewer in (d.host_id, d.guest_id), false)
+                      and not coalesce(t_is_org(t), false), false)
+   order by d.ended_at desc;
+$$;
+
+-- 8. Triggers on Swiss tournaments ----------------------------------------------
+-- Both look only at Swiss tournaments (fmt 'swiss' before or after the
+-- change); earlier groups-and-finals tournaments and old community
+-- tournaments are left alone.
+--
+-- t_auto_before (BEFORE UPDATE; after guard_tournament, by name):
+--   draft -> running    registered decks are refreshed from My decks (when
+--                       the deck still exists, is the player's, has a
+--                       Seeker and still holds the registered terrain) and
+--                       all are locked; seekers and terrains stay hidden;
+--                       hold, auto and ac go
+--   running -> draft    registrations are unlocked; hold, auto and ac go
+--   running, fewer rounds (t_unpair)  automatic pairing pauses for the
+--                       round undone (hold.pair), and its auto mark goes
+--   running, more rounds not paired automatically (t_pair)  the pause goes
+--   running -> closed   the registered Seekers and terrains are written
+--                       into the players (owner decision: shown to all
+--                       once the tournament is closed)
+--   closed -> running   (t_reopen) they are hidden again; it no longer
+--                       closes by itself (hold.close), and when rounds
+--                       are left the next one is not paired by itself
+--                       either (hold.pair, until the organizer pairs it);
+--                       ac goes
+-- A failure here never stops the change.
+create or replace function public.t_auto_before()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_oc int;
+  v_nc int;
+  v_h  jsonb;
+begin
+  if new.status is null or coalesce(new.payload->>'fmt', old.payload->>'fmt') is distinct from 'swiss' then
+    return new;
+  end if;
+  begin
+    if old.status = 'draft' and new.status = 'running' then
+      update tournament_decks k
+         set name = coalesce(d.name, ''), seeker = duel_clean(d.seeker), cards = d.cards, side = d.side
+        from decks d
+       where k.tournament_id = new.id and d.id = k.deck_id and d.user_id = k.user_id
+         and duel_clean(d.seeker) is not null and jsonb_typeof(d.cards) = 'object'
+         and coalesce(d.cards->>k.terrain, '') ~ '^[1-9][0-9]{0,3}$';
+      update tournament_decks set locked_at = now() where tournament_id = new.id;
+      new.payload := t_deck_hide(new.payload) - 'hold' - 'auto' - 'ac';
+    elsif old.status = 'running' and new.status = 'draft' then
+      update tournament_decks set locked_at = null where tournament_id = new.id;
+      new.payload := t_deck_hide(new.payload) - 'hold' - 'auto' - 'ac';
+    elsif old.status = 'running' and new.status = 'running' then
+      v_oc := t_sw_cur(old.payload);
+      v_nc := t_sw_cur(new.payload);
+      v_h := case when jsonb_typeof(new.payload->'hold') = 'object' then new.payload->'hold' else '{}'::jsonb end;
+      if v_nc < v_oc then
+        new.payload := new.payload || jsonb_build_object('hold', v_h || jsonb_build_object('pair', v_oc));
+        if (new.payload #>> '{auto,r}') = v_oc::text then
+          new.payload := new.payload - 'auto';
+        end if;
+      elsif v_nc > v_oc and (new.payload #>> '{auto,r}') is distinct from v_nc::text and v_h ? 'pair' then
+        v_h := v_h - 'pair';
+        new.payload := case when v_h = '{}'::jsonb then new.payload - 'hold'
+                            else new.payload || jsonb_build_object('hold', v_h) end;
+      end if;
+    elsif old.status = 'running' and new.status = 'closed' then
+      new.payload := t_deck_pub(new.payload, new.id);
+    elsif old.status = 'closed' and new.status = 'running' then
+      v_h := case when jsonb_typeof(new.payload->'hold') = 'object' then new.payload->'hold' else '{}'::jsonb end;
+      v_nc := t_sw_cur(new.payload);
+      if v_nc < (case when new.payload->>'rounds' ~ '^[0-9]{1,3}$' then (new.payload->>'rounds')::int else 0 end) then
+        v_h := v_h || jsonb_build_object('pair', v_nc + 1);
+      end if;
+      new.payload := t_deck_hide(new.payload) - 'ac'
+                     || jsonb_build_object('hold', v_h || '{"close":true}'::jsonb);
+    end if;
+  exception when others then
+    raise warning 't_auto_before: %', sqlerrm;
+  end;
+  return new;
+end $$;
+
+-- t_auto_after (AFTER UPDATE), each part on its own so it never fails the
+-- change:
+--   1. invitations of this tournament that no longer match an open game of
+--      the current round (a result, a drop, an undone round, back to
+--      registration, closed) are cancelled. The tournament row is locked
+--      here, so matches are taken with SKIP LOCKED (lock order: match, then
+--      tournament); one being accepted right now is skipped, and
+--      t_duel_accept checks the game again itself.
+--   2. when the status or the number of games changes (a round paired or
+--      undone, the start, the close, a reopen), a 'tournament' ping
+--      {tid, rev, status, round} goes to the private topic user:<id> of
+--      every player with an account who has not dropped, and of the
+--      organizer.
+create or replace function public.t_auto_after()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_k   text;
+  v_msg jsonb;
+begin
+  if new.status is null or coalesce(new.payload->>'fmt', old.payload->>'fmt') is distinct from 'swiss' then
+    return null;
+  end if;
+  begin
+    update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+     where id in (select d.id from duels d
+                   where d.tournament_id = new.id and d.status = 'waiting' and d.t_invite
+                     and (new.status is distinct from 'running'
+                          or not t_invite_ok(new.payload, d.t_ref, d.host_id, d.guest_id))
+                   for update skip locked);
+  exception when others then
+    null;
+  end;
+  if new.status is distinct from old.status
+     or coalesce(jsonb_array_length(case when jsonb_typeof(new.payload->'gm') = 'array' then new.payload->'gm' end), 0)
+        <> coalesce(jsonb_array_length(case when jsonb_typeof(old.payload->'gm') = 'array' then old.payload->'gm' end), 0) then
+    begin
+      v_msg := jsonb_build_object('tid', new.id, 'rev', new.rev, 'status', new.status, 'round', t_sw_cur(new.payload));
+      for v_k in
+        select distinct q.x->>'id'
+          from jsonb_array_elements(case when jsonb_typeof(new.payload->'entrants') = 'array'
+                                         then new.payload->'entrants' else '[]'::jsonb end) q(x)
+         where t_acct(q.x->>'id') and q.x->>'st' is distinct from 'drop'
+           and (q.x->>'id') is distinct from new.organizer_id::text
+      loop
+        perform realtime.send(v_msg, 'tournament', 'user:' || v_k, true);
+      end loop;
+      if new.organizer_id is not null then
+        perform realtime.send(v_msg, 'tournament', 'user:' || new.organizer_id::text, true);
+      end if;
+    exception when others then
+      null;
+    end;
+  end if;
+  return null;
+end $$;
+
+drop trigger if exists t_auto_before on public.tournaments;
+create trigger t_auto_before before update on public.tournaments
+  for each row execute function public.t_auto_before();
+drop trigger if exists t_auto_after on public.tournaments;
+create trigger t_auto_after after update on public.tournaments
+  for each row execute function public.t_auto_after();
+
+-- 9. Invitations reach the invited player --------------------------------------
+-- duel_invite_notify (AFTER INSERT OR UPDATE OF status, invitations only):
+-- a new invitation sends 'invite' {id, tid, ref} to the guest's private
+-- topic user:<id>; when it stops waiting (accepted, cancelled, expired) it
+-- sends 'invite_end' {id, status}. The host hears the same changes on
+-- duel:<id> (duel_notify). A Realtime failure never blocks the write.
+create or replace function public.duel_invite_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not coalesce(new.t_invite, false) or new.guest_id is null then
+    return null;
+  end if;
+  begin
+    if tg_op = 'INSERT' then
+      if new.status = 'waiting' then
+        perform realtime.send(jsonb_build_object('id', new.id, 'tid', new.tournament_id, 'ref', new.t_ref),
+                              'invite', 'user:' || new.guest_id::text, true);
+      end if;
+    elsif old.status = 'waiting' and new.status is distinct from 'waiting' then
+      perform realtime.send(jsonb_build_object('id', new.id, 'status', new.status),
+                            'invite_end', 'user:' || new.guest_id::text, true);
+    end if;
+  exception when others then
+    null;
+  end;
+  return null;
+end $$;
+drop trigger if exists duel_invite_notify on public.duels;
+create trigger duel_invite_notify after insert or update of status on public.duels
+  for each row when (new.t_invite) execute function public.duel_invite_notify();
+
+-- 10. Realtime: the private topic 'user:<account id>' --------------------------
+-- Only that account may receive on it. Nobody may send on it from a page
+-- (no insert policy): only the triggers above send, with realtime.send.
+-- Skipped with a warning where the project has no realtime.messages table.
+do $outer$
+begin
+  if to_regclass('realtime.messages') is null then
+    raise warning 'realtime.messages does not exist: the user inbox policy was not created.';
+    return;
+  end if;
+  begin
+    execute 'drop policy if exists "user inbox receive" on realtime.messages';
+    execute $p$
+      create policy "user inbox receive" on realtime.messages
+        for select to authenticated
+        using (realtime.topic() = 'user:' || auth.uid()::text)$p$;
+  exception when others then
+    raise warning 'The user inbox policy was not created (%).', sqlerrm;
+  end;
+end $outer$;
+
+-- 11. Who may call what -----------------------------------------------------------
+revoke all on function public.t_my_game(jsonb, text)                      from public, anon, authenticated;
+revoke all on function public.t_invite_ok(jsonb, text, uuid, uuid)        from public, anon, authenticated;
+revoke all on function public.t_deck_hide(jsonb)                          from public, anon, authenticated;
+revoke all on function public.t_deck_pub(jsonb, uuid)                     from public, anon, authenticated;
+revoke all on function public.t_sw_close_apply(uuid, jsonb, boolean)      from public, anon, authenticated;
+revoke all on function public.t_auto_before()                             from public, anon, authenticated;
+revoke all on function public.t_auto_after()                              from public, anon, authenticated;
+revoke all on function public.duel_invite_notify()                        from public, anon, authenticated;
+revoke all on function public.t_game_for(uuid, uuid, text)                from public, anon, authenticated;
+revoke all on function public.t_rekey(jsonb, text, text)                  from public, anon, authenticated;
+revoke all on function erase_user_data(uuid)                              from public, anon, authenticated;
+revoke all on function public.t_deck_set(uuid, uuid, text)                from public, anon, authenticated;
+revoke all on function public.t_deck_get(uuid)                            from public, anon, authenticated;
+revoke all on function public.t_duel_start(uuid)                          from public, anon, authenticated;
+revoke all on function public.t_duel_accept(uuid)                         from public, anon, authenticated;
+revoke all on function public.t_inbox()                                   from public, anon, authenticated;
+revoke all on function public.t_auto_allow(uuid)                          from public, anon, authenticated;
+revoke all on function public.t_auto_pair(uuid, int, int, jsonb, boolean) from public, anon, authenticated;
+revoke all on function public.t_auto_close(uuid, int, jsonb)              from public, anon, authenticated;
+revoke all on function public.t_close(uuid, int, jsonb)                   from public, anon;
+revoke all on function public.t_unstart(uuid, int)                        from public, anon;
+revoke all on function public.t_unpair(uuid, int)                         from public, anon;
+revoke all on function public.t_live_duels(uuid)                          from public, anon;
+revoke all on function public.meta_duels(timestamptz)                     from public;
+revoke all on function public.player_matches(uuid)                        from public;
+grant execute on function public.t_deck_set(uuid, uuid, text)             to authenticated;
+grant execute on function public.t_deck_get(uuid)                         to authenticated;
+grant execute on function public.t_duel_start(uuid)                       to authenticated;
+grant execute on function public.t_duel_accept(uuid)                      to authenticated;
+grant execute on function public.t_inbox()                                to authenticated;
+grant execute on function public.t_auto_allow(uuid)                       to authenticated;
+grant execute on function public.t_auto_pair(uuid, int, int, jsonb, boolean) to service_role;
+grant execute on function public.t_auto_close(uuid, int, jsonb)           to service_role;
+grant execute on function public.t_close(uuid, int, jsonb)                to authenticated;
+grant execute on function public.t_unstart(uuid, int)                     to authenticated;
+grant execute on function public.t_unpair(uuid, int)                      to authenticated;
+grant execute on function public.t_live_duels(uuid)                       to authenticated;
+grant execute on function public.meta_duels(timestamptz)                  to anon, authenticated;
+grant execute on function public.player_matches(uuid)                     to anon, authenticated;
