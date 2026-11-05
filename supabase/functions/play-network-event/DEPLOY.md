@@ -5,7 +5,9 @@ malediction.gg. It has two modes:
 
 - **Listing** (`{ league_id, url }` or `{ id }`): saves the event as a
   listing of a community (table `pn_events`). Only organizers of the
-  community can call it. It keeps how many players registered, never who.
+  community can call it. It keeps how many players registered, never who,
+  and the event's settings: number of rounds (`num_rounds`), round length
+  in minutes (`round_minutes`) and game mode (`game_mode`, 1x1 or 2x2).
 - **Tournament** (`{ tournament_id }`): copies the registered players of the
   tournament's Play Network event into that tournament (nickname and
   malediction.gg profile id of each player, nothing else). Only the
@@ -19,6 +21,10 @@ Run the migrations in Supabase Dashboard > SQL Editor, in date order:
   `pn_fetch_allow()` function (listing mode).
 - `migration-2026-11-11-tournaments.sql`: the tournament columns and the
   `t_fetch_allow()` and `t_import()` functions (tournament mode).
+- `migration-2026-11-14-swiss.sql`: the `num_rounds`, `round_minutes` and
+  `game_mode` columns of `pn_events`, and `t_import()` with its fourth
+  argument `p_meta` (the event's settings, used to suggest the number of
+  Swiss rounds).
 
 The check query at the end of each migration should show `ok = true` on
 every row.
@@ -35,6 +41,25 @@ Phase 3 (tournaments) goes live in this order:
 If the function is deployed before the SQL, the tournament mode answers
 `upstream_error` (the `t_fetch_allow` call fails), and the listing mode keeps
 working as before.
+
+Swiss tournaments go live in this order:
+
+1. **SQL**: `migration-2026-11-14-swiss.sql` (the new `pn_events` columns
+   and the 4-argument `t_import` must exist first).
+2. **Site**: `index.html`.
+3. **This function**: paste the new `index.ts`.
+
+Between steps 1 and 3 the old function keeps working: it does not write the
+new columns, and it calls `t_import` with three arguments, which the new
+`t_import` accepts because `p_meta` has a default. Until step 3, new
+tournaments have no Play Network round count (`pn.rounds` is empty) and the
+page suggests the number of rounds from the Malediction Tournament Guide
+table.
+
+Do not deploy this function before step 1: every listing save would then
+fail ("The event was read but could not be saved", because the new columns
+do not exist yet) and every player import would answer `upstream_error`
+(no `t_import` with `p_meta`).
 
 ## Deploy from the dashboard
 
@@ -66,6 +91,20 @@ On the site, signed in as an organizer of a community that is not archived:
 open the community, add an event, and paste an official link, for example
 `https://malediction.gg/play-network/events/single/393/torneo-un-friendly-la-tana-dellotaku/`.
 The listing should appear with its title, date, venue and number of players.
+
+The event's settings are saved with the listing. Check them in the SQL
+Editor (read only):
+
+```sql
+select pn_id, format, num_rounds, round_minutes, game_mode
+from public.pn_events where pn_id = 393;
+```
+
+For event 393 expect `Swiss`, `1`, `60`, `1x1`. Play Network shows `0` for
+a setting the organizer left empty (event 323 has `num_rounds = 0`); that
+`0` is stored as it is, and a tournament treats it as "not set". A value
+outside 0 to 100 rounds or 0 to 1440 minutes, or a game mode other than
+1x1 or 2x2, is saved as empty.
 
 From the browser console on the site (signed in), you can also call it
 directly:
@@ -127,9 +166,15 @@ Then check the SQL side in the SQL Editor (read only):
 
 ```sql
 select id, status, rev, jsonb_array_length(payload->'entrants') as players,
-       payload#>>'{pn,n}' as official_count, payload#>>'{pn,at}' as imported_at
+       payload#>>'{pn,n}' as official_count, payload#>>'{pn,at}' as imported_at,
+       payload#>>'{pn,rounds}' as pn_rounds, payload#>>'{pn,system}' as pn_system,
+       payload#>>'{pn,minutes}' as pn_minutes, payload#>>'{pn,gmode}' as pn_game_mode
 from public.tournaments where id = '<tournament id>';
 ```
+
+The last four columns come from `p_meta` (the event's settings, never
+player data). For event 393: `1`, `Swiss`, `60`, `1x1`. A `0` round count
+is kept as empty.
 
 The parser can also be checked offline, without deploying: the block between
 `// ---- registrants (pure) ----` and `// ---- end registrants ----` is plain
@@ -156,7 +201,8 @@ links, names, the players list or tokens, only short error codes.
   `https://malediction.gg/play-network/events/single/<id>/<slug>/`, with a
   10 second timeout, a 3 MB size limit, no automatic redirects, and the
   User-Agent `SeekersLeague/1.0 (+https://seekers-league.com)`.
-- A listing stores how many players registered, never who. A tournament
+- A listing stores how many players registered, never who, plus the
+  event's number of rounds, round length and game mode. A tournament
   stores each registered player's Play Network nickname (at most 40
   characters) and malediction.gg profile id, at most 256 players. First and
   last names, Discord handles, avatars, decks and seekers on the page are

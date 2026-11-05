@@ -7348,3 +7348,1919 @@ begin
     't', case when v_tid is not null or v_tskip is not null
               then jsonb_build_object('id', v_tid, 'title', v_ttitle, 'label', v_tlabel, 'skip', v_tskip) end);
 end $$;
+
+-- ============================================================
+--  SWISS TOURNAMENTS (2026-11-14)
+-- ============================================================
+-- Run as migration-2026-11-14-swiss.sql.
+-- What changes:
+--   * Every new Play Network tournament runs as Swiss rounds, the official
+--     format (Malediction Tournament Guide): round 1 at random, then each
+--     round pairs players with the same points, nobody meets the same
+--     opponent twice, and the bye goes to the lowest-ranked player without
+--     one. Victory 3 points, tie 2, defeat 1, bye 3 (and 20 mastery
+--     differential). Standings: tournament points, then mastery
+--     differential, then strength of schedule, then head to head (worked
+--     out on the page). There is no top cut: the champion tops the final
+--     standings. The pairings and standings are made on the organizer's
+--     page; the server checks them (t_sw_* helpers) and stores them in the
+--     payload (v 3, fmt 'swiss'). Earlier groups-and-finals tournaments (no
+--     fmt) keep working as before and can still be finished.
+--   * New organizer functions t_pair (pair the next round), t_unpair (undo
+--     the last round's pairings) and t_plan (change the number of rounds).
+--     t_start, t_unstart, t_result (now also a draw and both masteries),
+--     t_entrant (a drop is kept with its round; bringing a player back is
+--     allowed only until the next round is paired), t_fill, t_close (now
+--     with the standings from the page, frozen at close), t_reopen,
+--     t_create, t_game_label, t_reattach, t_record_duel and t_rekey (it
+--     also moves the frozen standings) are replaced.
+--     t_result, t_close and t_import gain arguments, so their old versions
+--     are dropped.
+--   * pn_events gains num_rounds, round_minutes and game_mode (read from
+--     the official event page by the edge function). t_create copies them
+--     into the tournament and refuses team (2v2) events; t_import (service
+--     role only) takes them again in draft (p_meta).
+--   * tournaments_v3_shape accepts fmt 'swiss' and payloads up to 1 MB.
+--   * Draws in the match tracker: duels.is_draw. A player claims a draw
+--     (only with equal mastery: the official draw is equal mastery when
+--     time runs out) and the opponent confirms it like a win; the 48-hour
+--     auto-save also saves a draw. duel_claim gains p_draw (the old
+--     version is dropped; a call without it works as before); duel_answer,
+--     duel_sweep and duel_notify handle draws. A finished draw has no
+--     winner and no loser. In a Swiss tournament a tracked draw is recorded
+--     in the game (2 points each, mastery differential 0).
+--   * meta_duels and player_matches gain is_draw (a draw is a win for
+--     nobody; player_matches gives won null for a draw). Their return type
+--     changes, so they are dropped and made again.
+
+-- 1. Play Network event settings ------------------------------------------------
+-- Read from the official event page by the edge function play-network-event
+-- (event settings only, no player data): num_rounds (the organizer's planned
+-- rounds; 0 when not set), round_minutes (round length) and game_mode
+-- ('1x1' or '2x2'). Hand-typed listings leave them empty.
+alter table public.pn_events
+  add column if not exists num_rounds    int,
+  add column if not exists round_minutes int,
+  add column if not exists game_mode     text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'pn_events_num_rounds' and conrelid = 'public.pn_events'::regclass) then
+    alter table public.pn_events add constraint pn_events_num_rounds
+      check (num_rounds is null or num_rounds between 0 and 100);
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'pn_events_round_minutes' and conrelid = 'public.pn_events'::regclass) then
+    alter table public.pn_events add constraint pn_events_round_minutes
+      check (round_minutes is null or round_minutes between 0 and 1440);
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'pn_events_game_mode' and conrelid = 'public.pn_events'::regclass) then
+    alter table public.pn_events add constraint pn_events_game_mode
+      check (game_mode is null or game_mode in ('1x1','2x2'));
+  end if;
+end $$;
+
+-- 2. tournaments: Swiss payloads -------------------------------------------------
+-- A Play Network tournament is payload v 3 with fmt 'swiss' (every new one)
+-- or no fmt (the earlier groups-and-finals tournaments, kept as they are).
+-- Swiss rounds are appended one at a time, so the cap goes up to 1 MB.
+alter table public.tournaments drop constraint if exists tournaments_v3_shape;
+alter table public.tournaments add constraint tournaments_v3_shape
+  check (status is null or (payload->>'v' = '3' and mode is not null
+                            and (payload->>'fmt' is null or payload->>'fmt' = 'swiss')
+                            and octet_length(payload::text) <= 1048576));
+
+-- 3. Draws in the match tracker ---------------------------------------------------
+-- A draw (time ran out with equal mastery) is claimed like a win and
+-- confirmed by the opponent (or saved after 48 hours). While the claim waits
+-- (status ending) is_draw is true and claim_winner is null; a finished draw
+-- has is_draw true and no winner or loser. Both scores are the same mastery.
+alter table public.duels add column if not exists is_draw boolean not null default false;
+alter table public.duels drop constraint if exists duels_done_has_result;
+alter table public.duels add constraint duels_done_has_result
+  check (status <> 'done'
+         or (not is_draw and winner_id is not null and loser_id is not null)
+         or (is_draw and winner_id is null and loser_id is null));
+alter table public.duels drop constraint if exists duels_draw_claimed;
+alter table public.duels add constraint duels_draw_claimed
+  check (not is_draw or status in ('ending','done','cancelled'));
+
+-- Housekeeping: as in the MATCH TRACKER section, and a draw claimed and left
+-- unanswered for 48 hours is saved as a draw.
+create or replace function public.duel_sweep()
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+  m int;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('duel_sweep')) then
+    return 0;
+  end if;
+  update duels set status = 'expired', pin = null, ended_at = now(), updated_at = now()
+   where status = 'waiting' and pin_expires_at <= now();
+  get diagnostics m = row_count; n := n + m;
+  update duels set status = 'cancelled', ended_at = now(), updated_at = now()
+   where status = 'live' and updated_at < now() - interval '12 hours';
+  get diagnostics m = row_count; n := n + m;
+  update duels set status = 'done',
+         winner_id = case when is_draw then null else claim_winner end,
+         loser_id = case when is_draw then null
+                         when claim_winner = host_id then guest_id else host_id end,
+         ended_at = now(), updated_at = now()
+   where status = 'ending' and (claim_winner is not null or is_draw)
+     and coalesce(claimed_at, updated_at) < now() - interval '48 hours';
+  get diagnostics m = row_count; n := n + m;
+  delete from duels where status = 'expired' and created_at < now() - interval '7 days';
+  delete from duels where status = 'cancelled' and created_at < now() - interval '30 days';
+  delete from duel_join_attempts where created_at < now() - interval '2 days';
+  return n;
+end $$;
+revoke all on function public.duel_sweep() from public, anon, authenticated;
+
+-- duel_claim: as in the MATCH TRACKER section, plus p_draw. With p_draw true
+-- the claim is a draw (p_winner is ignored; send null): both scores must be
+-- given and equal (a draw is a tie on mastery), and the opponent confirms it
+-- as a win claim (status ending). A call without p_draw works as before.
+-- The argument list changes, so the old function is dropped first.
+drop function if exists public.duel_claim(uuid, uuid, int, int, int, jsonb);
+create or replace function public.duel_claim(p_id uuid, p_winner uuid, p_winner_score int, p_loser_score int,
+                                             p_rounds int, p_state jsonb, p_draw boolean default false)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  if (p_winner_score is not null and p_winner_score not between 0 and 999)
+     or (p_loser_score is not null and p_loser_score not between 0 and 999)
+     or (p_rounds is not null and p_rounds not between 0 and 999) then
+    raise exception 'Scores and rounds must be between 0 and 999' using errcode = '22023';
+  end if;
+  if p_state is not null and (jsonb_typeof(p_state) <> 'object' or octet_length(p_state::text) > 8192) then
+    raise exception 'The match state must be a JSON object of at most 8 KB' using errcode = '22023', hint = 'too_large';
+  end if;
+  select * into d from duels x where x.id = p_id for update;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if d.status <> 'live' then
+    return jsonb_build_object('ok', false, 'status', d.status);
+  end if;
+
+  if coalesce(p_draw, false) then
+    if p_winner_score is null or p_loser_score is null or p_winner_score <> p_loser_score then
+      raise exception 'A draw needs the same mastery for both players' using errcode = '22023', hint = 'draw_unequal';
+    end if;
+    update duels
+       set status = 'ending', claim_by = v_uid, claim_winner = null, is_draw = true, claimed_at = now(),
+           winner_score = p_winner_score, loser_score = p_loser_score, rounds = p_rounds,
+           state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
+           updated_at = now()
+     where id = d.id;
+    return jsonb_build_object('ok', true, 'status', 'ending');
+  end if;
+
+  if p_winner is null or (p_winner is distinct from d.host_id and p_winner is distinct from d.guest_id) then
+    raise exception 'The winner must be one of the two players' using errcode = '22023';
+  end if;
+
+  if p_winner <> v_uid then
+    update duels
+       set status = 'done', claim_by = v_uid, claim_winner = p_winner, is_draw = false,
+           winner_id = p_winner, loser_id = v_uid,
+           winner_score = p_winner_score, loser_score = p_loser_score, rounds = p_rounds,
+           state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
+           ended_at = now(), updated_at = now()
+     where id = d.id;
+    return jsonb_build_object('ok', true, 'status', 'done');
+  end if;
+
+  update duels
+     set status = 'ending', claim_by = v_uid, claim_winner = v_uid, is_draw = false, claimed_at = now(),
+         winner_score = p_winner_score, loser_score = p_loser_score, rounds = p_rounds,
+         state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
+         updated_at = now()
+   where id = d.id;
+  return jsonb_build_object('ok', true, 'status', 'ending');
+end $$;
+
+-- duel_answer: as in the MATCH TRACKER section; accepting a draw claim
+-- saves a draw (no winner or loser), and "Not right" also clears it.
+create or replace function public.duel_answer(p_id uuid, p_accept boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  select * into d from duels x where x.id = p_id for update;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if d.status <> 'ending' then
+    return jsonb_build_object('ok', false, 'status', d.status);
+  end if;
+  if v_uid = d.claim_by then
+    raise exception 'Your opponent confirms this result' using errcode = '42501';
+  end if;
+  if coalesce(p_accept, false) then
+    update duels
+       set status = 'done',
+           winner_id = case when d.is_draw then null else d.claim_winner end,
+           loser_id = case when d.is_draw then null
+                           when d.claim_winner = d.host_id then d.guest_id else d.host_id end,
+           ended_at = now(), updated_at = now()
+     where id = d.id;
+    return jsonb_build_object('ok', true, 'status', 'done');
+  end if;
+  update duels
+     set status = 'live', claim_by = null, claim_winner = null, claimed_at = null, is_draw = false,
+         winner_score = null, loser_score = null, rounds = null, updated_at = now()
+   where id = d.id;
+  return jsonb_build_object('ok', true, 'status', 'live');
+end $$;
+
+revoke all on function public.duel_claim(uuid, uuid, int, int, int, jsonb, boolean) from public, anon;
+revoke all on function public.duel_answer(uuid, boolean)                            from public, anon;
+grant execute on function public.duel_claim(uuid, uuid, int, int, int, jsonb, boolean) to authenticated;
+grant execute on function public.duel_answer(uuid, boolean)                            to authenticated;
+
+-- duel_notify: as in the MATCH TRACKER section, and the broadcast carries
+-- is_draw (a draw claim has no claim_winner).
+create or replace function public.duel_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status is distinct from old.status
+     or new.claim_by is distinct from old.claim_by
+     or new.claim_winner is distinct from old.claim_winner
+     or new.is_draw is distinct from old.is_draw
+     or new.guest_id is distinct from old.guest_id then
+    begin
+      perform realtime.send(
+        jsonb_build_object('status', new.status, 'claim_by', new.claim_by,
+                           'claim_winner', new.claim_winner, 'is_draw', new.is_draw,
+                           'guest_id', new.guest_id),
+        'duel_status', 'duel:' || new.id::text, true);
+    exception when others then
+      null;
+    end;
+  end if;
+  return null;
+end $$;
+revoke all on function public.duel_notify() from public, anon, authenticated;
+
+-- 4. Swiss helpers (not callable over the API) ----------------------------------
+-- The Swiss payload (v 3, fmt 'swiss'): groups is one pseudo-group holding
+-- every player active at the start; rounds (planned, 1-15) and seed (the
+-- round-1 shuffle, made on the organizer's page); gm is appended one round
+-- at a time, in round order, and never reordered:
+--   {g:0, a, b|null, w: key|'draw'|null, r, tb|null, sa?, sb? (final
+--    mastery of a and b), src?: org|duel|drop|bye, du?, dx?, at?, auto?,
+--    rm? (an accepted rematch)}
+-- A bye is {b:null, w:a, src:'bye', tb:null}. 'draw' can never be a key.
+-- Entrants gain dr: the round when they were dropped (0 before the start).
+-- standings is frozen at close. No top cut: bracket stays [].
+
+-- The current round: the highest r in gm, 0 when none.
+create or replace function public.t_sw_cur(p jsonb)
+returns int language sql immutable security definer set search_path = public as $$
+  select coalesce(max(case when q.x->>'r' ~ '^[0-9]{1,3}$' then (q.x->>'r')::int end), 0)
+    from jsonb_array_elements(case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end) q(x);
+$$;
+
+-- The most rounds n players can play before a rematch is certain (at most 15).
+create or replace function public.t_sw_max_rounds(n int)
+returns int language sql immutable security definer set search_path = public as $$
+  select greatest(0, least(15, case when n % 2 = 1 then n else n - 1 end));
+$$;
+
+-- The Swiss score of every player in the groups (zeros for a player with no
+-- result), counting only games with a result. Per game (Malediction
+-- Tournament Guide): a victory or a bye is 3 tournament points, a tie 2, a
+-- defeat 1. Mastery differential (MD): the winner gets own mastery minus the
+-- opponent's (never below 0; 0 when either mastery is missing), a bye or a
+-- forfeit from a dropped opponent (src 'drop') gives the winner 20, a loss
+-- or a draw 0. w counts victories (byes and forfeits included), d draws,
+-- l defeats. It must give the same tp/w/d/l/md as swTable() on the page;
+-- t_close checks the standings sent from the page against it.
+-- Review fixtures (the check query below runs both):
+--   S1  r1: a beats b 40-31, c draws d 25-25; r2: c beats a 40-38, b beats d
+--       (no mastery entered)
+--       id  tp  w  d  l  md
+--       a    4  1  0  1   9
+--       b    4  1  0  1   0
+--       c    5  1  1  0   2
+--       d    3  0  1  1   0
+--   S2  r1: x beats y 40-35, z has a bye; r2: z vs x is a forfeit for z
+--       (x dropped), y has a bye; then y drops too
+--       id  tp  w  d  l  md
+--       x    4  1  0  1   5
+--       y    4  1  0  1  20
+--       z    6  2  0  0  40
+create or replace function public.t_sw_score(p jsonb)
+returns table (id text, tp int, w int, d int, l int, md int)
+language sql immutable security definer set search_path = public as $$
+  with g as (
+    select q.x as m
+      from jsonb_array_elements(case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end) q(x)
+     where jsonb_typeof(q.x) = 'object' and q.x->>'w' is not null
+  ), s as (
+    select g.m->>'a' as k,
+           case when g.m->>'src' = 'bye' then 'W'
+                when g.m->>'w' = 'draw' then 'D'
+                when g.m->>'w' = g.m->>'a' then 'W'
+                else 'L' end as res,
+           case when g.m->>'src' = 'bye' then 20
+                when g.m->>'w' = 'draw' then 0
+                when g.m->>'w' = g.m->>'a' then
+                  case when g.m->>'src' = 'drop' then 20
+                       when g.m->>'sa' ~ '^[0-9]{1,3}$' and g.m->>'sb' ~ '^[0-9]{1,3}$'
+                         then greatest(0, (g.m->>'sa')::int - (g.m->>'sb')::int)
+                       else 0 end
+                else 0 end as v
+      from g
+    union all
+    select g.m->>'b',
+           case when g.m->>'w' = 'draw' then 'D'
+                when g.m->>'w' = g.m->>'b' then 'W'
+                else 'L' end,
+           case when g.m->>'w' = 'draw' then 0
+                when g.m->>'w' = g.m->>'b' then
+                  case when g.m->>'src' = 'drop' then 20
+                       when g.m->>'sa' ~ '^[0-9]{1,3}$' and g.m->>'sb' ~ '^[0-9]{1,3}$'
+                         then greatest(0, (g.m->>'sb')::int - (g.m->>'sa')::int)
+                       else 0 end
+                else 0 end
+      from g
+     where g.m->>'b' is not null
+  )
+  select z.k,
+         coalesce(sum(case s.res when 'W' then 3 when 'D' then 2 when 'L' then 1 end), 0)::int,
+         (count(s.res) filter (where s.res = 'W'))::int,
+         (count(s.res) filter (where s.res = 'D'))::int,
+         (count(s.res) filter (where s.res = 'L'))::int,
+         coalesce(sum(s.v), 0)::int
+    from unnest(t_grouped(p)) with ordinality z(k, o)
+    left join s on s.k = z.k
+   group by z.k, z.o
+   order by z.o;
+$$;
+
+-- The pairings of a round, made on the organizer's page: null when valid,
+-- otherwise 'bad_input' or 'rematch'. p_pairs is [[keyA, keyB|null], ...]:
+-- every active player exactly once, one null (the bye) when their number is
+-- odd and none otherwise; the bye goes to a player who has not had one
+-- while such a player is still active; and no pair has met before (any game
+-- with both players, forfeits included) unless p_rematch.
+create or replace function public.t_sw_pairs_ok(p jsonb, p_pairs jsonb, p_rematch boolean)
+returns text language plpgsql immutable security definer set search_path = public as $$
+declare
+  v_act   text[] := t_active(p);
+  v_gm    jsonb := case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end;
+  v_keys  text[];
+  v_nulls int;
+  v_bye   text;
+begin
+  if p_pairs is null or jsonb_typeof(p_pairs) is distinct from 'array' then
+    return 'bad_input';
+  end if;
+  if exists (select 1 from jsonb_array_elements(p_pairs) q(x) where jsonb_typeof(q.x) <> 'array') then
+    return 'bad_input';
+  end if;
+  if exists (select 1 from jsonb_array_elements(p_pairs) q(x) where jsonb_array_length(q.x) <> 2) then
+    return 'bad_input';
+  end if;
+  if exists (select 1 from jsonb_array_elements(p_pairs) q(x)
+              where jsonb_typeof(q.x->0) <> 'string' or jsonb_typeof(q.x->1) not in ('string','null')) then
+    return 'bad_input';
+  end if;
+  select coalesce(array_agg(y.k #>> '{}'), '{}') into v_keys
+    from jsonb_array_elements(p_pairs) q(x), jsonb_array_elements(q.x) y(k)
+   where jsonb_typeof(y.k) = 'string';
+  if cardinality(v_keys) <> (select count(distinct z) from unnest(v_keys) z)
+     or cardinality(v_keys) <> cardinality(v_act)
+     or not (v_keys <@ v_act) then
+    return 'bad_input';
+  end if;
+  select count(*) into v_nulls from jsonb_array_elements(p_pairs) q(x) where jsonb_typeof(q.x->1) = 'null';
+  if v_nulls <> cardinality(v_act) % 2 then
+    return 'bad_input';
+  end if;
+  if v_nulls = 1 then
+    select q.x->>0 into v_bye from jsonb_array_elements(p_pairs) q(x) where jsonb_typeof(q.x->1) = 'null';
+    if v_gm @> jsonb_build_array(jsonb_build_object('a', v_bye, 'src', 'bye'))
+       and exists (select 1 from unnest(v_act) z
+                    where not (v_gm @> jsonb_build_array(jsonb_build_object('a', z, 'src', 'bye')))) then
+      return 'bad_input';
+    end if;
+  end if;
+  if not coalesce(p_rematch, false) and exists (
+       select 1 from jsonb_array_elements(p_pairs) q(x), jsonb_array_elements(v_gm) g(m)
+        where jsonb_typeof(q.x->1) = 'string' and g.m->>'b' is not null
+          and ((g.m->>'a' = q.x->>0 and g.m->>'b' = q.x->>1)
+               or (g.m->>'a' = q.x->>1 and g.m->>'b' = q.x->>0))) then
+    return 'rematch';
+  end if;
+  return null;
+end $$;
+
+-- Round p_r appended to gm from pairings that passed t_sw_pairs_ok: a game
+-- per pair, tables 1, 2, ... in the order sent (rm when the two met
+-- before), and the bye decided at once (3 points, MD 20).
+create or replace function public.t_sw_append(p jsonb, p_pairs jsonb, p_r int)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_gm  jsonb := case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end;
+  v_x   jsonb;
+  v_tb  int := 0;
+  v_met boolean;
+begin
+  for v_x in select q.x from jsonb_array_elements(p_pairs) with ordinality q(x, o) order by q.o loop
+    if jsonb_typeof(v_x->1) = 'string' then
+      v_tb := v_tb + 1;
+      v_met := exists (select 1 from jsonb_array_elements(v_gm) g(m)
+                        where g.m->>'b' is not null
+                          and ((g.m->>'a' = v_x->>0 and g.m->>'b' = v_x->>1)
+                               or (g.m->>'a' = v_x->>1 and g.m->>'b' = v_x->>0)));
+      v_gm := v_gm || jsonb_build_array(
+                jsonb_build_object('g', 0, 'a', v_x->0, 'b', v_x->1, 'w', null, 'r', p_r, 'tb', v_tb)
+                || case when v_met then '{"rm":true}'::jsonb else '{}'::jsonb end);
+    else
+      v_gm := v_gm || jsonb_build_array(
+                jsonb_build_object('g', 0, 'a', v_x->0, 'b', null, 'w', v_x->0, 'r', p_r, 'tb', null,
+                                   'src', 'bye', 'at', now()));
+    end if;
+  end loop;
+  return jsonb_set(p, '{gm}', v_gm);
+end $$;
+
+-- The final mastery of a tracked match on a Swiss game, as {sa, sb} for its
+-- a and b sides (keys left out when not known). p_w is the match's winner
+-- key, or 'draw' (both scores are the same mastery then).
+create or replace function public.t_sw_duel_scores(m jsonb, p_w text, p_ws int, p_ls int)
+returns jsonb language sql immutable security definer set search_path = public as $$
+  select jsonb_strip_nulls(jsonb_build_object(
+           'sa', case when p_w = 'draw' then p_ws when m->>'a' = p_w then p_ws else p_ls end,
+           'sb', case when p_w = 'draw' then p_ls when m->>'b' = p_w then p_ws else p_ls end));
+$$;
+
+revoke all on function public.t_sw_cur(jsonb)                       from public, anon, authenticated;
+revoke all on function public.t_sw_max_rounds(int)                  from public, anon, authenticated;
+revoke all on function public.t_sw_score(jsonb)                     from public, anon, authenticated;
+revoke all on function public.t_sw_pairs_ok(jsonb, jsonb, boolean)  from public, anon, authenticated;
+revoke all on function public.t_sw_append(jsonb, jsonb, int)        from public, anon, authenticated;
+revoke all on function public.t_sw_duel_scores(jsonb, text, int, int) from public, anon, authenticated;
+
+-- 5. Tournament functions, changed ----------------------------------------------
+-- "Round 2 · Table 3", "Round 2 · Bye" for a Swiss game; earlier
+-- tournaments as in the PLAY NETWORK TOURNAMENTS section.
+create or replace function public.t_game_label(p jsonb, p_ref text)
+returns text language plpgsql immutable security definer set search_path = public as $$
+declare
+  v_tb int := case when p->>'tables' ~ '^[0-9]{1,3}$' then (p->>'tables')::int else 0 end;
+  v_m  jsonb;
+  v_mm text[];
+  v_l  int;
+begin
+  if p_ref ~ '^g:[0-9]{1,4}$' then
+    v_m := p->'gm'->(substr(p_ref, 3)::int);
+    if v_m is null then
+      return null;
+    end if;
+    if p->>'fmt' = 'swiss' then
+      return case when v_m->>'r' ~ '^[0-9]{1,3}$' then 'Round ' || (v_m->>'r') else 'Round' end
+          || case when v_m->>'src' = 'bye' then ' · Bye'
+                  when v_m->>'tb' ~ '^[0-9]{1,3}$' then ' · Table ' || (v_m->>'tb') else '' end;
+    end if;
+    return case when v_m->>'r' ~ '^[0-9]{1,3}$' then 'Round ' || (v_m->>'r') else 'Group stage' end
+        || case when v_tb > 0 and v_m->>'tb' ~ '^[0-9]{1,3}$' then ' · Table ' || (v_m->>'tb') else '' end;
+  end if;
+  v_mm := regexp_match(coalesce(p_ref, ''), '^b:([0-9]{1,2}):([0-9]{1,4})$');
+  if v_mm is null or jsonb_typeof(p->'bracket') is distinct from 'array' then
+    return null;
+  end if;
+  v_l := jsonb_array_length(p->'bracket');
+  if v_mm[1]::int >= v_l or p->'bracket'->(v_mm[1]::int)->(v_mm[2]::int) is null then
+    return null;
+  end if;
+  return t_round_name(v_l, v_mm[1]::int)
+      || case when v_tb > 0 then ' · Table ' || ((v_mm[2]::int) % v_tb + 1) else '' end;
+end $$;
+
+-- Tracked matches attached again: as in the PLAY NETWORK TOURNAMENTS
+-- section, plus draws and mastery. A tracked draw is attached only to a
+-- Swiss game (earlier tournaments have no draws). On a Swiss game the
+-- match's final mastery goes to sa/sb: always when the match gives the
+-- result, and to fill missing ones when the result agrees with it. The
+-- mastery is taken only from a draw or from a win claimed by its winner
+-- (confirmed by the opponent or saved after 48 hours): a concession is
+-- sent by the loser alone, so its masteries are left for the organizer.
+create or replace function public.t_reattach(p jsonb, p_tid uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_d     record;
+  v_m     jsonb;
+  v_i     int;
+  v_mm    text[];
+  v_r     int;
+  v_k     int;
+  v_a     text;
+  v_b     text;
+  v_dec   text;
+  v_drops text[];
+  v_sw    boolean := coalesce(p->>'fmt' = 'swiss', false);
+  v_more  boolean := true;
+  v_pass  int := 0;
+begin
+  if p is null or p_tid is null then
+    return p;
+  end if;
+  select coalesce(array_agg(q.x->>'id'), '{}') into v_drops
+    from jsonb_array_elements(coalesce(p->'entrants', '[]'::jsonb)) q(x)
+   where q.x->>'st' = 'drop';
+  while v_more and v_pass < 12 loop
+    v_more := false;
+    v_pass := v_pass + 1;
+    for v_d in
+      select d.id, d.t_ref, d.host_id::text as h, d.guest_id::text as g,
+             case when d.is_draw then 'draw' else d.winner_id::text end as w,
+             d.is_draw,
+             case when d.is_draw or d.claim_by = d.winner_id then d.winner_score end as ws,
+             case when d.is_draw or d.claim_by = d.winner_id then d.loser_score end as ls,
+             d.ended_at
+        from duels d
+       where d.tournament_id = p_tid and d.status = 'done' and d.t_ref is not null
+         and d.guest_id is not null and (d.winner_id is not null or d.is_draw)
+       order by d.ended_at desc, d.id
+    loop
+      if v_d.h = any(v_drops) or v_d.g = any(v_drops) then
+        continue;
+      end if;
+      if v_d.is_draw and not v_sw then
+        continue;
+      end if;
+      if v_d.t_ref ~ '^g:[0-9]{1,4}$' then
+        v_i := substr(v_d.t_ref, 3)::int;
+        v_m := p->'gm'->v_i;
+        if v_m is null or v_m->>'du' is not null then
+          continue;
+        end if;
+        if not coalesce((v_m->>'a' = v_d.h and v_m->>'b' = v_d.g) or (v_m->>'a' = v_d.g and v_m->>'b' = v_d.h), false) then
+          continue;
+        end if;
+        if v_m->>'w' is null then
+          v_m := (v_m - 'dx') || jsonb_build_object('w', v_d.w, 'src', 'duel', 'du', v_d.id, 'at', v_d.ended_at)
+                 || case when v_sw then t_sw_duel_scores(v_m, v_d.w, v_d.ws, v_d.ls) else '{}'::jsonb end;
+        else
+          v_m := v_m || jsonb_build_object('du', v_d.id)
+                     || case when v_m->>'w' <> v_d.w then '{"dx":true}'::jsonb else '{}'::jsonb end;
+          if v_sw and v_m->>'w' = v_d.w then
+            v_m := t_sw_duel_scores(v_m, v_d.w, v_d.ws, v_d.ls) || v_m;
+          end if;
+        end if;
+        p := jsonb_set(p, array['gm', v_i::text], v_m);
+      elsif v_d.t_ref ~ '^b:[0-9]{1,2}:[0-9]{1,4}$' then
+        if v_d.is_draw then
+          continue;
+        end if;
+        v_mm := regexp_match(v_d.t_ref, '^b:([0-9]{1,2}):([0-9]{1,4})$');
+        v_r := v_mm[1]::int;
+        v_k := v_mm[2]::int;
+        v_m := p->'bracket'->v_r->v_k;
+        if v_m is null or jsonb_typeof(v_m) <> 'object' or v_m->>'du' is not null then
+          continue;
+        end if;
+        v_a := v_m #>> '{a,id}';
+        v_b := v_m #>> '{b,id}';
+        if not coalesce((v_a = v_d.h and v_b = v_d.g) or (v_a = v_d.g and v_b = v_d.h), false) then
+          continue;
+        end if;
+        if v_m->>'winner' is null then
+          v_m := (v_m - 'dx')
+                 || jsonb_build_object('winner', case when v_a = v_d.w then 'a' else 'b' end,
+                                       'src', 'duel', 'du', v_d.id, 'at', v_d.ended_at);
+          p := t_propagate(jsonb_set(p, array['bracket', v_r::text, v_k::text], v_m));
+          v_more := true;
+        else
+          v_dec := case v_m->>'winner' when 'a' then v_a when 'b' then v_b end;
+          v_m := v_m || jsonb_build_object('du', v_d.id)
+                     || case when v_dec is distinct from v_d.w then '{"dx":true}'::jsonb else '{}'::jsonb end;
+          p := jsonb_set(p, array['bracket', v_r::text, v_k::text], v_m);
+        end if;
+      end if;
+    end loop;
+  end loop;
+  return p;
+end $$;
+
+-- t_record_duel: as in the PLAY NETWORK TOURNAMENTS section, plus draws and
+-- mastery. A tracked draw is recorded only in a Swiss game (w 'draw', 2
+-- points each, MD 0); in an earlier tournament it is left out and the
+-- organizer enters the game. On a Swiss game the match's final mastery
+-- goes to sa/sb when the match gives the result, and fills missing ones
+-- when the organizer's result agrees with it. The mastery is taken only
+-- from a draw or from a win claimed by its winner (confirmed by the
+-- opponent or saved after 48 hours): a concession is sent by the loser
+-- alone, and the Guide scores a forfeit from the relics anyway, so its
+-- masteries are left for the organizer. Never raises.
+create or replace function public.t_record_duel(p_duel uuid, p_auto boolean default false)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_d    duels%rowtype;
+  v_t    tournaments%rowtype;
+  v_p    jsonb;
+  v_m    jsonb;
+  v_h    text;
+  v_g    text;
+  v_w    text;
+  v_a    text;
+  v_b    text;
+  v_i    int;
+  v_mm   text[];
+  v_r    int;
+  v_k    int;
+  v_dec  text;
+  v_sw   boolean;
+  v_ws   int;
+  v_ls   int;
+  v_auto jsonb := case when coalesce(p_auto, false) then '{"auto":true}'::jsonb else '{}'::jsonb end;
+begin
+  begin
+    select * into v_d from duels x where x.id = p_duel;
+    if not found or v_d.status <> 'done' or v_d.tournament_id is null or v_d.t_ref is null
+       or v_d.guest_id is null or (v_d.winner_id is null and not v_d.is_draw) then
+      return;
+    end if;
+    select * into v_t from tournaments x where x.id = v_d.tournament_id for update;
+    if not found or v_t.status is null or v_t.status not in ('running','closed') then
+      return;
+    end if;
+    v_p := v_t.payload;
+    v_sw := coalesce(v_p->>'fmt' = 'swiss', false);
+    if v_d.is_draw and not v_sw then
+      return;
+    end if;
+    v_h := v_d.host_id::text;
+    v_g := v_d.guest_id::text;
+    v_w := case when v_d.is_draw then 'draw' else v_d.winner_id::text end;
+    if v_d.is_draw or v_d.claim_by = v_d.winner_id then
+      v_ws := v_d.winner_score;
+      v_ls := v_d.loser_score;
+    end if;
+    if exists (select 1 from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) y(e)
+                where y.e->>'id' in (v_h, v_g) and y.e->>'st' = 'drop') then
+      return;
+    end if;
+
+    if v_d.t_ref ~ '^g:[0-9]{1,4}$' then
+      v_i := substr(v_d.t_ref, 3)::int;
+      v_m := v_p->'gm'->v_i;
+      if v_m is null then
+        return;
+      end if;
+      v_a := v_m->>'a';
+      v_b := v_m->>'b';
+      if not coalesce((v_a = v_h and v_b = v_g) or (v_a = v_g and v_b = v_h), false) then
+        return;
+      end if;
+      if v_m->>'w' is null then
+        if v_t.status <> 'running' then
+          return;
+        end if;
+        v_m := (v_m - 'dx') || jsonb_build_object('w', v_w, 'src', 'duel', 'du', v_d.id, 'at', now()) || v_auto
+               || case when v_sw then t_sw_duel_scores(v_m, v_w, v_ws, v_ls)
+                       else '{}'::jsonb end;
+      elsif v_m->>'du' is null then
+        v_m := v_m || jsonb_build_object('du', v_d.id)
+                   || case when v_m->>'w' <> v_w then '{"dx":true}'::jsonb else '{}'::jsonb end;
+        if v_sw and v_m->>'w' = v_w then
+          v_m := t_sw_duel_scores(v_m, v_w, v_ws, v_ls) || v_m;
+        end if;
+      else
+        return;
+      end if;
+      v_p := jsonb_set(v_p, array['gm', v_i::text], v_m);
+
+    elsif v_d.t_ref ~ '^b:[0-9]{1,2}:[0-9]{1,4}$' then
+      if v_d.is_draw then
+        return;
+      end if;
+      v_mm := regexp_match(v_d.t_ref, '^b:([0-9]{1,2}):([0-9]{1,4})$');
+      v_r := v_mm[1]::int;
+      v_k := v_mm[2]::int;
+      v_m := v_p->'bracket'->v_r->v_k;
+      if v_m is null then
+        return;
+      end if;
+      v_a := v_m #>> '{a,id}';
+      v_b := v_m #>> '{b,id}';
+      if not coalesce((v_a = v_h and v_b = v_g) or (v_a = v_g and v_b = v_h), false) then
+        return;
+      end if;
+      if v_m->>'winner' is null then
+        if v_t.status <> 'running' then
+          return;
+        end if;
+        v_m := (v_m - 'dx')
+               || jsonb_build_object('winner', case when v_a = v_w then 'a' else 'b' end,
+                                     'src', 'duel', 'du', v_d.id, 'at', now())
+               || v_auto;
+        v_p := t_propagate(jsonb_set(v_p, array['bracket', v_r::text, v_k::text], v_m));
+      elsif v_m->>'du' is null then
+        v_dec := case v_m->>'winner' when 'a' then v_a when 'b' then v_b end;
+        v_m := v_m || jsonb_build_object('du', v_d.id)
+                   || case when v_dec is distinct from v_w then '{"dx":true}'::jsonb else '{}'::jsonb end;
+        v_p := jsonb_set(v_p, array['bracket', v_r::text, v_k::text], v_m);
+      else
+        return;
+      end if;
+
+    else
+      return;
+    end if;
+
+    update tournaments set payload = v_p, rev = rev + 1 where id = v_t.id;
+  exception when others then
+    raise warning 't_record_duel: %', sqlerrm;
+  end;
+end $$;
+
+-- t_rekey: as in the PLAY NETWORK TOURNAMENTS section, and the frozen
+-- Swiss standings too. Every place a key sits in the payload, and only
+-- those: entrants[].id, groups[][], gm[].a/b/w, bracket[][].a.id/b.id,
+-- champion and standings[].id. "Remove name" (t_entrant forget) and
+-- erase_user_data run it on closed tournaments, so the old key (a Play
+-- Network id or an account id) must not stay behind in the standings.
+create or replace function public.t_rekey(p jsonb, p_old text, p_new text)
+returns jsonb language sql immutable security definer set search_path = public as $$
+  select case when p is null or p_old is null or p_new is null or p_old = p_new then p else
+    p
+    || jsonb_build_object('entrants', coalesce((
+         select jsonb_agg(case when q.x->>'id' = p_old then q.x || jsonb_build_object('id', p_new) else q.x end
+                          order by q.o)
+           from jsonb_array_elements(coalesce(p->'entrants', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || jsonb_build_object('groups', coalesce((
+         select jsonb_agg(coalesce((
+                  select jsonb_agg(case when y.k #>> '{}' = p_old then to_jsonb(p_new) else y.k end order by y.o)
+                    from jsonb_array_elements(q.x) with ordinality y(k, o)), '[]'::jsonb) order by q.o)
+           from jsonb_array_elements(coalesce(p->'groups', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || jsonb_build_object('gm', coalesce((
+         select jsonb_agg(q.x || jsonb_strip_nulls(jsonb_build_object(
+                  'a', case when q.x->>'a' = p_old then p_new end,
+                  'b', case when q.x->>'b' = p_old then p_new end,
+                  'w', case when q.x->>'w' = p_old then p_new end)) order by q.o)
+           from jsonb_array_elements(coalesce(p->'gm', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || jsonb_build_object('bracket', coalesce((
+         select jsonb_agg(coalesce((
+                  select jsonb_agg(y.m || jsonb_strip_nulls(jsonb_build_object(
+                           'a', case when y.m #>> '{a,id}' = p_old then jsonb_build_object('id', p_new) end,
+                           'b', case when y.m #>> '{b,id}' = p_old then jsonb_build_object('id', p_new) end))
+                           order by y.o)
+                    from jsonb_array_elements(q.x) with ordinality y(m, o)), '[]'::jsonb) order by q.o)
+           from jsonb_array_elements(coalesce(p->'bracket', '[]'::jsonb)) with ordinality q(x, o)), '[]'::jsonb))
+    || case when p->>'champion' = p_old then jsonb_build_object('champion', p_new) else '{}'::jsonb end
+    || case when jsonb_typeof(p->'standings') = 'array' then jsonb_build_object('standings', coalesce((
+         select jsonb_agg(case when q.x->>'id' = p_old then q.x || jsonb_build_object('id', p_new) else q.x end
+                          order by q.o)
+           from jsonb_array_elements(p->'standings') with ordinality q(x, o)), '[]'::jsonb))
+       else '{}'::jsonb end
+  end;
+$$;
+
+-- t_create: as in the PLAY NETWORK TOURNAMENTS section, and the listing's
+-- settings go to pn: rounds (num_rounds 1-100), system ('Swiss' or
+-- 'League'), minutes (round length 1-1440) and gmode ('1x1' or '2x2'),
+-- null when not known. A team (2v2) event is refused.
+create or replace function public.t_create(p_pn_event uuid, p_mode text default 'clash')
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_e   pn_events%rowtype;
+  v_id  uuid;
+begin
+  if p_mode is null or p_mode not in ('clash','demo') then
+    return t_no('bad_input', 'A tournament plays Clash or Demo.');
+  end if;
+  select * into v_e from pn_events x where x.id = p_pn_event;
+  if not found
+     or ((v_e.created_by is distinct from v_uid or not coalesce(is_league_admin(v_e.league_id), false))
+         and not coalesce(is_site_admin(), false)) then
+    return t_no('not_allowed', 'Only the organizer who linked this event can run it as a tournament.');
+  end if;
+  if not v_e.fetch_ok then
+    return t_no('bad_input', 'Refresh this event from the Play Network first.');
+  end if;
+  if v_e.game_mode = '2x2' then
+    return t_no('bad_input', 'Team (2v2) events cannot be run as a tournament here yet.');
+  end if;
+  if exists (select 1 from leagues l where l.id = v_e.league_id and l.archived_at is not null) then
+    return t_no('archived', 'This community is archived.');
+  end if;
+  select x.id into v_id from tournaments x where x.pn_event_id = v_e.id;
+  if v_id is not null then
+    return t_no('duplicate', 'This event already has a tournament.') || jsonb_build_object('id', v_id);
+  end if;
+  begin
+    insert into tournaments (league_id, month, payload, created_by, pn_event_id, organizer_id, status, mode, rev)
+    values (v_e.league_id,
+            to_char(coalesce(v_e.starts_at, now()) at time zone 'UTC', 'YYYY-MM'),
+            jsonb_build_object('v', 3,
+                               'pn', jsonb_build_object(
+                                       'id', v_e.pn_id, 'url', v_e.url, 'title', v_e.title,
+                                       'rounds', case when v_e.num_rounds between 1 and 100 then v_e.num_rounds end,
+                                       'system', case when v_e.format in ('Swiss','League') then v_e.format end,
+                                       'minutes', case when v_e.round_minutes between 1 and 1440 then v_e.round_minutes end,
+                                       'gmode', case when v_e.game_mode in ('1x1','2x2') then v_e.game_mode end),
+                               'entrants', '[]'::jsonb, 'groups', '[]'::jsonb, 'gm', '[]'::jsonb,
+                               'tables', 0, 'bracket', '[]'::jsonb, 'finalized', false),
+            v_uid, v_e.id, v_uid, 'draft', p_mode, 0)
+    returning id into v_id;
+  exception when unique_violation then
+    select x.id into v_id from tournaments x where x.pn_event_id = v_e.id;
+    return t_no('duplicate', 'This event already has a tournament.') || jsonb_build_object('id', v_id);
+  end;
+  return jsonb_build_object('ok', true, 'id', v_id, 'rev', 0);
+end $$;
+
+-- t_entrant: as in the PLAY NETWORK TOURNAMENTS section, plus:
+--   drop      before the start, and in a Swiss tournament, also stores dr,
+--             the current round (0 before the start). The player's
+--             undecided game of the current round goes to the opponent
+--             (src 'drop': 3 points and MD 20 for the opponent, a defeat
+--             for the dropped player); past results stay, and the player
+--             is never paired again
+--   undrop    in a running Swiss tournament, only while no round has been
+--             paired since the drop (dr not below the current round); the
+--             forfeit is undone
+create or replace function public.t_entrant(p_tid uuid, p_rev int, p_op text, p_key text default null,
+                                            p_name text default null, p_link text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := duel_caller();
+  v_no   jsonb;
+  v_t    tournaments%rowtype;
+  v_p    jsonb;
+  v_e    jsonb;
+  v_i    int;
+  v_raw  text;
+  v_pid  text;
+  v_key  text;
+  v_n    int;
+  v_rev  int;
+begin
+  if p_op is null or p_op not in ('drop','undrop','add','remove','unlink','relink','forget') then
+    return t_no('bad_input', 'This change is not known.');
+  end if;
+  v_no := t_lock(p_tid, p_rev, p_op = 'forget');
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  v_p := v_t.payload;
+
+  if p_op <> 'add' then
+    select q.o - 1, q.x into v_i, v_e
+      from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) with ordinality q(x, o)
+     where q.x->>'id' = p_key
+     limit 1;
+    if v_e is null then
+      return t_no('bad_input', 'This player is not in the list.');
+    end if;
+  end if;
+  if p_op in ('drop','undrop','unlink','relink') and v_t.status = 'closed' then
+    return t_no('status', 'The tournament is closed. Reopen it first.');
+  end if;
+  if p_op in ('add','remove') and v_t.status <> 'draft' then
+    return t_no('status', 'The tournament has started, so its list of players is fixed.');
+  end if;
+
+  if p_op = 'drop' then
+    if v_e->>'st' = 'drop' then
+      return jsonb_build_object('ok', true, 'rev', v_t.rev);
+    end if;
+    v_p := jsonb_set(v_p, array['entrants', v_i::text, 'st'], '"drop"'::jsonb);
+    if v_t.status = 'draft' or v_p->>'fmt' = 'swiss' then
+      v_p := jsonb_set(v_p, array['entrants', v_i::text, 'dr'], to_jsonb(t_sw_cur(v_p)));
+    end if;
+    if v_t.status = 'running' then
+      v_p := t_forfeits(v_p);
+      if not t_r0_empty(v_p) then
+        v_p := t_propagate(v_p);
+      end if;
+    end if;
+
+  elsif p_op = 'undrop' then
+    if v_e->>'st' is distinct from 'drop' then
+      return jsonb_build_object('ok', true, 'rev', v_t.rev);
+    end if;
+    if v_t.status = 'running' then
+      if not t_r0_empty(v_p) then
+        return t_no('finals_drawn', 'The finals are drawn; this player stays dropped.');
+      end if;
+      if not (p_key = any(t_grouped(v_p))) then
+        return t_no('status', 'This player was dropped before the start, so they are not in the draw.');
+      end if;
+      if v_p->>'fmt' = 'swiss'
+         and coalesce(case when v_e->>'dr' ~ '^[0-9]{1,3}$' then (v_e->>'dr')::int end, 0) < t_sw_cur(v_p) then
+        return t_no('status', 'Round ' || t_sw_cur(v_p) || ' is already paired without this player, so they stay dropped.');
+      end if;
+    end if;
+    v_p := jsonb_set(v_p, array['entrants', v_i::text], ((v_p->'entrants'->v_i) - 'dr') || '{"st":"in"}'::jsonb);
+    if v_t.status = 'running' then
+      v_p := t_forfeits(v_p);
+    end if;
+
+  elsif p_op = 'add' then
+    v_raw := btrim(regexp_replace(coalesce(p_name, ''), '[[:cntrl:]]', '', 'g'));
+    if char_length(v_raw) not between 1 and 40 then
+      return t_no('bad_input', 'A name has 1 to 40 characters.');
+    end if;
+    if jsonb_array_length(coalesce(v_p->'entrants', '[]'::jsonb)) >= 256 then
+      return t_no('bad_input', 'A tournament has at most 256 players.');
+    end if;
+    if nullif(btrim(coalesce(p_link, '')), '') is not null then
+      v_pid := mg_public_id(p_link);
+      if v_pid is null then
+        return t_no('bad_input', 'Paste the address of a malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/');
+      end if;
+      if coalesce(v_p->'entrants' @> jsonb_build_array(jsonb_build_object('pid', v_pid)), false)
+         or coalesce(v_p->'entrants' @> jsonb_build_array(jsonb_build_object('id', 'pn:' || v_pid)), false) then
+        return t_no('duplicate', 'This player is already in the list.');
+      end if;
+      v_key := 'pn:' || v_pid;
+    else
+      v_key := t_rand_key(v_p);
+    end if;
+    v_p := jsonb_set(v_p, '{entrants}', coalesce(v_p->'entrants', '[]'::jsonb) || jsonb_build_array(
+             jsonb_build_object('id', v_key, 'name', v_raw, 'pid', v_pid, 'src', 'hand', 'st', 'in',
+                                'seeker', '', 'terrain', '', 'deck', '', 'deckId', '')));
+    if v_pid is not null then
+      select q.r into v_p from t_link_all(v_p) q;
+    end if;
+
+  elsif p_op = 'remove' then
+    if v_e->>'src' is distinct from 'hand' then
+      return t_no('bad_input', 'Only players you added can be removed. Drop a registered player instead.');
+    end if;
+    v_p := jsonb_set(v_p, '{entrants}', (v_p->'entrants') - v_i);
+
+  elsif p_op = 'unlink' then
+    v_p := jsonb_set(v_p, array['entrants', v_i::text, 'lock'], 'true'::jsonb);
+    if t_acct(v_e->>'id') then
+      v_key := case when coalesce(v_e->>'pid', '') ~ '^[A-Za-z0-9]{6,32}$' then 'pn:' || (v_e->>'pid')
+                    else t_rand_key(v_p) end;
+      v_p := t_rekey(v_p, v_e->>'id', v_key);
+    end if;
+
+  elsif p_op = 'relink' then
+    v_p := jsonb_set(v_p, array['entrants', v_i::text], (v_p->'entrants'->v_i) - 'lock');
+    if v_e->>'pid' is not null then
+      delete from tournament_marks
+       where tournament_id = p_tid and kind = 'lock' and pid_hash = t_pid_hash(p_tid, v_e->>'pid');
+    end if;
+    select q.r into v_p from t_link_all(v_p, case when v_t.status = 'draft' then '*' else p_key end) q;
+
+  elsif p_op = 'forget' then
+    -- The entrant moves to the end of the list, so its place no longer
+    -- matches the official page, and is named after a counter (fx).
+    v_pid := v_e->>'pid';
+    v_n := coalesce(case when v_p->>'fx' ~ '^[0-9]{1,4}$' then (v_p->>'fx')::int end, 0) + 1;
+    v_e := (v_e - 'wait') || jsonb_build_object('name', 'Player ' || v_n, 'pid', null, 'lock', true);
+    v_p := jsonb_set(v_p - 'nx', '{entrants}', ((v_p->'entrants') - v_i) || jsonb_build_array(v_e))
+           || jsonb_build_object('fx', v_n);
+    if v_pid is not null then
+      insert into tournament_marks (tournament_id, pid_hash, kind)
+      values (p_tid, t_pid_hash(p_tid, v_pid), 'forget')
+      on conflict do nothing;
+    end if;
+    if p_key !~ '^h:' then
+      v_p := t_rekey(v_p, p_key, t_rand_key(v_p));
+    end if;
+  end if;
+
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_start: draft only, and every tournament now starts as Swiss rounds (a
+-- page that sends anything else is told to reload). p_engine is
+-- {fmt:'swiss', rounds, seed, pairs}, made on the organizer's page:
+--   * 3 to 256 active players (st 'in'); they form the one pseudo-group, in
+--     the order of the list;
+--   * rounds 1 to t_sw_max_rounds(players);
+--   * seed 0 to 4294967295 (the round-1 shuffle, kept for reference);
+--   * pairs: round 1, checked by t_sw_pairs_ok. Round 1 is paired at random
+--     on the page; the server checks the structure only.
+-- No top cut: a cut other than 0 is refused, and none is stored.
+create or replace function public.t_start(p_tid uuid, p_rev int, p_mode text, p_engine jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid    uuid := duel_caller();
+  v_no     jsonb;
+  v_bad    jsonb := t_no('bad_input', 'The draw is not valid. Reload the tournament and try again.');
+  v_t      tournaments%rowtype;
+  v_p      jsonb;
+  v_act    text[];
+  v_n      int;
+  v_rounds int;
+  v_seed   bigint;
+  v_rev    int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'draft' then
+    return t_no('status', 'The tournament has already started.');
+  end if;
+  if p_mode is null or p_mode not in ('clash','demo') then
+    return t_no('bad_input', 'A tournament plays Clash or Demo.');
+  end if;
+  if p_engine is null or jsonb_typeof(p_engine) is distinct from 'object' then
+    return v_bad;
+  end if;
+  if p_engine->>'fmt' is distinct from 'swiss' then
+    return t_no('bad_input', 'Reload the page: tournaments now run as Swiss rounds.');
+  end if;
+  v_p := v_t.payload;
+  select coalesce(array_agg(q.x->>'id' order by q.o), '{}') into v_act
+    from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) with ordinality q(x, o)
+   where q.x->>'st' = 'in';
+  v_n := cardinality(v_act);
+  if v_n < 3 then
+    return t_no('bad_input', 'At least 3 players are needed to start.');
+  end if;
+  if v_n > 256 then
+    return t_no('bad_input', 'A tournament has at most 256 players.');
+  end if;
+
+  -- rounds
+  if jsonb_typeof(p_engine->'rounds') is distinct from 'number' or (p_engine->>'rounds') !~ '^[0-9]{1,3}$' then
+    return v_bad;
+  end if;
+  v_rounds := (p_engine->>'rounds')::int;
+  if v_rounds < 1 or v_rounds > t_sw_max_rounds(v_n) then
+    return t_no('bad_input', 'With ' || v_n || ' players a tournament plays 1 to ' || t_sw_max_rounds(v_n) || ' rounds.');
+  end if;
+  -- no top cut
+  if coalesce(p_engine->>'cut', '0') <> '0' then
+    return t_no('bad_input', 'There is no top cut: the champion tops the Swiss standings. Reload the page.');
+  end if;
+  -- the round-1 seed
+  if jsonb_typeof(p_engine->'seed') is distinct from 'number' or (p_engine->>'seed') !~ '^[0-9]{1,10}$'
+     or (p_engine->>'seed')::bigint > 4294967295 then
+    return v_bad;
+  end if;
+  v_seed := (p_engine->>'seed')::bigint;
+
+  -- round 1
+  v_p := (v_p - 'champion' - 'finalized_at' - 'standings' - 'cut')
+         || jsonb_build_object('fmt', 'swiss', 'groups', jsonb_build_array(to_jsonb(v_act)), 'gm', '[]'::jsonb,
+                               'tables', 0, 'rounds', v_rounds, 'seed', v_seed,
+                               'bracket', '[]'::jsonb, 'finalized', false);
+  if t_sw_pairs_ok(v_p, p_engine->'pairs', false) is not null then
+    return t_no('bad_input', 'The round 1 pairings are not valid. Reload the tournament and try again.');
+  end if;
+  v_p := t_sw_append(v_p, p_engine->'pairs', 1);
+  if octet_length(v_p::text) > 1048576 then
+    return t_no('bad_input', 'This tournament is too large.');
+  end if;
+  update tournaments set payload = v_p, status = 'running', mode = p_mode, rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_unstart: as in the PLAY NETWORK TOURNAMENTS section; the Swiss settings
+-- (fmt, rounds, seed, standings) go too, and each player's dr.
+create or replace function public.t_unstart(p_tid uuid, p_rev int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_no  jsonb;
+  v_t   tournaments%rowtype;
+  v_rev int;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null or not t_is_org(v_t) then
+    return t_no('not_allowed', 'Only the organizer of this tournament can change it.');
+  end if;
+  begin
+    update duels set tournament_id = null, t_ref = null where tournament_id = p_tid;
+    v_no := t_lock(p_tid, p_rev);
+    if v_no is null then
+      select * into v_t from tournaments x where x.id = p_tid;
+      if v_t.status <> 'running' then
+        v_no := t_no('status', 'The tournament has not started.');
+      elsif t_has_results(v_t.payload) then
+        v_no := t_no('has_results', 'Results are already in, so the tournament cannot go back to registration.');
+      end if;
+    end if;
+    if v_no is not null then
+      raise exception 't_unstart refused' using errcode = 'SL001';
+    end if;
+    update tournaments
+       set payload = (payload - 'fmt' - 'rounds' - 'cut' - 'seed' - 'standings')
+                     || jsonb_build_object('groups', '[]'::jsonb, 'gm', '[]'::jsonb, 'tables', 0,
+                                           'bracket', '[]'::jsonb, 'finalized', false,
+                                           'entrants', coalesce((
+                                             select jsonb_agg(q.x - 'dr' order by q.o)
+                                               from jsonb_array_elements(coalesce(payload->'entrants', '[]'::jsonb))
+                                                    with ordinality q(x, o)), '[]'::jsonb)),
+           status = 'draft', rev = rev + 1
+     where id = p_tid returning rev into v_rev;
+  exception when sqlstate 'SL001' then
+    return v_no;
+  end;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_result: as in the PLAY NETWORK TOURNAMENTS section, plus a Swiss branch
+-- for 'g:<i>' and the mastery p_sa/p_sb (0-999 or null) of the game's a
+-- and b players:
+--   * a bye cannot be changed;
+--   * p_winner null (clear), 'a'/'b', one of the two keys, or 'draw'. A
+--     draw is a tie on mastery: two different masteries are refused, and
+--     a kept mastery that differs from the other goes;
+--   * setting a result: src 'org', at; given masteries replace sa/sb, the
+--     others stay; dx when the linked tracked match says otherwise;
+--   * clearing removes the result and the masteries, and is refused for a
+--     game of an earlier round (the next round is already paired: enter
+--     the corrected result instead) and for a game with a dropped player
+--     (it would stay open and hold up the next round, or a forfeit
+--     would come back at once);
+--   * no bracket: p_round0 is ignored.
+-- 'draw' and masteries are refused in the earlier tournaments. The
+-- argument list changes, so the old function is dropped first.
+drop function if exists public.t_result(uuid, int, text, text, jsonb);
+create or replace function public.t_result(p_tid uuid, p_rev int, p_ref text, p_winner text,
+                                           p_round0 jsonb default null, p_sa int default null,
+                                           p_sb int default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := duel_caller();
+  v_no   jsonb;
+  v_t    tournaments%rowtype;
+  v_p    jsonb;
+  v_m    jsonb;
+  v_i    int;
+  v_mm   text[];
+  v_r    int;
+  v_k    int;
+  v_w    text;
+  v_side text;
+  v_dw   text;
+  v_sw   boolean;
+  v_cur  int;
+  v_r0   jsonb := case when jsonb_typeof(p_round0) = 'array' then p_round0 end;
+  v_rev  int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status = 'closed' then
+    return t_no('status', 'The tournament is closed. Reopen it to change results.');
+  end if;
+  if v_t.status <> 'running' then
+    return t_no('status', 'The tournament has not started.');
+  end if;
+  v_p := v_t.payload;
+  v_sw := coalesce(v_p->>'fmt' = 'swiss', false);
+  if not v_sw and (p_winner = 'draw' or p_sa is not null or p_sb is not null) then
+    return t_no('bad_input', 'Draws and mastery are entered only in Swiss tournaments. Reload the page.');
+  end if;
+  if (p_sa is not null and p_sa not between 0 and 999) or (p_sb is not null and p_sb not between 0 and 999) then
+    return t_no('bad_input', 'Mastery is a number from 0 to 999.');
+  end if;
+
+  if v_sw and p_ref ~ '^g:[0-9]{1,4}$' then
+    v_i := substr(p_ref, 3)::int;
+    v_m := v_p->'gm'->v_i;
+    if v_m is null or jsonb_typeof(v_m) <> 'object' then
+      return t_no('bad_input', 'This game is not in the tournament.');
+    end if;
+    if v_m->>'src' = 'bye' or v_m->>'b' is null then
+      return t_no('bad_input', 'A bye cannot be changed.');
+    end if;
+    v_w := case when p_winner is null then null
+                when p_winner = 'draw' then 'draw'
+                when p_winner = 'a' or p_winner = v_m->>'a' then v_m->>'a'
+                when p_winner = 'b' or p_winner = v_m->>'b' then v_m->>'b' end;
+    if p_winner is not null and v_w is null then
+      return t_no('bad_input', 'The winner must be one of the two players.');
+    end if;
+    if v_w is null then
+      v_cur := t_sw_cur(v_p);
+      if coalesce(case when v_m->>'r' ~ '^[0-9]{1,3}$' then (v_m->>'r')::int end, 0) < v_cur then
+        return t_no('status', 'Round ' || v_cur || ' is already paired. Enter the corrected result instead of clearing it.');
+      end if;
+      if exists (select 1 from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) y(e)
+                  where y.e->>'id' in (v_m->>'a', v_m->>'b') and y.e->>'st' = 'drop') then
+        return t_no('bad_input', 'A player in this game has dropped, so its result cannot be cleared. Enter the corrected result instead.');
+      end if;
+      v_m := (v_m - 'src' - 'at' - 'auto' - 'dx' - 'sa' - 'sb') || '{"w":null}'::jsonb;
+    else
+      if v_w = 'draw' and p_sa is not null and p_sb is not null and p_sa <> p_sb then
+        return t_no('bad_input', 'A draw is a tie on mastery: enter the same mastery for both players.');
+      end if;
+      v_m := (v_m - 'auto' - 'dx') || jsonb_build_object('w', v_w, 'src', 'org', 'at', now())
+             || jsonb_strip_nulls(jsonb_build_object('sa', p_sa, 'sb', p_sb));
+      if v_w = 'draw' and v_m->>'sa' is not null and v_m->>'sb' is not null and v_m->>'sa' <> v_m->>'sb' then
+        if p_sa is null then
+          v_m := v_m - 'sa';
+        end if;
+        if p_sb is null then
+          v_m := v_m - 'sb';
+        end if;
+      end if;
+      if v_m->>'du' is not null then
+        select case when d.is_draw then 'draw' else d.winner_id::text end into v_dw
+          from duels d where d.id = (v_m->>'du')::uuid and d.status = 'done';
+        if v_dw is not null and v_dw <> v_w then
+          v_m := v_m || '{"dx":true}'::jsonb;
+        end if;
+      end if;
+    end if;
+    v_p := jsonb_set(v_p, array['gm', v_i::text], v_m);
+
+  elsif p_ref ~ '^g:[0-9]{1,4}$' then
+    v_i := substr(p_ref, 3)::int;
+    v_m := v_p->'gm'->v_i;
+    if v_m is null then
+      return t_no('bad_input', 'This game is not in the tournament.');
+    end if;
+    v_w := case when p_winner is null then null
+                when p_winner = 'a' or p_winner = v_m->>'a' then v_m->>'a'
+                when p_winner = 'b' or p_winner = v_m->>'b' then v_m->>'b' end;
+    if p_winner is not null and v_w is null then
+      return t_no('bad_input', 'The winner must be one of the two players.');
+    end if;
+    if v_w is null then
+      v_m := (v_m - 'src' - 'at' - 'auto' - 'dx') || '{"w":null}'::jsonb;
+    else
+      v_m := (v_m - 'auto' - 'dx') || jsonb_build_object('w', v_w, 'src', 'org', 'at', now());
+      if v_m->>'du' is not null then
+        select d.winner_id::text into v_dw from duels d where d.id = (v_m->>'du')::uuid and d.status = 'done';
+        if v_dw is not null and v_dw <> v_w then
+          v_m := v_m || '{"dx":true}'::jsonb;
+        end if;
+      end if;
+    end if;
+    v_p := jsonb_set(v_p, array['gm', v_i::text], v_m);
+    if t_gm_done(v_p) then
+      if v_r0 is not null then
+        if not t_round0_ok(v_p, v_r0) then
+          return t_no('bad_input', 'The finals draw is not valid. Reload the tournament and try again.');
+        end if;
+        v_p := t_place_round0(v_p, v_r0);
+      elsif not t_r0_empty(v_p) then
+        return t_no('round0_needed', 'The finals have to be drawn again. Reload the tournament and try again.');
+      end if;
+    else
+      v_p := t_clear_bracket(v_p);
+    end if;
+
+  elsif p_ref ~ '^b:[0-9]{1,2}:[0-9]{1,4}$' then
+    v_mm := regexp_match(p_ref, '^b:([0-9]{1,2}):([0-9]{1,4})$');
+    v_r := v_mm[1]::int;
+    v_k := v_mm[2]::int;
+    v_m := v_p->'bracket'->v_r->v_k;
+    if v_m is null or v_m #>> '{a,id}' is null or v_m #>> '{b,id}' is null then
+      return t_no('bad_input', 'This finals match does not have both players yet.');
+    end if;
+    v_side := case when p_winner is null then null
+                   when p_winner = 'a' or p_winner = v_m #>> '{a,id}' then 'a'
+                   when p_winner = 'b' or p_winner = v_m #>> '{b,id}' then 'b' end;
+    if p_winner is not null and v_side is null then
+      return t_no('bad_input', 'The winner must be one of the two players.');
+    end if;
+    if v_side is null then
+      v_m := (v_m - 'src' - 'at' - 'auto' - 'dx') || '{"winner":null}'::jsonb;
+    else
+      v_m := (v_m - 'auto' - 'dx') || jsonb_build_object('winner', v_side, 'src', 'org', 'at', now());
+      if v_m->>'du' is not null then
+        select d.winner_id::text into v_dw from duels d where d.id = (v_m->>'du')::uuid and d.status = 'done';
+        if v_dw is not null and v_dw <> (v_m #>> array[v_side, 'id']) then
+          v_m := v_m || '{"dx":true}'::jsonb;
+        end if;
+      end if;
+    end if;
+    v_p := t_propagate(jsonb_set(v_p, array['bracket', v_r::text, v_k::text], v_m));
+
+  else
+    return t_no('bad_input', 'This game is not in the tournament.');
+  end if;
+
+  v_p := t_reattach(v_p, p_tid);
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_fill: as in the PLAY NETWORK TOURNAMENTS section, for the earlier
+-- tournaments only: a Swiss tournament has no finals.
+create or replace function public.t_fill(p_tid uuid, p_rev int, p_round0 jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_no  jsonb;
+  v_t   tournaments%rowtype;
+  v_rev int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'running' then
+    return t_no('status', 'The tournament is not running.');
+  end if;
+  if v_t.payload->>'fmt' = 'swiss' then
+    return t_no('status', 'A Swiss tournament has no finals: the champion tops the standings.');
+  end if;
+  if not t_gm_done(v_t.payload) then
+    return t_no('status', 'The group stage is not finished yet.');
+  end if;
+  if not t_r0_empty(v_t.payload) then
+    return t_no('finals_drawn', 'The finals are already drawn.');
+  end if;
+  if not t_round0_ok(v_t.payload, p_round0) then
+    return t_no('bad_input', 'The finals draw is not valid. Reload the tournament and try again.');
+  end if;
+  update tournaments set payload = t_reattach(t_place_round0(payload, p_round0), p_tid), rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_close: closed and finalized. A Swiss tournament needs p_standings, the
+-- standings made on the page (swTable): one row {id, rk, tp, w, d, l, md,
+-- sos, drop} per player in the groups, best first. They are checked against
+-- the results (t_sw_score: tp, w, d, l, md), the order (tp, then md, never
+-- going up), the ranks (1 first; each row the rank of the row above, only
+-- when tp and md are the same, or its own place) and the drops, then frozen
+-- in the payload (standings). The champion is the first player not
+-- dropped, unless another player not dropped shares that rank (no
+-- champion then). Closing before the last round is allowed: the standings
+-- count the results entered so far. The earlier tournaments close as
+-- before (the final's winner). The argument list changes, so the old
+-- function is dropped first.
+drop function if exists public.t_close(uuid, int);
+create or replace function public.t_close(p_tid uuid, p_rev int, p_standings jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid   uuid := duel_caller();
+  v_no    jsonb;
+  v_t     tournaments%rowtype;
+  v_p     jsonb;
+  v_fin   jsonb;
+  v_ch    text;
+  v_rev   int;
+  v_bad   jsonb := t_no('bad_input', 'The standings do not match the results. Reload the page and close again.');
+  v_ids   text[];
+  v_drops text[];
+  v_score jsonb;
+  v_row   jsonb;
+  v_prev  jsonb;
+  v_i     int := 0;
+  v_rk    int;
+  v_rows  jsonb := '[]'::jsonb;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'running' then
+    return t_no('status', 'Only a running tournament can be closed.');
+  end if;
+  v_p := v_t.payload;
+
+  if v_p->>'fmt' = 'swiss' then
+    if p_standings is null or jsonb_typeof(p_standings) is distinct from 'array' then
+      return t_no('bad_input', 'Reload the page and close again.');
+    end if;
+    v_ids := t_grouped(v_p);
+    if jsonb_array_length(p_standings) <> cardinality(v_ids)
+       or (select count(distinct q.x->>'id') from jsonb_array_elements(p_standings) q(x)) <> cardinality(v_ids) then
+      return v_bad;
+    end if;
+    select coalesce(array_agg(q.x->>'id'), '{}') into v_drops
+      from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) q(x)
+     where q.x->>'st' = 'drop';
+    select jsonb_object_agg(s.id, jsonb_build_array(s.tp, s.w, s.d, s.l, s.md)) into v_score
+      from t_sw_score(v_p) s;
+    for v_row in select q.x from jsonb_array_elements(p_standings) with ordinality q(x, o) order by q.o loop
+      if jsonb_typeof(v_row) is distinct from 'object'
+         or jsonb_typeof(v_row->'id') is distinct from 'string'
+         or jsonb_typeof(v_row->'drop') is distinct from 'boolean' then
+        return v_bad;
+      end if;
+      if exists (select 1 from unnest(array['rk','tp','w','d','l','md','sos']) f
+                  where jsonb_typeof(v_row->f) is distinct from 'number' or (v_row->>f) !~ '^[0-9]{1,7}$') then
+        return v_bad;
+      end if;
+      if not ((v_row->>'id') = any(v_ids))
+         or jsonb_build_array((v_row->>'tp')::int, (v_row->>'w')::int, (v_row->>'d')::int,
+                              (v_row->>'l')::int, (v_row->>'md')::int) is distinct from v_score->(v_row->>'id')
+         or (v_row->'drop' = 'true'::jsonb) <> ((v_row->>'id') = any(v_drops)) then
+        return v_bad;
+      end if;
+      v_rk := (v_row->>'rk')::int;
+      if v_i = 0 then
+        if v_rk <> 1 then
+          return v_bad;
+        end if;
+      else
+        if (v_row->>'tp')::int > (v_prev->>'tp')::int
+           or ((v_row->>'tp')::int = (v_prev->>'tp')::int and (v_row->>'md')::int > (v_prev->>'md')::int) then
+          return v_bad;
+        end if;
+        if v_rk = (v_prev->>'rk')::int then
+          if (v_row->>'tp')::int <> (v_prev->>'tp')::int or (v_row->>'md')::int <> (v_prev->>'md')::int then
+            return v_bad;
+          end if;
+        elsif v_rk <> v_i + 1 then
+          return v_bad;
+        end if;
+      end if;
+      v_rows := v_rows || jsonb_build_array(jsonb_build_object(
+                  'id', v_row->>'id', 'rk', v_rk, 'tp', (v_row->>'tp')::int, 'w', (v_row->>'w')::int,
+                  'd', (v_row->>'d')::int, 'l', (v_row->>'l')::int, 'md', (v_row->>'md')::int,
+                  'sos', (v_row->>'sos')::int, 'drop', v_row->'drop'));
+      v_prev := v_row;
+      v_i := v_i + 1;
+    end loop;
+    select q.x->>'id', (q.x->>'rk')::int into v_ch, v_rk
+      from jsonb_array_elements(v_rows) with ordinality q(x, o)
+     where q.x->'drop' = 'false'::jsonb
+     order by q.o
+     limit 1;
+    if v_ch is not null and (select count(*) from jsonb_array_elements(v_rows) q(x)
+                              where q.x->'drop' = 'false'::jsonb and (q.x->>'rk')::int = v_rk) > 1 then
+      v_ch := null;
+    end if;
+    update tournaments
+       set payload = (payload - 'champion')
+                     || jsonb_build_object('finalized', true, 'finalized_at', now(), 'standings', v_rows)
+                     || case when v_ch is not null then jsonb_build_object('champion', v_ch) else '{}'::jsonb end,
+           status = 'closed', rev = rev + 1
+     where id = p_tid returning rev into v_rev;
+    return jsonb_build_object('ok', true, 'rev', v_rev);
+  end if;
+
+  if jsonb_typeof(v_p->'bracket') = 'array' and jsonb_array_length(v_p->'bracket') > 0 then
+    v_fin := v_p->'bracket'->(jsonb_array_length(v_p->'bracket') - 1)->0;
+    v_ch := case v_fin->>'winner' when 'a' then v_fin #>> '{a,id}' when 'b' then v_fin #>> '{b,id}' end;
+  end if;
+  update tournaments
+     set payload = (payload - 'champion')
+                   || jsonb_build_object('finalized', true, 'finalized_at', now())
+                   || case when v_ch is not null then jsonb_build_object('champion', v_ch) else '{}'::jsonb end,
+         status = 'closed', rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_reopen: as in the PLAY NETWORK TOURNAMENTS section; the frozen
+-- standings go too.
+create or replace function public.t_reopen(p_tid uuid, p_rev int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_no  jsonb;
+  v_t   tournaments%rowtype;
+  v_rev int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'closed' then
+    return t_no('status', 'The tournament is not closed.');
+  end if;
+  update tournaments
+     set payload = (payload - 'champion' - 'finalized_at' - 'standings') || '{"finalized":false}'::jsonb,
+         status = 'running', rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_import: as in the PLAY NETWORK TOURNAMENTS section, plus p_meta, the
+-- event settings read by the edge function: {rounds, system, minutes,
+-- game_mode (or gmode)}. In draft they replace pn.rounds (1-100; 0 or
+-- anything else is null), pn.system ('Swiss' or 'League', else null),
+-- pn.minutes (1-1440, else null) and pn.gmode ('1x1' or '2x2', else null).
+-- Without p_meta pn keeps them. The argument list changes, so the old
+-- function is dropped first.
+drop function if exists public.t_import(uuid, jsonb, int);
+create or replace function public.t_import(p_tid uuid, p_regs jsonb, p_count int, p_meta jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_t       tournaments%rowtype;
+  v_p       jsonb;
+  v_reg     jsonb;
+  v_regs    jsonb := '[]'::jsonb;
+  v_seen    text[] := '{}';
+  v_pid     text;
+  v_name    text;
+  v_full    boolean;
+  v_ents    jsonb := '[]'::jsonb;
+  v_e       jsonb;
+  v_added   int := 0;
+  v_removed int := 0;
+  v_linked  int;
+  v_warn    text;
+  v_meta    jsonb := '{}'::jsonb;
+  v_gmode   text;
+  v_rev     int;
+begin
+  if p_tid is null or p_regs is null or jsonb_typeof(p_regs) is distinct from 'array' then
+    return t_no('bad_input', 'The list of players is not valid.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if v_t.status <> 'draft' then
+    return t_no('started', 'The tournament has started, so its list of players is fixed.');
+  end if;
+  if exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    return t_no('archived', 'This community is archived.');
+  end if;
+  v_p := v_t.payload - 'nx';
+
+  -- the event settings
+  if jsonb_typeof(p_meta) = 'object' then
+    v_gmode := coalesce(p_meta->>'game_mode', p_meta->>'gmode');
+    v_meta := jsonb_build_object(
+      'rounds', case when coalesce(p_meta->>'rounds', '') ~ '^[0-9]{1,3}$'
+                          and (p_meta->>'rounds')::int between 1 and 100 then (p_meta->>'rounds')::int end,
+      'system', case when p_meta->>'system' in ('Swiss','League') then p_meta->>'system' end,
+      'minutes', case when coalesce(p_meta->>'minutes', '') ~ '^[0-9]{1,4}$'
+                           and (p_meta->>'minutes')::int between 1 and 1440 then (p_meta->>'minutes')::int end,
+      'gmode', case when v_gmode in ('1x1','2x2') then v_gmode end);
+  end if;
+
+  -- the registrants: valid public ids, each once
+  for v_reg in select q.x from jsonb_array_elements(p_regs) with ordinality q(x, o) order by q.o limit 1000 loop
+    if jsonb_typeof(v_reg) is distinct from 'object' then
+      continue;
+    end if;
+    v_pid := v_reg->>'pid';
+    if v_pid is null or v_pid !~ '^[A-Za-z0-9]{6,32}$' or v_pid = any(v_seen) then
+      continue;
+    end if;
+    v_seen := v_seen || v_pid;
+    v_name := coalesce(t_clean_name(v_reg->>'name'), 'Player');
+    v_regs := v_regs || jsonb_build_array(jsonb_build_object('pid', v_pid, 'name', v_name));
+  end loop;
+  v_full := p_count is not null and p_count = cardinality(v_seen);
+
+  -- the players already in the list
+  for v_e in select q.x from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) with ordinality q(x, o) order by q.o loop
+    if v_e->>'src' = 'pn' and v_e->>'pid' is not null then
+      if not (v_e->>'pid' = any(v_seen)) then
+        if not v_full then
+          v_ents := v_ents || jsonb_build_array(v_e);
+          continue;
+        end if;
+        if (v_e->>'lock') = 'true' then
+          insert into tournament_marks (tournament_id, pid_hash, kind)
+          values (p_tid, t_pid_hash(p_tid, v_e->>'pid'), 'lock')
+          on conflict do nothing;
+        end if;
+        v_removed := v_removed + 1;
+        continue;
+      end if;
+      v_e := v_e || jsonb_build_object('name', (select z.x->>'name' from jsonb_array_elements(v_regs) z(x)
+                                                 where z.x->>'pid' = v_e->>'pid' limit 1));
+    end if;
+    v_ents := v_ents || jsonb_build_array(v_e);
+  end loop;
+
+  -- the new registrants
+  for v_reg in select q.x from jsonb_array_elements(v_regs) with ordinality q(x, o) order by q.o loop
+    if v_ents @> jsonb_build_array(jsonb_build_object('pid', v_reg->>'pid')) then
+      continue;
+    end if;
+    if exists (select 1 from tournament_marks k
+                where k.tournament_id = p_tid and k.kind = 'forget'
+                  and k.pid_hash = t_pid_hash(p_tid, v_reg->>'pid')) then
+      continue;
+    end if;
+    if jsonb_array_length(v_ents) >= 256 then
+      v_warn := 'too_many';
+      exit;
+    end if;
+    v_ents := v_ents || jsonb_build_array(jsonb_build_object(
+                'id', 'pn:' || (v_reg->>'pid'), 'name', v_reg->>'name', 'pid', v_reg->>'pid',
+                'src', 'pn', 'st', 'in', 'seeker', '', 'terrain', '', 'deck', '', 'deckId', '')
+                || case when exists (select 1 from tournament_marks k
+                                      where k.tournament_id = p_tid and k.kind = 'lock'
+                                        and k.pid_hash = t_pid_hash(p_tid, v_reg->>'pid'))
+                        then '{"lock":true}'::jsonb else '{}'::jsonb end);
+    v_added := v_added + 1;
+  end loop;
+
+  v_p := jsonb_set(v_p, '{entrants}', v_ents);
+  select q.r, q.linked into v_p, v_linked from t_link_all(v_p) q;
+  v_p := jsonb_set(v_p, '{pn}', coalesce(v_p->'pn', '{}'::jsonb)
+                                || jsonb_build_object('at', now(),
+                                                      'n', case when p_count between 0 and 100000 then p_count end)
+                                || v_meta);
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev, 'total', cardinality(v_seen),
+                            'added', v_added, 'removed', v_removed, 'linked', v_linked)
+         || case when v_warn is not null then jsonb_build_object('warning', v_warn) else '{}'::jsonb end;
+end $$;
+
+-- 6. Swiss rounds: the organizer's new functions --------------------------------
+-- Refusals answer {ok:false, reason, message} as the other t_* functions,
+-- with the new reasons rematch, round_open and rounds_done (and busy for
+-- t_unpair). Success answers {ok:true, rev}.
+
+-- t_pair: the next round, paired on the organizer's page (swNextPairs) and
+-- checked here (t_sw_pairs_ok): p_round must be the next round (else
+-- stale), within the planned rounds, every game of the current round must
+-- have a result, at least 2 players must still be in, and a rematch needs
+-- p_rematch (the page found no pairing without one).
+create or replace function public.t_pair(p_tid uuid, p_rev int, p_round int, p_pairs jsonb, p_rematch boolean default false)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid    uuid := duel_caller();
+  v_no     jsonb;
+  v_t      tournaments%rowtype;
+  v_p      jsonb;
+  v_cur    int;
+  v_rounds int;
+  v_why    text;
+  v_rev    int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'running' then
+    return t_no('status', 'The tournament is not running.');
+  end if;
+  v_p := v_t.payload;
+  if v_p->>'fmt' is distinct from 'swiss' then
+    return t_no('status', 'Only a Swiss tournament is paired round by round.');
+  end if;
+  v_cur := t_sw_cur(v_p);
+  v_rounds := case when v_p->>'rounds' ~ '^[0-9]{1,3}$' then (v_p->>'rounds')::int else 0 end;
+  if p_round is distinct from v_cur + 1 then
+    return t_no('stale', 'The tournament changed on another device. It has been reloaded; check it and try again.')
+           || jsonb_build_object('rev', v_t.rev);
+  end if;
+  if p_round > v_rounds then
+    return t_no('rounds_done', 'All ' || v_rounds || ' rounds are paired.');
+  end if;
+  if not t_gm_done(v_p) then
+    return t_no('round_open', 'Round ' || v_cur || ' still has games without a result.');
+  end if;
+  if cardinality(t_active(v_p)) < 2 then
+    return t_no('bad_input', 'At least 2 players must still be in to pair a round.');
+  end if;
+  v_why := t_sw_pairs_ok(v_p, p_pairs, p_rematch);
+  if v_why = 'rematch' then
+    return t_no('rematch', 'This pairing has a rematch. Reload and pair again.');
+  elsif v_why is not null then
+    return t_no('bad_input', 'These pairings are not valid. Reload the tournament and pair again.');
+  end if;
+  v_p := t_sw_append(v_p, p_pairs, p_round);
+  if octet_length(v_p::text) > 1048576 then
+    return t_no('bad_input', 'This tournament is too large.');
+  end if;
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_unpair: the last round's pairings undone (round 2 or later; round 1 goes
+-- with t_unstart), while no game of that round has a result entered or
+-- recorded (forfeits and the bye do not count) and no tracked match of it
+-- is being played or waiting for confirmation (busy). Finished or
+-- cancelled tracked matches tagged with its games become plain matches
+-- first (lock order: match, then tournament; undone if the tournament
+-- refuses), since the next pairing reuses the game positions. Players
+-- dropped during that round keep dr, so they can be brought back.
+create or replace function public.t_unpair(p_tid uuid, p_rev int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := duel_caller();
+  v_no   jsonb;
+  v_t    tournaments%rowtype;
+  v_r    int;
+  v_refs text[];
+  v_rev  int;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null or not t_is_org(v_t) then
+    return t_no('not_allowed', 'Only the organizer of this tournament can change it.');
+  end if;
+  v_r := t_sw_cur(v_t.payload);
+  select coalesce(array_agg('g:' || (q.o - 1)), '{}') into v_refs
+    from jsonb_array_elements(coalesce(v_t.payload->'gm', '[]'::jsonb)) with ordinality q(x, o)
+   where q.x->>'r' = v_r::text;
+  begin
+    update duels set tournament_id = null, t_ref = null
+     where tournament_id = p_tid and t_ref = any(v_refs) and status not in ('live','ending');
+    v_no := t_lock(p_tid, p_rev);
+    if v_no is null then
+      select * into v_t from tournaments x where x.id = p_tid;
+      if v_t.status <> 'running' then
+        v_no := t_no('status', 'The tournament is not running.');
+      elsif v_t.payload->>'fmt' is distinct from 'swiss' then
+        v_no := t_no('status', 'Only the rounds of a Swiss tournament can be undone.');
+      elsif t_sw_cur(v_t.payload) <> v_r then
+        v_no := t_no('stale', 'The tournament changed on another device. It has been reloaded; check it and try again.')
+                || jsonb_build_object('rev', v_t.rev);
+      elsif v_r < 2 then
+        v_no := t_no('status', 'Use Back to registration to undo round 1.');
+      elsif exists (select 1 from jsonb_array_elements(v_t.payload->'gm') q(x)
+                     where q.x->>'r' = v_r::text and q.x->>'src' in ('org','duel')) then
+        v_no := t_no('has_results', 'Round ' || v_r || ' already has results, so its pairings cannot be undone. Clear them first.');
+      elsif exists (select 1 from duels d
+                     where d.tournament_id = p_tid and d.t_ref = any(v_refs) and d.status in ('live','ending')) then
+        v_no := t_no('busy', 'A tracked match of round ' || v_r || ' is being played or waits for confirmation. Try again when it has ended.');
+      end if;
+    end if;
+    if v_no is not null then
+      raise exception 't_unpair refused' using errcode = 'SL001';
+    end if;
+    update tournaments
+       set payload = jsonb_set(payload, '{gm}', coalesce((
+                       select jsonb_agg(q.x order by q.o)
+                         from jsonb_array_elements(payload->'gm') with ordinality q(x, o)
+                        where (q.x->>'r') is distinct from v_r::text), '[]'::jsonb)),
+           rev = rev + 1
+     where id = p_tid returning rev into v_rev;
+  exception when sqlstate 'SL001' then
+    return v_no;
+  end;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- t_plan: the planned number of rounds changed while running, from the
+-- current round (at least 1) to t_sw_max_rounds(players). There is no top
+-- cut: p_cut is accepted only as 0 or null (it may be left out).
+create or replace function public.t_plan(p_tid uuid, p_rev int, p_rounds int, p_cut int default 0)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_no  jsonb;
+  v_t   tournaments%rowtype;
+  v_p   jsonb;
+  v_min int;
+  v_max int;
+  v_rev int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status <> 'running' then
+    return t_no('status', 'The tournament is not running.');
+  end if;
+  v_p := v_t.payload;
+  if v_p->>'fmt' is distinct from 'swiss' then
+    return t_no('status', 'Only a Swiss tournament has a number of rounds to change.');
+  end if;
+  if coalesce(p_cut, 0) <> 0 then
+    return t_no('bad_input', 'There is no top cut: the champion tops the Swiss standings. Reload the page.');
+  end if;
+  v_min := greatest(1, t_sw_cur(v_p));
+  v_max := t_sw_max_rounds(cardinality(t_grouped(v_p)));
+  if p_rounds is null or p_rounds < v_min or p_rounds > v_max then
+    return t_no('bad_input', 'Choose ' || v_min || ' to ' || v_max || ' rounds.');
+  end if;
+  update tournaments set payload = payload || jsonb_build_object('rounds', p_rounds), rev = rev + 1
+   where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+revoke all on function public.t_create(uuid, text)                                   from public, anon;
+revoke all on function public.t_entrant(uuid, int, text, text, text, text)           from public, anon;
+revoke all on function public.t_start(uuid, int, text, jsonb)                        from public, anon;
+revoke all on function public.t_unstart(uuid, int)                                   from public, anon;
+revoke all on function public.t_result(uuid, int, text, text, jsonb, int, int)       from public, anon;
+revoke all on function public.t_fill(uuid, int, jsonb)                               from public, anon;
+revoke all on function public.t_close(uuid, int, jsonb)                              from public, anon;
+revoke all on function public.t_reopen(uuid, int)                                    from public, anon;
+revoke all on function public.t_pair(uuid, int, int, jsonb, boolean)                 from public, anon;
+revoke all on function public.t_unpair(uuid, int)                                    from public, anon;
+revoke all on function public.t_plan(uuid, int, int, int)                            from public, anon;
+revoke all on function public.t_import(uuid, jsonb, int, jsonb)                      from public, anon, authenticated;
+revoke all on function public.t_game_label(jsonb, text)                              from public, anon, authenticated;
+revoke all on function public.t_reattach(jsonb, uuid)                                from public, anon, authenticated;
+revoke all on function public.t_record_duel(uuid, boolean)                           from public, anon, authenticated;
+revoke all on function public.t_rekey(jsonb, text, text)                             from public, anon, authenticated;
+grant execute on function public.t_create(uuid, text)                                to authenticated;
+grant execute on function public.t_entrant(uuid, int, text, text, text, text)        to authenticated;
+grant execute on function public.t_start(uuid, int, text, jsonb)                     to authenticated;
+grant execute on function public.t_unstart(uuid, int)                                to authenticated;
+grant execute on function public.t_result(uuid, int, text, text, jsonb, int, int)    to authenticated;
+grant execute on function public.t_fill(uuid, int, jsonb)                            to authenticated;
+grant execute on function public.t_close(uuid, int, jsonb)                           to authenticated;
+grant execute on function public.t_reopen(uuid, int)                                 to authenticated;
+grant execute on function public.t_pair(uuid, int, int, jsonb, boolean)              to authenticated;
+grant execute on function public.t_unpair(uuid, int)                                 to authenticated;
+grant execute on function public.t_plan(uuid, int, int, int)                         to authenticated;
+grant execute on function public.t_import(uuid, jsonb, int, jsonb)                   to service_role;
+
+-- 7. Reading finished matches: draws -------------------------------------------
+-- meta_duels: as in the PLAY NETWORK TOURNAMENTS section, plus is_draw. A
+-- draw is a win for nobody: its "winner" columns are the host and its
+-- "loser" columns the guest, and is_draw is true. The return type changes,
+-- so the function is dropped and made again.
+drop function if exists public.meta_duels(timestamptz);
+create or replace function public.meta_duels(p_since timestamptz default null)
+returns table (id uuid, played_at timestamptz,
+               winner_seeker text, loser_seeker text,
+               winner_terrain text, loser_terrain text,
+               winner_deck_id uuid, loser_deck_id uuid,
+               in_tournament boolean, is_draw boolean)
+language sql stable security definer set search_path = public as $$
+  select d.id,
+         date_trunc('day', d.ended_at),
+         case when x.wh then d.host_seeker  else d.guest_seeker  end,
+         case when x.wh then d.guest_seeker  else d.host_seeker  end,
+         case when x.wh then d.host_terrain else d.guest_terrain end,
+         case when x.wh then d.guest_terrain else d.host_terrain end,
+         case when wk.is_public and wp.matches_visibility = 'public' then wk.id end,
+         case when lk.is_public and lp.matches_visibility = 'public' then lk.id end,
+         d.tournament_id is not null,
+         d.is_draw
+    from duels d
+    cross join lateral (select d.is_draw or d.winner_id = d.host_id as wh) x
+    join profiles wp on wp.id = case when x.wh then d.host_id else d.guest_id end
+    join profiles lp on lp.id = case when x.wh then d.guest_id else d.host_id end
+    left join decks wk on wk.id = case when x.wh then d.host_deck_id else d.guest_deck_id end
+    left join decks lk on lk.id = case when x.wh then d.guest_deck_id else d.host_deck_id end
+   where d.status = 'done'
+     and (p_since is null or d.ended_at >= p_since)
+   order by d.ended_at desc;
+$$;
+revoke all on function public.meta_duels(timestamptz) from public;
+grant execute on function public.meta_duels(timestamptz) to anon, authenticated;
+
+-- player_matches: as in the PLAY NETWORK TOURNAMENTS section, plus is_draw;
+-- won is null for a draw (both scores are the same mastery then). The
+-- return type changes, so the function is dropped and made again.
+drop function if exists public.player_matches(uuid);
+create or replace function public.player_matches(p_user uuid)
+returns table (id uuid, played_at timestamptz, opponent_id uuid, opponent_name text,
+               my_seeker text, my_terrain text, opp_seeker text, opp_terrain text,
+               won boolean, my_score int, opp_score int,
+               tournament_id uuid, tournament_name text, is_draw boolean)
+language sql stable security definer set search_path = public as $$
+  with v as (
+    select auth.uid() as viewer,
+           auth.uid() is not null
+             and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+             and exists (select 1 from profiles vp where vp.id = auth.uid() and vp.deleted_at is null) as signed_in,
+           (select p.matches_visibility from profiles p where p.id = p_user) as vis
+  )
+  select d.id,
+         d.ended_at,
+         case when s.shown then op.id end,
+         case when s.shown then op.display_name
+              when op.deleted_at is not null then 'Deleted player'
+              else 'Private player' end,
+         case when d.host_id = p_user then d.host_seeker  else d.guest_seeker  end,
+         case when d.host_id = p_user then d.host_terrain else d.guest_terrain end,
+         case when s.shown then case when d.host_id = p_user then d.guest_seeker  else d.host_seeker  end end,
+         case when s.shown then case when d.host_id = p_user then d.guest_terrain else d.host_terrain end end,
+         case when d.is_draw then null else d.winner_id = p_user end,
+         case when d.winner_id = p_user then d.winner_score else d.loser_score end,
+         case when d.winner_id = p_user then d.loser_score else d.winner_score end,
+         case when l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false)
+              then t.id end,
+         case when l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false)
+              then coalesce(nullif(btrim(t.payload #>> '{pn,title}'), ''),
+                            nullif(btrim(t.payload->>'name'), ''),
+                            l.name || ' ' || t.month) end,
+         d.is_draw
+    from duels d
+    cross join v
+    join profiles op on op.id = case when d.host_id = p_user then d.guest_id else d.host_id end
+    cross join lateral (
+      select coalesce(v.viewer in (d.host_id, d.guest_id), false)
+             or op.matches_visibility = 'public'
+             or (op.matches_visibility = 'players' and v.signed_in) as shown
+    ) s
+    left join tournaments t on t.id = d.tournament_id
+    left join leagues l on l.id = t.league_id
+   where d.status = 'done'
+     and p_user in (d.host_id, d.guest_id)
+     and (v.viewer = p_user
+          or v.viewer = d.host_id or v.viewer = d.guest_id
+          or v.vis = 'public'
+          or (v.vis = 'players' and v.signed_in))
+   order by d.ended_at desc;
+$$;
+revoke all on function public.player_matches(uuid) from public;
+grant execute on function public.player_matches(uuid) to anon, authenticated;

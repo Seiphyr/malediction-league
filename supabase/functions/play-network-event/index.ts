@@ -24,7 +24,9 @@
 // function only ever requests
 //   https://malediction.gg/play-network/events/single/<id>/<slug>/
 // rebuilt from the parsed id and slug, so it is not an open proxy.
-// A listing keeps how many players registered, never who. Only the
+// A listing keeps how many players registered, never who, and the event's
+// settings (number of rounds, round length, game mode), which the tournament
+// mode also passes to t_import as p_meta. Only the
 // tournament mode reads who: for each registered player the official
 // nickname and the malediction.gg profile id, nothing else (first and last
 // names, Discord handles, avatars and decks are never read), and hands them
@@ -116,8 +118,10 @@ const T_PARSE_ERROR =
 type Json = Record<string, unknown>;
 type PnRef = { id: string; slug: string; url: string };
 
-// What is kept from a page for a listing (and the only thing cached). No
-// player data in here, ever: the tournament mode reads its registrants with
+// What is kept from a page for a listing (and the only thing cached): the
+// event's details and its settings (number of rounds, round length, game
+// mode), which the tournament mode also hands to t_import. No player data in
+// here, ever: the tournament mode reads its registrants with
 // readRegistrants() and never stores them here.
 type EventData = {
   title: string;
@@ -131,6 +135,9 @@ type EventData = {
   format: string | null;
   max_players: number | null;
   participants_count: number | null;
+  num_rounds: number | null;    // 0..100; Play Network shows 0 when not set
+  round_minutes: number | null; // 0..1440
+  game_mode: "1x1" | "2x2" | null;
   slug: string | null; // canonical slug, from the page's own calendar link
 };
 
@@ -329,6 +336,13 @@ function toCount(v: unknown): number | null {
   return /^[0-9]{1,5}$/.test(s) ? Number(s) : null;
 }
 
+// A count no larger than max, else null. Keeps the value inside the checks
+// on pn_events, so an odd number on the page never makes the save fail.
+function toCountMax(v: unknown, max: number): number | null {
+  const n = toCount(v);
+  return n !== null && n <= max ? n : null;
+}
+
 // The JSON literal (object or array) that starts at html[start], found with
 // a bracket counter that skips over strings. null if it does not close
 // within max characters.
@@ -455,6 +469,8 @@ function parseEvent(html: string, ref: PnRef): LookUp {
   const venue = location_type === "Online"
     ? clean(ev?.online_platform, 200)
     : clean(ev?.lgs_name, 200) ?? clean(ev?.address_line, 200);
+  const gm = clean(ev?.game_mode_name, 10);
+  const game_mode = gm === "1x1" || gm === "2x2" ? gm : null;
 
   return {
     kind: "ok",
@@ -470,6 +486,9 @@ function parseEvent(html: string, ref: PnRef): LookUp {
       format: clean(ev?.system_name, 60),
       max_players: toCount(ev?.max_players),
       participants_count: readParticipants(html),
+      num_rounds: toCountMax(ev?.num_rounds, 100),
+      round_minutes: toCountMax(ev?.round_duration_minutes, 1440),
+      game_mode,
       slug: cal?.slug ?? null,
     },
   };
@@ -725,6 +744,9 @@ Deno.serve(async (req: Request) => {
       format: ev.format,
       max_players: ev.max_players,
       participants_count: ev.participants_count,
+      num_rounds: ev.num_rounds,
+      round_minutes: ev.round_minutes,
+      game_mode: ev.game_mode,
       fetch_ok: true,
       fetched_at: new Date().toISOString(),
     };
@@ -799,9 +821,17 @@ async function importRegistrants(caller: typeof service, raw: unknown, cors: Rec
   if (found.kind === "error") return fail(found.code, cors);
   const regs = readRegistrants(page.html);
   if (!regs) return fail("parse_error", cors, T_PARSE_ERROR);
+  const ev = found.data;
 
-  // 5. Merge (service role: t_import is not callable by users).
-  const imp = await service.rpc("t_import", { p_tid: tid, p_regs: regs.list, p_count: regs.count });
+  // 5. Merge (service role: t_import is not callable by users). p_meta is
+  //    the event's settings only; t_import keeps them in payload.pn while the
+  //    tournament is in draft.
+  const imp = await service.rpc("t_import", {
+    p_tid: tid,
+    p_regs: regs.list,
+    p_count: regs.count,
+    p_meta: { rounds: ev.num_rounds, system: ev.format, minutes: ev.round_minutes, game_mode: ev.game_mode },
+  });
   if (imp.error) {
     console.error("play-network-event: t_import failed", imp.error.code ?? "");
     return fail("upstream_error", cors, oops);
@@ -818,7 +848,6 @@ async function importRegistrants(caller: typeof service, raw: unknown, cors: Rec
   // 6. Refresh the listing's details and count too, when the tournament still
   //    has one. Only that row is updated (never a new listing); errors ignored.
   if (pnEventId) {
-    const ev = found.data;
     const canonical = ev.slug ? pnRef(ref.id, ev.slug) : ref;
     const upd = await service.from("pn_events").update({
       url: canonical.url,
@@ -833,6 +862,9 @@ async function importRegistrants(caller: typeof service, raw: unknown, cors: Rec
       format: ev.format,
       max_players: ev.max_players,
       participants_count: ev.participants_count,
+      num_rounds: ev.num_rounds,
+      round_minutes: ev.round_minutes,
+      game_mode: ev.game_mode,
       fetch_ok: true,
       fetched_at: new Date().toISOString(),
     }).eq("id", pnEventId).eq("pn_id", Number(ref.id));
