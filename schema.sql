@@ -4177,7 +4177,7 @@ where l.is_public;
 --     Wrong PINs are kept in duel_join_attempts (an account id and a time,
 --     deleted after 2 days).
 --   * duel_sweep(): expires waiting matches, cancels live matches idle for
---     12 hours and results left unconfirmed for 48 hours. Matches that never
+--     12 hours and saves results left unanswered for 48 hours as claimed. Matches that never
 --     started are deleted after 7 days, cancelled ones after 30 days;
 --     finished matches stay. Runs every 10 minutes through pg_cron
 --     (sl-duel-sweep) when the project has it, and on every open and join.
@@ -4238,6 +4238,7 @@ create table if not exists public.duels (
   state_at       timestamptz,            -- time of the last checkpoint (the 5 s brake)
   claim_by       uuid references public.profiles(id),
   claim_winner   uuid references public.profiles(id),
+  claimed_at     timestamptz,            -- when the result was sent; saved as claimed after 48 h
   winner_id      uuid references public.profiles(id),
   loser_id       uuid references public.profiles(id),
   winner_score   int,
@@ -4344,7 +4345,8 @@ begin
 end $$;
 
 -- Housekeeping: a waiting match expires with its PIN, a live match idle for
--- 12 hours and a claimed result unconfirmed for 48 hours are cancelled.
+-- 12 hours is cancelled, and a claimed result nobody answers for 48 hours
+-- is saved as claimed.
 -- Matches that never started go after 7 days, cancelled ones after 30 days,
 -- wrong-PIN rows after 2 days. Finished matches stay. Called by duel_open()
 -- and duel_join(), and by pg_cron where the project has it (below). Only one
@@ -4364,8 +4366,11 @@ begin
   update duels set status = 'cancelled', ended_at = now(), updated_at = now()
    where status = 'live' and updated_at < now() - interval '12 hours';
   get diagnostics m = row_count; n := n + m;
-  update duels set status = 'cancelled', ended_at = now(), updated_at = now()
-   where status = 'ending' and updated_at < now() - interval '48 hours';
+  update duels set status = 'done', winner_id = claim_winner,
+         loser_id = case when claim_winner = host_id then guest_id else host_id end,
+         ended_at = now(), updated_at = now()
+   where status = 'ending' and claim_winner is not null
+     and coalesce(claimed_at, updated_at) < now() - interval '48 hours';
   get diagnostics m = row_count; n := n + m;
   delete from duels where status = 'expired' and created_at < now() - interval '7 days';
   delete from duels where status = 'cancelled' and created_at < now() - interval '30 days';
@@ -4589,7 +4594,7 @@ begin
   end if;
 
   update duels
-     set status = 'ending', claim_by = v_uid, claim_winner = v_uid,
+     set status = 'ending', claim_by = v_uid, claim_winner = v_uid, claimed_at = now(),
          winner_score = p_winner_score, loser_score = p_loser_score, rounds = p_rounds,
          state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
          updated_at = now()
@@ -4624,7 +4629,7 @@ begin
     return jsonb_build_object('ok', true, 'status', 'done');
   end if;
   update duels
-     set status = 'live', claim_by = null, claim_winner = null,
+     set status = 'live', claim_by = null, claim_winner = null, claimed_at = null,
          winner_score = null, loser_score = null, rounds = null, updated_at = now()
    where id = d.id;
   return jsonb_build_object('ok', true, 'status', 'live');
