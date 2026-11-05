@@ -4156,3 +4156,762 @@ select
   (select max(e.starts_at) from pn_events e where e.league_id = l.id) as last_event
 from leagues l
 where l.is_public;
+
+-- ============================================================
+--  MATCH TRACKER (2026-11-09)
+-- ============================================================
+-- Run as migration-2026-11-09-tracker.sql.
+-- What changes:
+--   * New table duels: one row per synced match between two signed-in
+--     players (Clash to 40 or Demo to 25). The host opens it and gets a
+--     4-digit PIN, valid 15 minutes and only while waiting; the guest joins
+--     with it. Only the two players can read the row, and nobody writes it
+--     directly: everything goes through the duel_* functions.
+--   * Functions duel_open, duel_join, duel_checkpoint, duel_claim,
+--     duel_answer, duel_cancel and duel_get (signed-in players only). A
+--     result is final when the opponent confirms it, or at once when a
+--     player concedes (names the opponent as the winner).
+--   * PIN guessing brakes: wrong PINs per account 5 a minute, 20 an hour,
+--     60 a day; 600 wrong PINs on the whole site in 10 minutes pause joining.
+--     At most 30 new matches an hour per account, 2000 waiting on the site.
+--     Wrong PINs are kept in duel_join_attempts (an account id and a time,
+--     deleted after 2 days).
+--   * duel_sweep(): expires waiting matches, cancels live matches idle for
+--     12 hours and results left unconfirmed for 48 hours. Matches that never
+--     started are deleted after 7 days, cancelled ones after 30 days;
+--     finished matches stay. Runs every 10 minutes through pg_cron
+--     (sl-duel-sweep) when the project has it, and on every open and join.
+--   * Realtime: private channels 'duel:<id>' that only the two players can
+--     join, send on and read (policies on realtime.messages), and a trigger
+--     that broadcasts 'duel_status' on the channel when the status, the
+--     claim or the guest changes.
+--   * profiles.matches_visibility ('public', 'players' or 'private', default
+--     'public'): who sees a player's Matches list. player_matches() reads
+--     that list; meta_duels() gives the Meta every finished match without
+--     player ids.
+--   * Free battles: no new rows (the "fb own write" policy goes). Old rows
+--     stay, readable and deletable by their owner only.
+--   * erase_user_data(): also cancels the account's open matches and deletes
+--     its wrong-PIN rows. Finished matches stay for the opponent, against
+--     "Deleted player".
+
+-- 1. Who sees a player's matches --------------------------------------------
+-- 'public' anyone (signed out too), 'players' signed-in players, 'private'
+-- only the player. Both players of a match always see it in their own list.
+-- Players change it on their own profile row ("own profile update" policy;
+-- guard_profile_update only blocks deleted accounts and deleted_at).
+alter table public.profiles add column if not exists matches_visibility text not null default 'public';
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'profiles_matches_visibility_check' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_matches_visibility_check
+      check (matches_visibility in ('public','players','private'));
+  end if;
+end $$;
+
+-- 2. The duels table: one row per synced match --------------------------------
+-- The host opens it (status waiting, with a 4-digit PIN valid 15 minutes),
+-- the guest joins with the PIN (live, the PIN is cleared), one player claims
+-- the result (ending) and the other confirms it (done), or the claim names
+-- the opponent, which is a concession and final at once. Either player can
+-- cancel before the end. Live tracker taps travel over Realtime broadcast on
+-- the private topic 'duel:<id>'; state is only the last checkpoint, for
+-- reconnecting. tournament_id and t_ref are for tournament games (later).
+create table if not exists public.duels (
+  id             uuid primary key default gen_random_uuid(),
+  pin            text,
+  pin_expires_at timestamptz,
+  status         text not null default 'waiting'
+                 check (status in ('waiting','live','ending','done','cancelled','expired')),
+  mode           text not null check (mode in ('clash','demo')),
+  target         int  not null,
+  host_id        uuid not null references public.profiles(id),
+  guest_id       uuid references public.profiles(id),
+  host_seeker    text not null,
+  host_terrain   text not null,
+  host_deck_id   uuid references public.decks(id) on delete set null,
+  guest_seeker   text,
+  guest_terrain  text,
+  guest_deck_id  uuid references public.decks(id) on delete set null,
+  state          jsonb,
+  state_at       timestamptz,            -- time of the last checkpoint (the 5 s brake)
+  claim_by       uuid references public.profiles(id),
+  claim_winner   uuid references public.profiles(id),
+  winner_id      uuid references public.profiles(id),
+  loser_id       uuid references public.profiles(id),
+  winner_score   int,
+  loser_score    int,
+  rounds         int,
+  tournament_id  uuid references public.tournaments(id) on delete set null,
+  t_ref          text,
+  created_at     timestamptz not null default now(),
+  started_at     timestamptz,
+  ended_at       timestamptz,
+  updated_at     timestamptz not null default now(),
+  constraint duels_pin_only_waiting check ((status = 'waiting') = (pin is not null)),
+  constraint duels_pin_format check (pin is null or pin ~ '^[0-9]{4}$'),
+  constraint duels_guest_when_joined check (status not in ('live','ending','done') or guest_id is not null),
+  constraint duels_guest_not_host check (guest_id is null or guest_id <> host_id),
+  constraint duels_done_has_result check (status <> 'done' or (winner_id is not null and loser_id is not null))
+);
+create unique index if not exists duels_pin_waiting on public.duels(pin) where status = 'waiting';
+create index if not exists idx_duels_host on public.duels(host_id, created_at);
+create index if not exists idx_duels_guest on public.duels(guest_id);
+create index if not exists idx_duels_open on public.duels(status, updated_at)
+  where status in ('waiting','live','ending');
+create index if not exists idx_duels_done on public.duels(ended_at) where status = 'done';
+create index if not exists idx_duels_host_deck on public.duels(host_deck_id);
+create index if not exists idx_duels_guest_deck on public.duels(guest_deck_id);
+create index if not exists idx_duels_tournament on public.duels(tournament_id);
+
+-- Only the two players read the row; a waiting row (with its PIN) has no
+-- guest yet, so only its host sees it. Nothing is written directly: every
+-- change goes through the functions below.
+alter table public.duels enable row level security;
+revoke all on public.duels from anon, authenticated;
+grant select on public.duels to authenticated;
+drop policy if exists "duel players read" on public.duels;
+create policy "duel players read" on public.duels
+  for select to authenticated using (auth.uid() = host_id or auth.uid() = guest_id);
+
+-- Wrong PINs, for the guessing brakes. Only an account id and a time,
+-- purged after two days by duel_sweep().
+create table if not exists public.duel_join_attempts (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_duel_join_attempts_user on public.duel_join_attempts(user_id, created_at);
+create index if not exists idx_duel_join_attempts_created on public.duel_join_attempts(created_at);
+alter table public.duel_join_attempts enable row level security;
+revoke all on public.duel_join_attempts from anon, authenticated;
+
+-- 3. Small helpers (not callable over the API) ----------------------------------
+-- The signed-in caller: a real (not anonymous) login with a profile that was
+-- not deleted. Raises otherwise.
+create or replace function public.duel_caller()
+returns uuid language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    raise exception 'Sign in first' using errcode = '42501';
+  end if;
+  if not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    raise exception 'This account was deleted' using errcode = '42501';
+  end if;
+  return v_uid;
+end $$;
+
+-- A Seeker or terrain name: control characters stripped, trimmed, at most
+-- 80 characters, null when empty.
+create or replace function public.duel_clean(p text)
+returns text language sql immutable set search_path = public as $$
+  select nullif(left(btrim(regexp_replace(coalesce(p, ''), '[[:cntrl:]]', '', 'g')), 80), '');
+$$;
+
+-- A free PIN among the waiting matches, 0000 to 9999, from the strong random
+-- source behind gen_random_uuid(). Two bytes give 0..65535; values from
+-- 60000 up are dropped so every PIN is equally likely. Bytes 6 to 9 carry
+-- the uuid version and variant bits, so they are skipped.
+create or replace function public.gen_duel_pin()
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare
+  b bytea;
+  o int;
+  v int;
+  c text;
+  n int := 0;
+begin
+  loop
+    b := uuid_send(gen_random_uuid());
+    foreach o in array array[0, 2, 4, 10, 12, 14] loop
+      v := get_byte(b, o) * 256 + get_byte(b, o + 1);
+      if v < 60000 then
+        c := lpad((v % 10000)::text, 4, '0');
+        if not exists (select 1 from duels d where d.status = 'waiting' and d.pin = c) then
+          return c;
+        end if;
+      end if;
+    end loop;
+    n := n + 1;
+    if n > 50 then
+      raise exception 'Could not find a free PIN. Try again in a few minutes.'
+        using errcode = 'P0001', hint = 'busy';
+    end if;
+  end loop;
+end $$;
+
+-- Housekeeping: a waiting match expires with its PIN, a live match idle for
+-- 12 hours and a claimed result unconfirmed for 48 hours are cancelled.
+-- Matches that never started go after 7 days, cancelled ones after 30 days,
+-- wrong-PIN rows after 2 days. Finished matches stay. Called by duel_open()
+-- and duel_join(), and by pg_cron where the project has it (below). Only one
+-- sweep runs at a time; a call that finds one running skips.
+create or replace function public.duel_sweep()
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+  m int;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('duel_sweep')) then
+    return 0;
+  end if;
+  update duels set status = 'expired', pin = null, ended_at = now(), updated_at = now()
+   where status = 'waiting' and pin_expires_at <= now();
+  get diagnostics m = row_count; n := n + m;
+  update duels set status = 'cancelled', ended_at = now(), updated_at = now()
+   where status = 'live' and updated_at < now() - interval '12 hours';
+  get diagnostics m = row_count; n := n + m;
+  update duels set status = 'cancelled', ended_at = now(), updated_at = now()
+   where status = 'ending' and updated_at < now() - interval '48 hours';
+  get diagnostics m = row_count; n := n + m;
+  delete from duels where status = 'expired' and created_at < now() - interval '7 days';
+  delete from duels where status = 'cancelled' and created_at < now() - interval '30 days';
+  delete from duel_join_attempts where created_at < now() - interval '2 days';
+  return n;
+end $$;
+
+revoke all on function public.duel_caller()   from public, anon, authenticated;
+revoke all on function public.duel_clean(text) from public, anon, authenticated;
+revoke all on function public.gen_duel_pin()  from public, anon, authenticated;
+revoke all on function public.duel_sweep()    from public, anon, authenticated;
+
+-- 4. Opening and joining -----------------------------------------------------
+-- duel_open: the host picks the mode (clash 40, demo 25), their Seeker,
+-- terrain and optionally one of their own decks, and gets a PIN. Their
+-- previous waiting match is cancelled (every new match or reset has a new
+-- PIN). At most 30 opens per hour per account and 2000 waiting matches on
+-- the whole site (a fifth of the PINs). Refusals raise, with hint
+-- 'rate_limited' or 'busy'.
+create or replace function public.duel_open(p_mode text, p_seeker text, p_terrain text, p_deck_id uuid default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := duel_caller();
+  v_seeker  text := duel_clean(p_seeker);
+  v_terrain text := duel_clean(p_terrain);
+  v_target  int;
+  v_pin     text;
+  v_id      uuid;
+  v_exp     timestamptz := now() + interval '15 minutes';
+  i         int;
+begin
+  if p_mode = 'clash' then
+    v_target := 40;
+  elsif p_mode = 'demo' then
+    v_target := 25;
+  else
+    raise exception 'A synced match is Clash or Demo' using errcode = '22023';
+  end if;
+  if v_seeker is null or v_terrain is null then
+    raise exception 'Pick your Seeker and terrain first' using errcode = '22023';
+  end if;
+  if p_deck_id is not null
+     and not exists (select 1 from decks k where k.id = p_deck_id and k.user_id = v_uid) then
+    raise exception 'Pick one of your own decks' using errcode = '42501';
+  end if;
+
+  perform duel_sweep();
+  perform pg_advisory_xact_lock(hashtext('duel_open:' || v_uid::text));
+  if (select count(*) from duels d
+      where d.host_id = v_uid and d.created_at > now() - interval '1 hour') >= 30 then
+    raise exception 'You started 30 matches in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting';
+  if (select count(*) from duels d where d.status = 'waiting') >= 2000 then
+    raise exception 'Too many matches are waiting for an opponent right now. Try again in a few minutes.'
+      using errcode = 'P0001', hint = 'busy';
+  end if;
+
+  i := 0;
+  loop
+    i := i + 1;
+    v_pin := gen_duel_pin();
+    begin
+      insert into duels (pin, pin_expires_at, status, mode, target, host_id,
+                         host_seeker, host_terrain, host_deck_id)
+      values (v_pin, v_exp, 'waiting', p_mode, v_target, v_uid,
+              v_seeker, v_terrain, p_deck_id)
+      returning id into v_id;
+      exit;
+    exception when unique_violation then
+      if i >= 5 then
+        raise exception 'Could not find a free PIN. Try again in a few minutes.'
+          using errcode = 'P0001', hint = 'busy';
+      end if;
+    end;
+  end loop;
+
+  return jsonb_build_object('id', v_id, 'pin', v_pin, 'pin_expires_at', v_exp, 'server_now', now());
+end $$;
+
+-- duel_join: the guest types the PIN with their own Seeker, terrain and
+-- optional deck. It answers instead of raising when the PIN is refused, so
+-- the wrong-PIN row is kept. Wrong PINs per account: 5 a minute, 20 an hour,
+-- 60 a day ('rate_limited'); 600 wrong PINs on the whole site in 10 minutes
+-- pause joining for everyone ('busy'). A malformed PIN, and the caller's own
+-- PIN ('own_match'), are not counted. Joining cancels the guest's own
+-- waiting match, if any.
+create or replace function public.duel_join(p_pin text, p_seeker text, p_terrain text, p_deck_id uuid default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := duel_caller();
+  v_seeker  text := duel_clean(p_seeker);
+  v_terrain text := duel_clean(p_terrain);
+  v_pin     text := btrim(coalesce(p_pin, ''));
+  d         duels%rowtype;
+begin
+  if v_seeker is null or v_terrain is null then
+    raise exception 'Pick your Seeker and terrain first' using errcode = '22023';
+  end if;
+  if p_deck_id is not null
+     and not exists (select 1 from decks k where k.id = p_deck_id and k.user_id = v_uid) then
+    raise exception 'Pick one of your own decks' using errcode = '42501';
+  end if;
+  if v_pin !~ '^[0-9]{4}$' then
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+
+  perform duel_sweep();
+  perform pg_advisory_xact_lock(hashtext('duel_join:' || v_uid::text));
+  if (select count(*) from duel_join_attempts a
+      where a.user_id = v_uid and a.created_at > now() - interval '1 minute') >= 5
+     or (select count(*) from duel_join_attempts a
+         where a.user_id = v_uid and a.created_at > now() - interval '1 hour') >= 20
+     or (select count(*) from duel_join_attempts a
+         where a.user_id = v_uid and a.created_at > now() - interval '1 day') >= 60 then
+    return jsonb_build_object('ok', false, 'reason', 'rate_limited');
+  end if;
+  if (select count(*) from duel_join_attempts a
+      where a.created_at > now() - interval '10 minutes') >= 600 then
+    return jsonb_build_object('ok', false, 'reason', 'busy');
+  end if;
+
+  select * into d from duels x where x.pin = v_pin and x.status = 'waiting' for update;
+  if not found or d.pin_expires_at <= now() then
+    insert into duel_join_attempts (user_id) values (v_uid);
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+  if d.host_id = v_uid then
+    return jsonb_build_object('ok', false, 'reason', 'own_match');
+  end if;
+
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting';
+  update duels
+     set status = 'live', pin = null, guest_id = v_uid,
+         guest_seeker = v_seeker, guest_terrain = v_terrain, guest_deck_id = p_deck_id,
+         started_at = now(), updated_at = now()
+   where id = d.id;
+
+  return jsonb_build_object(
+    'ok', true, 'id', d.id, 'host_id', d.host_id,
+    'host_name', (select p.display_name from profiles p where p.id = d.host_id),
+    'mode', d.mode, 'target', d.target,
+    'host_seeker', d.host_seeker, 'host_terrain', d.host_terrain,
+    'server_now', now());
+end $$;
+
+-- 5. Playing and ending ------------------------------------------------------
+-- duel_checkpoint: the last tracker state, so a phone that reconnects can
+-- re-sync. A JSON object of at most 8 KB, one write per 5 seconds per match
+-- (extra calls answer ok with skipped). Every answer carries the match's
+-- status, so a phone that missed a change (a claim, a cancel) re-reads the
+-- row. A match that is no longer live or ending answers ok false.
+create or replace function public.duel_checkpoint(p_id uuid, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  if p_state is null or jsonb_typeof(p_state) <> 'object' then
+    raise exception 'The match state must be a JSON object' using errcode = '22023';
+  end if;
+  if octet_length(p_state::text) > 8192 then
+    raise exception 'The match state is too large' using errcode = '22023', hint = 'too_large';
+  end if;
+  select * into d from duels x where x.id = p_id for update;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if d.status not in ('live','ending') then
+    return jsonb_build_object('ok', false, 'status', d.status);
+  end if;
+  if d.state_at is not null and d.state_at > now() - interval '5 seconds' then
+    return jsonb_build_object('ok', true, 'skipped', true, 'status', d.status);
+  end if;
+  update duels set state = p_state, state_at = now(), updated_at = now() where id = d.id;
+  return jsonb_build_object('ok', true, 'status', d.status);
+end $$;
+
+-- duel_claim: a player names the winner of a live match, with the scores,
+-- the number of rounds and optionally the final state. Naming the opponent
+-- is a concession: the match is done at once. Naming yourself waits for the
+-- opponent (status ending). Scores and rounds: 0 to 999, or null.
+create or replace function public.duel_claim(p_id uuid, p_winner uuid, p_winner_score int, p_loser_score int,
+                                             p_rounds int, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  if (p_winner_score is not null and p_winner_score not between 0 and 999)
+     or (p_loser_score is not null and p_loser_score not between 0 and 999)
+     or (p_rounds is not null and p_rounds not between 0 and 999) then
+    raise exception 'Scores and rounds must be between 0 and 999' using errcode = '22023';
+  end if;
+  if p_state is not null and (jsonb_typeof(p_state) <> 'object' or octet_length(p_state::text) > 8192) then
+    raise exception 'The match state must be a JSON object of at most 8 KB' using errcode = '22023', hint = 'too_large';
+  end if;
+  select * into d from duels x where x.id = p_id for update;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if d.status <> 'live' then
+    return jsonb_build_object('ok', false, 'status', d.status);
+  end if;
+  if p_winner is null or (p_winner is distinct from d.host_id and p_winner is distinct from d.guest_id) then
+    raise exception 'The winner must be one of the two players' using errcode = '22023';
+  end if;
+
+  if p_winner <> v_uid then
+    update duels
+       set status = 'done', claim_by = v_uid, claim_winner = p_winner,
+           winner_id = p_winner, loser_id = v_uid,
+           winner_score = p_winner_score, loser_score = p_loser_score, rounds = p_rounds,
+           state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
+           ended_at = now(), updated_at = now()
+     where id = d.id;
+    return jsonb_build_object('ok', true, 'status', 'done');
+  end if;
+
+  update duels
+     set status = 'ending', claim_by = v_uid, claim_winner = v_uid,
+         winner_score = p_winner_score, loser_score = p_loser_score, rounds = p_rounds,
+         state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
+         updated_at = now()
+   where id = d.id;
+  return jsonb_build_object('ok', true, 'status', 'ending');
+end $$;
+
+-- duel_answer: the player who did not claim accepts (done, as claimed) or
+-- rejects ("Not right": back to live, claim cleared).
+create or replace function public.duel_answer(p_id uuid, p_accept boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  select * into d from duels x where x.id = p_id for update;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if d.status <> 'ending' then
+    return jsonb_build_object('ok', false, 'status', d.status);
+  end if;
+  if v_uid = d.claim_by then
+    raise exception 'Your opponent confirms this result' using errcode = '42501';
+  end if;
+  if coalesce(p_accept, false) then
+    update duels
+       set status = 'done', winner_id = d.claim_winner,
+           loser_id = case when d.claim_winner = d.host_id then d.guest_id else d.host_id end,
+           ended_at = now(), updated_at = now()
+     where id = d.id;
+    return jsonb_build_object('ok', true, 'status', 'done');
+  end if;
+  update duels
+     set status = 'live', claim_by = null, claim_winner = null,
+         winner_score = null, loser_score = null, rounds = null, updated_at = now()
+   where id = d.id;
+  return jsonb_build_object('ok', true, 'status', 'live');
+end $$;
+
+-- duel_cancel: either player, while waiting, live or ending. A match that is
+-- already over answers ok false with its status.
+create or replace function public.duel_cancel(p_id uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  select * into d from duels x where x.id = p_id for update;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if d.status not in ('waiting','live','ending') then
+    return jsonb_build_object('ok', false, 'status', d.status);
+  end if;
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where id = d.id;
+  return jsonb_build_object('ok', true, 'status', 'cancelled');
+end $$;
+
+-- duel_get: the row with both names and the server time, for (re)loading a
+-- match. Null when the match does not exist or the caller did not play it.
+create or replace function public.duel_get(p_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  d     duels%rowtype;
+begin
+  select * into d from duels x where x.id = p_id;
+  if not found or (v_uid is distinct from d.host_id and v_uid is distinct from d.guest_id) then
+    return null;
+  end if;
+  return to_jsonb(d) || jsonb_build_object(
+    'host_name',  (select p.display_name from profiles p where p.id = d.host_id),
+    'guest_name', (select p.display_name from profiles p where p.id = d.guest_id),
+    'server_now', now());
+end $$;
+
+revoke all on function public.duel_open(text, text, text, uuid)                   from public, anon;
+revoke all on function public.duel_join(text, text, text, uuid)                   from public, anon;
+revoke all on function public.duel_checkpoint(uuid, jsonb)                        from public, anon;
+revoke all on function public.duel_claim(uuid, uuid, int, int, int, jsonb)        from public, anon;
+revoke all on function public.duel_answer(uuid, boolean)                          from public, anon;
+revoke all on function public.duel_cancel(uuid)                                   from public, anon;
+revoke all on function public.duel_get(uuid)                                      from public, anon;
+grant execute on function public.duel_open(text, text, text, uuid)                to authenticated;
+grant execute on function public.duel_join(text, text, text, uuid)                to authenticated;
+grant execute on function public.duel_checkpoint(uuid, jsonb)                     to authenticated;
+grant execute on function public.duel_claim(uuid, uuid, int, int, int, jsonb)     to authenticated;
+grant execute on function public.duel_answer(uuid, boolean)                       to authenticated;
+grant execute on function public.duel_cancel(uuid)                                to authenticated;
+grant execute on function public.duel_get(uuid)                                   to authenticated;
+
+-- 6. Reading finished matches ------------------------------------------------
+-- player_matches: the finished matches of one player, newest first, for the
+-- Matches list on their profile, as p_user sees them (my_* is p_user).
+-- Shown as p_user's matches_visibility allows; a viewer always sees the
+-- matches they played themselves. The opponent's own setting is kept too:
+-- when it does not let this viewer see the opponent's matches, the row
+-- stays but the opponent is hidden (no id, no Seeker or terrain, the name
+-- 'Private player', or 'Deleted player' for a deleted account), so a
+-- private history cannot be rebuilt from the opponents' public lists. A
+-- tournament is named only when its community is public or the viewer
+-- belongs to it.
+create or replace function public.player_matches(p_user uuid)
+returns table (id uuid, played_at timestamptz, opponent_id uuid, opponent_name text,
+               my_seeker text, my_terrain text, opp_seeker text, opp_terrain text,
+               won boolean, my_score int, opp_score int,
+               tournament_id uuid, tournament_name text)
+language sql stable security definer set search_path = public as $$
+  with v as (
+    select auth.uid() as viewer,
+           auth.uid() is not null
+             and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+             and exists (select 1 from profiles vp where vp.id = auth.uid() and vp.deleted_at is null) as signed_in,
+           (select p.matches_visibility from profiles p where p.id = p_user) as vis
+  )
+  select d.id,
+         d.ended_at,
+         case when s.shown then op.id end,
+         case when s.shown then op.display_name
+              when op.deleted_at is not null then 'Deleted player'
+              else 'Private player' end,
+         case when d.host_id = p_user then d.host_seeker  else d.guest_seeker  end,
+         case when d.host_id = p_user then d.host_terrain else d.guest_terrain end,
+         case when s.shown then case when d.host_id = p_user then d.guest_seeker  else d.host_seeker  end end,
+         case when s.shown then case when d.host_id = p_user then d.guest_terrain else d.host_terrain end end,
+         d.winner_id = p_user,
+         case when d.winner_id = p_user then d.winner_score else d.loser_score end,
+         case when d.winner_id = p_user then d.loser_score else d.winner_score end,
+         case when l.is_public or is_league_member(l.id) then t.id end,
+         case when l.is_public or is_league_member(l.id)
+              then coalesce(nullif(btrim(t.payload->>'name'), ''), l.name || ' ' || t.month) end
+    from duels d
+    cross join v
+    join profiles op on op.id = case when d.host_id = p_user then d.guest_id else d.host_id end
+    cross join lateral (
+      select coalesce(v.viewer in (d.host_id, d.guest_id), false)
+             or op.matches_visibility = 'public'
+             or (op.matches_visibility = 'players' and v.signed_in) as shown
+    ) s
+    left join tournaments t on t.id = d.tournament_id
+    left join leagues l on l.id = t.league_id
+   where d.status = 'done'
+     and p_user in (d.host_id, d.guest_id)
+     and (v.viewer = p_user
+          or v.viewer = d.host_id or v.viewer = d.guest_id
+          or v.vis = 'public'
+          or (v.vis = 'players' and v.signed_in))
+   order by d.ended_at desc;
+$$;
+revoke all on function public.player_matches(uuid) from public;
+grant execute on function public.player_matches(uuid) to anon, authenticated;
+
+-- meta_duels: every finished match, for the Meta, with no player ids. The
+-- date is rounded down to the day. A deck id is given only for a public deck
+-- of a player whose matches are public, so a private history cannot be
+-- traced through a deck.
+create or replace function public.meta_duels(p_since timestamptz default null)
+returns table (id uuid, played_at timestamptz,
+               winner_seeker text, loser_seeker text,
+               winner_terrain text, loser_terrain text,
+               winner_deck_id uuid, loser_deck_id uuid)
+language sql stable security definer set search_path = public as $$
+  select d.id,
+         date_trunc('day', d.ended_at),
+         case when d.winner_id = d.host_id then d.host_seeker  else d.guest_seeker  end,
+         case when d.winner_id = d.host_id then d.guest_seeker  else d.host_seeker  end,
+         case when d.winner_id = d.host_id then d.host_terrain else d.guest_terrain end,
+         case when d.winner_id = d.host_id then d.guest_terrain else d.host_terrain end,
+         case when wk.is_public and wp.matches_visibility = 'public' then wk.id end,
+         case when lk.is_public and lp.matches_visibility = 'public' then lk.id end
+    from duels d
+    join profiles wp on wp.id = d.winner_id
+    join profiles lp on lp.id = d.loser_id
+    left join decks wk on wk.id = case when d.winner_id = d.host_id then d.host_deck_id else d.guest_deck_id end
+    left join decks lk on lk.id = case when d.winner_id = d.host_id then d.guest_deck_id else d.host_deck_id end
+   where d.status = 'done'
+     and (p_since is null or d.ended_at >= p_since)
+   order by d.ended_at desc;
+$$;
+revoke all on function public.meta_duels(timestamptz) from public;
+grant execute on function public.meta_duels(timestamptz) to anon, authenticated;
+
+-- 7. Realtime: private channels 'duel:<id>' -------------------------------------
+-- Only the two players of a match may join its channel, send on it (tracker
+-- taps, presence) and receive from it. Skipped with a warning where the
+-- project has no realtime.messages table; the check query then shows it.
+do $outer$
+begin
+  if to_regclass('realtime.messages') is null then
+    raise warning 'realtime.messages does not exist: the duel channel policies were not created.';
+    return;
+  end if;
+  begin
+    execute 'drop policy if exists "duel players receive" on realtime.messages';
+    execute $p$
+      create policy "duel players receive" on realtime.messages
+        for select to authenticated
+        using (
+          realtime.topic() like 'duel:%'
+          and exists (select 1 from public.duels d
+                      where d.id::text = split_part(realtime.topic(), ':', 2)
+                        and auth.uid() in (d.host_id, d.guest_id))
+        )$p$;
+    execute 'drop policy if exists "duel players send" on realtime.messages';
+    execute $p$
+      create policy "duel players send" on realtime.messages
+        for insert to authenticated
+        with check (
+          realtime.topic() like 'duel:%'
+          and exists (select 1 from public.duels d
+                      where d.id::text = split_part(realtime.topic(), ':', 2)
+                        and auth.uid() in (d.host_id, d.guest_id))
+        )$p$;
+  exception when others then
+    raise warning 'The duel channel policies were not created (%).', sqlerrm;
+  end;
+end $outer$;
+
+-- Each change of status, claim or guest is pushed to the match channel as a
+-- 'duel_status' broadcast, so the other phone hears it at once. A Realtime
+-- failure never blocks the write.
+create or replace function public.duel_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status is distinct from old.status
+     or new.claim_by is distinct from old.claim_by
+     or new.claim_winner is distinct from old.claim_winner
+     or new.guest_id is distinct from old.guest_id then
+    begin
+      perform realtime.send(
+        jsonb_build_object('status', new.status, 'claim_by', new.claim_by,
+                           'claim_winner', new.claim_winner, 'guest_id', new.guest_id),
+        'duel_status', 'duel:' || new.id::text, true);
+    exception when others then
+      null;
+    end;
+  end if;
+  return null;
+end $$;
+revoke all on function public.duel_notify() from public, anon, authenticated;
+drop trigger if exists duel_notify on public.duels;
+create trigger duel_notify after update on public.duels
+  for each row execute function public.duel_notify();
+
+-- 8. The sweep every 10 minutes through pg_cron, like sl-purge-old-rows.
+-- Without pg_cron duel_open() and duel_join() still sweep. Re-running
+-- replaces the job.
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    begin
+      perform cron.unschedule(j.jobid) from cron.job j where j.jobname = 'sl-duel-sweep';
+      perform cron.schedule('sl-duel-sweep', '*/10 * * * *', 'select public.duel_sweep()');
+    exception when others then
+      raise notice 'Could not schedule sl-duel-sweep (%).', sqlerrm;
+    end;
+  end if;
+end $$;
+
+-- 9. Free battles: no new rows ------------------------------------------------
+-- The page is gone. Old rows stay, readable and deletable by their owner
+-- only ("fb own read", "fb own delete"), shown as "logged by hand".
+drop policy if exists "fb own write" on public.free_battles;
+
+-- 10. erase_user_data(): same as 2026-11-01, plus the matches ---------------
+-- The account's open matches are cancelled and its wrong-PIN rows deleted.
+-- Finished matches stay: the opponent keeps them, against "Deleted player".
+-- The deleted account's own list becomes private.
+create or replace function erase_user_data(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  l record;
+begin
+  if p_user is null then
+    return;
+  end if;
+  for l in select id, name, archived_at from leagues where owner_id = p_user for update loop
+    if not exists (select 1 from memberships m where m.league_id = l.id and m.user_id <> p_user)
+       and not exists (select 1 from matches mt where mt.league_id = l.id)
+       and not exists (select 1 from attendance a join sessions s on s.id = a.session_id
+                       where s.league_id = l.id and a.user_id <> p_user) then
+      delete from leagues where id = l.id;
+    elsif l.archived_at is null and exists (
+      select 1 from memberships m
+      where m.league_id = l.id and m.user_id <> p_user and m.dropped_at is null
+    ) then
+      raise exception 'This account owns the league "%", which still has players. Hand it over to one of them or archive it first (Manage).', l.name
+        using errcode = 'P0001', hint = 'sl_owns_league';
+    else
+      update leagues set archived_at = coalesce(archived_at, now()) where id = l.id;
+    end if;
+  end loop;
+
+  delete from collection     where user_id = p_user;
+  delete from free_battles   where user_id = p_user;
+  delete from decks          where user_id = p_user and not is_public;
+  delete from feedback       where user_id = p_user;
+  delete from site_admins    where user_id = p_user;
+  delete from member_discord where user_id = p_user;
+  delete from duel_join_attempts where user_id = p_user;
+
+  update duels
+     set status = 'cancelled', pin = null, ended_at = coalesce(ended_at, now()), updated_at = now()
+   where status in ('waiting','live','ending') and (host_id = p_user or guest_id = p_user);
+
+  update memberships
+     set dropped_at = coalesce(dropped_at, now()), is_admin = false
+   where user_id = p_user and (dropped_at is null or is_admin);
+
+  update profiles
+     set display_name = 'Deleted player',
+         role = 'player',
+         herald_rank = null,
+         discord = null,
+         malediction_url = null,
+         lat = null,
+         lon = null,
+         place = null,
+         matches_visibility = 'private',
+         deleted_at = coalesce(deleted_at, now())
+   where id = p_user;
+end $$;
+revoke all on function erase_user_data(uuid) from public, anon, authenticated;
