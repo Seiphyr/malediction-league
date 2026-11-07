@@ -8,9 +8,12 @@ malediction.gg. It has two modes:
   community can call it. It keeps how many players registered, never who,
   and the event's settings: number of rounds (`num_rounds`), round length
   in minutes (`round_minutes`) and game mode (`game_mode`, 1x1 or 2x2).
-- **Tournament** (`{ tournament_id }`): copies the registered players of the
-  tournament's Play Network event into that tournament (nickname and
-  malediction.gg profile id of each player, nothing else). Only the
+- **Tournament** (`{ tournament_id, known? }`): copies the registered players
+  of the tournament's Play Network event into that tournament: nickname,
+  malediction.gg profile id, avatar, Discord handle and the deck locked for
+  the event (name, link, Seeker, terrain, card list). First and last names
+  are never read. `known` is the site's card list (collection number to
+  name), sent by the page so card ids become the site's names. Only the
   tournament's organizer can call it, and only before the tournament starts.
 
 ## Before you start
@@ -25,6 +28,8 @@ Run the migrations in Supabase Dashboard > SQL Editor, in date order:
   `game_mode` columns of `pn_events`, and `t_import()` with its fourth
   argument `p_meta` (the event's settings, used to suggest the number of
   Swiss rounds).
+- `migration-2026-11-19-pn-decklists.sql`: the `tournament_pn` table and the
+  `t_import()` that stores avatars, Discord handles and decks.
 
 The check query at the end of each migration should show `ok = true` on
 every row.
@@ -56,10 +61,38 @@ tournaments have no Play Network round count (`pn.rounds` is empty) and the
 page suggests the number of rounds from the Malediction Tournament Guide
 table.
 
-Do not deploy this function before step 1: every listing save would then
-fail ("The event was read but could not be saved", because the new columns
-do not exist yet) and every player import would answer `upstream_error`
-(no `t_import` with `p_meta`).
+Do not deploy this function before step 1 of the Swiss order: every listing
+save would then fail ("The event was read but could not be saved", because
+the new columns do not exist yet) and every player import would answer
+`upstream_error` (no `t_import` with `p_meta`).
+
+Decks from the Play Network (2026-11-19) go live in this order:
+
+1. **SQL**: `migration-2026-11-19-pn-decklists.sql` (table `tournament_pn`,
+   new `t_import`, `t_deck_get`, `t_deck_set`, `t_deck_pub`,
+   `t_auto_before`).
+2. **Site**: `index.html` (the privacy notice and the create-tournament
+   sheet describe the new data: pictures, Discord handles and decks; the
+   page sends `known`, shows the imported decks, the avatars and the
+   opponent's Discord handle).
+3. **This function**: paste the new `index.ts`. Only from here are
+   pictures, Discord handles and decks read from the Play Network, so the
+   privacy notice that describes them is already live.
+
+Each step works with the one before it. The old function with the new SQL:
+it sends no decks, so nothing changes (no avatars, no decks). The new page
+with the old function: the old function refuses requests over 4 KB, and
+the card list makes this one about 6 KB, so it answers `bad_url`; the page
+then asks once more without the list and the import works as before (no
+decks, no avatars, today's toast). The new function with the old page
+(only if steps 2 and 3 were swapped): no `known` is sent, so card names
+come from the Play Network page and no card is reported as unknown. If
+this function were deployed before step 1, imports would still work (the
+old `t_import` ignores the new fields), but nothing would be stored.
+
+The names in `known` come from the organizer's page, so the function uses
+one only when it matches the Play Network page's own name for that card;
+otherwise the card keeps its Play Network name and counts as unknown.
 
 ## Deploy from the dashboard
 
@@ -176,6 +209,41 @@ The last four columns come from `p_meta` (the event's settings, never
 player data). For event 393: `1`, `Swiss`, `60`, `1x1`. A `0` round count
 is kept as empty.
 
+## Test it: decks
+
+Play Network shows the decks of an event only once its organizer has
+pressed Start there (the event is then Ongoing). Before that the answer
+has `decks.hidden: true` and `decks.pre` = the players who have linked a
+deck; decks imported earlier are kept. So: start the event on Play
+Network, then tap **Update from the Play Network** on the tournament, then
+start the tournament here (after our start the players and decks are
+fixed).
+
+The answer gains `decks: { n, miss, unk, part, hidden, pre }`: decks
+imported, players without one (they register theirs by hand), cards the
+site does not know (in all decks), decks read only in part (Seeker and
+terrain exact), whether Play Network still hides decks, players with a
+linked deck. Check the stored rows in the SQL Editor (read only):
+
+```sql
+select pid, deck_st, seeker, terrain, unk_n, unk, discord is not null as has_discord, fetched_at
+from public.tournament_pn where tournament_id = '<tournament id>';
+select user_id, src, pn_pid, seeker, terrain, locked_at
+from public.tournament_decks where tournament_id = '<tournament id>';
+```
+
+`deck_st` is `locked` when the list matched Play Network's check hashes of
+the locked deck (`linked`: the deck as it is now, when there is no lock),
+`partial` when only part of it could be read (Play Network cuts its list at
+40 cards; the function then reads the deck page, and a deck page that could
+not be read this time is tried again on the next update). Each linked
+player's deck is copied into `tournament_decks` with `src = 'pn'`.
+
+The parser can be checked offline too: the pure block also holds
+`deckPlan`, `deckFinish`, `deckStateOf`, `mapDeck` and the hash functions
+(they use `crypto.subtle`, so the local page must be served from https,
+127.0.0.1 or a file).
+
 The parser can also be checked offline, without deploying: the block between
 `// ---- registrants (pure) ----` and `// ---- end registrants ----` is plain
 JavaScript. Copy it (with `clean`, `decodeEntities`, `toCount`,
@@ -200,10 +268,27 @@ links, names, the players list or tokens, only short error codes.
 - The function only ever requests
   `https://malediction.gg/play-network/events/single/<id>/<slug>/`, with a
   10 second timeout, a 3 MB size limit, no automatic redirects, and the
-  User-Agent `SeekersLeague/1.0 (+https://seekers-league.com)`.
+  User-Agent `SeekersLeague/1.0 (+https://seekers-league.com)`. In
+  tournament mode it may also request the deck pages linked on that event
+  page, only `https://malediction.gg/play-network/decks/view/<slug>/<hash>/`
+  or `.../decks/snapshot/<this event id>/<this player's profile id>/`
+  (www too): at most 32 per update, 4 at a time, none started after 20
+  seconds, 8 seconds and 3 MB each, at most one redirect (to a link of the
+  same shape).
+- A request is at most 32 KB (`known` is about 7 KB).
 - A listing stores how many players registered, never who, plus the
   event's number of rounds, round length and game mode. A tournament
   stores each registered player's Play Network nickname (at most 40
-  characters) and malediction.gg profile id, at most 256 players. First and
-  last names, Discord handles, avatars, decks and seekers on the page are
-  never read.
+  characters), malediction.gg profile id, avatar (only
+  `malediction.gg/wp-content/uploads/` images, stored as https), Discord
+  handle (2 to 40 characters) and deck (name, link, Seeker, terrain,
+  legacy, card list with the site's names: main at most 60 cards, side 15,
+  9 copies, 64 names; a deck over a limit is not imported), at most 256
+  players. First and last names, deck descriptions and registration times
+  are never read.
+- Who sees what: the card lists never leave the database. The Seeker and
+  terrain: the organizer and the player while the tournament is in
+  registration or running, everyone once it is closed. Unknown card names:
+  the organizer. Discord handles: the organizer, and each player only for
+  the opponent of their current game. Avatars: everyone who can see the
+  tournament. Everything goes with the tournament when it is deleted.

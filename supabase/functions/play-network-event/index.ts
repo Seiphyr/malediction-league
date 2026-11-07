@@ -6,32 +6,55 @@
 //
 //   POST { "league_id": "<uuid>", "url": "<event link>" }  add or refresh
 //   POST { "id": "<pn_events id>" }                        refresh a listing
-//   POST { "tournament_id": "<uuid>" }                     import the players
-//                                                          of a tournament
+//   POST { "tournament_id": "<uuid>",                      import the players
+//          "known"?: { "<card base id>": "<name>" } }      of a tournament
+//
+// "known" is the site's own card list (collection number such as "CON-48"
+// to its name, at most 4000 entries), so Play Network card ids become the
+// names the site uses. It comes from the caller (the organizer's page), so
+// it is never trusted on its own: a name from it is used only when it is
+// the same name (case, apostrophes, dashes and spaces aside) the Play
+// Network page itself gives that card; otherwise the Play Network name is
+// kept and the card counts as unknown. Without it (an older page) the names
+// come from the Play Network page and no card is reported as unknown.
 //
 // Answers (always HTTP 200 with JSON, except OPTIONS and wrong methods):
 //   { "ok": true,  "event": <pn_events row> }
 //   { "ok": true,  "tournament": { id, rev, status: "draft" },
 //     "registrants": { total, added, removed, linked },
+//     "decks": { n, miss, unk, part, hidden, pre },
 //     "warning"?: "count_mismatch" | "too_many" }       (tournament mode)
 //   { "ok": false, "error": "<code>", "message": "<English text>" }
 //   codes: bad_url, not_allowed, rate_limited, event_not_found,
 //          upstream_error, parse_error, archived, started
+//   decks: n players with a deck imported, miss players without one, unk
+//          cards the site does not know (in all decks), part decks read in
+//          part, hidden true while Play Network still hides the decks (before
+//          the event starts there), pre players who have linked a deck there.
 //
 // Listing mode: the caller must be signed in and an organizer of a community
 // that is not archived. Tournament mode: the caller must be the organizer of
 // a tournament still in draft (checked by t_fetch_allow, as the caller). The
 // function only ever requests
 //   https://malediction.gg/play-network/events/single/<id>/<slug>/
-// rebuilt from the parsed id and slug, so it is not an open proxy.
+// rebuilt from the parsed id and slug, and, in tournament mode, deck pages
+// whose link is on that event page and has one of these two shapes:
+//   https://malediction.gg/play-network/decks/view/<slug>/<32 letters or digits>/
+//   https://malediction.gg/play-network/decks/snapshot/<this event id>/<this player's profile id>/
+// (www.malediction.gg too), at most 32 per import, so it is not an open proxy.
 // A listing keeps how many players registered, never who, and the event's
 // settings (number of rounds, round length, game mode), which the tournament
-// mode also passes to t_import as p_meta. Only the
-// tournament mode reads who: for each registered player the official
-// nickname and the malediction.gg profile id, nothing else (first and last
-// names, Discord handles, avatars and decks are never read), and hands them
-// to t_import, which keeps them inside that tournament only. The list is
-// never cached, logged or echoed back.
+// mode also passes to t_import as p_meta.
+//
+// Only the tournament mode reads who registered. Exactly what it reads is
+// listed above the registrants block below ("From each registered player").
+// In short: nickname, profile id, avatar, Discord handle and the deck (name,
+// link, Seeker, terrain, card ids and the Play Network check hashes); first
+// and last names are never read. Decks are read only when Play Network shows
+// them, which is once the event has started there (Ongoing or Completed).
+// It hands them to t_import, which keeps them inside that tournament only
+// (they are deleted with it). The list is never cached, logged or echoed
+// back: the answer carries counts only.
 //
 // "Verify JWT" is turned off for this function in the dashboard: the code
 // below verifies the user itself (auth.getUser), which also works with the
@@ -75,8 +98,13 @@ const USER_AGENT = "SeekersLeague/1.0 (+https://seekers-league.com)";
 const PN_HOSTS = new Set(["malediction.gg", "www.malediction.gg"]);
 const FETCH_TIMEOUT_MS = 10_000;          // the whole look-up, body included
 const MAX_PAGE_BYTES = 3 * 1024 * 1024;   // event pages are about 1 MB
-const MAX_REQUEST_BYTES = 4 * 1024;
+const MAX_REQUEST_BYTES = 32 * 1024;      // "known" (the site's card list) is about 7 KB
 const MAX_REDIRECTS = 2;
+const DECK_TIMEOUT_MS = 8_000;            // one deck page
+const DECK_PAGES_MAX = 32;                // deck pages per import
+const DECK_PAGES_AT_ONCE = 4;
+const DECK_BUDGET_MS = 20_000;            // no new deck page after this, from the start of the request
+const REGS_MAX_BYTES = 1_500_000;         // p_regs; past it the decks already stored are kept
 const CACHE_MS = 60_000;
 const CACHE_MAX = 200;
 
@@ -241,12 +269,40 @@ function parsePnUrl(raw: unknown): PnRef | null {
 
 type Page = { kind: "ok"; html: string } | { kind: "not_found" } | { kind: "error" };
 
-async function fetchPage(ref: PnRef): Promise<Page> {
+// An event page. A missing event answers 302 to the list of events: only a
+// redirect to the same event on malediction.gg is followed.
+function fetchPage(ref: PnRef): Promise<Page> {
+  return fetchHtml(ref.url, (next: URL) => {
+    const m = PN_PATH.exec(next.pathname);
+    if (next.protocol !== "https:" || !PN_HOSTS.has(next.hostname) || next.port !== "" || !m || m[1] !== ref.id) {
+      return null;
+    }
+    return `https://${next.hostname}${next.pathname}`;
+  }, MAX_REDIRECTS, FETCH_TIMEOUT_MS);
+}
+
+// A deck page of this event's registrant: only links that pass deckUrlOf()
+// (view/<slug>/<hash>/ or snapshot/<event id>/<profile id>/), and at most
+// one redirect, to a link that passes it too.
+function fetchDeckPage(url: string, eventId: string, pid: string): Promise<Page> {
+  if (deckUrlOf(url, eventId, pid) !== url) return Promise.resolve<Page>({ kind: "error" });
+  return fetchHtml(url, (next: URL) => {
+    if (next.protocol !== "https:" || !PN_HOSTS.has(next.hostname) || next.port !== "" || next.username || next.password) {
+      return null;
+    }
+    return deckUrlOf(`https://${next.hostname}${next.pathname}`, eventId, pid);
+  }, 1, DECK_TIMEOUT_MS);
+}
+
+// GET of an HTML page on malediction.gg: no automatic redirects (follow()
+// decides each one: the next link, or null for not_found), text/html only,
+// at most MAX_PAGE_BYTES, timeoutMs for the whole look-up, body included.
+async function fetchHtml(start: string, follow: (next: URL) => string | null, maxRedirects: number, timeoutMs: number): Promise<Page> {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    let url = ref.url;
-    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    let url = start;
+    for (let hop = 0; hop <= maxRedirects; hop++) {
       const res = await fetch(url, {
         method: "GET",
         redirect: "manual",
@@ -259,8 +315,6 @@ async function fetchPage(ref: PnRef): Promise<Page> {
       });
       if (res.status >= 300 && res.status < 400) {
         await res.body?.cancel().catch(() => {});
-        // A missing event answers 302 to the list of events. Only a redirect
-        // to the same event on malediction.gg is followed.
         const loc = res.headers.get("location");
         if (!loc) return { kind: "error" };
         let next: URL;
@@ -269,11 +323,9 @@ async function fetchPage(ref: PnRef): Promise<Page> {
         } catch {
           return { kind: "not_found" };
         }
-        const m = PN_PATH.exec(next.pathname);
-        if (next.protocol !== "https:" || !PN_HOSTS.has(next.hostname) || next.port !== "" || !m || m[1] !== ref.id) {
-          return { kind: "not_found" };
-        }
-        url = `https://${next.hostname}${next.pathname}`;
+        const to = follow(next);
+        if (!to) return { kind: "not_found" };
+        url = to;
         continue;
       }
       if (res.status === 404 || res.status === 410) {
@@ -436,8 +488,8 @@ function readCalendar(html: string, id: string): { title: string | null; start: 
 
 // How many registered: a number only, for the listing. The members list
 // holds names, Discord handles and decks; here it is only counted, never
-// parsed or kept. The tournament mode reads nicknames and profile ids with
-// readRegistrants() below, and nothing else.
+// parsed or kept. The tournament mode reads its registrants with
+// readRegistrants() below (the fields listed there, nothing else).
 function readParticipants(html: string): number | null {
   const f = /name=\\?"registered_participants\\?"\s+value=\\?"(\d{1,6})\\?"/.exec(html);
   if (f) return toCount(f[1]);
@@ -499,19 +551,522 @@ function parseEvent(html: string, ref: PnRef): LookUp {
 // between this line and the end marker (types are in JSDoc, parameter types
 // come from defaults), so the test page can run this block in a browser. It
 // uses clean(), toCount(), literalStart(), sliceLiteral() and MAX_PAGE_BYTES
-// from above.
+// from above, and crypto.subtle (Deno, or a browser page on https or
+// 127.0.0.1).
 //
-// From each registered player it reads ONLY member_status, user_public_id,
-// profile_url and nickname. The members literal on the page also carries
-// first_name, last_name, discord_handle, avatar, deck_*, seeker_* and
-// terrain_name: those are never read. Never console.* the literal, the list
-// or a name.
+// From each registered player (member_status "Joined") it reads ONLY:
+//   user_public_id, profile_url, nickname   who it is (as before)
+//   avatar          the picture shown next to the name; only
+//                   http(s)://(www.)malediction.gg/wp-content/uploads/...
+//                   .jpg/.jpeg/.png/.webp/.gif, stored as https; else none
+//   discord_handle  2 to 40 characters, for the organizer and the player's
+//                   opponent of the round
+//   deck_name, deck_url                       the deck's name and link
+//   seeker_card_id, seeker_name, terrain_name the Seeker (names as fallback)
+//   main_decklist_hash, side_decklist_hash    the locked list's check hashes
+//   live_main_decklist_hash, live_side_decklist_hash  the deck as it is now
+//                                             (counted while decks are hidden)
+//   locked_deck_data   only main_decklist_hash, side_decklist_hash,
+//                      seeker_card_id, legacy_card_id, terrain_type_id
+//   deck_cards_json    the card ids of the locked deck (Play Network cuts it
+//                      at 40 entries)
+// From the event page: playNetworkCurrentEventData.event_state,
+// playNetworkShowEventDecks, and only the name of each card of
+// window.MaledictionCardsDB. From a deck page: only seeker, legacy,
+// terrain, main and side of window.deckBuilderState.
+// Never read: first_name, last_name, deck_description, id, user_id,
+// event_id, is_verified, created_at, deck_id, deck_hash, deck_icon,
+// seeker_icon, deck_updated_at*, card texts. Never console.* the literal,
+// the list, a name, a handle or a deck.
 
 const PID = /^[A-Za-z0-9]{6,32}$/;
 const PROFILE = /^https:\/\/(?:www\.)?malediction\.gg\/app\/profile\/([A-Za-z0-9]{6,32})\/?$/;
 const PROFILE_ROW =
   /<a href="https:\/\/(?:www\.)?malediction\.gg\/app\/profile\/([A-Za-z0-9]{6,32})\/?"[^>]*compPlayerRowNickname[^>]*>\s*<span[^>]*>([^<]{0,200})<\/span>/g;
 const MAX_REGISTRANTS = 256;
+
+// Decks: card ids look like CON-48-1-CA (set, number, printing, edition);
+// CON-48 is the collection number the site's card list uses.
+const CARD_ID = /^[A-Z]{2,5}-[0-9]{1,4}-[0-9]{1,3}-[A-Z]{1,4}$/;
+const CARD_BASE = /^[A-Z]{2,5}-[0-9]{1,4}$/;
+const HEX64 = /^[0-9a-f]{64}$/;
+const AVATAR =
+  /^https?:\/\/((?:www\.)?malediction\.gg)\/wp-content\/uploads\/([A-Za-z0-9\/._-]{1,180}\.(?:jpe?g|png|webp|gif|JPE?G|PNG|WEBP|GIF))$/;
+const DECK_VIEW = /^https:\/\/(?:www\.)?malediction\.gg\/play-network\/decks\/view\/[a-z0-9-]{1,200}\/[A-Za-z0-9]{32}\/$/;
+// Limits. A deck over one of them is not imported (the player registers
+// theirs by hand), never cut.
+const LIM = {
+  main: 60, side: 15, qty: 9, names: 64, name: 80, deckName: 80, url: 300, avatar: 200, discord: 40,
+  list: 64, listChars: 8192, lockChars: 4096, stateChars: 50000, dbChars: 2 * 1024 * 1024, dbCards: 4000,
+  unk: 20, unkMax: 200, known: 4000,
+};
+
+/**
+ * The avatar as an https link on malediction.gg, or null.
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+function avatarOf(v = Object()) {
+  if (typeof v !== "string" || v.length > LIM.avatar) return null;
+  const m = AVATAR.exec(v);
+  if (!m || m[2].includes("..") || m[2].includes("//")) return null;
+  return `https://${m[1]}/wp-content/uploads/${m[2]}`;
+}
+
+/**
+ * A Discord handle of 2 to 40 characters (plain text), or null.
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+function discordOf(v = Object()) {
+  const t = clean(v, 200);
+  return t && t.length >= 2 && t.length <= LIM.discord ? t : null;
+}
+
+/**
+ * The deck link if it is a Play Network deck page of this registrant, else null.
+ * @param {unknown} v
+ * @param {string} eventId
+ * @param {string} pid
+ * @returns {string | null}
+ */
+function deckUrlOf(v = Object(), eventId = "", pid = "") {
+  if (typeof v !== "string" || v.length > LIM.url) return null;
+  if (DECK_VIEW.test(v)) return v;
+  if (!/^[1-9][0-9]{0,8}$/.test(eventId) || !PID.test(pid)) return null;
+  for (const h of ["https://malediction.gg", "https://www.malediction.gg"]) {
+    if (v === `${h}/play-network/decks/snapshot/${eventId}/${pid}/`) return v;
+  }
+  return null;
+}
+
+/** @param {unknown} x @returns {string | null} */
+function cardIdOf(x = Object()) {
+  return typeof x === "string" && CARD_ID.test(x) ? x : null;
+}
+
+/** @param {unknown} x @returns {string | null} */
+function hashOf(x = Object()) {
+  return typeof x === "string" && HEX64.test(x) ? x : null;
+}
+
+/**
+ * A card name: plain text, curly apostrophes folded, at most 80 characters.
+ * @param {unknown} v
+ * @returns {string | null}
+ */
+function cardNameOf(v = Object()) {
+  const t = clean(v, 200);
+  if (!t) return null;
+  const f = t.replace(/[\u2018\u2019\u02bc]/g, "'");
+  return f.length <= LIM.name ? f : null;
+}
+
+/**
+ * The site's card list sent by the page, {"CON-48": "Akhenzan Shieldmage"},
+ * checked; null when missing or not valid (then no card counts as unknown).
+ * @param {unknown} v
+ * @returns {Record<string, string> | null}
+ */
+function knownOf(v = Object()) {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const keys = Object.keys(v);
+  if (keys.length === 0 || keys.length > LIM.known) return null;
+  const out = Object.create(null);
+  for (const k of keys) {
+    const n = CARD_BASE.test(k) ? cardNameOf(v[k]) : null;
+    if (!n) return null;
+    out[k] = n;
+  }
+  return out;
+}
+
+/**
+ * The event's state and whether its page shows decks.
+ * @param {string} html
+ * @returns {{ state: string | null, show: boolean | null }}
+ */
+function eventState(html = "") {
+  let state = null;
+  const at = literalStart(html, "playNetworkCurrentEventData");
+  const lit = at < 0 ? null : sliceLiteral(html, at, 200_000);
+  if (lit) {
+    try {
+      const v = JSON.parse(lit);
+      if (v && typeof v === "object" && typeof v.event_state === "string") state = v.event_state.slice(0, 20);
+    } catch (_e) {
+      state = null;
+    }
+  }
+  const s = /\bplayNetworkShowEventDecks\s*=\s*(true|false)\b/.exec(html);
+  return { state, show: s ? s[1] === "true" : null };
+}
+
+/**
+ * Card id -> name from window.MaledictionCardsDB (only the names), or null.
+ * @param {string} html
+ * @returns {Map<string, string> | null}
+ */
+function cardsDb(html = "") {
+  const m = /\bMaledictionCardsDB\s*=\s*(?:window\.MaledictionCardsDB\s*\|\|\s*)?(?=\{)/.exec(html);
+  if (!m) return null;
+  const lit = sliceLiteral(html, m.index + m[0].length, LIM.dbChars);
+  if (!lit) return null;
+  let v = null;
+  try {
+    v = JSON.parse(lit);
+  } catch (_e) {
+    return null;
+  }
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const db = new Map();
+  for (const id of Object.keys(v)) {
+    if (db.size >= LIM.dbCards) break;
+    const c = v[id];
+    const name = CARD_ID.test(id) && c && typeof c === "object" ? cardNameOf(c.name) : null;
+    if (name) db.set(id, name);
+  }
+  return db;
+}
+
+/**
+ * The deck fields of a member, copied by name: the only ones ever read.
+ * @param {any} m
+ */
+function deckSrcOf(m = Object()) {
+  return {
+    deck_name: m.deck_name,
+    deck_url: m.deck_url,
+    seeker_card_id: m.seeker_card_id,
+    seeker_name: m.seeker_name,
+    terrain_name: m.terrain_name,
+    main_decklist_hash: m.main_decklist_hash,
+    side_decklist_hash: m.side_decklist_hash,
+    live_main_decklist_hash: m.live_main_decklist_hash,
+    live_side_decklist_hash: m.live_side_decklist_hash,
+    locked_deck_data: m.locked_deck_data,
+    deck_cards_json: m.deck_cards_json,
+  };
+}
+
+/**
+ * locked_deck_data (a JSON string on the page): only the hashes and the ids.
+ * @param {any} m
+ * @returns {{ mh: string | null, sh: string | null, s: string | null, l: string | null, t: string | null } | null}
+ */
+function lockedOf(m = Object()) {
+  let v = m.locked_deck_data;
+  if (typeof v === "string") {
+    if (!v || v.length > LIM.lockChars) return null;
+    try {
+      v = JSON.parse(v);
+    } catch (_e) {
+      return null;
+    }
+  }
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  return {
+    mh: hashOf(v.main_decklist_hash),
+    sh: hashOf(v.side_decklist_hash),
+    s: cardIdOf(v.seeker_card_id),
+    l: cardIdOf(v.legacy_card_id),
+    t: cardIdOf(v.terrain_type_id),
+  };
+}
+
+/**
+ * deck_cards_json: [seeker, legacy, terrain, main..., side...], one entry per
+ * copy; null when missing, too long or with an id that is not a card id.
+ * @param {any} m
+ * @returns {string[] | null}
+ */
+function listOf(m = Object()) {
+  let v = m.deck_cards_json;
+  if (typeof v === "string") {
+    if (v.length > LIM.listChars) return null;
+    try {
+      v = JSON.parse(v);
+    } catch (_e) {
+      return null;
+    }
+  }
+  if (!Array.isArray(v) || v.length > LIM.list) return null;
+  for (const x of v) if (!cardIdOf(x)) return null;
+  return v;
+}
+
+/** @param {string} s @returns {Promise<string>} */
+async function sha256hex(s = "") {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+  let h = "";
+  for (const b of d) h += b.toString(16).padStart(2, "0");
+  return h;
+}
+
+/** "<id>:<qty>" sorted by id, joined by "|". @param {Record<string, number>} q */
+function entriesOf(q = Object()) {
+  return Object.keys(q).sort().map((k) => `${k}:${q[k]}`).join("|");
+}
+
+/** Play Network's main hash. @param {{s: string, l: string | null, t: string}} ids @param {Record<string, number>} main */
+function mainHash(ids = Object(), main = Object()) {
+  return sha256hex(`S:${ids.s}|L:${ids.l ?? ""}|T:${ids.t}|${entriesOf(main)}`);
+}
+
+/** Play Network's side hash. @param {Record<string, number>} side */
+function sideHash(side = Object()) {
+  return sha256hex(entriesOf(side));
+}
+
+/**
+ * The key a stored deck is kept by (tournament_pn.lock_h): sha256 of the
+ * main and the side check hashes together, so a new side deck, like a new
+ * main deck, is read again. null without a target.
+ * @param {{mh: string, sh: string | null} | null} target
+ * @returns {Promise<string | null>}
+ */
+async function lockKey(target = Object()) {
+  if (!target || !target.mh) return null;
+  return sha256hex(`K1|${target.mh}|${target.sh ?? ""}`);
+}
+
+/** {id: copies} of a list of ids. @param {string[]} a */
+function countOf(a = Object()) {
+  const q = Object.create(null);
+  for (const x of a) q[x] = (q[x] || 0) + 1;
+  return q;
+}
+
+/**
+ * {id: qty} from a deck page (an empty PHP array [] is an empty map), or
+ * null when not valid.
+ * @param {unknown} v
+ */
+function qtyMapOf(v = Object()) {
+  if (Array.isArray(v) && v.length === 0) return Object.create(null);
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const keys = Object.keys(v);
+  if (keys.length > LIM.names) return null;
+  const q = Object.create(null);
+  for (const k of keys) {
+    const n = v[k];
+    if (!cardIdOf(k) || !Number.isInteger(n) || n < 1 || n > LIM.qty) return null;
+    q[k] = n;
+  }
+  return q;
+}
+
+/**
+ * window.deckBuilderState of a deck page: seeker, legacy, terrain, main and
+ * side only, or null.
+ * @param {string} html
+ */
+function deckStateOf(html = "") {
+  const m = /\bdeckBuilderState\s*=\s*(?=\{)/.exec(html);
+  if (!m) return null;
+  const lit = sliceLiteral(html, m.index + m[0].length, LIM.stateChars);
+  if (!lit) return null;
+  let v = null;
+  try {
+    v = JSON.parse(lit);
+  } catch (_e) {
+    return null;
+  }
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const s = cardIdOf(v.seeker);
+  const t = cardIdOf(v.terrain);
+  const noL = v.legacy === null || v.legacy === undefined || v.legacy === "";
+  const l = noL ? null : cardIdOf(v.legacy);
+  if (!s || !t || (!noL && !l)) return null;
+  const main = qtyMapOf(v.main);
+  const side = v.side === null || v.side === undefined ? Object.create(null) : qtyMapOf(v.side);
+  if (!main || !side) return null;
+  return { s, l, t, main, side };
+}
+
+/**
+ * The main/side split of the list after its first three entries: each block
+ * is sorted, so the split is at a sort break, or at the end (no side), or
+ * anywhere (tried in that order). ok when both locked (or live) hashes
+ * match; else k is the split whose main hash matched (mainOk), or the first
+ * sort break, or the end.
+ * @param {string[]} rest
+ * @param {{s: string, l: string | null, t: string}} ids
+ * @param {{st: string, mh: string, sh: string | null} | null} target
+ * @returns {Promise<{ ok: boolean, k: number, mainOk: boolean }>}
+ */
+async function splitList(rest = Object(), ids = Object(), target = Object()) {
+  const ks = [];
+  for (let i = 1; i < rest.length; i++) if (rest[i] < rest[i - 1]) ks.push(i);
+  const brk = ks.length ? ks[0] : rest.length;
+  ks.push(rest.length);
+  for (let k = 0; k < rest.length; k++) ks.push(k);
+  let mainK = -1;
+  if (target && target.mh) {
+    const seen = new Set();
+    for (const k of ks) {
+      if (seen.has(k)) continue;
+      seen.add(k);
+      if (await mainHash(ids, countOf(rest.slice(0, k))) !== target.mh) continue;
+      if (mainK < 0) mainK = k;
+      if (target.sh && await sideHash(countOf(rest.slice(k))) === target.sh) return { ok: true, k, mainOk: true };
+    }
+  }
+  return { ok: false, k: mainK >= 0 ? mainK : brk, mainOk: mainK >= 0 };
+}
+
+/**
+ * What the event page says about a registrant's deck, before any deck page:
+ * shown (deck fields on the page), live (a deck linked now, even while
+ * hidden), ids (Seeker, legacy, terrain: from the lock first), target (the
+ * hashes to check: locked, else live), the list split, and the deck link.
+ * deck is false when there is no deck to import.
+ * @param {any} m  deckSrcOf() of the member
+ * @param {string} eventId
+ * @param {string} pid
+ */
+async function deckPlan(m = Object(), eventId = "", pid = "") {
+  const lock = lockedOf(m);
+  const list = listOf(m);
+  const lockMain = (lock && lock.mh) || hashOf(m.main_decklist_hash);
+  const lockSide = (lock && lock.sh) || hashOf(m.side_decklist_hash);
+  const liveMain = hashOf(m.live_main_decklist_hash);
+  const shown = !!(lock || lockMain || (list && list.length > 0));
+  const l3 = list && list.length >= 3 ? list : null;
+  const ids = {
+    s: (lock && lock.s) || cardIdOf(m.seeker_card_id) || (l3 ? l3[0] : null),
+    l: (lock && lock.l) || (l3 ? l3[1] : null),
+    t: (lock && lock.t) || (l3 ? l3[2] : null),
+  };
+  const target = lockMain
+    ? { st: "locked", mh: lockMain, sh: lockSide }
+    : liveMain
+    ? { st: "linked", mh: liveMain, sh: hashOf(m.live_side_decklist_hash) }
+    : null;
+  const url = deckUrlOf(m.deck_url, eventId, pid);
+  const deck = shown && !!ids.s && !!ids.t;
+  let rest = null;
+  let split = null;
+  if (deck && l3 && l3[0] === ids.s && l3[1] === ids.l && l3[2] === ids.t) {
+    rest = l3.slice(3);
+    split = await splitList(rest, ids, target);
+  }
+  return { shown, live: !!liveMain, deck, ids, target, url, rest, split, needPage: deck && !(split && split.ok) && !!url };
+}
+
+/**
+ * The deck in Play Network ids, from the plan and (when one was read) the
+ * deck page's state: {st, h, s, l, t, main, side}, or null. "locked" (or
+ * "linked") when the hashes match; else "partial": the list's verified main
+ * and the rest of the cut list, or the deck page's list when the event page
+ * has none. The Seeker and terrain are exact either way.
+ * @param {any} plan
+ * @param {any} state  deckStateOf() of the deck page, or null
+ */
+async function deckFinish(plan = Object(), state = Object()) {
+  if (!plan || !plan.deck) return null;
+  const ids = plan.ids;
+  const target = plan.target;
+  const h = await lockKey(target);
+  if (plan.split && plan.split.ok) {
+    return { st: target.st, h, ...ids, main: countOf(plan.rest.slice(0, plan.split.k)), side: countOf(plan.rest.slice(plan.split.k)) };
+  }
+  const same = state && state.s === ids.s && (state.l || null) === (ids.l || null) && state.t === ids.t;
+  if (same && target && target.sh && await mainHash(ids, state.main) === target.mh && await sideHash(state.side) === target.sh) {
+    return { st: target.st, h, ...ids, main: state.main, side: state.side };
+  }
+  if (plan.split) {
+    return { st: "partial", h, ...ids, main: countOf(plan.rest.slice(0, plan.split.k)), side: countOf(plan.rest.slice(plan.split.k)) };
+  }
+  if (same) return { st: "partial", h, ...ids, main: state.main, side: state.side };
+  return null;
+}
+
+/**
+ * A card name compared loosely: lower case, curly apostrophes, dashes and
+ * runs of spaces folded.
+ * @param {string} s
+ */
+function foldName(s = "") {
+  return s.normalize("NFKC").toLowerCase().replace(/[‘’ʼ`]/g, "'")
+    .replace(/[‐-―−]/g, "-").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Our names: the site's list (known) by collection number, but only when
+ * that name is the Play Network page's own name for the card (known comes
+ * from the caller and cannot rename a card); else the Play Network name,
+ * else the id. A card whose number is not in known, whose name there does
+ * not match, or that the Play Network page does not name, is kept under the
+ * Play Network name (or id) and reported (k counts them, unk names the
+ * first 20).
+ * Returns the deck as t_import takes it ({s, t, l, c, sd, k, unk}: c holds
+ * the main deck plus the terrain and the legacy, like My decks), or null
+ * when over a limit.
+ * @param {any} raw  deckFinish()
+ * @param {Map<string, string> | null} db
+ * @param {Record<string, string> | null} known
+ * @param {{ seeker: unknown, terrain: unknown }} fb  Play Network names of the Seeker and terrain
+ */
+function mapDeck(raw = Object(), db = Object(), known = Object(), fb = Object()) {
+  const unk = [];
+  const unkSeen = new Set();
+  const nameOf = (id = "", fallback = Object()) => {
+    const base = id.replace(/-[0-9]{1,3}-[A-Z]{1,4}$/, "");
+    const pn = (db && db.get(id)) || cardNameOf(fallback);
+    const ours = known && Object.prototype.hasOwnProperty.call(known, base) ? known[base] : null;
+    if (ours && pn && foldName(ours) === foldName(pn)) return ours;
+    const n = pn || id;
+    if (known && !unkSeen.has(n)) {
+      unkSeen.add(n);
+      unk.push(n);
+    }
+    return n;
+  };
+  const s = nameOf(raw.s, fb.seeker);
+  const t = nameOf(raw.t, fb.terrain);
+  const l = raw.l ? nameOf(raw.l, null) : null;
+  const c = Object.create(null);
+  const sd = Object.create(null);
+  let nm = 0;
+  let ns = 0;
+  for (const id of Object.keys(raw.main)) {
+    const n = nameOf(id, null);
+    c[n] = (c[n] || 0) + raw.main[id];
+    nm += raw.main[id];
+  }
+  for (const id of Object.keys(raw.side)) {
+    const n = nameOf(id, null);
+    sd[n] = (sd[n] || 0) + raw.side[id];
+    ns += raw.side[id];
+  }
+  c[t] = (c[t] || 0) + 1;
+  if (l) c[l] = (c[l] || 0) + 1;
+  if (nm > LIM.main || ns > LIM.side || Object.keys(c).length > LIM.names || Object.keys(sd).length > LIM.names) return null;
+  for (const q of Object.keys(c).map((k) => c[k]).concat(Object.keys(sd).map((k) => sd[k]))) if (q > LIM.qty) return null;
+  return { s, t, l, c, sd, k: Math.min(unkSeen.size, LIM.unkMax), unk: unk.slice(0, LIM.unk), nm, ns };
+}
+
+/**
+ * The deck object handed to t_import for one registrant, or null.
+ * @param {any} src  deckSrcOf()
+ * @param {any} raw  deckFinish()
+ * @param {Map<string, string> | null} db
+ * @param {Record<string, string> | null} known
+ * @param {string} eventId
+ * @param {string} pid
+ */
+function deckOut(src = Object(), raw = Object(), db = Object(), known = Object(), eventId = "", pid = "") {
+  if (!raw) return null;
+  const d = mapDeck(raw, db, known, { seeker: src.seeker_name, terrain: src.terrain_name });
+  if (!d) return null;
+  return {
+    n: clean(src.deck_name, LIM.deckName),
+    u: deckUrlOf(src.deck_url, eventId, pid),
+    s: d.s, t: d.t, l: d.l, c: d.c, sd: d.sd,
+    st: raw.st, h: raw.h, k: d.k, unk: d.unk,
+  };
+}
 
 /**
  * The array literal of `let playNetworkEventMembers = [...]`, parsed, or null.
@@ -533,9 +1088,11 @@ function membersArray(html = "") {
 
 /**
  * Registered players from the JSON members literal, or null when it is
- * missing or does not parse.
+ * missing or does not parse. Each entry: pid, name, av (avatar or null), dc
+ * (Discord handle or null) and src (deckSrcOf(), kept in memory only, never
+ * handed on as it is).
  * @param {string} html
- * @returns {{ list: { pid: string, name: string }[], capped: boolean } | null}
+ * @returns {{ list: { pid: string, name: string, av: string | null, dc: string | null, src: any }[], capped: boolean } | null}
  */
 function registrantsFromJson(html = "") {
   const arr = membersArray(html);
@@ -555,7 +1112,13 @@ function registrantsFromJson(html = "") {
       break;
     }
     seen.add(pid);
-    list.push({ pid, name: clean(m.nickname, 40) ?? "Player" });
+    list.push({
+      pid,
+      name: clean(m.nickname, 40) ?? "Player",
+      av: avatarOf(m.avatar),
+      dc: discordOf(m.discord_handle),
+      src: deckSrcOf(m),
+    });
   }
   return { list, capped };
 }
@@ -589,7 +1152,8 @@ function registrantsFromHtml(html = "") {
 }
 
 /**
- * Who registered for the event: profile id and nickname of each player.
+ * Who registered for the event: profile id and nickname of each player
+ * (plus avatar, Discord handle and deck fields from the JSON literal only).
  * The JSON literal is preferred; the HTML list is the fallback. A list whose
  * length equals the official count wins; else the JSON list, else a
  * non-empty HTML list; else null (the caller answers parse_error).
@@ -665,6 +1229,7 @@ Deno.serve(async (req: Request) => {
   const cors = corsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (req.method !== "POST") return reply({ ok: false, error: "bad_request", message: "Use POST." }, cors, 405);
+  const started = Date.now();
 
   try {
     // 1. A signed-in user. The anon key alone is not a user.
@@ -682,7 +1247,7 @@ Deno.serve(async (req: Request) => {
     const body = await readRequestJson(req);
     if (!body) return fail("bad_url", cors);
     if (body.tournament_id !== undefined && body.tournament_id !== null) {
-      return await importRegistrants(caller, body.tournament_id, cors);
+      return await importRegistrants(caller, body.tournament_id, body.known, started, cors);
     }
     let leagueId: string;
     let ref: PnRef | null;
@@ -782,10 +1347,88 @@ function asCount(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-// POST { tournament_id }: reads the registered players of the tournament's
-// Play Network event and merges them into the tournament (draft only). The
-// answer carries counts only; the client re-reads the tournament row.
-async function importRegistrants(caller: typeof service, raw: unknown, cors: Record<string, string>): Promise<Response> {
+type Reg = { pid: string; name: string; av?: string | null; dc?: string | null; src?: unknown };
+type Stored = { lock_h: string | null; deck_st: string | null; unk_n: number };
+type DeckCounts = { n: number; miss: number; unk: number; part: number };
+
+// The decks of the registrants, for t_import: pid -> the deck object, or
+// {keep: true, n, u} (the deck already stored is still the same locked
+// main and side deck: no deck page is read for it, only its name and link
+// are updated), or absent (no deck: the player registers theirs by
+// hand). Deck pages are read for decks the event page holds only in part
+// (Play Network cuts its list at 40 cards), at most DECK_PAGES_MAX, 4 at a
+// time, none started after DECK_BUDGET_MS from the start of the request;
+// the others stay "partial" until the next import.
+async function readDecks(
+  list: Reg[],
+  plans: Map<string, Awaited<ReturnType<typeof deckPlan>>>,
+  html: string,
+  eventId: string,
+  known: Record<string, string> | null,
+  stored: Map<string, Stored>,
+  deadline: number,
+): Promise<{ dks: Map<string, unknown>; counts: DeckCounts }> {
+  const db = cardsDb(html);
+  const dks = new Map<string, unknown>();
+  const counts: DeckCounts = { n: 0, miss: 0, unk: 0, part: 0 };
+  type Job = { r: Reg; plan: Awaited<ReturnType<typeof deckPlan>>; state: unknown };
+  const jobs: Job[] = [];
+  const ready: Job[] = [];
+  for (const r of list) {
+    const plan = plans.get(r.pid);
+    if (!plan || !plan.deck) {
+      counts.miss++;
+      continue;
+    }
+    // keep only skips reading the cards again: the deck's name and link are
+    // always sent, so a renamed deck or a link that moved to the snapshot
+    // page (the deck was edited after locking) is updated.
+    const was = stored.get(r.pid);
+    if (was && was.deck_st === "locked" && was.unk_n === 0 && plan.target && plan.target.st === "locked" &&
+        was.lock_h !== null && was.lock_h === await lockKey(plan.target)) {
+      dks.set(r.pid, { keep: true, n: clean(((r.src ?? {}) as Json).deck_name, LIM.deckName), u: plan.url });
+      counts.n++;
+      continue;
+    }
+    const job: Job = { r, plan, state: null };
+    if (plan.needPage && jobs.length < DECK_PAGES_MAX) jobs.push(job);
+    ready.push(job);
+  }
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length && Date.now() < deadline) {
+      const job = jobs[next++];
+      const page = await fetchDeckPage(job.plan.url as string, eventId, job.r.pid);
+      job.state = page.kind === "ok" ? deckStateOf(page.html) : null;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(DECK_PAGES_AT_ONCE, jobs.length) }, worker));
+  for (const job of ready) {
+    const raw = await deckFinish(job.plan, job.state);
+    const dk = deckOut(job.r.src, raw, db, known, eventId, job.r.pid);
+    if (!dk) {
+      counts.miss++;
+      continue;
+    }
+    dks.set(job.r.pid, dk);
+    counts.n++;
+    counts.unk += dk.k;
+    if (dk.st === "partial") counts.part++;
+  }
+  return { dks, counts };
+}
+
+// POST { tournament_id, known? }: reads the registered players of the
+// tournament's Play Network event and merges them into the tournament (draft
+// only), with their avatars, Discord handles and decks. The answer carries
+// counts only; the client re-reads the tournament row.
+async function importRegistrants(
+  caller: typeof service,
+  raw: unknown,
+  rawKnown: unknown,
+  started: number,
+  cors: Record<string, string>,
+): Promise<Response> {
   if (typeof raw !== "string" || !UUID.test(raw)) return fail("not_allowed", cors, T_NOT_ALLOWED);
   const tid = raw;
   const oops = "Something went wrong. Try again later.";
@@ -822,15 +1465,85 @@ async function importRegistrants(caller: typeof service, raw: unknown, cors: Rec
   const regs = readRegistrants(page.html);
   if (!regs) return fail("parse_error", cors, T_PARSE_ERROR);
   const ev = found.data;
+  const list = regs.list as Reg[];
 
-  // 5. Merge (service role: t_import is not callable by users). p_meta is
-  //    the event's settings only; t_import keeps them in payload.pn while the
-  //    tournament is in draft.
+  // 5. Decks, read only from the JSON list and only while Play Network shows
+  //    them (from the start of the event there). While it hides them
+  //    (Upcoming), only the players who have linked a deck are counted (pre)
+  //    and the decks already imported stay as they are. A list read from the
+  //    Players tab (no JSON) carries no avatars, handles or decks, so
+  //    t_import then leaves those as they are too (no "decks" in p_meta).
+  const json = regs.source === "json";
+  const es = eventState(page.html);
+  let shownAny = false;
+  let pre = 0;
+  const plans = new Map<string, Awaited<ReturnType<typeof deckPlan>>>();
+  if (json) {
+    for (const r of list) {
+      const plan = await deckPlan(r.src, ref.id, r.pid);
+      plans.set(r.pid, plan);
+      if (plan.shown) shownAny = true;
+      if (plan.live) pre++;
+    }
+  }
+  const hidden = !json || es.state === "Upcoming" || es.show === false || (!shownAny && pre > 0);
+  let dks = new Map<string, unknown>();
+  let counts: DeckCounts = { n: 0, miss: json ? list.length : 0, unk: 0, part: 0 };
+  if (json && !hidden) {
+    const stored = new Map<string, Stored>();
+    const st = await service.from("tournament_pn").select("pid, lock_h, deck_st, unk_n").eq("tournament_id", tid);
+    if (st.error) console.error("play-network-event: tournament_pn read failed", st.error.code ?? "");
+    for (const row of (st.data ?? []) as Json[]) {
+      if (typeof row.pid === "string") {
+        stored.set(row.pid, {
+          lock_h: typeof row.lock_h === "string" ? row.lock_h : null,
+          deck_st: typeof row.deck_st === "string" ? row.deck_st : null,
+          unk_n: typeof row.unk_n === "number" ? row.unk_n : 0,
+        });
+      }
+    }
+    ({ dks, counts } = await readDecks(list, plans, page.html, ref.id, knownOf(rawKnown), stored, started + DECK_BUDGET_MS));
+  }
+
+  // p_regs: {pid, name} as before, plus av, dc and dk from the JSON list.
+  // Past REGS_MAX_BYTES a player's deck is not sent again ({keep: true}):
+  // the deck stored earlier, if any, stays (warning too_many).
+  let size = 0;
+  let sizeCut = false;
+  const pRegs = list.map((r) => {
+    const o: Json = { pid: r.pid, name: r.name };
+    if (json) {
+      o.av = r.av ?? null;
+      o.dc = r.dc ?? null;
+      const dk = dks.get(r.pid);
+      if (dk !== undefined) {
+        const len = JSON.stringify(dk).length;
+        if (size + len > REGS_MAX_BYTES) {
+          sizeCut = true;
+          o.dk = { keep: true };
+        } else {
+          size += len;
+          o.dk = dk;
+        }
+      }
+    }
+    return o;
+  });
+
+  // 6. Merge (service role: t_import is not callable by users). p_meta is
+  //    the event's settings, and decks/pre: t_import keeps them in
+  //    payload.pn while the tournament is in draft.
   const imp = await service.rpc("t_import", {
     p_tid: tid,
-    p_regs: regs.list,
+    p_regs: pRegs,
     p_count: regs.count,
-    p_meta: { rounds: ev.num_rounds, system: ev.format, minutes: ev.round_minutes, game_mode: ev.game_mode },
+    p_meta: {
+      rounds: ev.num_rounds,
+      system: ev.format,
+      minutes: ev.round_minutes,
+      game_mode: ev.game_mode,
+      ...(json ? { decks: hidden ? "hidden" : "shown", pre } : {}),
+    },
   });
   if (imp.error) {
     console.error("play-network-event: t_import failed", imp.error.code ?? "");
@@ -845,7 +1558,7 @@ async function importRegistrants(caller: typeof service, raw: unknown, cors: Rec
     return fail("upstream_error", cors, oops);
   }
 
-  // 6. Refresh the listing's details and count too, when the tournament still
+  // 7. Refresh the listing's details and count too, when the tournament still
   //    has one. Only that row is updated (never a new listing); errors ignored.
   if (pnEventId) {
     const canonical = ev.slug ? pnRef(ref.id, ev.slug) : ref;
@@ -871,18 +1584,28 @@ async function importRegistrants(caller: typeof service, raw: unknown, cors: Rec
     if (upd.error) console.error("play-network-event: listing refresh failed", upd.error.code ?? "");
   }
 
-  // 7. Counts only: the list itself is never echoed.
+  // 8. Counts only: the list itself is never echoed. The deck counts are
+  //    t_import's (what it stored, after its own checks) when it gives them.
   const warning = r.warning === "too_many" || r.warning === "count_mismatch"
     ? r.warning
-    : regs.capped
+    : regs.capped || sizeCut
     ? "too_many"
     : regs.count !== null && regs.list.length !== regs.count
     ? "count_mismatch"
     : null;
+  const d = (r.decks && typeof r.decks === "object" ? r.decks : null) as Json | null;
   return reply({
     ok: true,
     tournament: { id: tid, rev: asCount(r.rev), status: "draft" },
     registrants: { total: asCount(r.total), added: asCount(r.added), removed: asCount(r.removed), linked: asCount(r.linked) },
+    decks: {
+      n: d ? asCount(d.n) : counts.n,
+      miss: d ? asCount(d.miss) : counts.miss,
+      unk: d ? asCount(d.unk) : counts.unk,
+      part: d ? asCount(d.part) : counts.part,
+      hidden,
+      pre,
+    },
     ...(warning ? { warning } : {}),
   }, cors);
 }

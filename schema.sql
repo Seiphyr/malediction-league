@@ -12901,3 +12901,928 @@ end $$;
 revoke all on function erase_user_data(uuid)                        from public, anon, authenticated;
 revoke all on function public.check_board_write(uuid)               from public, anon;
 grant execute on function public.check_board_write(uuid)            to authenticated;
+
+-- ============================================================
+--  PLAY NETWORK DECKLISTS (2026-11-19)
+-- ============================================================
+-- Run as migration-2026-11-19-pn-decklists.sql.
+-- What changes:
+--   * Decks from the Play Network. When the organizer updates the players
+--     of a tournament in registration from its Play Network event, the
+--     edge function play-network-event also reads each registrant's deck
+--     (the one locked for the event, checked against Play Network's own
+--     hashes), avatar and Discord handle, and hands them to t_import.
+--     Play Network shows decks only once the event has started there; until
+--     then decks already imported are kept as they are.
+--   * New table tournament_pn: one row per Play Network registrant of a
+--     tournament (by profile id): Discord handle, deck name and link,
+--     Seeker, terrain, legacy, card list (our names), status ('locked',
+--     'linked' or 'partial': read in part, Seeker and terrain still exact),
+--     the lock key (sha256 of the locked main and side check hashes), and
+--     the names of cards the site does not know (at most 20, with their
+--     number). RLS on and no policies: nobody reads it
+--     directly, card lists never reach a page. Rows go with the tournament,
+--     and with the player when they leave the list or are forgotten.
+--   * tournament_decks gains src ('mine' or 'pn') and pn_pid. The deck of a
+--     player whose seat has an account is copied from tournament_pn into
+--     tournament_decks (src 'pn', no deck_id) by the new helper t_pn_sync,
+--     called by the trigger t_auto_before whenever the players change (and
+--     at the start, before the lock). So t_duel_start, t_duel_accept and the
+--     start-time lock work unchanged. Before the start a Play Network deck
+--     replaces a deck registered by hand; once running, a deck already
+--     there stays and a new copy (a seat linked to its account) is locked
+--     at once. A player whose Play Network deck goes away (decks shown and
+--     none linked) goes back to registering one by hand.
+--   * t_import: as in the SWISS TOURNAMENTS section, plus av, dc and dk on
+--     each registrant and p_meta.decks / p_meta.pre (see the function).
+--     Avatars (https://malediction.gg/wp-content/uploads/... only) go on
+--     the players of the payload as av, shown next to the name. The Discord
+--     handle never goes in the payload. Import counts go in payload.pn.dk.
+--   * t_deck_set refuses ('pn') a player whose deck comes from the Play
+--     Network. t_deck_get: mine gains src, url, st, main and side (card
+--     counts); org gains src, st, url, unk_n, unk and dc per player, and
+--     covers players without an account; the new opp gives a player the
+--     Discord handle of their opponent in the current round. t_deck_pub
+--     (at close) also writes the Seeker and terrain of players without an
+--     account from tournament_pn.
+--   * Visibility (unchanged rules, new data): card lists never leave the
+--     server. Seeker and terrain: the organizer and the player while in
+--     registration or running, everyone after the close. Unknown card
+--     names: the organizer. Discord handles: the organizer (all) and each
+--     player (only the opponent of their current game). Avatars: everyone
+--     who sees the tournament.
+--   * A tournament in registration has no fmt yet (t_start sets it), so
+--     t_auto_before now also runs t_pn_sync for draft updates; its other
+--     steps still look only at Swiss tournaments.
+--   * New t_pn_save_deck(p_tid), for signed-in players: a player copies
+--     their own imported deck into My decks (private, with the Play Network
+--     link; a deck of theirs with the same Seeker and cards is the answer
+--     instead of a new copy). Only their own list, into their own decks.
+--   * Not changed: t_fetch_allow (imports end at the start), t_duel_start,
+--     t_duel_accept, t_rekey, t_entrant, t_start, erase_user_data.
+
+-- 1. tournament_pn: what the Play Network page says about each registrant ------
+-- One row per registrant (profile id) of a tournament, written by t_import
+-- (service role) only. Deck fields are all set or all null (no deck).
+-- cards holds the main deck plus the terrain and the legacy (as My decks),
+-- side the side deck, both {name: copies} with the site's card names.
+create table if not exists public.tournament_pn (
+  tournament_id uuid not null references public.tournaments(id) on delete cascade,
+  pid        text not null check (pid ~ '^[A-Za-z0-9]{6,32}$'),
+  discord    text check (discord is null or char_length(discord) between 2 and 40),
+  deck_name  text check (deck_name is null or char_length(deck_name) between 1 and 80),
+  deck_url   text check (deck_url is null or (char_length(deck_url) <= 300 and deck_url ~ '^https://(www\.)?malediction\.gg/play-network/decks/(view|snapshot)/[A-Za-z0-9/-]{1,250}/$')),
+  seeker     text check (seeker is null or char_length(seeker) between 1 and 80),
+  terrain    text check (terrain is null or char_length(terrain) between 1 and 80),
+  legacy     text check (legacy is null or char_length(legacy) between 1 and 80),
+  cards      jsonb check (cards is null or jsonb_typeof(cards) = 'object'),
+  side       jsonb check (side is null or jsonb_typeof(side) = 'object'),
+  deck_st    text check (deck_st is null or deck_st in ('locked','linked','partial')),
+  lock_h     text check (lock_h is null or lock_h ~ '^[0-9a-f]{64}$'),
+  unk        jsonb check (unk is null or (jsonb_typeof(unk) = 'array' and jsonb_array_length(unk) <= 20)),
+  unk_n      int not null default 0 check (unk_n between 0 and 200),
+  fetched_at timestamptz not null default now(),
+  primary key (tournament_id, pid),
+  constraint tournament_pn_deck_whole
+    check ((seeker is null) = (terrain is null) and (seeker is null) = (cards is null)
+           and (seeker is null) = (deck_st is null))
+);
+alter table public.tournament_pn enable row level security;
+revoke all on public.tournament_pn from anon, authenticated;
+grant select on public.tournament_pn to service_role;
+
+-- tournament_decks: where a registration comes from. 'mine' (the player
+-- picked one of their decks: t_deck_set) or 'pn' (copied from
+-- tournament_pn by t_pn_sync: pn_pid is that registrant, deck_id is null).
+alter table public.tournament_decks add column if not exists src text not null default 'mine';
+alter table public.tournament_decks add column if not exists pn_pid text;
+alter table public.tournament_decks drop constraint if exists tournament_decks_src;
+alter table public.tournament_decks add constraint tournament_decks_src
+  check (src in ('mine','pn') and (src = 'pn') = (pn_pid is not null) and (src = 'mine' or deck_id is null));
+
+-- 2. Helpers (not callable over the API) ---------------------------------------
+-- An avatar link: http(s)://(www.)malediction.gg/wp-content/uploads/...
+-- .jpg/.jpeg/.png/.webp/.gif, at most 200 characters, no "..", stored as
+-- https; anything else is null. The page checks the same rule again.
+create or replace function public.t_pn_av(p text)
+returns text language sql immutable security definer set search_path = public as $$
+  select case when char_length(p) <= 200
+               and p ~ '^https?://(www\.)?malediction\.gg/wp-content/uploads/[A-Za-z0-9/._-]{1,180}\.(jpe?g|png|webp|gif|JPE?G|PNG|WEBP|GIF)$'
+               and position('..' in p) = 0
+               and position('//' in regexp_replace(p, '^https?://', '')) = 0
+              then regexp_replace(p, '^http://', 'https://') end;
+$$;
+
+-- A card list {name: copies}: an object of at most 64 names (each a clean
+-- name of 1 to 80 characters), copies 1 to 9 each, at most p_max in all.
+create or replace function public.t_pn_cards(p jsonb, p_max int)
+returns boolean language plpgsql immutable security definer set search_path = public as $$
+declare
+  v_k text;
+  v_v jsonb;
+  v_n int := 0;
+  v_c int := 0;
+begin
+  if p is null or jsonb_typeof(p) <> 'object' then
+    return false;
+  end if;
+  for v_k, v_v in select e.key, e.value from jsonb_each(p) e loop
+    v_c := v_c + 1;
+    if v_c > 64 or duel_clean(v_k) is distinct from v_k or jsonb_typeof(v_v) <> 'number'
+       or v_v::text !~ '^[1-9]$' then
+      return false;
+    end if;
+    v_n := v_n + (v_v::text)::int;
+  end loop;
+  return v_n <= p_max;
+end $$;
+
+-- A registrant's deck as the edge function sends it (dk), checked again:
+-- {n: deck name, u: link, s: Seeker, t: terrain, l: legacy or null,
+--  c: main deck + terrain + legacy, sd: side deck, st: 'locked' | 'linked' |
+--  'partial', h: the lock key (main and side hashes), k: unknown cards, unk: up to
+--  20 of their names}. The normalised deck, or null when anything is off.
+-- Limits: main 60 (c 62 with terrain and legacy), side 15, 9 copies.
+create or replace function public.t_pn_deck(p jsonb)
+returns jsonb language plpgsql immutable security definer set search_path = public as $$
+declare
+  v_s   text;
+  v_t   text;
+  v_l   text;
+  v_n   text;
+  v_u   text;
+  v_h   text;
+  v_k   int := 0;
+  v_sd  jsonb;
+  v_unk jsonb;
+begin
+  if p is null or jsonb_typeof(p) <> 'object' then
+    return null;
+  end if;
+  if jsonb_typeof(p->'s') is distinct from 'string' or jsonb_typeof(p->'t') is distinct from 'string' then
+    return null;
+  end if;
+  v_s := duel_clean(p->>'s');
+  v_t := duel_clean(p->>'t');
+  if v_s is null or v_t is null or v_s <> p->>'s' or v_t <> p->>'t' then
+    return null;
+  end if;
+  if jsonb_typeof(p->'l') = 'string' then
+    v_l := duel_clean(p->>'l');
+    if v_l is null or v_l <> p->>'l' then
+      return null;
+    end if;
+  elsif p ? 'l' and jsonb_typeof(p->'l') <> 'null' then
+    return null;
+  end if;
+  if jsonb_typeof(p->'st') is distinct from 'string' or p->>'st' not in ('locked','linked','partial') then
+    return null;
+  end if;
+  if not t_pn_cards(p->'c', 62) or not (p->'c' ? v_t) or (v_l is not null and not (p->'c' ? v_l)) then
+    return null;
+  end if;
+  v_sd := case when jsonb_typeof(p->'sd') is null or jsonb_typeof(p->'sd') = 'null' then '{}'::jsonb else p->'sd' end;
+  if not t_pn_cards(v_sd, 15) then
+    return null;
+  end if;
+  if jsonb_typeof(p->'h') = 'string' and p->>'h' ~ '^[0-9a-f]{64}$' then
+    v_h := p->>'h';
+  elsif p ? 'h' and jsonb_typeof(p->'h') <> 'null' then
+    return null;
+  end if;
+  if jsonb_typeof(p->'k') = 'number' and p->>'k' ~ '^[0-9]{1,3}$' and (p->>'k')::int <= 200 then
+    v_k := (p->>'k')::int;
+  elsif p ? 'k' and jsonb_typeof(p->'k') <> 'null' then
+    return null;
+  end if;
+  if jsonb_typeof(p->'unk') = 'array' then
+    if jsonb_array_length(p->'unk') > 20 or exists (
+         select 1 from jsonb_array_elements(p->'unk') q(x)
+          where jsonb_typeof(q.x) <> 'string' or duel_clean(q.x #>> '{}') is distinct from q.x #>> '{}') then
+      return null;
+    end if;
+    v_unk := case when jsonb_array_length(p->'unk') > 0 then p->'unk' end;
+  elsif p ? 'unk' and jsonb_typeof(p->'unk') <> 'null' then
+    return null;
+  end if;
+  if v_unk is not null and v_k < jsonb_array_length(v_unk) then
+    return null;
+  end if;
+  if jsonb_typeof(p->'n') = 'string' then
+    v_n := duel_clean(p->>'n');
+  end if;
+  if jsonb_typeof(p->'u') = 'string' and char_length(p->>'u') <= 300
+     and p->>'u' ~ '^https://(www\.)?malediction\.gg/play-network/decks/(view|snapshot)/[A-Za-z0-9/-]{1,250}/$' then
+    v_u := p->>'u';
+  end if;
+  return jsonb_build_object('n', v_n, 'u', v_u, 's', v_s, 't', v_t, 'l', v_l, 'c', p->'c',
+                            'sd', case when v_sd = '{}'::jsonb then null else v_sd end,
+                            'st', p->>'st', 'h', v_h, 'k', v_k, 'unk', v_unk);
+end $$;
+
+-- t_pn_sync: tournament_pn and the Play Network copies in tournament_decks
+-- follow the players of payload p (status p_status), in this order:
+--   * the rows of registrants no longer in the list (removed on a full
+--     import, forgotten, removed by hand) go;
+--   * a copy held by an account that no longer has that seat (unlinked,
+--     moved, or the registrant has no deck any more) goes;
+--   * each seat held by an account (not deleted) whose registrant has a
+--     deck gets it: in draft it replaces a deck registered by hand (or an
+--     older copy); once running a row already there stays, and a new one
+--     is locked at once.
+-- Called by t_auto_before only.
+create or replace function public.t_pn_sync(p_tid uuid, p jsonb, p_status text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_e jsonb := case when jsonb_typeof(p->'entrants') = 'array' then p->'entrants' else '[]'::jsonb end;
+begin
+  if p_tid is null then
+    return;
+  end if;
+  delete from tournament_pn n
+   where n.tournament_id = p_tid
+     and not exists (select 1 from jsonb_array_elements(v_e) q(x)
+                      where jsonb_typeof(q.x) = 'object' and q.x->>'pid' = n.pid);
+  delete from tournament_decks k
+   where k.tournament_id = p_tid and k.src = 'pn'
+     and not exists (select 1
+                       from jsonb_array_elements(v_e) q(x)
+                       join tournament_pn n on n.tournament_id = p_tid and n.pid = q.x->>'pid' and n.seeker is not null
+                      where jsonb_typeof(q.x) = 'object' and q.x->>'id' = k.user_id::text and n.pid = k.pn_pid);
+  insert into tournament_decks (tournament_id, user_id, deck_id, name, seeker, terrain, cards, side,
+                                registered_at, locked_at, src, pn_pid)
+  select p_tid, pr.id, null, coalesce(n.deck_name, ''), n.seeker, n.terrain, n.cards, n.side,
+         now(), case when p_status is distinct from 'draft' then now() end, 'pn', n.pid
+    from (select distinct on (s.uid) s.uid, s.pid
+            from (select case when t_acct(q.x->>'id') then (q.x->>'id')::uuid end as uid, q.x->>'pid' as pid
+                    from jsonb_array_elements(v_e) q(x)
+                   where jsonb_typeof(q.x) = 'object' and q.x->>'pid' is not null) s
+           where s.uid is not null
+           order by s.uid) e
+    join tournament_pn n on n.tournament_id = p_tid and n.pid = e.pid and n.seeker is not null
+    join profiles pr on pr.id = e.uid and pr.deleted_at is null
+  on conflict (tournament_id, user_id) do update
+     set deck_id = null, name = excluded.name, seeker = excluded.seeker, terrain = excluded.terrain,
+         cards = excluded.cards, side = excluded.side, registered_at = excluded.registered_at,
+         src = 'pn', pn_pid = excluded.pn_pid
+   where p_status = 'draft'
+     and (tournament_decks.src <> 'pn' or tournament_decks.pn_pid is distinct from excluded.pn_pid
+          or (tournament_decks.name, tournament_decks.seeker, tournament_decks.terrain,
+              tournament_decks.cards, tournament_decks.side)
+             is distinct from (excluded.name, excluded.seeker, excluded.terrain, excluded.cards, excluded.side));
+end $$;
+
+-- 3. t_import -------------------------------------------------------------------
+-- t_import: as in the SWISS TOURNAMENTS section, plus, when p_meta.decks is
+-- 'shown' or 'hidden' (the edge function read the members list; without it,
+-- an older function, nothing below happens and avatars stay as they are):
+--   * each p_regs item may carry av (avatar link, checked by t_pn_av, else
+--     none), dc (Discord handle, 2 to 40 characters, else none) and dk (the
+--     deck: {keep:true}, optionally with n and u, or the deck checked by
+--     t_pn_deck; a deck that fails the checks counts as bad and as no
+--     deck);
+--   * the players of the list get av (or lose it) by profile id, new ones
+--     with it, and the payload stays within 1 MB;
+--   * for each registrant who is in the list, its tournament_pn row is
+--     written: the Discord handle always; with 'shown' also the deck (keep
+--     leaves the stored cards and, with n and u, updates only the deck's
+--     name and link; no dk means no deck: that player registers one by
+--     hand); with 'hidden' (Play Network does not show decks yet)
+--     the deck stored earlier stays. Rows of players not on a partial list
+--     are left alone; the trigger (t_pn_sync) removes those of players who
+--     left the list;
+--   * payload.pn.dk = {n (registrants with a deck), miss (without one), unk
+--     (cards not known, in all), part (decks read in part), hid (decks
+--     hidden), pre (p_meta.pre: registrants who linked a deck on Play
+--     Network)}, and the answer gains decks {n, miss, unk, part, bad}.
+-- Only service_role can call it (grants unchanged).
+create or replace function public.t_import(p_tid uuid, p_regs jsonb, p_count int, p_meta jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_t       tournaments%rowtype;
+  v_p       jsonb;
+  v_reg     jsonb;
+  v_regs    jsonb := '[]'::jsonb;
+  v_seen    text[] := '{}';
+  v_pid     text;
+  v_name    text;
+  v_full    boolean;
+  v_ents    jsonb := '[]'::jsonb;
+  v_e       jsonb;
+  v_added   int := 0;
+  v_removed int := 0;
+  v_linked  int;
+  v_warn    text;
+  v_meta    jsonb := '{}'::jsonb;
+  v_gmode   text;
+  v_rev     int;
+  v_new     boolean := jsonb_typeof(p_meta) = 'object' and coalesce(p_meta->>'decks' in ('shown','hidden'), false);
+  v_shown   boolean := jsonb_typeof(p_meta) = 'object' and coalesce(p_meta->>'decks' = 'shown', false);
+  v_av      text;
+  v_dc      text;
+  v_dk      jsonb;
+  v_bad     int := 0;
+  v_pre     int;
+  v_dkc     jsonb;
+begin
+  if p_tid is null or p_regs is null or jsonb_typeof(p_regs) is distinct from 'array' then
+    return t_no('bad_input', 'The list of players is not valid.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if v_t.status <> 'draft' then
+    return t_no('started', 'The tournament has started, so its list of players is fixed.');
+  end if;
+  if exists (select 1 from leagues l where l.id = v_t.league_id and l.archived_at is not null) then
+    return t_no('archived', 'This community is archived.');
+  end if;
+  v_p := v_t.payload - 'nx';
+
+  -- the event settings
+  if jsonb_typeof(p_meta) = 'object' then
+    v_gmode := coalesce(p_meta->>'game_mode', p_meta->>'gmode');
+    v_meta := jsonb_build_object(
+      'rounds', case when coalesce(p_meta->>'rounds', '') ~ '^[0-9]{1,3}$'
+                          and (p_meta->>'rounds')::int between 1 and 100 then (p_meta->>'rounds')::int end,
+      'system', case when p_meta->>'system' in ('Swiss','League') then p_meta->>'system' end,
+      'minutes', case when coalesce(p_meta->>'minutes', '') ~ '^[0-9]{1,4}$'
+                           and (p_meta->>'minutes')::int between 1 and 1440 then (p_meta->>'minutes')::int end,
+      'gmode', case when v_gmode in ('1x1','2x2') then v_gmode end);
+    v_pre := case when jsonb_typeof(p_meta->'pre') = 'number' and p_meta->>'pre' ~ '^[0-9]{1,5}$'
+                  then (p_meta->>'pre')::int end;
+  end if;
+
+  -- the registrants: valid public ids, each once; with their avatar,
+  -- Discord handle and deck when the function sent them
+  for v_reg in select q.x from jsonb_array_elements(p_regs) with ordinality q(x, o) order by q.o limit 1000 loop
+    if jsonb_typeof(v_reg) is distinct from 'object' then
+      continue;
+    end if;
+    v_pid := v_reg->>'pid';
+    if v_pid is null or v_pid !~ '^[A-Za-z0-9]{6,32}$' or v_pid = any(v_seen) then
+      continue;
+    end if;
+    v_seen := v_seen || v_pid;
+    v_name := coalesce(t_clean_name(v_reg->>'name'), 'Player');
+    if v_new then
+      v_av := case when jsonb_typeof(v_reg->'av') = 'string' then t_pn_av(v_reg->>'av') end;
+      v_dc := case when jsonb_typeof(v_reg->'dc') = 'string' then t_clean_name(v_reg->>'dc') end;
+      if char_length(v_dc) < 2 or char_length(v_reg->>'dc') > 40 then
+        v_dc := null;
+      end if;
+      v_dk := null;
+      if jsonb_typeof(v_reg->'dk') = 'object' and (v_reg->'dk'->'keep') = 'true'::jsonb then
+        v_dk := '{"keep":true}'::jsonb;
+        -- keep with the deck's current name and link (n, u): the cards stay,
+        -- the name and the link are updated (checked as in t_pn_deck)
+        if (v_reg->'dk') ? 'n' or (v_reg->'dk') ? 'u' then
+          v_dk := v_dk || jsonb_build_object('ren', true,
+                    'n', case when jsonb_typeof(v_reg->'dk'->'n') = 'string' then duel_clean(v_reg->'dk'->>'n') end,
+                    'u', case when jsonb_typeof(v_reg->'dk'->'u') = 'string' and char_length(v_reg->'dk'->>'u') <= 300
+                                   and v_reg->'dk'->>'u' ~ '^https://(www\.)?malediction\.gg/play-network/decks/(view|snapshot)/[A-Za-z0-9/-]{1,250}/$'
+                              then v_reg->'dk'->>'u' end);
+        end if;
+      elsif v_reg ? 'dk' and jsonb_typeof(v_reg->'dk') is distinct from 'null' then
+        v_dk := t_pn_deck(v_reg->'dk');
+        if v_dk is null then
+          v_bad := v_bad + 1;
+        end if;
+      end if;
+      v_regs := v_regs || jsonb_build_array(jsonb_build_object('pid', v_pid, 'name', v_name,
+                                                               'av', v_av, 'dc', v_dc, 'dk', v_dk));
+    else
+      v_regs := v_regs || jsonb_build_array(jsonb_build_object('pid', v_pid, 'name', v_name));
+    end if;
+  end loop;
+  v_full := p_count is not null and p_count = cardinality(v_seen);
+
+  -- the players already in the list
+  for v_e in select q.x from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) with ordinality q(x, o) order by q.o loop
+    if v_e->>'src' = 'pn' and v_e->>'pid' is not null then
+      if not (v_e->>'pid' = any(v_seen)) then
+        if not v_full then
+          v_ents := v_ents || jsonb_build_array(v_e);
+          continue;
+        end if;
+        if (v_e->>'lock') = 'true' then
+          insert into tournament_marks (tournament_id, pid_hash, kind)
+          values (p_tid, t_pid_hash(p_tid, v_e->>'pid'), 'lock')
+          on conflict do nothing;
+        end if;
+        v_removed := v_removed + 1;
+        continue;
+      end if;
+      v_e := v_e || jsonb_build_object('name', (select z.x->>'name' from jsonb_array_elements(v_regs) z(x)
+                                                 where z.x->>'pid' = v_e->>'pid' limit 1));
+    end if;
+    if v_new and v_e->>'pid' is not null and v_e->>'pid' = any(v_seen) then
+      v_av := (select z.x->>'av' from jsonb_array_elements(v_regs) z(x) where z.x->>'pid' = v_e->>'pid' limit 1);
+      v_e := case when v_av is not null then v_e || jsonb_build_object('av', v_av) else v_e - 'av' end;
+    end if;
+    v_ents := v_ents || jsonb_build_array(v_e);
+  end loop;
+
+  -- the new registrants
+  for v_reg in select q.x from jsonb_array_elements(v_regs) with ordinality q(x, o) order by q.o loop
+    if v_ents @> jsonb_build_array(jsonb_build_object('pid', v_reg->>'pid')) then
+      continue;
+    end if;
+    if exists (select 1 from tournament_marks k
+                where k.tournament_id = p_tid and k.kind = 'forget'
+                  and k.pid_hash = t_pid_hash(p_tid, v_reg->>'pid')) then
+      continue;
+    end if;
+    if jsonb_array_length(v_ents) >= 256 then
+      v_warn := 'too_many';
+      exit;
+    end if;
+    v_ents := v_ents || jsonb_build_array(jsonb_build_object(
+                'id', 'pn:' || (v_reg->>'pid'), 'name', v_reg->>'name', 'pid', v_reg->>'pid',
+                'src', 'pn', 'st', 'in', 'seeker', '', 'terrain', '', 'deck', '', 'deckId', '')
+                || case when exists (select 1 from tournament_marks k
+                                      where k.tournament_id = p_tid and k.kind = 'lock'
+                                        and k.pid_hash = t_pid_hash(p_tid, v_reg->>'pid'))
+                        then '{"lock":true}'::jsonb else '{}'::jsonb end
+                || case when v_reg->>'av' is not null then jsonb_build_object('av', v_reg->>'av')
+                        else '{}'::jsonb end);
+    v_added := v_added + 1;
+  end loop;
+
+  v_p := jsonb_set(v_p, '{entrants}', v_ents);
+  select q.r, q.linked into v_p, v_linked from t_link_all(v_p) q;
+  if octet_length(v_p::text) > 1048576 - 4096 then
+    return t_no('bad_input', 'This tournament is too large.');
+  end if;
+
+  -- what the Play Network says about each registrant in the list
+  if v_new then
+    for v_reg in select z.x from jsonb_array_elements(v_regs) z(x)
+                  where v_p->'entrants' @> jsonb_build_array(jsonb_build_object('pid', z.x->>'pid')) loop
+      insert into tournament_pn (tournament_id, pid, discord, fetched_at)
+      values (p_tid, v_reg->>'pid', v_reg->>'dc', now())
+      on conflict (tournament_id, pid) do update
+         set discord = excluded.discord, fetched_at = excluded.fetched_at;
+      v_dk := case when jsonb_typeof(v_reg->'dk') = 'object' then v_reg->'dk' end;
+      if v_shown and v_dk ? 'keep' and (v_dk->>'ren') = 'true' then
+        update tournament_pn
+           set deck_name = v_dk->>'n', deck_url = v_dk->>'u'
+         where tournament_id = p_tid and pid = v_reg->>'pid' and seeker is not null;
+      elsif v_shown and (v_dk is null or not (v_dk ? 'keep')) then
+        update tournament_pn
+           set deck_name = v_dk->>'n', deck_url = v_dk->>'u', seeker = v_dk->>'s', terrain = v_dk->>'t',
+               legacy = v_dk->>'l', cards = v_dk->'c',
+               side = case when jsonb_typeof(v_dk->'sd') = 'object' then v_dk->'sd' end,
+               deck_st = v_dk->>'st', lock_h = v_dk->>'h',
+               unk = case when jsonb_typeof(v_dk->'unk') = 'array' then v_dk->'unk' end,
+               unk_n = coalesce((v_dk->>'k')::int, 0)
+         where tournament_id = p_tid and pid = v_reg->>'pid';
+      end if;
+    end loop;
+    select jsonb_build_object('n', count(*) filter (where n.seeker is not null),
+                              'miss', count(*) filter (where n.seeker is null),
+                              'unk', coalesce(sum(n.unk_n) filter (where n.seeker is not null), 0),
+                              'part', count(*) filter (where n.deck_st = 'partial'))
+      into v_dkc
+      from tournament_pn n
+     where n.tournament_id = p_tid
+       and n.pid in (select z.x->>'pid' from jsonb_array_elements(v_regs) z(x));
+  end if;
+
+  v_p := jsonb_set(v_p, '{pn}', coalesce(v_p->'pn', '{}'::jsonb)
+                                || jsonb_build_object('at', now(),
+                                                      'n', case when p_count between 0 and 100000 then p_count end)
+                                || v_meta
+                                || case when v_new then jsonb_build_object('dk', v_dkc || jsonb_build_object(
+                                                          'hid', not v_shown, 'pre', v_pre))
+                                        else '{}'::jsonb end);
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev, 'total', cardinality(v_seen),
+                            'added', v_added, 'removed', v_removed, 'linked', v_linked)
+         || case when v_warn is not null then jsonb_build_object('warning', v_warn) else '{}'::jsonb end
+         || case when v_new then jsonb_build_object('decks', v_dkc || jsonb_build_object('bad', v_bad))
+                 else '{}'::jsonb end;
+end $$;
+
+-- 4. t_auto_before ---------------------------------------------------------------
+-- t_auto_before: as in the TOURNAMENT AUTOMATION section (its steps still
+-- look only at Swiss tournaments), plus the Play Network decks:
+--   draft -> running    t_pn_sync (as in draft) first, so the lock that
+--                       follows covers the Play Network copies too
+--   any other update of a Swiss tournament, or of a tournament in draft
+--   (which has no fmt yet), that changes the players or payload.pn
+--   (t_import, unlink, relink, forget, remove, drop, a profile link):
+--                       the avatar of a player who has no profile id any
+--                       more (forgotten) goes, then t_pn_sync
+-- A failure in either part never stops the change (a warning only).
+create or replace function public.t_auto_before()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_oc int;
+  v_nc int;
+  v_h  jsonb;
+  v_sw boolean;
+begin
+  if new.status is null then
+    return new;
+  end if;
+  v_sw := coalesce(coalesce(new.payload->>'fmt', old.payload->>'fmt') = 'swiss', false);
+  if not v_sw and new.status is distinct from 'draft' then
+    return new;
+  end if;
+  if v_sw and old.status = 'draft' and new.status = 'running' then
+    begin
+      perform t_pn_sync(new.id, new.payload, 'draft');
+    exception when others then
+      raise warning 't_auto_before (play network decks): %', sqlerrm;
+    end;
+  end if;
+  if v_sw then
+    begin
+      if old.status = 'draft' and new.status = 'running' then
+        update tournament_decks k
+           set name = coalesce(d.name, ''), seeker = duel_clean(d.seeker), cards = d.cards, side = d.side
+          from decks d
+         where k.tournament_id = new.id and d.id = k.deck_id and d.user_id = k.user_id
+           and duel_clean(d.seeker) is not null and jsonb_typeof(d.cards) = 'object'
+           and coalesce(d.cards->>k.terrain, '') ~ '^[1-9][0-9]{0,3}$';
+        update tournament_decks set locked_at = now() where tournament_id = new.id;
+        new.payload := t_deck_hide(new.payload) - 'hold' - 'auto' - 'ac';
+      elsif old.status = 'running' and new.status = 'draft' then
+        update tournament_decks set locked_at = null where tournament_id = new.id;
+        new.payload := t_deck_hide(new.payload) - 'hold' - 'auto' - 'ac';
+      elsif old.status = 'running' and new.status = 'running' then
+        v_oc := t_sw_cur(old.payload);
+        v_nc := t_sw_cur(new.payload);
+        v_h := case when jsonb_typeof(new.payload->'hold') = 'object' then new.payload->'hold' else '{}'::jsonb end;
+        if v_nc < v_oc then
+          new.payload := new.payload || jsonb_build_object('hold', v_h || jsonb_build_object('pair', v_oc));
+          if (new.payload #>> '{auto,r}') = v_oc::text then
+            new.payload := new.payload - 'auto';
+          end if;
+        elsif v_nc > v_oc and (new.payload #>> '{auto,r}') is distinct from v_nc::text and v_h ? 'pair' then
+          v_h := v_h - 'pair';
+          new.payload := case when v_h = '{}'::jsonb then new.payload - 'hold'
+                              else new.payload || jsonb_build_object('hold', v_h) end;
+        end if;
+      elsif old.status = 'running' and new.status = 'closed' then
+        new.payload := t_deck_pub(new.payload, new.id);
+      elsif old.status = 'closed' and new.status = 'running' then
+        v_h := case when jsonb_typeof(new.payload->'hold') = 'object' then new.payload->'hold' else '{}'::jsonb end;
+        v_nc := t_sw_cur(new.payload);
+        if v_nc < (case when new.payload->>'rounds' ~ '^[0-9]{1,3}$' then (new.payload->>'rounds')::int else 0 end) then
+          v_h := v_h || jsonb_build_object('pair', v_nc + 1);
+        end if;
+        new.payload := t_deck_hide(new.payload) - 'ac'
+                       || jsonb_build_object('hold', v_h || '{"close":true}'::jsonb);
+      end if;
+    exception when others then
+      raise warning 't_auto_before: %', sqlerrm;
+    end;
+  end if;
+  if not (old.status = 'draft' and new.status = 'running')
+     and (old.payload->'entrants' is distinct from new.payload->'entrants'
+          or old.payload->'pn' is distinct from new.payload->'pn') then
+    begin
+      if jsonb_typeof(new.payload->'entrants') = 'array'
+         and exists (select 1 from jsonb_array_elements(new.payload->'entrants') q(x)
+                      where jsonb_typeof(q.x) = 'object' and q.x ? 'av' and q.x->>'pid' is null) then
+        new.payload := new.payload || jsonb_build_object('entrants', (
+          select jsonb_agg(case when jsonb_typeof(q.x) = 'object' and q.x ? 'av' and q.x->>'pid' is null
+                                then q.x - 'av' else q.x end order by q.o)
+            from jsonb_array_elements(new.payload->'entrants') with ordinality q(x, o)));
+      end if;
+      perform t_pn_sync(new.id, new.payload, new.status);
+    exception when others then
+      raise warning 't_auto_before (play network decks): %', sqlerrm;
+    end;
+  end if;
+  return new;
+end $$;
+
+-- 5. Players: the registered deck ------------------------------------------------
+-- t_deck_set: as in the TOURNAMENT AUTOMATION section, plus: a player whose
+-- registration comes from the Play Network (src 'pn') is refused ('pn'),
+-- before the start and while running; a deck set here is src 'mine'.
+create or replace function public.t_deck_set(p_tid uuid, p_deck_id uuid, p_terrain text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_t   tournaments%rowtype;
+  v_e   jsonb;
+  v_k   decks%rowtype;
+  v_has boolean;
+  v_ter text := btrim(coalesce(p_terrain, ''));
+  v_row tournament_decks%rowtype;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+     or not exists (select 1 from profiles pr where pr.id = v_uid and pr.deleted_at is null) then
+    return t_no('not_allowed', 'Sign in first.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid for update;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if not (v_t.status = 'draft' or (v_t.status = 'running' and v_t.payload->>'fmt' = 'swiss')) then
+    return t_no('status', 'Decks are registered before the start, or during a Swiss tournament before your first game.');
+  end if;
+  select q.x into v_e
+    from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+   where q.x->>'id' = v_uid::text
+   limit 1;
+  if v_e is null then
+    return t_no('not_entrant', 'Link your malediction.gg profile in Account › Profile, then ask the organizer to add you.');
+  end if;
+  if v_e->>'st' = 'drop' then
+    return t_no('dropped', 'You have dropped from this tournament.');
+  end if;
+  select * into v_row from tournament_decks k where k.tournament_id = p_tid and k.user_id = v_uid;
+  v_has := found;
+  if v_has and v_row.src = 'pn' then
+    return t_no('pn', 'Your deck comes from your Play Network registration.');
+  end if;
+  if v_t.status = 'running' and v_has then
+    return t_no('locked', 'Your deck is locked for this tournament.');
+  end if;
+  if v_t.status = 'draft' and p_deck_id is null then
+    delete from tournament_decks where tournament_id = p_tid and user_id = v_uid;
+    return jsonb_build_object('ok', true, 'deck', null);
+  end if;
+  select * into v_k from decks k where k.id = p_deck_id and k.user_id = v_uid;
+  if not found then
+    return t_no('not_yours', 'Pick one of your own decks.');
+  end if;
+  if duel_clean(v_k.seeker) is null then
+    return t_no('no_seeker', 'This deck has no Seeker.');
+  end if;
+  if duel_clean(v_ter) is null or jsonb_typeof(v_k.cards) is distinct from 'object'
+     or coalesce(v_k.cards->>v_ter, '') !~ '^[1-9][0-9]{0,3}$' then
+    return t_no('no_terrain', 'This deck has no terrain.');
+  end if;
+  insert into tournament_decks (tournament_id, user_id, deck_id, name, seeker, terrain, cards, side,
+                                registered_at, locked_at, src, pn_pid)
+  values (p_tid, v_uid, v_k.id, coalesce(v_k.name, ''), duel_clean(v_k.seeker), duel_clean(v_ter), v_k.cards, v_k.side,
+          now(), case when v_t.status = 'running' then now() end, 'mine', null)
+  on conflict (tournament_id, user_id) do update
+     set deck_id = excluded.deck_id, name = excluded.name, seeker = excluded.seeker,
+         terrain = excluded.terrain, cards = excluded.cards, side = excluded.side,
+         registered_at = excluded.registered_at, locked_at = excluded.locked_at,
+         src = 'mine', pn_pid = null
+  returning * into v_row;
+  return jsonb_build_object('ok', true, 'deck', jsonb_build_object(
+           'deck_id', v_row.deck_id, 'name', v_row.name, 'seeker', v_row.seeker,
+           'terrain', v_row.terrain, 'locked', v_row.locked_at is not null));
+end $$;
+
+-- t_deck_get: as in the TOURNAMENT AUTOMATION section, plus:
+--   mine  also src ('mine' or 'pn'), url (the deck's Play Network link),
+--         st ('locked', 'linked' or 'partial'), main and side (card
+--         counts, main without Seeker, terrain and legacy, as My decks counts it)
+--         for a Play Network deck;
+--         changed is false for a Play Network deck;
+--   can   'pn' when the caller's deck comes from the Play Network;
+--   org   (organizer only) each player also has src, st, url, unk_n, unk
+--         (names of cards the site does not know, at most 20) and dc (the
+--         Discord handle); a player without an account is registered when
+--         their Play Network registration has a deck (Seeker and terrain
+--         from it);
+--   opp   while a Swiss tournament runs, for a player with an account: the
+--         opponent of their current game, {id, dc}, when that opponent's
+--         Play Network registration has a Discord handle; else null.
+-- Never a card list.
+create or replace function public.t_deck_get(p_tid uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_e    jsonb;
+  v_org  boolean;
+  v_row  tournament_decks%rowtype;
+  v_n    tournament_pn%rowtype;
+  v_has  boolean := false;
+  v_can  text;
+  v_mine jsonb;
+  v_list jsonb;
+  v_opp  jsonb;
+  v_ok   text;
+  v_dc   text;
+begin
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  v_org := coalesce(t_is_org(v_t), false);
+  if v_uid is not null then
+    select q.x into v_e
+      from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+     where q.x->>'id' = v_uid::text
+     limit 1;
+  end if;
+  if not v_org and v_e is null
+     and not coalesce(is_league_member(v_t.league_id) or league_is_public(v_t.league_id), false) then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  if v_e is not null then
+    select * into v_row from tournament_decks k where k.tournament_id = p_tid and k.user_id = v_uid;
+    v_has := found;
+  end if;
+  v_can := case when not (v_t.status = 'draft' or (v_t.status = 'running' and v_t.payload->>'fmt' = 'swiss')) then 'status'
+                when v_e is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then 'not_entrant'
+                when v_e->>'st' = 'drop' then 'dropped'
+                when v_has and v_row.src = 'pn' then 'pn'
+                when v_t.status = 'running' and v_has then 'locked'
+                else 'ok' end;
+  if v_has then
+    if v_row.src = 'pn' then
+      select * into v_n from tournament_pn n where n.tournament_id = p_tid and n.pid = v_row.pn_pid;
+    end if;
+    v_mine := jsonb_build_object(
+      'deck_id', v_row.deck_id, 'name', v_row.name, 'seeker', v_row.seeker, 'terrain', v_row.terrain,
+      'locked', v_row.locked_at is not null,
+      'changed', v_row.src = 'mine'
+                 and (v_row.deck_id is null
+                      or exists (select 1 from decks k
+                                  where k.id = v_row.deck_id
+                                    and (k.cards is distinct from v_row.cards or k.side is distinct from v_row.side
+                                         or duel_clean(k.seeker) is distinct from v_row.seeker))),
+      'src', v_row.src,
+      'url', case when v_row.src = 'pn' then v_n.deck_url end,
+      'st', case when v_row.src = 'pn' then v_n.deck_st end,
+      'main', case when v_row.src = 'pn' then
+                (select coalesce(sum((e.value #>> '{}')::int), 0) from jsonb_each(v_row.cards) e
+                  where (e.value #>> '{}') ~ '^[0-9]{1,4}$')
+                - case when v_row.cards ? v_row.terrain then 1 else 0 end
+                - case when v_row.seeker is distinct from v_row.terrain and v_row.seeker is distinct from v_n.legacy
+                        and (v_row.cards->>v_row.seeker) ~ '^[0-9]{1,4}$'
+                       then (v_row.cards->>v_row.seeker)::int else 0 end
+                - case when v_n.legacy is not null and v_row.cards ? v_n.legacy then 1 else 0 end end,
+      'side', case when v_row.src = 'pn' then
+                (select coalesce(sum((e.value #>> '{}')::int), 0)
+                   from jsonb_each(case when jsonb_typeof(v_row.side) = 'object' then v_row.side else '{}'::jsonb end) e
+                  where (e.value #>> '{}') ~ '^[0-9]{1,4}$') end);
+  end if;
+  if v_org then
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'id', q.x->>'id',
+             'registered', k.user_id is not null or (not t_acct(q.x->>'id') and n.seeker is not null),
+             'seeker', case when k.user_id is not null then k.seeker when not t_acct(q.x->>'id') then n.seeker end,
+             'terrain', case when k.user_id is not null then k.terrain when not t_acct(q.x->>'id') then n.terrain end,
+             'src', case when k.user_id is not null then k.src
+                         when not t_acct(q.x->>'id') and n.seeker is not null then 'pn' end,
+             'st', case when (k.user_id is not null and k.src = 'pn') or (k.user_id is null and not t_acct(q.x->>'id'))
+                        then n.deck_st end,
+             'url', case when (k.user_id is not null and k.src = 'pn') or (k.user_id is null and not t_acct(q.x->>'id'))
+                         then n.deck_url end,
+             'unk_n', case when (k.user_id is not null and k.src = 'pn') or (k.user_id is null and not t_acct(q.x->>'id'))
+                           then coalesce(n.unk_n, 0) else 0 end,
+             'unk', case when (k.user_id is not null and k.src = 'pn') or (k.user_id is null and not t_acct(q.x->>'id'))
+                         then n.unk end,
+             'dc', n.discord) order by q.o), '[]'::jsonb)
+      into v_list
+      from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) with ordinality q(x, o)
+      left join tournament_decks k on k.tournament_id = p_tid and k.user_id::text = q.x->>'id'
+      left join tournament_pn n on n.tournament_id = p_tid and n.pid = q.x->>'pid';
+  end if;
+  if v_e is not null and v_t.status = 'running' and v_t.payload->>'fmt' = 'swiss'
+     and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    select g.opp into v_ok from t_my_game(v_t.payload, v_uid::text) g;
+    if v_ok is not null then
+      select n.discord into v_dc
+        from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+        join tournament_pn n on n.tournament_id = p_tid and n.pid = q.x->>'pid'
+       where q.x->>'id' = v_ok
+       limit 1;
+      if v_dc is not null then
+        v_opp := jsonb_build_object('id', v_ok, 'dc', v_dc);
+      end if;
+    end if;
+  end if;
+  return jsonb_build_object('ok', true, 'status', v_t.status, 'mine', v_mine, 'can', v_can, 'org', v_list,
+                            'opp', v_opp);
+end $$;
+
+-- t_deck_pub: as in the TOURNAMENT AUTOMATION section; a player without a
+-- registration in tournament_decks (no account) gets the Seeker and terrain
+-- of their Play Network deck, if any.
+create or replace function public.t_deck_pub(p jsonb, p_tid uuid)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select case when jsonb_typeof(p->'entrants') is distinct from 'array' then p else
+    p || jsonb_build_object('entrants', coalesce((
+           select jsonb_agg(case when jsonb_typeof(q.x) = 'object'
+                                 then q.x || jsonb_build_object('seeker', coalesce(k.seeker, n.seeker, ''),
+                                                                'terrain', coalesce(k.terrain, n.terrain, ''))
+                                 else q.x end
+                            order by q.o)
+             from jsonb_array_elements(p->'entrants') with ordinality q(x, o)
+             left join tournament_decks k
+               on k.tournament_id = p_tid and k.user_id::text = q.x->>'id'
+             left join tournament_pn n
+               on n.tournament_id = p_tid and n.pid = q.x->>'pid' and k.user_id is null), '[]'::jsonb))
+  end;
+$$;
+
+-- 5b. t_pn_save_deck: a player keeps their Play Network deck in My decks --------
+-- The caller's own imported deck in tournament p_tid (their row in
+-- tournament_decks with src 'pn', on a seat that is still theirs) is copied
+-- into decks for them: private, named after the Play Network deck (else
+-- "<Seeker> (Play Network)", at most 60 characters like the builder), with
+-- the Play Network deck link as the deck's link. The card list is the one
+-- stored for the tournament, main deck with terrain and legacy, and side
+-- deck, in the site's card names; cards the site does not know keep their
+-- Play Network names (the deck pages and the builder show such names as
+-- text). A deck read only in part gets a line saying so in its description.
+-- If the caller already has a deck with the same Seeker, cards and side deck,
+-- nothing is added and that deck is the answer (existing true).
+-- Only the caller's own list is copied, into their own private decks: no
+-- card list leaves the database for anyone else, and the answer holds none.
+-- Answer: {ok, deck_id, existing, partial, unk (cards the site does not
+-- know)}, or t_no with reason
+--   not_allowed   signed out, a guest, a deleted account, no such tournament
+--   no_deck       the caller has no imported deck in this tournament (no
+--                 seat, the seat is no longer theirs, or a deck registered
+--                 from My decks, which is there already)
+--   rate_limited  a limit on decks refused the insert (none today)
+--   error         anything else (the deck is not saved)
+-- Any status: the deck is the player's own, also after the start or close.
+create or replace function public.t_pn_save_deck(p_tid uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_row  tournament_decks%rowtype;
+  v_n    tournament_pn%rowtype;
+  v_id   uuid;
+  v_name text;
+  v_desc text;
+  v_side jsonb;
+  v_hint text;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) or p_tid is null
+     or not exists (select 1 from profiles pr where pr.id = v_uid and pr.deleted_at is null) then
+    return t_no('not_allowed', 'Sign in first, then reload the page.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  select * into v_row from tournament_decks k
+   where k.tournament_id = p_tid and k.user_id = v_uid and k.src = 'pn';
+  if not found or v_row.cards is null or jsonb_typeof(v_row.cards) <> 'object'
+     or not exists (select 1 from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+                     where jsonb_typeof(q.x) = 'object' and q.x->>'id' = v_uid::text and q.x->>'pid' = v_row.pn_pid) then
+    return t_no('no_deck', 'You have no deck from the Play Network in this tournament.');
+  end if;
+  select * into v_n from tournament_pn n
+   where n.tournament_id = p_tid and n.pid = v_row.pn_pid and n.seeker is not null;
+  if not found then
+    return t_no('no_deck', 'You have no deck from the Play Network in this tournament.');
+  end if;
+  v_side := case when jsonb_typeof(v_row.side) = 'object' and v_row.side <> '{}'::jsonb then v_row.side end;
+  -- one save at a time per player, so two taps cannot add the deck twice
+  perform pg_advisory_xact_lock(hashtext('t_pn_save_deck'), hashtext(v_uid::text));
+  select d.id into v_id
+    from decks d
+   where d.user_id = v_uid
+     and duel_clean(d.seeker) is not distinct from v_row.seeker
+     and coalesce(d.cards, '{}'::jsonb) = v_row.cards
+     and coalesce(d.side, '{}'::jsonb) = coalesce(v_side, '{}'::jsonb)
+   order by d.created_at, d.id
+   limit 1;
+  if v_id is not null then
+    return jsonb_build_object('ok', true, 'deck_id', v_id, 'existing', true,
+                              'partial', v_n.deck_st = 'partial', 'unk', coalesce(v_n.unk_n, 0));
+  end if;
+  v_name := left(coalesce(nullif(btrim(v_row.name), ''), v_row.seeker || ' (Play Network)'), 60);
+  v_desc := case when v_n.deck_st = 'partial'
+                 then 'Only part of the card list could be read from the Play Network. Check it against the link.' end;
+  begin
+    insert into decks (user_id, name, seeker, faction, url, description, cards, side, tag, is_public)
+    values (v_uid, v_name, v_row.seeker, null, v_n.deck_url, v_desc, v_row.cards, v_side, null, false)
+    returning id into v_id;
+  exception when others then
+    get stacked diagnostics v_hint = pg_exception_hint;
+    if v_hint = 'rate_limited' then
+      return t_no('rate_limited', 'Too many decks saved in a short time. Wait a minute, then try again.');
+    end if;
+    return t_no('error', 'Could not save the deck. Try again.');
+  end;
+  return jsonb_build_object('ok', true, 'deck_id', v_id, 'existing', false,
+                            'partial', v_n.deck_st = 'partial', 'unk', coalesce(v_n.unk_n, 0));
+end $$;
+
+-- 6. Who may call what -----------------------------------------------------------
+revoke all on function public.t_pn_av(text)                               from public, anon, authenticated;
+revoke all on function public.t_pn_cards(jsonb, int)                      from public, anon, authenticated;
+revoke all on function public.t_pn_deck(jsonb)                            from public, anon, authenticated;
+revoke all on function public.t_pn_sync(uuid, jsonb, text)                from public, anon, authenticated;
+revoke all on function public.t_import(uuid, jsonb, int, jsonb)           from public, anon, authenticated;
+revoke all on function public.t_auto_before()                             from public, anon, authenticated;
+revoke all on function public.t_deck_pub(jsonb, uuid)                     from public, anon, authenticated;
+revoke all on function public.t_deck_set(uuid, uuid, text)                from public, anon, authenticated;
+revoke all on function public.t_deck_get(uuid)                            from public, anon, authenticated;
+revoke all on function public.t_pn_save_deck(uuid)                       from public, anon, authenticated;
+grant execute on function public.t_import(uuid, jsonb, int, jsonb)        to service_role;
+grant execute on function public.t_deck_set(uuid, uuid, text)             to authenticated;
+grant execute on function public.t_deck_get(uuid)                         to authenticated;
+grant execute on function public.t_pn_save_deck(uuid)                    to authenticated;
