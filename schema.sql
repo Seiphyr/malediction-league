@@ -12572,3 +12572,332 @@ grant execute on function public.gm_cancel(uuid)                         to auth
 grant execute on function public.gm_get(uuid)                            to authenticated;
 grant execute on function public.gm_mine()                               to authenticated;
 grant execute on function public.player_group_matches(uuid)              to anon, authenticated;
+
+-- ============================================================
+--  COMMUNITY BOARD AND ADDRESS (2026-11-18)
+-- ============================================================
+-- Run as migration-2026-11-18-community-board.sql.
+-- What changes:
+--   * New table community_messages: the members' message board of a
+--     community. Active members (and the creator) write and read; the
+--     organizers (creator and co-organizers) and the site admin read too.
+--     Visitors, players who left or were retired, and signed-out visitors
+--     read nothing, even in a public community; a player who left still
+--     sees (and can delete) their own old messages there, nothing else.
+--     Each author deletes their own messages, the organizers delete any
+--     message of their community, the site admin deletes any message.
+--     Nobody edits a message.
+--   * Writing needs a full account: not signed in, a guest (anonymous)
+--     sign-in and a deleted account are refused, and so is an archived
+--     community (deleting still works there, as for notices). A trigger
+--     stamps the author and the time, trims the text (1 to 1000
+--     characters; every kind of blank is trimmed, so a message of only
+--     newlines or invisible spaces is refused) and applies the brake:
+--     5 messages a minute and 60 an hour per author (hint 'rate_limited').
+--     The brake counts writes in community_message_writes (one row per
+--     message sent, kept for an hour, no access from the site), so deleting
+--     messages does not reset it.
+--   * The organizer notices (announcements) are not changed.
+--   * New column leagues.address (up to 200 characters, trimmed, empty
+--     means none): set by whoever already edits the community details (the
+--     creator and the co-organizers); read by whoever reads the community.
+--     guard_league_fields trims it; guard_league_update already refuses it
+--     for anybody else (the site admin only archives or reopens).
+--   * New function trim_blank(text): trims spaces, tabs, newlines and the
+--     invisible Unicode spaces (btrim only trims the plain space).
+--   * erase_user_data: a deleted account's board messages and brake log are
+--     deleted, like its feedback (the notices it wrote stay, as before).
+--   * Unread counts are kept on the device: nothing in the database.
+
+-- 0. trim_blank(): like btrim, but for every kind of blank: \s (space, tab,
+-- newline, carriage return, form feed), no-break spaces, the Unicode spaces
+-- U+2000..U+200A, zero-width space and joiners, line and paragraph
+-- separators, word joiner, ideographic space and the byte order mark.
+create or replace function public.trim_blank(p text)
+returns text language sql immutable parallel safe as $$
+  select regexp_replace(p,
+    '^[\s\u00a0\u1680\u180e\u2000-\u200d\u2028\u2029\u202f\u205f\u2060\u3000\ufeff]+|[\s\u00a0\u1680\u180e\u2000-\u200d\u2028\u2029\u202f\u205f\u2060\u3000\ufeff]+$',
+    '', 'g')
+$$;
+
+-- 1. Community address -----------------------------------------------------------
+alter table public.leagues add column if not exists address text;
+alter table public.leagues drop constraint if exists leagues_address_len;
+alter table public.leagues add constraint leagues_address_len
+  check (address is null or char_length(address) between 1 and 200);
+
+-- guard_league_fields(): as in ONLINE LEAGUES AND WINDOW EVENTS, plus the
+-- address line (trimmed with trim_blank; empty means none). The update policy and
+-- guard_league_update are not changed: the creator and the co-organizers
+-- edit every detail, the site admin only archives or reopens, and nobody
+-- else reaches the row.
+create or replace function guard_league_fields()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  new.region      := nullif(btrim(new.region), '');
+  new.timezone    := nullif(btrim(new.timezone), '');
+  new.discord_url := nullif(btrim(new.discord_url), '');
+  new.address     := nullif(trim_blank(new.address), '');
+  if new.is_online then
+    -- No map pin for an online league. Cleared rather than refused, so an old
+    -- cached client that sends a pin does not fail.
+    new.lat := null;
+    new.lon := null;
+    if new.location is null or btrim(new.location) = '' then
+      new.location := 'Online';
+    end if;
+  end if;
+  if new.timezone is not null then
+    if tg_op = 'INSERT' or new.timezone is distinct from old.timezone then
+      if not exists (select 1 from pg_timezone_names where name = new.timezone) then
+        raise exception 'Unknown time zone: %', new.timezone using errcode = '22023';
+      end if;
+    end if;
+  end if;
+  if tg_op = 'UPDATE' then
+    -- Events with an end date run in the league's time zone, so it stays set.
+    if new.timezone is null and old.timezone is not null
+       and exists (select 1 from sessions s where s.league_id = old.id and s.end_date is not null) then
+      raise exception 'This league has events with an end date, so it needs a time zone'
+        using errcode = '23514', hint = 'sl_tz_needed';
+    end if;
+    if new.is_online is distinct from old.is_online
+       and auth.uid() is not null
+       and exists (select 1 from sessions s where s.league_id = old.id) then
+      raise exception 'A league that has events cannot switch between online and in person'
+        using errcode = '42501', hint = 'sl_kind_locked';
+    end if;
+  end if;
+  return new;
+end $$;
+
+-- 2. The message board -----------------------------------------------------------
+-- One row per message. author_id is stamped by the trigger below; it turns
+-- null only if a profile row is ever removed by hand (a deleted account's
+-- messages are deleted by erase_user_data).
+create table if not exists public.community_messages (
+  id         uuid primary key default gen_random_uuid(),
+  league_id  uuid not null references public.leagues(id) on delete cascade,
+  author_id  uuid references public.profiles(id) on delete set null,
+  body       text not null,
+  created_at timestamptz not null default now()
+);
+-- 1 to 1000 characters once every kind of blank is trimmed.
+alter table public.community_messages drop constraint if exists community_messages_body_len;
+alter table public.community_messages add constraint community_messages_body_len
+  check (char_length(public.trim_blank(body)) between 1 and 1000);
+create index if not exists idx_community_messages_league
+  on public.community_messages(league_id, created_at desc);
+create index if not exists idx_community_messages_author
+  on public.community_messages(author_id, created_at);
+
+-- The brake's log: one row per message sent from the site, kept for an hour.
+-- Deleting a message does not touch it, so writing and deleting in a loop
+-- is braked too. Only check_board_write (security definer) reads and writes
+-- it; the site has no access.
+create table if not exists public.community_message_writes (
+  id        bigint generated always as identity primary key,
+  author_id uuid not null references public.profiles(id) on delete cascade,
+  at        timestamptz not null default now()
+);
+create index if not exists idx_community_message_writes_author
+  on public.community_message_writes(author_id, at);
+alter table public.community_message_writes enable row level security;
+revoke all on public.community_message_writes from anon, authenticated;
+grant select, insert, update, delete on public.community_message_writes to service_role;
+
+-- Who may write, and the brake. Security definer, so the brake sees the
+-- log above (every write of the author, in any community). Called by the
+-- trigger below it also logs the write; called directly (an RPC) it only
+-- checks, so it cannot be used to fill the log.
+create or replace function public.check_board_write(p_league uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    raise exception 'Sign in with an account to write on the board'
+      using errcode = '42501', hint = 'sign_in';
+  end if;
+  if not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    raise exception 'This account was deleted' using errcode = '42501', hint = 'deleted';
+  end if;
+  if not (is_active_member(p_league) or is_league_owner(p_league)) then
+    raise exception 'Only the members of this community can write on its board'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = p_league and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  -- One writer at a time per author, so two quick sends cannot both slip
+  -- under the brake.
+  perform pg_advisory_xact_lock(hashtext('community_board'), hashtext(v_uid::text));
+  delete from community_message_writes w
+   where w.author_id = v_uid and w.at <= now() - interval '1 hour';
+  if (select count(*) from community_message_writes w
+       where w.author_id = v_uid and w.at > now() - interval '1 minute') >= 5 then
+    raise exception 'You wrote 5 messages in the last minute. Wait a moment and try again.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if (select count(*) from community_message_writes w
+       where w.author_id = v_uid and w.at > now() - interval '1 hour') >= 60 then
+    raise exception 'You wrote 60 messages in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if pg_trigger_depth() > 0 then
+    insert into community_message_writes(author_id, at) values (v_uid, now());
+  end if;
+end $$;
+
+-- Requests from the site (current_user authenticated or anon) get the
+-- author, the checks and the brake; the SQL editor only gets the trimmed
+-- text and the time. Not security definer, like stamp_announcement.
+create or replace function public.stamp_community_message()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.body := trim_blank(new.body);
+  new.created_at := now();
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  new.author_id := auth.uid();
+  perform check_board_write(new.league_id);
+  return new;
+end $$;
+drop trigger if exists community_message_stamp on public.community_messages;
+create trigger community_message_stamp before insert on public.community_messages
+  for each row execute function public.stamp_community_message();
+
+alter table public.community_messages enable row level security;
+drop policy if exists "board members read" on public.community_messages;
+drop policy if exists "board members write" on public.community_messages;
+drop policy if exists "board delete" on public.community_messages;
+-- Active members, the organizers (the creator included) and the site admin;
+-- an author always sees their own messages, so a player who left can still
+-- delete them (a delete with a filter needs the row to be readable).
+create policy "board members read" on public.community_messages
+  for select to authenticated
+  using (is_active_member(league_id) or is_league_admin(league_id) or is_site_admin()
+         or author_id = auth.uid());
+-- The trigger gives the clear refusals; this is the backstop.
+create policy "board members write" on public.community_messages
+  for insert to authenticated
+  with check (author_id = auth.uid()
+              and (is_active_member(league_id) or is_league_owner(league_id))
+              and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false));
+-- The author, the community's organizers, the site admin.
+create policy "board delete" on public.community_messages
+  for delete to authenticated
+  using (author_id = auth.uid() or is_league_admin(league_id) or is_site_admin());
+
+revoke all on public.community_messages from anon, authenticated;
+grant select, delete on public.community_messages to authenticated;
+grant insert (league_id, body) on public.community_messages to authenticated;
+grant select, insert, update, delete on public.community_messages to service_role;
+
+-- 3. erase_user_data(): as in the MULTIPLAYER MATCHES section, plus the
+-- account's board messages and brake log.
+create or replace function erase_user_data(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  l record;
+  v_t record;
+  v_e jsonb;
+  v_k text;
+  v_g record;
+begin
+  if p_user is null then
+    return;
+  end if;
+  for l in select id, name, archived_at from leagues where owner_id = p_user for update loop
+    if not exists (select 1 from memberships m where m.league_id = l.id and m.user_id <> p_user)
+       and not exists (select 1 from matches mt where mt.league_id = l.id)
+       and not exists (select 1 from attendance a join sessions s on s.id = a.session_id
+                       where s.league_id = l.id and a.user_id <> p_user) then
+      delete from leagues where id = l.id;
+    elsif l.archived_at is null and exists (
+      select 1 from memberships m
+      where m.league_id = l.id and m.user_id <> p_user and m.dropped_at is null
+    ) then
+      raise exception 'This account owns the league "%", which still has players. Hand it over to one of them or archive it first (Manage).', l.name
+        using errcode = 'P0001', hint = 'sl_owns_league';
+    else
+      update leagues set archived_at = coalesce(archived_at, now()) where id = l.id;
+    end if;
+  end loop;
+
+  delete from collection     where user_id = p_user;
+  delete from free_battles   where user_id = p_user;
+  delete from feedback       where user_id = p_user;
+  delete from site_admins    where user_id = p_user;
+  delete from member_discord where user_id = p_user;
+  delete from duel_join_attempts where user_id = p_user;
+  delete from t_auto_log     where user_id = p_user;
+  delete from community_messages where author_id = p_user;
+  delete from community_message_writes where author_id = p_user;
+
+  update duels
+     set status = 'cancelled', pin = null, ended_at = coalesce(ended_at, now()), updated_at = now()
+   where status in ('waiting','live','ending') and (host_id = p_user or guest_id = p_user);
+
+  begin
+    perform gm_drop_waiting(p_user, null);
+    for v_g in
+      select g.id
+        from group_matches g
+        join group_match_seats s on s.match_id = g.id
+       where s.user_id = p_user and s.left_at is null and g.status in ('live','ending')
+       order by g.id
+    loop
+      perform gm_freeze(v_g.id, p_user);
+    end loop;
+  exception when others then
+    raise warning 'erase_user_data group matches: %', sqlerrm;
+  end;
+
+  update tournaments set organizer_id = null where organizer_id = p_user;
+  begin
+    for v_t in
+      select x.id, x.payload
+        from tournaments x
+       where x.status is not null
+         and x.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', p_user::text))
+       order by x.created_at
+       for update
+    loop
+      select q.x into v_e
+        from jsonb_array_elements(v_t.payload->'entrants') q(x)
+       where q.x->>'id' = p_user::text
+       limit 1;
+      v_k := case when coalesce(v_e->>'pid', '') ~ '^[A-Za-z0-9]{6,32}$'
+                       and not (v_t.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', 'pn:' || (v_e->>'pid'))))
+                  then 'pn:' || (v_e->>'pid') else t_rand_key(v_t.payload) end;
+      update tournaments set payload = t_rekey(payload, p_user::text, v_k), rev = rev + 1 where id = v_t.id;
+    end loop;
+  exception when others then
+    raise warning 'erase_user_data tournaments: %', sqlerrm;
+  end;
+  delete from decks            where user_id = p_user and not is_public;
+  delete from tournament_decks where user_id = p_user;
+
+  update memberships
+     set dropped_at = coalesce(dropped_at, now()), is_admin = false
+   where user_id = p_user and (dropped_at is null or is_admin);
+
+  update profiles
+     set display_name = 'Deleted player',
+         role = 'player',
+         herald_rank = null,
+         discord = null,
+         malediction_url = null,
+         lat = null,
+         lon = null,
+         place = null,
+         matches_visibility = 'private',
+         deleted_at = coalesce(deleted_at, now())
+   where id = p_user;
+end $$;
+
+revoke all on function erase_user_data(uuid)                        from public, anon, authenticated;
+revoke all on function public.check_board_write(uuid)               from public, anon;
+grant execute on function public.check_board_write(uuid)            to authenticated;

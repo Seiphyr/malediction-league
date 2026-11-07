@@ -735,6 +735,24 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .nb-cl{text-align:center;margin:-2px 0 10px}
 .nb-cl .link{font-size:12px;color:var(--bone-dim);padding:6px 8px}
 .nb-cl .link:hover{color:var(--brass)}
+.nb-tw{position:relative;margin:8px 0 0;min-width:0}
+.nb-tabs{display:flex;width:100%;position:relative}
+.nb-tw.ov-r .nb-tabs{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 72px),transparent calc(100% - 10px));mask-image:linear-gradient(to right,#000 calc(100% - 72px),transparent calc(100% - 10px))}
+.nb-tw.ov-l .nb-tabs{-webkit-mask-image:linear-gradient(to right,transparent,#000 36px);mask-image:linear-gradient(to right,transparent,#000 36px)}
+.nb-tw.ov-l.ov-r .nb-tabs{-webkit-mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 72px),transparent calc(100% - 10px));mask-image:linear-gradient(to right,transparent,#000 36px,#000 calc(100% - 72px),transparent calc(100% - 10px))}
+.nb-more{display:none;position:absolute;top:0;right:0;width:40px;height:40px;padding:0;border:0;background:0 0;cursor:pointer;align-items:center;justify-content:flex-end;-webkit-tap-highlight-color:transparent}
+.nb-more::before{content:"";width:8px;height:8px;margin-right:9px;border-top:2px solid var(--brass);border-right:2px solid var(--brass);transform:rotate(45deg)}
+.nb-more:hover::before{border-color:var(--bone)}
+.nb-tw.ov-r .nb-more{display:flex}
+.nb-tw.ov-r.ov-new .nb-more::after{content:"";position:absolute;top:7px;right:3px;width:8px;height:8px;border-radius:50%;background:var(--crimson);box-shadow:0 0 0 2px var(--coal,#111)}
+.nb-tabs .seg-b{padding:0 11px}
+.nb-tabs .adm-badge{margin-left:0}
+.nb-tl{display:inline-block;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb-panel .nb-tw{margin:10px 0 12px}
+.nb-new{flex:0 0 auto;font-family:Oswald,sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--crimson-txt);border:1px solid currentColor;border-radius:999px;padding:1px 7px;white-space:nowrap;line-height:1.4}
+.nu-main small .nb-new{display:inline-block;margin-right:7px;vertical-align:2px}
+.nb-top .nb-new+.nb-when,.cb-top .nb-new+.nb-when{margin-left:0}
+.nb-top .nb-new,.cb-top .nb-new{margin-left:auto;align-self:center}
 .tkmodal.cl-box{width:min(94vw,560px);max-height:86vh;overflow-y:auto}
 .cl-day{margin:0 0 14px}
 .cl-date{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0 0 6px}
@@ -904,10 +922,6 @@ button.sw-pnc{margin-left:auto;flex:0 0 auto;min-height:40px;min-width:64px;padd
 @media(max-width:620px){.fbp-head{flex-direction:column!important;align-items:stretch!important}}
 
 /* Community › About */
-.ab-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 6px}
-.ab-stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#141414;min-width:0}
-.ab-stat b{display:block;font-family:Oswald,sans-serif;font-size:18px;font-weight:600;color:var(--bone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ab-stat small{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
 .ab-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ab-who{padding:0;font:inherit;color:var(--bone);text-align:left}
 .ab-role{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass)}
@@ -921,6 +935,62 @@ button.sw-pnc{margin-left:auto;flex:0 0 auto;min-height:40px;min-width:64px;padd
 .link.ab-who:hover{color:var(--brass)}
 .ab-players{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 18px}
 .ab-pl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:40px;padding:6px 0;border-bottom:1px solid var(--line)}
+/* Community › About (2026-11-18): where they play, the players dropdown and the community board */
+.ab-where{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#141414;color:var(--bone);text-decoration:none;min-width:0}
+a.ab-where{transition:border-color .15s}
+a.ab-where:hover{border-color:var(--brass-dim)}
+a.ab-where:focus-visible,.ab-pls>summary:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.ab-pin{flex:0 0 38px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(200,165,104,.1);border:1px solid var(--brass-dim);color:var(--brass);font-size:17px;line-height:1}
+.ab-wt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ab-wt small{font-family:Oswald,sans-serif;font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--brass)}
+.ab-wt b{font-family:Oswald,sans-serif;font-size:17px;font-weight:600;letter-spacing:.03em;line-height:1.3;color:var(--bone);overflow-wrap:anywhere}
+.ab-wt span{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.ab-wt .ab-dim{color:var(--bone-dim)}
+.ab-gm{display:inline-flex;align-items:center;min-height:28px;margin-top:4px;font-style:normal;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--brass)}
+a.ab-where:hover .ab-gm{color:var(--bone)}
+.ab-panel>.ab-where+.ip-sec{margin-top:16px}
+.ab-pls{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:#141414}
+.ab-pls>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:54px;padding:8px 14px;cursor:pointer;border-radius:12px;-webkit-tap-highlight-color:transparent}
+.ab-pls>summary::-webkit-details-marker{display:none}
+.ab-pls>summary:hover .ab-pls-t b{color:var(--brass)}
+.ab-pls-t{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.ab-pls-t b{font-family:Oswald,sans-serif;font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bone)}
+.ab-pls-t small{font-size:12.5px;color:var(--bone-dim)}
+.ab-chev{flex:0 0 auto;width:9px;height:9px;margin:-5px 6px 0;border-right:2px solid var(--brass);border-bottom:2px solid var(--brass);transform:rotate(45deg);transition:transform .15s}
+.ab-pls[open] .ab-chev{transform:rotate(-135deg);margin-top:5px}
+.ab-pls-in{padding:2px 14px 12px;border-top:1px solid var(--line)}
+.ab-psec{font-family:Oswald,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--brass);margin:14px 0 0}
+.ab-you{font-size:11.5px;color:var(--bone-faint)}
+.ab-pls .hint.ab-noher{margin:12px 0 0;font-size:12.5px}
+.cb-panel{margin-top:16px}
+.cb-panel .cb-sub{margin:0 0 4px;text-align:center;font-size:12px;color:var(--bone-dim)}
+.cb-panel .cb-h{margin-top:16px}
+.cb-compose{margin:8px 0 12px}
+.cb-compose textarea{display:block;width:100%;min-height:86px;resize:vertical;font-size:15px;line-height:1.45}
+.cb-crow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.cb-n{font-size:11.5px;color:var(--bone-faint);font-variant-numeric:tabular-nums}
+.cb-n.near{color:var(--crimson-txt)}
+.cb-crow .act{min-width:112px;min-height:42px}
+.cb-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.cb-msg{background:#141414;border:1px solid var(--line);border-left:3px solid var(--line-2);border-radius:10px;padding:10px 14px;min-width:0}
+.cb-msg.cb-mine{border-left-color:var(--brass-dim)}
+.cb-top{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;min-width:0}
+.cb-who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600;color:var(--bone)}
+.link.cb-who{padding:0;font:inherit;font-size:14px;font-weight:600;color:var(--bone);text-decoration:none;text-align:left}
+.link.cb-who:hover{color:var(--brass)}
+.cb-top .ab-role{flex:0 0 auto}
+.cb-msg .nb-body{font-size:14.5px}
+.cb-msg .nb-x{display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;margin:-6px -8px -6px 0;border-radius:6px}
+.cb-panel .hint.cb-ro{margin:8px 0 4px;font-size:13px}
+.cb-out .cb-join{display:flex;align-items:center;gap:12px;margin:0;font-size:14px;color:var(--bone-dim)}
+.cb-out .cb-join+.cb-h{margin-top:16px}
+.cb-out .cb-h:first-child{margin-top:0}
+.lg-pin{margin:-6px 0 14px}
+.lg-pin .hint{margin:0 0 8px;font-size:13px}
+.lg-pin-b{display:flex;flex-wrap:wrap;gap:8px}
+.lg-pin-b .ghost{flex:0 0 auto;min-height:40px;padding-left:14px;padding-right:14px;white-space:nowrap}
+@media(max-width:520px){.cb-crow .act{min-width:120px}.lg-pin-b .ghost{flex:1 1 auto}}
+@media (pointer:coarse){.link.cb-who{padding:9px 0;margin:-9px 0}.cb-msg .nb-x{min-width:40px;min-height:40px;margin:-10px -10px -10px 0}}
 
 /* League tab, lighter: a flat list instead of tinted cards */
 #league-body .rec-card{background:var(--coal-2);border:1px solid var(--line);box-shadow:none}
@@ -1734,7 +1804,8 @@ const CHANGELOG=[
     "Home: the community stats sit on top, and Next up (your next match, tournaments to run, upcoming events) is now inside the notice board, above the posts.",
     "Collection: Share a checklist replaces Download checklist, Manage products drops the progress bars, and the faction bars are under a Factions menu, with a bar for each dual faction.",
     "Collection: actions, totals and the list controls each fit on one row, and the faction bars line up. Legion now uses the teal of its icon everywhere. My decks: opening a deck closes the one already open and shows the new one from the top.",
-    "My decks: an open deck is one box with List, Cards, Stats and Draw % tabs. Draw % shows the chance of having each card by round 1 to 5+ (7 cards in the opening hand, then 2 per round), with a sample opening hand to draw."]],
+    "My decks: an open deck is one box with List, Cards, Stats and Draw % tabs. Draw % shows the chance of having each card by round 1 to 5+ (7 cards in the opening hand, then 2 per round), with a sample opening hand to draw.",
+    "Communities: members now have a board on the About page to read and write to each other, under the organizers' notices. The venue shows its address with an Open in Google Maps link, and organizers can place the pin with Use my location. Notice boards have tabs, each with a red count of what is new since you last opened that tab."]],
   ["2026-11-05",[
     "A fresh start for Seekers League, built around the official Malediction Play Network.",
     "Communities: your communities on one page, join with a code or start a new one, and a map of communities and Heralds.",
@@ -1812,7 +1883,7 @@ function toast(e,n){const t=$("toast"),off=()=>{clearTimeout(t._t),t.className="
    matches joinCodeOk (A-Z and 0-9, 4 to 12 long), and so does every box a
    code is typed into. */
 function joinCodeOk(c){return/^[A-Z0-9]{4,12}$/.test(String(c||""))}
-function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e||(window._mfTab="heralds"===e?"h":"c",window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e&&route.tournamentId?"#/tournaments/"+route.tournamentId:"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
+function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){window._nbSt=null,"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e||(window._mfTab="heralds"===e?"h":"c",window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e&&route.tournamentId?"#/tournaments/"+route.tournamentId:"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
 /* ===== Dialogs: one behaviour for every overlay =====
    Popups are made in many places (a .tkov or .card-light div added to the
    body, the More sheet, the die roll), so they are found by watching the page
@@ -2934,19 +3005,84 @@ function nbCard(e){
     ${n?`<div class="nb-by">\u2014 ${esc(n)}</div>`:""}
   </article>`;
 }
+/* ===== Notice boards: tabs and what is new =====
+   Home: All, Next up, Seekers League (the site's own notices) and a tab for
+   each community with notices (one Communities tab past 3). The community
+   board: Notices and Messages. A red count says how many items of a tab are
+   new: written by someone else after this account last opened that tab on
+   this device (localStorage sl.seen.<user>.<tab> = the newest item by someone
+   else it showed). All keeps its own time, so opening All does not clear the
+   other tabs: each keeps its count until it is opened. A notice seen in its
+   community's home tab or on its community page counts on both. With nothing
+   stored yet, the last 3 days are new. Next up rows have no date: a row is new
+   when it was not there the last time that tab was open, and the rows behind
+   Show all count only once shown. Counts and New marks are taken when a visit
+   starts (each go() or a reload): the open tab and the tabs opened during the
+   visit show no count, and the New marks stay until the visit ends. When the
+   tabs do not fit, the bar fades at the edge and a chevron scrolls it. */
+const NB_FIRST=3*864e5;
+function nbHash(s){let h=5381;s=String(s);for(let i=0;i<s.length;i++)h=Math.imul(h,33)^s.charCodeAt(i);return(h>>>0).toString(36)}
+function nbSK(k){return"sl.seen."+(me&&me.id)+"."+k}
+function nbSeenRd(k){try{return localStorage.getItem(nbSK(k))}catch(x){return null}}
+function nbSeenWr(k,v){try{localStorage.setItem(nbSK(k),v)}catch(x){}}
+function nbSt(id){if(!me)return null;const S=window._nbSt||(window._nbSt={});let s=S[id];s&&s.r===route&&s.u===me.id||(s=S[id]={r:route,u:me.id,s0:{},o:new Set,tab:null});return s}
+function nbS0(s,k){return k in s.s0?s.s0[k]:s.s0[k]=nbSeenRd(k)}
+function nbNew(s,x,ks){if(!s||!x||x.author_id===s.u)return!1;const t=Date.parse(x.created_at||"");if(!(t>0))return!1;let b=-1;ks.forEach(k=>{const v=Date.parse(nbS0(s,k)||"");v>b&&(b=v)});return t>(b>=0?b:Date.now()-NB_FIRST)}
+function nbMark(h){return h.replace('<span class="nb-when"','<span class="nb-new">New</span><span class="nb-when"')}
+function nbDone(k,a){if(!me||!a||!a.length)return;let m=0;a.forEach(x=>{if(!x||x.author_id===me.id)return;const v=Date.parse(x.created_at||"");v>m&&(m=v)});m>0&&!(Date.parse(nbSeenRd(k)||"")>=m)&&nbSeenWr(k,new Date(m).toISOString())}
+function nbNuNew(s,R,ks){if(!s||!R.length)return[];const H=new Set;let any=!1;ks.forEach(k=>{const v=nbS0(s,k);if(null==v)return;any=!0;let a=[];try{a=JSON.parse(v)}catch(x){}Array.isArray(a)&&a.forEach(h=>H.add(h))});return any?R.filter(r=>!H.has(nbHash(r))):[]}
+function nbNuDone(k,R){if(!R.length)return;let a=[];try{a=JSON.parse(nbSeenRd(k)||"[]")}catch(x){}const A=new Set((window._nuAllRows||R).map(nbHash)),o=new Set(R.map(nbHash));Array.isArray(a)&&a.forEach(h=>A.has(h)&&o.add(h));nbSeenWr(k,JSON.stringify([...o].slice(0,200)))}
+function nbTabs(lab,T,on,fn,s,pid){return`<div class="nb-tw"><div class="seg nb-tabs" role="tablist" aria-label="${lab}" onkeydown="nbKey(event,this)" onscroll="nbOv(this)">${T.map((x,i)=>{const a=x.k===on,n=a||s&&s.o.has(x.k)?0:x.n;return`<button type="button" role="tab" id="${pid}-t${i}" aria-controls="${pid}" aria-selected="${a}" tabindex="${a?0:-1}" class="seg-b${a?" on":""}" onclick="${fn}(${jsq(x.k)})"${x.t?` title="${esc(x.t)}"`:""}><span class="nb-tl">${x.l}</span>${admBadge(n)}</button>`}).join("")}</div><button type="button" class="nb-more" tabindex="-1" aria-hidden="true" title="More tabs" onclick="nbMore(this)"></button></div>`}
+function nbPane(pid,T,on,h){const i=T.findIndex(x=>x.k===on);return`<div class="nb-pane ${pid}" id="${pid}" role="tabpanel" aria-labelledby="${pid}-t${i<0?0:i}">${h}</div>`}
+function nbKey(ev,el){const B=[...el.querySelectorAll("[role=tab]")],i=B.indexOf(document.activeElement),k=ev.key;if(i<0)return;const j="ArrowRight"===k?(i+1)%B.length:"ArrowLeft"===k?(i-1+B.length)%B.length:"Home"===k?0:"End"===k?B.length-1:-1;j<0||(ev.preventDefault(),B[j].click())}
+function nbInBar(sel){const a=document.activeElement;return!!(a&&a.closest&&a.closest(sel+" .nb-tabs"))}
+function nbFocus(sel){const b=document.querySelector(sel+" .nb-tabs [aria-selected=true]");b&&b.focus({preventScroll:!0})}
+function nbOv(el){const w=el&&el.parentNode;if(!w||!w.classList)return;const o=el.scrollWidth>el.clientWidth+1;w.classList.toggle("ov-l",o&&el.scrollLeft>2);w.classList.toggle("ov-r",o&&el.scrollLeft+el.clientWidth<el.scrollWidth-2);
+  /* A red dot on the chevron when a count is out of sight. */
+  const r=el.getBoundingClientRect().right-48;w.classList.toggle("ov-new",o&&[...el.querySelectorAll(".adm-badge")].some(b=>b.getBoundingClientRect().right>r))}
+function nbMore(b){const el=b.previousElementSibling;el&&el.scrollBy({left:Math.max(120,.7*el.clientWidth),behavior:"smooth"})}
+window.addEventListener("resize",()=>document.querySelectorAll(".nb-tabs").forEach(nbOv));
+function nbHome(t,nu){
+  const s=nbSt("home"),R=nu?window._nuRows||[]:[],G=t.filter(x=>!x.league_id),C={},ord=[];
+  t.forEach(x=>{const l=x.league_id;l&&(C[l]||(C[l]=[],ord.push(l)),C[l].push(x))});
+  /* N: new for its own tab; NA: new for All too (All's time on top of the tab's). */
+  const ks=x=>x.league_id?["home.c."+x.league_id,"cb."+x.league_id+".notes"]:["home.sl"],
+    N=new Set(t.filter(x=>nbNew(s,x,ks(x)))),NA=new Set(t.filter(x=>N.has(x)&&nbNew(s,x,["home.all"].concat(ks(x))))),
+    nN=nbNuNew(s,R,["home.nu"]),nA=nbNuNew(s,R,["home.nu","home.nua"]),T=[];
+  R.length&&T.push({k:"nu",l:"Next up",n:nN.length});
+  G.length&&T.push({k:"sl",l:"Seekers League",a:G});
+  ord.length>3?T.push({k:"cs",l:"Communities",a:t.filter(x=>x.league_id)}):ord.forEach(l=>{const nm=nbScope(C[l][0]);T.push({k:"c."+l,l:esc(nm),t:nm,a:C[l]})});
+  T.forEach(x=>x.a&&(x.n=x.a.filter(y=>N.has(y)).length));
+  const tb=T.length>1?T:[],on=s&&tb.some(x=>x.k===s.tab)?s.tab:"all",cur=tb.find(x=>x.k===on);
+  s&&(s.tab=on,s.o.add(on));
+  const TT=[{k:"all",l:"All",n:NA.size+nA.length}].concat(tb),
+    mk=(a,M)=>a.map(x=>M.has(x)?nbMark(nbCard(x)):nbCard(x)).join(""),
+    nuH=r=>{let h=nu;r.forEach(x=>{h=h.split(x).join(x.replace("<small>",'<small><span class="nb-new">New</span>'))});return h},
+    body="all"===on?`${nuH(nA)}${t.length?`<div class="nb-list">${mk(t,NA)}</div>`:nu?"":'<div class="empty" style="margin-top:10px">Nothing posted yet.</div>'}`:"nu"===on?nuH(nN):`<div class="nb-list">${mk(cur.a,N)}</div>`;
+  return{bar:tb.length?nbTabs("Notice board",TT,on,"nbTab",s,"nb-pane"):"",body:tb.length?nbPane("nb-pane",TT,on,body):body,done(){
+    if(!s||"browse"!==route.view)return;
+    const dn=x=>"nu"===x.k?nbNuDone("home.nu",R):"cs"===x.k?ord.forEach(l=>nbDone("home.c."+l,C[l])):nbDone("home."+x.k,x.a);
+    R.length&&null==nbSeenRd("home.nu")&&nbNuDone("home.nu",R);
+    /* With one kind of item there is no bar: what shows is that tab, so it counts as opened. */
+    "all"===on?(nbDone("home.all",t),nbNuDone("home.nua",R),tb.length||T.forEach(dn)):cur&&dn(cur)}}}
+function nbTab(k){const s=nbSt("home"),f=nbInBar("#home-board");s&&(s.tab=k,s.o.add(k));paintHomeBoard();f&&nbFocus("#home-board")}
 function paintHomeBoard(){
   const e=$("home-board");if(!e)return;
   const n=new Set((cache.myLeagues||[]).map(e=>e.id)),
     t=(cache.board||[]).filter(e=>!e.league_id||n.has(e.league_id));
   const nu=me&&window._nuHtml||"";
   if(!t.length&&!nu&&!isSiteAdmin())return void(e.innerHTML="",typeof admHomeNote=="function"&&admHomeNote());
+  const B=nbHome(t,nu),bx=e.querySelector(".nb-tabs"),bl=bx?bx.scrollLeft:0;
   e.innerHTML=`<div class="panel plain nb-panel">
     <div class="nb-title"><h2>\u2726 Notice board \u2726</h2></div>
     <div class="nb-cl"><button type="button" class="link" onclick="slChangelog()">Changelog \u2014 what\u2019s new</button></div>
-    ${nu}
-    ${t.length?`<div class="nb-list">${t.map(nbCard).join("")}</div>`:nu?"":'<div class="empty" style="margin-top:10px">Nothing posted yet.</div>'}
+    ${B.bar}
+    ${B.body}
     ${isSiteAdmin()?`<button class="ghost nb-post" onclick="nbCompose(null)">Post to everyone</button>`:""}
   </div>`;
+  {const b2=e.querySelector(".nb-tabs");b2&&bl&&(b2.scrollLeft=bl);const on=b2&&b2.querySelector(".seg-b.on");if(b2&&on){const r=b2.getBoundingClientRect(),q=on.getBoundingClientRect();q.left<r.left?b2.scrollLeft-=r.left-q.left+16:q.right>r.right&&(b2.scrollLeft+=q.right-r.right+16)}}
+  {const b3=e.querySelector(".nb-tabs");b3&&nbOv(b3)}
+  B.done();
   typeof admHomeNote=="function"&&admHomeNote();
 }
 function nbManagePanel(e){
@@ -3018,7 +3154,7 @@ function swOrgTodo(p){if(!swIsSwiss(p))return"enter the results, then close it";
 function paintHomeNext(){
   const e=$("home-event");if(!e)return;
   const L=homeLeagues(),o=me?cache.homeAll:null;
-  if(!o)return void(e.innerHTML="",window._nuHtml="",paintHomeBoard());
+  if(!o)return void(e.innerHTML="",window._nuHtml="",window._nuRows=[],paintHomeBoard());
   const T=cache.homeTourneys||[],top=[];
   let tm=!1;
   /* Play Network tournaments open on their own page, whatever community they belong to. */
@@ -3036,7 +3172,7 @@ function paintHomeNext(){
   const rows=top,all=!!window._nuAll,sh=all?rows:rows.slice(0,NU_MAX),
     can="Notification"in window,
     nt=!tm?"":can&&!slIosNeedsHome()?tvNotifyOn()?'<button class="ghost on" onclick="tvNotifyOff()" title="Stop telling me">✓ Notifying</button>':'<button class="ghost" onclick="tvNotifyAsk()" title="Tell me when my next match is up">Notify me</button>':slIosNeedsHome()?'<button class="ghost" onclick="slIosNotifyHelp()">Notify me</button>':"";
-  e.innerHTML="";
+  e.innerHTML="";window._nuRows=sh;window._nuAllRows=rows;
   window._nuHtml=!rows.length?"":`<section class="nu-box" aria-label="Next up">
     <div class="sn-top"><h2 class="sn-k">Next up</h2>${nt}</div>
     <div class="nu-list">${sh.join("")}</div>
@@ -4422,7 +4558,7 @@ async function renderLeague(){const e=route.leagueId;let n,t,a,s=[];
   if("meta"===u&&(s=await fetchMatches(e),fetchMatches.err))return void lgLoadFail(e,lgAgain);
   "manage"===u&&(cache.lgHasEv=await lgHasEvents(e));
   await ensurePubDecks();await ensureProfNames();await loadDeckMeta(matchDeckIds(s).concat(tvDeckIds(cache.tourneys)));
-  const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"tournament":"tournaments"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");/* No Tournaments tab: tournaments are found in Play › Tournaments; their page still opens here from links. */$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");"about"===u&&(p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
+  const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"tournament":"tournaments"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");/* No Tournaments tab: tournaments are found in Play › Tournaments; their page still opens here from links. */$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");"about"===u&&(await cbLoad(n),p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
   if(lgAgain&&Math.abs(window.scrollY-lgY)>2){window.scrollTo(0,lgY);requestAnimationFrame(()=>{Math.abs(window.scrollY-lgY)>2&&window.scrollTo(0,lgY)})}}/* ===== Community › About =====
    Who runs it, which Heralds play here, how big it is and where to talk to
    them. */
@@ -4544,27 +4680,138 @@ async function pnRemove(id){const lg=cache.league,x=(cache.listings||[]).find(r=
   cache.listings=(cache.listings||[]).filter(r=>r.id!==id);pnS&&pnS.edit===id&&(pnS.edit=null,pnS.hand=null);toast("Event removed",1);pnPaint();pnHdr()}
 /* Home "Next up": the next listed events of your communities, one query. */
 async function pnFetchHome(ids){ids=(ids||[]).filter(x=>x&&!isDemo(x));if(!ids.length)return[];try{const{data:d,error:x}=await sb.from("pn_events").select("id,league_id,title,starts_at,ends_at").in("league_id",ids).gte("starts_at",new Date(Date.parse(todayStr()+"T00:00:00")).toISOString()).order("starts_at").limit(5);return x?[]:d||[]}catch(x){return[]}}
+/* ===== Community › About: where they play =====
+   The venue, its address and the town, one tap from Google Maps. That is a
+   plain link the reader opens: nothing from Google loads on this page. The
+   query is the address (or the venue) with the town; a community with only a
+   map pin uses the pin. */
+const AB_PIN='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+function abMapUrl(L){const t=x=>String(x||"").trim(),a=t(L.address),q=[a||t(L.location),t(L.city),t(L.country)].filter(Boolean).join(", "),G="https://www.google.com/maps/search/?api=1&query=";
+  return a||t(L.city)||t(L.country)?G+encodeURIComponent(q):null!=L.lat&&null!=L.lon?G+encodeURIComponent(L.lat+","+L.lon):q?G+encodeURIComponent(q):""}
+function abWhere(L){
+  if(L.is_online)return`<div class="ab-where"><span class="ab-pin" aria-hidden="true">🌐</span><span class="ab-wt"><small>Where we play</small><b>Online${L.region&&typeof regionLabel=="function"&&regionLabel(L.region)?" · "+esc(regionLabel(L.region)):""}</b>${L.location&&"Online"!==L.location?`<span>${esc(L.location)}</span>`:""}${L.timezone?`<span class="ab-dim">Times in ${esc(String(L.timezone).replace(/_/g," "))}</span>`:""}</span></div>`;
+  const t=x=>String(x||"").trim(),v=t(L.location),a=t(L.address),cc=[t(L.city),t(L.country)].filter(Boolean).join(", "),u=abMapUrl(L);
+  if(!v&&!a&&!cc)return"";
+  const b=`<span class="ab-pin" aria-hidden="true">${AB_PIN}</span><span class="ab-wt"><small>Where we play</small>${v?`<b>${esc(v)}</b>`:""}${a?`<span>${esc(a)}</span>`:""}${cc?`<span class="ab-dim">${esc(cc)}</span>`:""}${u?'<em class="ab-gm">Open in Google Maps ↗</em>':""}</span>`;
+  return u?`<a class="ab-where" href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="Opens Google Maps in a new tab">${b}</a>`:`<div class="ab-where">${b}</div>`}
+/* ===== Community board (migration 2026-11-18) =====
+   On About: the organizers' notices pinned on top, then the members'
+   messages, newest first (the latest 100). Read by the active members, the
+   organizers and the site admin; written by the active members (and the
+   creator) while the community is open. A player who left sees only their
+   own old messages, to delete them. The database decides all of it; this
+   only hides what it would refuse. */
+const CB_SEL="id,league_id,author_id,body,created_at,author:profiles(display_name)",CB_MAX=1e3;
+function cbWho(L){
+  const u=me&&me.id||null,mine=u?(cache.members||[]).find(m=>m.id===u):null,act=!!mine&&!mine.dropped_at,own=!!u&&!!L&&L.owner_id===u,
+    org=own||act&&!!mine.is_admin,sa=!!u&&isSiteAdmin();
+  return{u,act,own,org,sa,read:!!u&&(act||org||sa),write:!!u&&(act||own)&&!lgArchived(L),left:!!mine&&!!mine.dropped_at&&!own}}
+async function cbLoad(L){
+  const c=cache.cb={id:L&&L.id,msgs:null,err:null};
+  if(!me||!L||!L.id||isDemo(L.id))return;
+  try{void 0===cache.siteAdmin&&typeof admEnsure=="function"&&await admEnsure()}catch(x){}
+  const w=cbWho(L);if(!w.read&&!w.left)return;
+  const nw=new Date().toISOString();let m,n;
+  try{[m,n]=await Promise.all([sb.from("community_messages").select(CB_SEL).eq("league_id",L.id).order("created_at",{ascending:!1}).limit(100),
+    w.read?sb.from("announcements").select("*").eq("league_id",L.id).or(`expires_at.is.null,expires_at.gt.${nw}`).order("created_at",{ascending:!1}).limit(20):null])}catch(x){m={error:x}}
+  if(cache.cb!==c)return;
+  m&&m.error?c.err=m.error:c.msgs=(m&&m.data||[]).filter(x=>x&&x.league_id===L.id);
+  /* The notices join the board cache, so the pin and delete buttons of the notice cards work here as on the home page. */
+  if(n&&!n.error){const a=Date.now();cache.board=(cache.board||[]).filter(x=>x.league_id!==L.id).concat(slHide("notice",(n.data||[]).filter(e=>!e.expires_at||+new Date(e.expires_at)>a)))
+    .sort((x,y)=>(y.pinned?1:0)-(x.pinned?1:0)||+new Date(y.created_at)-+new Date(x.created_at))}}
+function cbAgo(t){const s=(Date.now()-new Date(t))/1e3;return!(s>=60)?"just now":s<3600?Math.floor(s/60)+" min ago":s<86400?Math.floor(s/3600)+" h ago":timeAgo(t)}
+function cbFull(t){try{return new Date(t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"})}catch(x){return""}}
+function cbNote(e){return nbCard(e).replace(/<span class="nb-scope">[^<]*<\/span>\s*/,"").replace(/<span class="nb-when">[^<]*<\/span>/,`<span class="nb-when" title="${esc(cbFull(e.created_at))}">${cbAgo(e.created_at)}</span>`)}
+function cbMsg(m,L,w){
+  const nm=m.author&&m.author.display_name,mb=(cache.members||[]).find(x=>x.id===m.author_id),
+    role=m.author_id&&m.author_id===L.owner_id?"Creator":mb&&mb.is_admin&&!mb.dropped_at?"Organizer":"",
+    del=!!w.u&&(m.author_id===w.u||w.org||w.sa);
+  return`<article class="cb-msg${w.u&&m.author_id===w.u?" cb-mine":""}" data-id="${esc(m.id)}">
+    <div class="cb-top">${m.author_id&&nm?`<button class="link cb-who" onclick="go('profile',{profileId:${jsq(m.author_id)}})" title="Open their profile">${esc(nm)}</button>`:`<span class="cb-who">${esc(nm||"A Seeker")}</span>`}${role?`<span class="ab-role">${role}</span>`:""}<span class="nb-when" title="${esc(cbFull(m.created_at))}">${cbAgo(m.created_at)}</span>${del?`<button class="nb-x" title="Delete this message" aria-label="Delete this message" onclick="cbDel(${jsq(m.id)})">&#215;</button>`:""}</div>
+    <p class="nb-body">${nbLinks(m.body)}</p>
+  </article>`}
+function cbCompose(L,w){
+  if(!w.write)return lgArchived(L)?'<p class="hint cb-ro">This community is archived: its board is read-only.</p>':w.sa&&!w.act?'<p class="hint cb-ro">You read this board as the site admin. Only members write here.</p>':"";
+  const d=cache.cbDraft&&cache.cbDraft.id===L.id?cache.cbDraft.v:"";
+  return`<div class="cb-compose" id="cb-compose">
+    <label class="sr-only" for="cb-text">Write to the community</label>
+    <textarea id="cb-text" rows="3" maxlength="${CB_MAX}" placeholder="Write to the community…" oninput="cbInput(this)">${esc(d)}</textarea>
+    <div class="cb-crow"><span class="cb-n${d.length>900?" near":""}" id="cb-n">${d.length} / ${CB_MAX}</span><button class="act" id="cb-send" onclick="cbPost()">Post</button></div>
+  </div>`}
+function cbBoard(L){
+  if(!me||!L||!L.id||isDemo(L.id))return"";
+  const w=cbWho(L),c=cache.cb&&cache.cb.id===L.id?cache.cb:{msgs:null,err:null},ms=c.msgs||[],jn=!!L.is_public&&!lgArchived(L)&&!w.left;
+  /* Before the migration is live the table is missing: no board at all. */
+  if(c.err&&slNoCol(c.err))return"";
+  if(!w.read){
+    const own=ms.filter(m=>m.author_id===w.u);
+    if(!jn&&!own.length)return"";
+    return`<div class="panel plain cb-panel cb-out" id="cb-board">${jn?'<p class="cb-join"><span class="ab-pin" aria-hidden="true">✦</span><span>Join this community to read and write on its board.</span></p>':""}${own.length?`<div class="ip-sec cb-h">Your old messages · ${own.length}</div><p class="hint cb-ro">You left this community, so only you see these here. You can still delete them.</p><div class="cb-list">${own.map(m=>cbMsg(m,L,w)).join("")}</div>`:""}</div>`}
+  const nt=(cache.board||[]).filter(n=>n.league_id===L.id),s=nbSt("lg:"+L.id),
+    nk=["cb."+L.id+".notes","home.c."+L.id],mk=["cb."+L.id+".msgs"],
+    nN=nt.filter(x=>nbNew(s,x,nk)),mN=c.err?[]:ms.filter(x=>nbNew(s,x,mk)),
+    on="n"===s.tab||"m"===s.tab?s.tab:nN.length?"n":mN.length?"m":nt.length&&!ms.length?"n":"m";
+  s.tab=on;s.o.add(on);
+  /* What this view shows counts as seen from now on (the New marks stay for the visit). */
+  "league"===route.view&&route.leagueId===L.id&&("n"===on?nbDone(nk[0],nt):c.err||nbDone(mk[0],ms));
+  const TB=[{k:"n",l:"Notices",n:nN.length},{k:"m",l:"Messages",n:mN.length}],
+    nh=nt.length?`<div class="nb-list cb-notes">${nt.map(x=>nN.includes(x)?nbMark(cbNote(x)):cbNote(x)).join("")}</div>`:`<p class="hint cb-ro">${w.org?"No notices yet. Post one with Message your community in Manage.":"No notices from the organizers yet."}</p>`,
+    mh=`${c.err?"":cbCompose(L,w)}
+    ${c.err?'<p class="hint cb-ro">The messages could not be loaded. Reload the page to try again.</p>':ms.length?`<div class="cb-list">${ms.map(m=>mN.includes(m)?nbMark(cbMsg(m,L,w)):cbMsg(m,L,w)).join("")}</div>${ms.length>=100?'<p class="hint cb-ro">Showing the latest 100 messages.</p>':""}`:`<p class="hint cb-ro">${w.write?"No messages yet. Say hello to the community.":"No messages yet."}</p>`}`;
+  return`<div class="panel plain nb-panel cb-panel" id="cb-board">
+    <div class="nb-title"><h2>✦ Community board ✦</h2></div>
+    <p class="cb-sub">Only the members of this community see this board.</p>
+    ${nbTabs("Community board",TB,on,"cbTab",s,"cb-pane")}
+    ${nbPane("cb-pane",TB,on,"n"===on?nh:mh)}
+  </div>`}
+function cbTab(k){const L=cache.league,s=L&&nbSt("lg:"+L.id),f=nbInBar("#cb-board");s&&(s.tab=k,s.o.add(k));cbPaint();f&&nbFocus("#cb-board")}
+function cbPaint(){const b=$("cb-board"),L=cache.league;b&&L&&(b.outerHTML=cbBoard(L));const t=document.querySelector("#cb-board .nb-tabs");t&&nbOv(t)}
+function cbInput(t){const L=cache.league;L&&(cache.cbDraft={id:L.id,v:t.value});const n=$("cb-n");n&&(n.textContent=t.value.length+" / "+CB_MAX,n.classList.toggle("near",t.value.length>900))}
+function cbErr(e){const h=e&&e.hint,c=e&&e.code;
+  return"rate_limited"===h?"Slow down: you can post 5 messages a minute and 60 an hour.":"not_member"===h?"Only the members of this community can write on its board.":"archived"===h?"This community is archived: its board is read-only.":"sign_in"===h?"Sign in with your account to write on the board.":"deleted"===h?"This account was deleted, so it cannot write here.":"23514"===c?"A message needs some text, up to 1000 characters.":"42501"===c?"You cannot write on this board. Reload the page and try again.":slNoCol(e)?"The community board needs a site update that is not live yet.":e||"Could not post the message"}
+async function cbPost(){
+  const L=cache.league,t=$("cb-text"),b=$("cb-send");if(!L||!t||!me||b&&b.disabled)return;
+  const v=t.value.trim();
+  if(!v){toast("Write something first");return void t.focus()}
+  if(v.length>CB_MAX)return void toast("Keep it to 1000 characters");
+  b&&(b.disabled=!0,b.textContent="Posting…");
+  let r;try{r=await sb.from("community_messages").insert({league_id:L.id,body:v}).select(CB_SEL).single()}catch(x){r={error:x}}
+  b&&(b.disabled=!1,b.textContent="Post");
+  if(r.error||!r.data){const h=r.error&&r.error.hint;toast(cbErr(r.error));("not_member"===h||"archived"===h)&&renderLeague();return}
+  cache.cbDraft=null;cache.cb&&cache.cb.id===L.id&&(cache.cb.msgs=[r.data].concat(cache.cb.msgs||[]).slice(0,100));
+  cbPaint();toast("Posted",!0)}
+async function cbDel(id){
+  const c=cache.cb,m=c&&(c.msgs||[]).find(x=>x.id===id);if(!m)return;
+  if(!await slConfirm({title:"Delete this message?",body:"It goes for everyone and cannot be brought back.",ok:"Delete",danger:!0}))return;
+  let r;try{r=await sb.from("community_messages").delete().eq("id",id).select("id")}catch(x){r={error:x}}
+  if(r.error)return void toast(r.error);
+  if(!(r.data||[]).length)return void toast("Could not delete it: it is already gone, or you can no longer manage it.");
+  c.msgs=(c.msgs||[]).filter(x=>x.id!==id);cbPaint();toast("Message deleted",!0)}
 function paintAbout(){
   const L=cache.league||{},M=(cache.members||[]).filter(m=>!m.dropped_at),
-    org=M.filter(m=>m.id===L.owner_id||m.is_admin).sort((a,b)=>(b.id===L.owner_id)-(a.id===L.owner_id)||String(a.display_name||"").localeCompare(String(b.display_name||""))),
-    her=M.filter(m=>m.herald_rank&&HERALDS.indexOf(m.herald_rank)>=0).sort((a,b)=>HERALDS.indexOf(b.herald_rank)-HERALDS.indexOf(a.herald_rank)),
+    isOrg=m=>m.id===L.owner_id||!!m.is_admin,
+    byName=(a,b)=>String(a.display_name||"").localeCompare(String(b.display_name||""),void 0,{sensitivity:"base"}),
+    org=M.filter(isOrg).sort((a,b)=>(b.id===L.owner_id)-(a.id===L.owner_id)||byName(a,b)),
+    her=M.filter(m=>m.herald_rank&&HERALDS.indexOf(m.herald_rank)>=0).sort((a,b)=>HERALDS.indexOf(b.herald_rank)-HERALDS.indexOf(a.herald_rank)||byName(a,b)),
+    rest=M.filter(m=>!isOrg(m)&&her.indexOf(m)<0).sort(byName),
     who=m=>`<button class="link ab-who" onclick="go('profile',{profileId:${jsq(m.id)}})" title="Open their profile">${esc(m.display_name||"A Seeker")}</button>`,
-    all=M.slice().sort((a,b)=>String(a.display_name||"").localeCompare(String(b.display_name||""),void 0,{sensitivity:"base"})),
+    row=m=>`<div class="ab-pl">${who(m)}${m.id===L.owner_id?'<span class="ab-role">Creator</span>':m.is_admin?'<span class="ab-role">Organizer</span>':""}${heraldChip(m.herald_rank)}${me&&m.id===me.id?'<span class="ab-you">you</span>':""}</div>`,
+    sec=(t,a)=>a.length?`<div class="ab-psec">${t} · ${a.length}</div><div class="ab-players">${a.map(row).join("")}</div>`:"",
     dc=safeUrl(L.discord_url);
   return`<div class="panel plain ab-panel">
-    <div class="ab-grid">
-      <div class="ab-stat"><b>${M.length}</b><small>${1===M.length?"member":"members"}</small></div>
-      <div class="ab-stat"><b>${her.length}</b><small>${1===her.length?"Herald":"Heralds"}</small></div>
-      <div class="ab-stat"><b>${L.is_online?"Online":esc([L.city,L.country].filter(Boolean).join(", ")||"—")}</b><small>${L.is_online?"plays online":"plays in"}</small></div>
-    </div>
+    ${abWhere(L)}
     ${dc?`<div class="ip-sec">Talk to the community</div><div class="ab-links"><a class="ghost ab-link" href="${esc(dc)}" target="_blank" rel="noopener noreferrer">Discord ↗</a></div>`:""}
-    <div class="ip-sec">Organizers</div>
-    ${org.length?org.map(m=>`<div class="ip-row ab-row">${who(m)}<span class="ab-role">${m.id===L.owner_id?"Creator":"Organizer"}</span>${heraldChip(m.herald_rank)}</div>`).join(""):'<div class="ip-row dim">No organizer listed.</div>'}
-    <div class="ip-sec">Players · ${all.length}</div>
-    <div class="ab-players">${all.map(m=>`<div class="ab-pl">${who(m)}${m.id===L.owner_id?'<span class="ab-role">Creator</span>':m.is_admin?'<span class="ab-role">Organizer</span>':""}${heraldChip(m.herald_rank)}</div>`).join("")}</div>
-    ${her.length?"":'<p class="hint" style="margin:10px 0 0">No Herald plays here yet. Heralds run demos and teach the game; find one on the Find &amp; manage communities page.</p>'}
+    <details class="ab-pls"${window._abPls===L.id?" open":""} ontoggle="window._abPls=this.open?${jsq(L.id)}:null">
+      <summary><span class="ab-pls-t"><b>Players · ${M.length}</b><small>${org.length} ${1===org.length?"organizer":"organizers"} · ${her.length} ${1===her.length?"Herald":"Heralds"}</small></span><i class="ab-chev" aria-hidden="true"></i></summary>
+      <div class="ab-pls-in">
+        ${sec("Organizers",org)||'<div class="ip-row dim">No organizer listed.</div>'}
+        ${sec("Heralds",her)}
+        ${sec("Players",rest)}
+        ${her.length?"":'<p class="hint ab-noher">No Herald plays here yet. Heralds run demos and teach the game; find one on the Find &amp; manage communities page.</p>'}
+      </div>
+    </details>
     ${me&&M.some(m=>m.id===me.id)&&me.id!==L.owner_id?'<div class="st-leave"><button class="ghost" style="color:var(--bone-dim)" onclick="leaveLeague()">Leave this community</button></div>':""}
-  </div>`;
+  </div>${cbBoard(L)}`;
 }function nameOf(e){const x=cache.tNames&&cache.tNames[e];if(x)return x;const n=(cache.members||[]).find(n=>n.id===e);return n?n.display_name:"—"}async function dropPlayer(e,n){n=nameOf(e);if(!await slConfirm({title:`Drop ${n} from the community?`,body:"Their history stays; they leave the players list.",ok:"Drop",danger:!0}))return;const{error:t}=await sb.from("memberships").update({dropped_at:(new Date).toISOString()}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n+" moved to Retired",!0),renderLeague()}async function restorePlayer(e,n){n=((cache.members||[]).find(x=>x.id===e)||{}).display_name||"The player";const{error:t}=await sb.from("memberships").update({dropped_at:null}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n+" is back in the community",!0),renderLeague()}async function leaveLeague(){if(cache.league&&me&&cache.league.owner_id===me.id)return toast("You own this community: hand it over in Manage before you leave");if(!await slConfirm({title:"Leave this community?",body:"Your history stays and you can rejoin with the code.",ok:"Leave",danger:!0}))return;const{error:e}=await sb.from("memberships").update({dropped_at:(new Date).toISOString()}).eq("league_id",cache.league.id).eq("user_id",me.id);if(e)return toast(e.message);slLeftSet(cache.league.id,!0),slNavLgDrop(cache.league.id),cache.myLeagues=[],toast("You left the community",!0),go("browse")}function h2hOpen(e){const n=(window._h2h||{})[e];if(!n||!n.ms.length)return;const t=(cache.profNames||{})[e]||"—",a=[...n.ms].sort((e,n)=>(n.when||"").localeCompare(e.when||""));let s=$("pl-modal");s||(s=document.createElement("div"),s.id="pl-modal",s.className="card-light",s.onclick=e=>{e.target===s&&s.remove()},document.body.appendChild(s)),s.innerHTML=`<div class="info-pop" onclick="event.stopPropagation()" style="max-width:min(94vw,440px);max-height:82vh;overflow:auto">\n    <div class="ip-head"><div><div class="ip-name">vs ${esc(t)}</div>\n      <div class="col-sub">${n.w}–${n.l} across ${n.ms.length} ${1===n.ms.length?"match":"matches"}</div></div>\n      <button class="bldd-x" style="align-self:flex-start" onclick="document.getElementById('pl-modal').remove()" aria-label="Close">×</button></div>\n    ${a.map(e=>`<div class="ip-row" style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">\n      <span><b style="color:${e.win?"var(--win)":"var(--crimson-txt)"}">${e.win?"W":"L"}</b>\n        <span style="color:var(--bone-dim);font-size:12px">${e.when?fmtDateTs(e.when):""}</span>\n        ${e.mySk?esc(e.mySk.split(",")[0]):"—"} <span style="color:var(--bone-dim)">vs</span> ${e.oppSk?esc(e.oppSk.split(",")[0]):"—"}</span>\n      <span style="color:var(--bone-dim);font-size:12px;flex:0 0 auto">${e.myTer?esc(e.myTer):""}</span>\n    </div>`).join("")}\n  </div>`}
 
 async function saveLeague(){
@@ -4585,6 +4832,7 @@ async function saveLeague(){
     country:($('lg-country').value||'').trim()||null,
     description:($('lg-desc').value||'').trim()||null,
     is_public:!!$('lg-public').checked};
+  {const ad=$('lg-addr'),av=ad?(ad.value||'').trim():null;ad&&av!==(lg.address||'')&&(patch.address=av||null)}
   /* The organiser already typed the town and the country, so the league places
      itself: nobody should have to drop a pin to appear on the map. We only go
      looking when the place has changed or the league has never been placed,
@@ -4597,12 +4845,37 @@ async function saveLeague(){
   }else if(!patch.city&&null!=lg.lat&&placeChanged){patch.lat=null;patch.lon=null}
   const{error:err}=await sb.from('leagues').update(patch).eq('id',lg.id);
   if(b){b.disabled=!1;b.textContent='Save details'}
-  if(err)return toast(slNoCol(err)?WIN_UPD:err.message);
+  if(err)return toast("address"in patch&&slNoCol(err)&&/address/i.test(err.message||"")?"Saving an address needs a site update that is not live yet. Leave it empty for now.":"address"in patch&&"23514"===err.code?"Keep the address to 200 characters.":slNoCol(err)?WIN_UPD:err.message);
   if(patch.city&&null==patch.lat&&null==lg.lat)toast('Saved \u2014 but "'+patch.city+'" was not found, so the community is not on the map yet',!0);
   Object.assign(cache.league,patch);slNavLgName(lg.id,patch.name);
   toast('Community details saved',!0);
   renderLeague();
 }
+/* Manage › Community details: where the pin is, and two ways to set it. Use
+   my location asks the browser for this device's position, only on that tap,
+   and saves it like the pin picker does, rounded to about a kilometre. */
+function lgPinHtml(e){const on=null!=e.lat&&null!=e.lon,cc=[e.city,e.country].filter(Boolean).join(", ");
+  return`<div class="lg-pin" id="lg-pin"><p class="hint">${on?`◉ On the map${cc?` near <b>${esc(cc)}</b>`:""}. If the pin is in the wrong place, move it.`:e.city?"◎ Not on the map yet: save the details and the town will place it, or place the pin yourself.":"◎ Fill in the city to put this community on the map, or place the pin yourself."}</p>
+  <div class="lg-pin-b"><button type="button" class="ghost" id="lg-gps" onclick="lgGps()">◎ Use my location</button><button type="button" class="ghost" onclick="mapPickOpen('league',${jsq(e.id)})">${on?"Move the pin by hand":"Place the pin by hand"}</button></div></div>`}
+function lgPinPaint(){const p=$("lg-pin");p&&cache.league&&(p.outerHTML=lgPinHtml(cache.league))}
+async function lgGps(){
+  const lg=cache.league;if(!lg||!me||lg.is_online)return;
+  if(!navigator.geolocation)return void toast("This browser cannot report a location. Place the pin by hand instead");
+  if(!await slConfirm({title:"Put the pin where you are?",body:"Best done at the venue: the pin goes where this device is now, rounded to about a kilometre. Your browser asks for permission first.",ok:"Use my location"}))return;
+  const set=(on,t)=>{const x=$("lg-gps");x&&(x.disabled=on,x.textContent=t)};
+  set(!0,"Locating…");
+  navigator.geolocation.getCurrentPosition(async p=>{
+    const lat=Math.round(100*p.coords.latitude)/100,lon=Math.round(100*p.coords.longitude)/100;
+    let r;try{r=await sb.from("leagues").update({lat,lon}).eq("id",lg.id).select("id")}catch(x){r={error:x}}
+    set(!1,"◎ Use my location");
+    if(r.error)return void toast(r.error);
+    if(!(r.data||[]).length)return void toast("Could not save the pin. Reload the page and try again");
+    cache.league&&cache.league.id===lg.id&&(cache.league.lat=lat,cache.league.lon=lon);
+    (cache.myLeagues||[]).forEach(x=>{x&&x.id===lg.id&&(x.lat=lat,x.lon=lon)});cache.leagues=[];
+    lgPinPaint();typeof lgsRepaint=="function"&&lgsRepaint();
+    toast("Pin placed where you are. If it is off, move it by hand",!0)},
+  e=>{set(!1,"◎ Use my location");toast(e&&1===e.code?"Location permission refused. Allow it in your browser, or place the pin by hand":e&&3===e.code?"Finding your location took too long. Try again, or place the pin by hand":"Could not read your location. Place the pin by hand instead")},
+  {enableHighAccuracy:!1,timeout:12e3,maximumAge:6e5})}
 /* ===== Getting your community going =====
    A checklist at the top of Manage for a new organizer. Every tick comes from
    the community's own data (the pin, listed events, members); the one thing
@@ -4678,7 +4951,7 @@ function lgsGo(k){
   "event"===k&&(window._newEvent=!0);
   go("league",{leagueId:lg.id,tab:"events"});
 }
-function paintManage(e,n){return lgStartPanel(e,n)+nbManagePanel(e)+`<div class="panel plain"><h2>Community details</h2><p class="hint">This is what players read at the top of the community page.</p>${lgKindLine(e)}${lgHasWin(e)&&lgOnl(e)?lgOnlineFields(e):`<label class="field"><span>Name</span><input id="lg-name" maxlength="60" value="${esc(e.name||"")}"></label><div class="row tight"><label class="field"><span>Venue</span><input id="lg-loc" maxlength="80" value="${esc(e.location||"")}"></label><label class="field"><span>City</span><input id="lg-city" maxlength="60" value="${esc(e.city||"")}"></label><label class="field"><span>Country</span><input id="lg-country" maxlength="60" value="${esc(e.country||"")}"></label></div><p class="hint" style="margin:-6px 0 14px">${null!=e.lat?`\u25C9 On the map from <b>${esc([e.city,e.country].filter(Boolean).join(", "))}</b>. <button class="link" style="padding:0" onclick="mapPickOpen('league',${jsq(e.id)})">Move the pin by hand</button> if it landed in the wrong place.`:e.city?`\u25CE Not on the map yet \u2014 save the details and the town will place it.`:`\u25CE Fill in the city to put this community on the map.`}</p>${lgWinFields(e)}`}<label class="field"><span>Description (optional)</span><textarea id="lg-desc" rows="2" maxlength="240" placeholder="When and where you meet">${esc(e.description||"")}</textarea></label><label style="display:flex;align-items:center;gap:9px;margin:12px 0 16px;cursor:pointer"><input type="checkbox" id="lg-public" style="width:auto" ${e.is_public?"checked":""}><span class="hint" style="margin:0">Listed publicly on the home page</span></label><button class="act" id="lg-save" style="width:100%" onclick="saveLeague()">Save details</button></div><div class="panel plain">\n    <h2>Join code</h2>\n    <div class="code-box">\n      <div class="code">${esc(e.join_code)}</div>\n      <small>Community join code</small>\n    </div>\n    <div class="row">\n      <button class="ghost" onclick="copyCode(${jsq(e.join_code)})">Copy code</button>\n      <button class="ghost" onclick="copyInvite()">Copy invite link</button>\n      <button class="ghost" onclick="rerollCode()">Generate new code</button>\n    </div>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Invite link: <span class="inv-url">${esc(inviteLink(e.join_code))}</span><br>Whoever opens it joins this community as soon as they've signed in.</p>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Generating a new code doesn't remove existing members —\n      it only invalidates the old code for new joins.</p>\n  </div>\n\n  <div class="panel plain">\n    <h2>Members</h2>\n    <table><thead><tr><th>Player</th><th>Role</th><th></th></tr></thead><tbody>\n      ${n.map(n=>`<tr>\n        <td class="${me&&n.id===me.id?"me":""}">${esc(n.display_name)}${me&&n.id===me.id?" (you)":""}</td>\n        <td>${e.owner_id===n.id?'<span class="ownchip">Creator</span>':n.dropped_at?'<span class="retchip">Retired</span>'+(n.is_admin?' <span class="mb-still" title="Retired, but still has organizer rights. Demote them to take those away.">still co-organizer</span>':''):n.is_admin?'<span style="color:var(--brass)">Co-organizer</span>':"Player"}</td>\n        <td style="text-align:right"><div class="mb-act">${e.owner_id===n.id?"":n.dropped_at?`${n.is_admin&&canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},false)" title="Take away their organizer rights">Demote</button>`:""}${n.dropped_by===n.id?`<span class="hint" title="They left by themselves and can rejoin with the join code">Left</span>`:`<button class="ghost" onclick="mbRestore(${jsq(n.id)})">Bring back</button>`}`:`${canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},${!n.is_admin})" title="${n.is_admin?"Make them a player again":"Make them a co-organizer"}">${n.is_admin?"Demote":"Promote"}</button>`:""}${n.is_admin&&!canCreatorAct(e)?"":`<button class="t-x" onclick="mbDrop(${jsq(n.id)})" title="Drop from the community" aria-label="Drop player">&#10005;</button>`}`}</div></td></tr>`).join("")}\n    </tbody></table>\n  </div>\n\n  <div class="panel plain">\n    <h2>Creator controls</h2>\n    ${isOwnerOf(e)?`<p class="hint">Only you can do these.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>\n    <div class="oz-row"><div><b>Hand the community over</b><small>They get these controls and you drop to co-organizer. You cannot undo it yourself.</small></div><div class="oz-pick"><select id="lg-owner"><option value="">— pick a player —</option>${n.filter(x=>x.id!==e.owner_id&&!x.dropped_at).map(x=>`<option value="${x.id}">${esc(x.display_name)}</option>`).join("")}</select><button class="ghost" onclick="lgTransfer()">Transfer</button></div></div>\n    <div class="oz-row"><div><b>Delete the community</b><small>Ask the site admin with a reason. If it is approved, everything is deleted for good. To stop playing, Archive keeps the history instead.</small></div><button class="ghost t-danger-b" onclick="lgDeleteAsk()">Ask to delete</button></div>`:lgCreatorGone(e)?`<p class="hint">The creator deleted their account, so the organizers can archive or reopen the community and promote or demote organizers. To delete it, write to the site admin.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>`:`<p class="hint">Only ${esc((n.find(x=>x.id===e.owner_id)||{}).display_name||"the creator")}, who made the community, can promote or demote organizers, archive it, hand it over or ask to delete it.</p>`}\n  </div>`}/* A community is not deleted by its creator any more: they ask the site
+function paintManage(e,n){return lgStartPanel(e,n)+nbManagePanel(e)+`<div class="panel plain"><h2>Community details</h2><p class="hint">This is what players read at the top of the community page.</p>${lgKindLine(e)}${lgHasWin(e)&&lgOnl(e)?lgOnlineFields(e):`<label class="field"><span>Name</span><input id="lg-name" maxlength="60" value="${esc(e.name||"")}"></label><div class="row tight"><label class="field"><span>Venue</span><input id="lg-loc" maxlength="80" value="${esc(e.location||"")}"></label><label class="field"><span>City</span><input id="lg-city" maxlength="60" value="${esc(e.city||"")}"></label><label class="field"><span>Country</span><input id="lg-country" maxlength="60" value="${esc(e.country||"")}"></label></div><label class="field"><span>Address <span class="opt">optional</span></span><input id="lg-addr" maxlength="200" value="${esc(e.address||"")}" placeholder="Street and number" autocomplete="off"></label>${lgPinHtml(e)}${lgWinFields(e)}`}<label class="field"><span>Description (optional)</span><textarea id="lg-desc" rows="2" maxlength="240" placeholder="When and where you meet">${esc(e.description||"")}</textarea></label><label style="display:flex;align-items:center;gap:9px;margin:12px 0 16px;cursor:pointer"><input type="checkbox" id="lg-public" style="width:auto" ${e.is_public?"checked":""}><span class="hint" style="margin:0">Listed publicly on the home page</span></label><button class="act" id="lg-save" style="width:100%" onclick="saveLeague()">Save details</button></div><div class="panel plain">\n    <h2>Join code</h2>\n    <div class="code-box">\n      <div class="code">${esc(e.join_code)}</div>\n      <small>Community join code</small>\n    </div>\n    <div class="row">\n      <button class="ghost" onclick="copyCode(${jsq(e.join_code)})">Copy code</button>\n      <button class="ghost" onclick="copyInvite()">Copy invite link</button>\n      <button class="ghost" onclick="rerollCode()">Generate new code</button>\n    </div>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Invite link: <span class="inv-url">${esc(inviteLink(e.join_code))}</span><br>Whoever opens it joins this community as soon as they've signed in.</p>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Generating a new code doesn't remove existing members —\n      it only invalidates the old code for new joins.</p>\n  </div>\n\n  <div class="panel plain">\n    <h2>Members</h2>\n    <table><thead><tr><th>Player</th><th>Role</th><th></th></tr></thead><tbody>\n      ${n.map(n=>`<tr>\n        <td class="${me&&n.id===me.id?"me":""}">${esc(n.display_name)}${me&&n.id===me.id?" (you)":""}</td>\n        <td>${e.owner_id===n.id?'<span class="ownchip">Creator</span>':n.dropped_at?'<span class="retchip">Retired</span>'+(n.is_admin?' <span class="mb-still" title="Retired, but still has organizer rights. Demote them to take those away.">still co-organizer</span>':''):n.is_admin?'<span style="color:var(--brass)">Co-organizer</span>':"Player"}</td>\n        <td style="text-align:right"><div class="mb-act">${e.owner_id===n.id?"":n.dropped_at?`${n.is_admin&&canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},false)" title="Take away their organizer rights">Demote</button>`:""}${n.dropped_by===n.id?`<span class="hint" title="They left by themselves and can rejoin with the join code">Left</span>`:`<button class="ghost" onclick="mbRestore(${jsq(n.id)})">Bring back</button>`}`:`${canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},${!n.is_admin})" title="${n.is_admin?"Make them a player again":"Make them a co-organizer"}">${n.is_admin?"Demote":"Promote"}</button>`:""}${n.is_admin&&!canCreatorAct(e)?"":`<button class="t-x" onclick="mbDrop(${jsq(n.id)})" title="Drop from the community" aria-label="Drop player">&#10005;</button>`}`}</div></td></tr>`).join("")}\n    </tbody></table>\n  </div>\n\n  <div class="panel plain">\n    <h2>Creator controls</h2>\n    ${isOwnerOf(e)?`<p class="hint">Only you can do these.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>\n    <div class="oz-row"><div><b>Hand the community over</b><small>They get these controls and you drop to co-organizer. You cannot undo it yourself.</small></div><div class="oz-pick"><select id="lg-owner"><option value="">— pick a player —</option>${n.filter(x=>x.id!==e.owner_id&&!x.dropped_at).map(x=>`<option value="${x.id}">${esc(x.display_name)}</option>`).join("")}</select><button class="ghost" onclick="lgTransfer()">Transfer</button></div></div>\n    <div class="oz-row"><div><b>Delete the community</b><small>Ask the site admin with a reason. If it is approved, everything is deleted for good. To stop playing, Archive keeps the history instead.</small></div><button class="ghost t-danger-b" onclick="lgDeleteAsk()">Ask to delete</button></div>`:lgCreatorGone(e)?`<p class="hint">The creator deleted their account, so the organizers can archive or reopen the community and promote or demote organizers. To delete it, write to the site admin.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>`:`<p class="hint">Only ${esc((n.find(x=>x.id===e.owner_id)||{}).display_name||"the creator")}, who made the community, can promote or demote organizers, archive it, hand it over or ask to delete it.</p>`}\n  </div>`}/* A community is not deleted by its creator any more: they ask the site
    admin, with a reason, through the feedback inbox. The admin deletes it
    from the Admin page (admin_delete_league) once the reason holds up. */
 async function lgDeleteAsk(){
