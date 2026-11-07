@@ -1029,6 +1029,38 @@ a.ab-where:hover .ab-gm{color:var(--bone)}
 
 
 .sp-leg{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:18px}
+.mo-sum{background:var(--coal-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px 12px;margin:0 0 4px}
+.mo-nums{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 18px;padding:0 0 9px;border-bottom:1px solid #2a2a2a;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim)}
+.mo-nums b{font-size:21px;font-weight:600;letter-spacing:0;color:var(--bone);margin-right:6px}
+.mo-nums .mo-per{font-size:12px;letter-spacing:.06em;color:var(--bone)}
+.mo-hl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding-top:10px}
+.mo-h{min-width:0;display:flex;flex-direction:column}
+.mo-h small{font-family:Oswald,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--brass)}
+.mo-h b{font-family:Oswald,sans-serif;font-size:17px;font-weight:600;line-height:1.2;color:var(--bone);margin:3px 0 1px;overflow-wrap:anywhere}
+.mo-h b em{font-style:normal;font-size:12px;color:var(--bone-faint)}
+.mo-h i{font-style:normal;font-family:Oswald,sans-serif;font-size:12.5px;color:var(--bone-dim)}
+@media(max-width:560px){.mo-hl{grid-template-columns:minmax(0,1fr);gap:0;padding-top:2px}.mo-h{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:baseline;padding:7px 0}.mo-h+.mo-h{border-top:1px solid #2a2a2a}.mo-h small{grid-column:1/-1;font-size:10px}.mo-h b{margin:1px 0 0}.mo-h i{text-align:right;font-size:14px;font-weight:600}}
+.msec{margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+.msec-hd{display:block;margin:0 0 12px}
+.msec-hd h3{margin:0;font-family:Oswald,sans-serif;font-size:14px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--brass)}
+.msec-hd p{margin:3px 0 0;font-size:12.5px;line-height:1.4;color:var(--bone-faint)}
+details.msec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:40px;border-radius:8px}
+details.msec>summary::-webkit-details-marker{display:none}
+details.msec>summary::after{content:"›";flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line-2);border-radius:8px;font-size:18px;line-height:1;color:var(--bone-dim);transform:rotate(90deg);transition:transform .15s}
+details.msec[open]>summary::after{transform:rotate(-90deg)}
+details.msec>summary:hover::after{color:var(--bone);border-color:var(--bone-faint)}
+details.msec>summary:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+details.msec:not([open])>summary{margin-bottom:0}
+.msec-tx{flex:1 1 auto;min-width:0}
+.msec .rec-grid{margin:0}
+.msec .tp-wrap{margin:0 0 6px}
+.wr-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;margin-right:7px}
+.sp-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;margin:14px 0 0;font-family:Barlow,sans-serif;font-size:12.5px;line-height:1.5;color:var(--bone-dim)}
+.sp-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sp-chip i{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.wr-ws{display:none}
+@media(max-width:360px){.wr-row .wr-nm small,.wr-row .wr-t{white-space:normal}.wr-wl{display:none}.wr-ws{display:inline}.tp-pies{gap:10px;flex-wrap:nowrap}.tp-fig svg{width:112px;height:112px}}
+@media(min-width:900px){.mc-2{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}.mc-2>.tp-wrap{margin:4px 0 0;position:sticky;top:76px}.mc-2 .tp-pies{flex-direction:column;align-items:center;gap:20px}}
 .sp-col{display:grid;gap:2px;align-content:start}
 .sp-row{display:grid;grid-template-columns:11px minmax(0,1fr) 38px 38px;gap:7px;align-items:center;padding:4px 6px;border-radius:7px;font-family:Barlow,sans-serif;font-size:12.5px;color:var(--bone)}
 .sp-row:not(.sp-hd):hover{background:rgba(255,255,255,.045)}
@@ -1621,6 +1653,32 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .adm-kv dt{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
 .adm-kv dd{margin:0;min-width:0;min-height:30px;display:flex;align-items:center;color:var(--bone);overflow-wrap:anywhere}
 .adm-kv .fd-inl{min-height:40px;font-size:14px;color:var(--crimson-txt);text-align:left}
+.adm-ov{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0 0}
+.adm-ov-t{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:3px;min-width:0;min-height:84px;padding:11px 14px;text-align:left;background:var(--coal-2);border:1px solid var(--line);border-top:2px solid var(--line-2);color:var(--bone);cursor:pointer;transition:border-color .15s}
+.adm-ov-t:hover,.adm-ov-t:focus-visible{border-color:var(--line-2);border-top-color:var(--brass)}
+.adm-ov-t.hot{border-top-color:var(--crimson)}
+.adm-ov-t small{font-family:Oswald,sans-serif;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-ov-t b{font-family:Oswald,sans-serif;font-size:26px;font-weight:600;line-height:1.1;color:var(--bone)}
+.adm-ov-t span{font-family:Barlow,sans-serif;font-size:12.5px;line-height:1.3;color:var(--bone-dim)}
+.adm-ov-t.hot span{color:var(--crimson-txt)}
+.adm-esum{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 0 10px;font-family:Barlow,sans-serif;font-size:14px;color:var(--bone-dim)}
+.adm-esum b{color:var(--bone)}
+.adm-esum b.c-new{color:var(--brass)}
+.adm-ebtn{display:flex;flex-wrap:wrap;gap:8px}
+.adm-errc{border-left:3px solid var(--line-2)!important}
+.adm-errc.is-new{border-left-color:var(--brass)!important}
+.adm-errc.is-hdl{opacity:.6}
+.adm-errc.is-hdl:hover,.adm-errc.is-hdl:focus-within{opacity:1}
+.adm-emsg{margin:2px 0 10px;font-family:Barlow,sans-serif;font-size:16px;font-weight:600;line-height:1.45;color:var(--bone);overflow-wrap:anywhere}
+.adm-enote{margin:-4px 0 10px;font-family:Barlow,sans-serif;font-size:13px;color:var(--bone-dim)}
+.adm-fn{font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--brass);overflow-wrap:anywhere}
+.adm-calls{display:block;font-size:12.5px;color:var(--bone-dim);overflow-wrap:anywhere}
+.adm-errc .adm-kv dd b{font-weight:600}
+.adm{container-type:inline-size}
+.adm-hl{background:color-mix(in srgb,var(--brass) 12%,transparent);box-shadow:inset 3px 0 0 var(--brass);padding:6px 10px}
+.adm-hl b{color:var(--bone)}
+@container (max-width:639px){.adm-ov{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 0}.adm-ov-t{min-height:74px;padding:9px 11px}.adm-ov-t b{font-size:22px}.adm-ov-t small{font-size:10px}}
+@media(max-width:620px){.adm-ov{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 0}.adm-ov-t{min-height:74px;padding:9px 11px}.adm-ov-t b{font-size:22px}.adm-ov-t small{font-size:10px}.adm-ebtn{width:100%}.adm-ebtn button{flex:1 1 0}.adm-emsg{font-size:15px}}
 .adm .fd-inc{margin:0 0 6px}
 .adm .adm-acts{margin-top:12px}
 .adm .adm-acts button{min-height:44px}
@@ -2428,41 +2486,38 @@ function pct(e){return(100*e).toFixed(0)+"%"}function wrColor(e,n){return n<5?"v
    tournament bracket, or a match logged at an event marked as a tournament).
    The games filter and the period are kept apart for the Meta breakdown page
    and a community's Meta tab. The breakdown page shows nobody's name. */
-function metaIsGlobal(){return"meta"===route.view}const META_KINDS=[["all","All"],["standard","Standard matches"],["tournament","Tournaments"]];function metaPrefKey(k){return k+(metaIsGlobal()?".global":".c")}function metaPref(k,ok,d){const m=window._metaPref||{},key=metaPrefKey(k);if(key in m)return m[key];try{const v=localStorage.getItem(key);return ok.includes(v)?v:d}catch(e){return d}}function metaSetPref(k,v){(window._metaPref=window._metaPref||{})[metaPrefKey(k)]=v;try{localStorage.setItem(metaPrefKey(k),v)}catch(e){}window._metaRepaint&&window._metaRepaint()}function metaKindNow(){return metaPref("sl.metakind",["standard","tournament"],"all")}function metaPeriodNow(){return metaPref("sl.metaperiod",["30","90"],"all")}function periodFilter(e){const g=metaPeriodNow();if("all"===g)return e;const c=Date.now()-864e5*+g;return e.filter(e=>+new Date(e.created_at||0)>=c)}function metaSeg(lab,o,cur,k){return`<span class="seg" role="group" aria-label="${lab}">${o.map(([n,t])=>`<button class="seg-b ${cur===n?"on":""}" aria-pressed="${cur===n}" onclick="metaSetPref('${k}',${jsq(n)})">${t}</button>`).join("")}</span>`}function periodToggle(){return metaSeg("Period",[["30","Last 30 days"],["90","Last 90 days"],["all","All time"]],metaPeriodNow(),"sl.metaperiod")}function metaToggles(){return`<div class="meta-tg">${metaSeg("Games",META_KINDS,metaKindNow(),"sl.metakind")}${periodToggle()}</div>`}function globalWRMap(){if(cache._gwr)return cache._gwr;const e=cache.globalMatches||cache.metaMatches||[],n={};e.forEach(e=>{[[e.winner_seeker,!0],[e.loser_seeker,!1]].forEach(([e,t])=>{if(!e)return;const a=normName(e),s=n[a]=n[a]||{w:0,n:0};s.n++,t&&s.w++})});const t={};return Object.keys(n).forEach(e=>{n[e].n>=3&&(t[e]=n[e].w/n[e].n)}),cache._gwr=t,t}function metaRows(e){const n=metaAgg(e),t=2*e.length||1;return Object.values(n).map(e=>{const n=e.w+e.l,a=n?e.w/n:0,s=n/t;return{...e,n:n,wr:a,pick:s,score:s*a}})}function metaAgg(e){const n={},t=(e,t,a,s)=>{if(!e)return;const i=normName(e),r=seekerByNorm(i),o=n[i]=n[i]||{k:i,name:r?r.name:e,f:r?r.f:"",w:0,l:0,vs:{},ter:{}};if(t?o.w++:o.l++,a){const e=normName(a),n=o.vs[e]=o.vs[e]||{w:0,l:0};t?n.w++:n.l++}if(s){const e=o.ter[s]=o.ter[s]||{w:0,l:0};t?e.w++:e.l++}};return e.forEach(e=>{t(e.winner_seeker,!0,e.loser_seeker,e.winner_terrain),t(e.loser_seeker,!1,e.winner_seeker,e.loser_terrain)}),n}function renderMeta(e){if(cache.metaMatches=e,!e.length)return'<div class="empty">Not enough data yet. Meta stats appear once players start playing matches with their Seekers.</div>';const k=metaKindNow(),f="all"===k?e:e.filter(x=>(x.kind||"standard")===k);return f.length?window._metaSeeker?metaDetail(f,window._metaSeeker):metaOverview(f):`<div class="flex-between" style="margin:${metaIsGlobal()?"12px":"0"} 0 12px">${metaIsGlobal()?"":`<h2 style="margin:0">Seeker meta</h2>`}${metaToggles()}</div><div class="empty">${"tournament"===k?"No tournament games recorded yet.":"No standard matches recorded yet."}</div>`}function hallOfRecords(e){if(e.length<8)return"";const n=e=>(cache.profNames||{})[e]||((cache.members||[]).find(n=>n.id===e)||{}).display_name||"—",t={};[...e].sort((e,n)=>(e.created_at||"").localeCompare(n.created_at||"")).forEach(e=>{[[e.winner_id,!0,e.winner_seeker],[e.loser_id,!1,e.loser_seeker]].forEach(([e,n,a])=>{if(!e)return;const s=t[e]=t[e]||{w:0,l:0,cur:0,best:0,pairs:{}};if(n?(s.w++,s.cur++,s.best=Math.max(s.best,s.cur)):(s.l++,s.cur=0),a){const e=normName(a);s.pairs[e]=(s.pairs[e]||0)+1}})});const a=Object.keys(t);if(a.length<2)return"";const s=e=>a.reduce((n,a)=>e(t[a])>e(t[n])?a:n,a[0]),i=s(e=>e.best),r=s(e=>e.w+e.l),o=a.filter(e=>t[e].w+t[e].l>=5),l=o.length?o.reduce((e,n)=>{const a=t[e],s=t[n];return s.w/(s.w+s.l)>a.w/(a.w+a.l)?n:e}):null;let c=null;a.forEach(e=>Object.entries(t[e].pairs).forEach(([n,t])=>{(!c||t>c.n)&&(c={id:e,k:n,n:t})}));const d=c&&seekerByNorm(c.k);return`<div class="rec-grid">${[{ic:"🔥",lab:"Longest win streak",val:t[i].best,who:n(i)},{ic:"⚔️",lab:"Most battles",val:t[r].w+t[r].l,who:n(r)},l?{ic:"🏆",lab:"Best win rate",val:pct(t[l].w/(t[l].w+t[l].l)),who:`${n(l)} · ${t[l].w}–${t[l].l}`}:null,c?{ic:"🎯",lab:"Signature Seeker",val:`×${c.n}`,who:`${n(c.id)} · ${d?d.name.split(",")[0]:c.k}`}:null].filter(Boolean).map(e=>`\n    <div class="rec-card"><div class="rec-ic">${e.ic}</div>\n      <div class="rec-lab">${e.lab}</div>\n      <div class="rec-val">${e.val}</div>\n      <div class="rec-who">${esc(e.who)}</div></div>`).join("")}</div>`}
-/* Meta summary, shared by the global page and a league's Meta tab: a bar with
-   the number of matches, then three cards about the game (nobody is named):
-   Seekers most and least picked, terrains most and least picked, and the best
-   and worst Seeker win rate among Seekers with MC_MIN_CONF games or more. Each
-   match has two Seeker picks, one a side, so the shares add up with the charts. */
-function metaTopBar(e){
-  return`<div class="meta-strip ms-bar"><div class="ms-cell"><b>${e.length}</b><small>${1===e.length?"Match":"Matches"}</small></div></div>`}
-function metaCards(e,t){if(!e.length)return"";
-  /* Every Seeker and terrain in the game takes part, so one never picked is the
-     least picked (as the chart below lists it). Seeker shares use 2 picks per
-     match, like the podium, the chart and the Seeker page; terrain shares use
-     the terrains recorded, like the terrain pies. */
-  const nm=r=>r.name.split(",")[0],by=(a,b)=>b.n-a.n||a.k.localeCompare(b.k),
-    sb={};t.forEach(r=>sb[r.k]=r);
-  const sk=SEEKERS.map(s=>{const k=normName(s.name);return sb[k]||{k:k,name:s.name,n:0,wr:0}}).concat(t.filter(r=>r.n>0&&!SEEKERS.some(s=>normName(s.name)===r.k))).sort(by),
-    sTot=sk.reduce((s,r)=>s+r.n,0),sDen=2*e.length,ter={};
-  TERRAINS.forEach(x=>ter[x]=0);
-  e.forEach(m=>{[m.winner_terrain,m.loser_terrain].forEach(x=>{x&&(ter[x]=(ter[x]||0)+1)})});
-  const tl=Object.keys(ter).map(k=>({k:k,n:ter[k]})).sort(by),tTot=tl.reduce((s,o)=>s+o.n,0),
-    ok=sk.filter(r=>r.n>=MC_MIN_CONF).sort((a,b)=>b.wr-a.wr||b.n-a.n),
-    /* A tie names up to two; past that the row shows "+N" and a tap opens the full list. */
-    row=(lab,ns,v,c)=>{const more=ns.length>2,all=esc(ns.join(", "));
-      return`<div class="mx-row${more?" mx-tap":""}"${more?` role="button" tabindex="0" aria-expanded="false" title="${all}" onclick="this.setAttribute('aria-expanded',this.classList.toggle('open'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"`:""}><small>${lab}</small><b>${more?`<span class="mx-short">${esc(ns.slice(0,2).join(", "))}</span><em class="mx-short">+${ns.length-2}</em><span class="mx-all">${all}</span>`:`<span>${all}</span>`}</b><i${c?` style="color:${c}"`:""}>${v}</i></div>`},
-    none=x=>`<p class="mx-empty">${x}</p>`,
-    card=(lab,body,foot)=>`<div class="mx-card"><div class="mx-lab">${lab}</div>${body}${foot?`<div class="mx-foot">${foot}</div>`:""}</div>`,
-    tie=(l,x,f)=>l.filter(y=>f(y)===f(x)),
-    pair=(l,tot,name)=>{if(!tot)return"";const hi=tie(l,l[0],r=>r.n),lo=tie(l,l[l.length-1],r=>r.n),z=!lo[0].n;
-      return row("Most picked",hi.map(name),pct(l[0].n/tot))+(lo.length<l.length?row(z?"Never picked":"Least picked",lo.map(name),pct(lo[0].n/tot)):row("Least picked",["—"],""))},
-    wr=()=>{const hi=tie(ok,ok[0],r=>r.wr),lo=tie(ok,ok[ok.length-1],r=>r.wr);
-      return row("Best win rate",hi.map(nm),pct(ok[0].wr),wrTone(ok[0].wr))+(hi.length<ok.length?row("Worst win rate",lo.map(nm),pct(lo[0].wr),wrTone(lo[0].wr)):row("Worst win rate",["—"],""))};
-  return`<div class="mx-grid">${
-    card("Seekers",pair(sk,sTot?sDen:0,nm)||none("No Seeker recorded yet"),sTot?"Share of Seeker picks, 2 per match":"")}${
-    card("Terrains",pair(tl,tTot,r=>r.k)||none("No terrain recorded yet"),tTot?"Share of terrain picks":"")}${
-    card("Win rate",ok.length>1?wr():none(ok.length?`Only one Seeker has ${MC_MIN_CONF}+ games so far`:`No Seeker has ${MC_MIN_CONF} games yet`),`Seekers with ${MC_MIN_CONF}+ games`)}</div>`}
+function metaIsGlobal(){return"meta"===route.view}const META_KINDS=[["all","All"],["standard","Standard matches"],["tournament","Tournaments"]];function metaPrefKey(k){return k+(metaIsGlobal()?".global":".c")}function metaPref(k,ok,d){const m=window._metaPref||{},key=metaPrefKey(k);if(key in m)return m[key];try{const v=localStorage.getItem(key);return ok.includes(v)?v:d}catch(e){return d}}function metaSetPref(k,v){(window._metaPref=window._metaPref||{})[metaPrefKey(k)]=v;try{localStorage.setItem(metaPrefKey(k),v)}catch(e){}const fs=slFocusSig();window._metaRepaint&&window._metaRepaint();slFocusBack(fs)}function metaKindNow(){return metaPref("sl.metakind",["standard","tournament"],"all")}function metaPeriodNow(){return metaPref("sl.metaperiod",["30","90"],"all")}function periodFilter(e){const g=metaPeriodNow();if("all"===g)return e;const c=Date.now()-864e5*+g;return e.filter(e=>+new Date(e.created_at||0)>=c)}function metaSeg(lab,o,cur,k){return`<span class="seg" role="group" aria-label="${lab}">${o.map(([n,t])=>`<button class="seg-b ${cur===n?"on":""}" aria-pressed="${cur===n}" onclick="metaSetPref('${k}',${jsq(n)})">${t}</button>`).join("")}</span>`}function periodToggle(){return metaSeg("Period",[["30","Last 30 days"],["90","Last 90 days"],["all","All time"]],metaPeriodNow(),"sl.metaperiod")}function metaToggles(){return`<div class="meta-tg">${metaSeg("Games",META_KINDS,metaKindNow(),"sl.metakind")}${periodToggle()}</div>`}function globalWRMap(){if(cache._gwr)return cache._gwr;const e=cache.globalMatches||cache.metaMatches||[],n={};e.forEach(e=>{[[e.winner_seeker,!0],[e.loser_seeker,!1]].forEach(([e,t])=>{if(!e)return;const a=normName(e),s=n[a]=n[a]||{w:0,n:0};s.n++,t&&s.w++})});const t={};return Object.keys(n).forEach(e=>{n[e].n>=3&&(t[e]=n[e].w/n[e].n)}),cache._gwr=t,t}function metaRows(e){const n=metaAgg(e),t=2*e.length||1;return Object.values(n).map(e=>{const n=e.w+e.l,a=n?e.w/n:0,s=n/t;return{...e,n:n,wr:a,pick:s,score:s*a}})}function metaAgg(e){const n={},t=(e,t,a,s)=>{if(!e)return;const i=normName(e),r=seekerByNorm(i),o=n[i]=n[i]||{k:i,name:r?r.name:e,f:r?r.f:"",w:0,l:0,vs:{},ter:{}};if(t?o.w++:o.l++,a){const e=normName(a),n=o.vs[e]=o.vs[e]||{w:0,l:0};t?n.w++:n.l++}if(s){const e=o.ter[s]=o.ter[s]||{w:0,l:0};t?e.w++:e.l++}};return e.forEach(e=>{t(e.winner_seeker,!0,e.loser_seeker,e.winner_terrain),t(e.loser_seeker,!1,e.winner_seeker,e.loser_terrain)}),n}function renderMeta(e){if(cache.metaMatches=e,!e.length)return'<div class="empty">Not enough data yet. Meta stats appear once players start playing matches with their Seekers.</div>';const k=metaKindNow(),f="all"===k?e:e.filter(x=>(x.kind||"standard")===k);return f.length?window._metaSeeker?metaDetail(f,window._metaSeeker):metaOverview(f):`${metaHead()}<div class="empty">${"tournament"===k?"No tournament games recorded yet.":"No standard matches recorded yet."}</div>`}function hallOfRecords(e){if(e.length<8)return"";const n=e=>(cache.profNames||{})[e]||((cache.members||[]).find(n=>n.id===e)||{}).display_name||"—",t={};[...e].sort((e,n)=>(e.created_at||"").localeCompare(n.created_at||"")).forEach(e=>{[[e.winner_id,!0,e.winner_seeker],[e.loser_id,!1,e.loser_seeker]].forEach(([e,n,a])=>{if(!e)return;const s=t[e]=t[e]||{w:0,l:0,cur:0,best:0,pairs:{}};if(n?(s.w++,s.cur++,s.best=Math.max(s.best,s.cur)):(s.l++,s.cur=0),a){const e=normName(a);s.pairs[e]=(s.pairs[e]||0)+1}})});const a=Object.keys(t);if(a.length<2)return"";const s=e=>a.reduce((n,a)=>e(t[a])>e(t[n])?a:n,a[0]),i=s(e=>e.best),r=s(e=>e.w+e.l),o=a.filter(e=>t[e].w+t[e].l>=5),l=o.length?o.reduce((e,n)=>{const a=t[e],s=t[n];return s.w/(s.w+s.l)>a.w/(a.w+a.l)?n:e}):null;let c=null;a.forEach(e=>Object.entries(t[e].pairs).forEach(([n,t])=>{(!c||t>c.n)&&(c={id:e,k:n,n:t})}));const d=c&&seekerByNorm(c.k);return`<div class="rec-grid">${[{ic:"🔥",lab:"Longest win streak",val:t[i].best,who:n(i)},{ic:"⚔️",lab:"Most battles",val:t[r].w+t[r].l,who:n(r)},l?{ic:"🏆",lab:"Best player win rate",val:pct(t[l].w/(t[l].w+t[l].l)),who:`${n(l)} · ${t[l].w}–${t[l].l}`}:null,c?{ic:"🎯",lab:"Signature Seeker",val:`×${c.n}`,who:`${n(c.id)} · ${d?d.name.split(",")[0]:c.k}`}:null].filter(Boolean).map(e=>`\n    <div class="rec-card"><div class="rec-ic">${e.ic}</div>\n      <div class="rec-lab">${e.lab}</div>\n      <div class="rec-val">${e.val}</div>\n      <div class="rec-who">${esc(e.who)}</div></div>`).join("")}</div>`}
+/* Meta page head, shared by the global page and a community's Meta tab
+   (2026-11-07). A community names itself ("Lisbon Seekers meta"); the global
+   page has its own title. The filters sit on the same row. */
+function metaHead(){const G=metaIsGlobal();return`<div class="flex-between meta-hd" style="margin:${G?"12px":"0"} 0 12px">${G?"":`<h2 style="margin:0">${esc(((cache.league||{}).name||"Community")+" meta")}</h2>`}${metaToggles()}</div>`}
+/* One summary card instead of the old match-count bar and three stat cards:
+   matches, players and the dates covered, then the most played Seeker, the best
+   win rate among Seekers with MC_MIN_CONF games or more, and the most played
+   terrain. The rest (least or never picked, the worst win rate) can be read in
+   the lists below, so it is not repeated here. A tie shows "+N". */
+function metaSum(e,t,m){const pl=new Set;e.forEach(x=>{x.winner_id&&pl.add(x.winner_id),x.loser_id&&pl.add(x.loser_id)});
+  let a=Infinity,b=0;e.forEach(x=>{const d=+new Date(x.created_at||0);d>0&&(d<a&&(a=d),d>b&&(b=d))});
+  const k=metaKindNow(),N=e.length,y=b&&(new Date(a).getFullYear()!==new Date(b).getFullYear()||new Date(b).getFullYear()!==new Date().getFullYear()),
+    f=d=>new Date(d).toLocaleDateString("en-GB",y?{day:"numeric",month:"short",year:"numeric"}:{day:"numeric",month:"short"}),
+    per=b?(f(a)===f(b)?f(a):f(a)+" – "+f(b)):"",
+    word="tournament"===k?(1===N?"tournament game":"tournament games"):"standard"===k?(1===N?"standard match":"standard matches"):(1===N?"match":"matches"),
+    nm=r=>r.name.split(",")[0],more=n=>n>0?` <em>+${n}</em>`:"",tie=(l,g)=>l.filter(x=>g(x)===g(l[0])).length-1,
+    sk=t.filter(r=>r.n>0).sort((p,q)=>q.n-p.n||p.name.localeCompare(q.name)),
+    ok=t.filter(r=>r.n>=MC_MIN_CONF).sort((p,q)=>q.wr-p.wr||q.n-p.n),tt=m.reduce((s,x)=>s+x.n,0),
+    h=(lab,v,i,c)=>`<div class="mo-h"><small>${lab}</small><b>${v}</b><i${c?` style="color:${c}"`:""}>${i}</i></div>`;
+  return`<div class="mo-sum"><div class="mo-nums"><span><b>${N}</b>${word}</span>${pl.size&&!metaIsGlobal()?`<span title="Players with an account in these games. Guests have no account, so they are not counted."><b>${pl.size}</b>${1===pl.size?"player":"players"} with an account</span>`:""}${per?`<span class="mo-per">${per}</span>`:""}</div><div class="mo-hl">${
+    sk.length?h("Most played Seeker",esc(nm(sk[0]))+more(tie(sk,r=>r.n)),`${pct(sk[0].n/(2*N||1))} of picks`):h("Most played Seeker","—","none recorded yet")}${
+    ok.length?h("Best Seeker win rate",esc(nm(ok[0]))+more(tie(ok,r=>r.wr)),`${pct(ok[0].wr)} in ${ok[0].n} games`,wrTone(ok[0].wr)):h("Best Seeker win rate","—",`needs ${MC_MIN_CONF}+ games`)}${
+    m.length?h("Most played terrain",esc(m[0].k)+more(tie(m,x=>x.n)),`${pct(m[0].n/(tt||1))} of picks`):h("Most played terrain","—","none recorded yet")}</div></div>`}
+/* A section of the Meta page: a short heading and one line on how to read it.
+   A long secondary section (decks, terrains) folds: open on a wide screen,
+   closed on a phone, and it stays as the reader left it while they change the
+   filters or the sort. */
+function metaSec(id,h,sub,body,fold){const hd=`<h3>${h}</h3><p>${sub}</p>`;
+  if(!fold)return`<section class="msec msec-${id}"><div class="msec-hd">${hd}</div>${body}</section>`;
+  const O=window._metaOpen||{},op=id in O?O[id]:window.innerWidth>=760;
+  return`<details class="msec msec-${id}"${op?" open":""} ontoggle="(window._metaOpen=window._metaOpen||{})['${id}']=this.open"><summary class="msec-hd"><span class="msec-tx">${hd}</span></summary><div class="msec-bd">${body}</div></details>`}
 /* ===== Meta charts: share pies (seeker + terrain) + win-per-pick bars ===== */
 const MC_MIN_CONF=5,MC_MIN_TOTAL=12;
 /* ritagli quadrati sull'art delle carte, in pixel sorgente */
@@ -2474,7 +2529,13 @@ function mcSortRows(rows){const m=mcSortMode(),un=r=>r.n?0:1,r=rows.slice();
   if(m==='pick')return r.sort((a,b)=>un(a)-un(b)||(b.pick||0)-(a.pick||0)||b.n-a.n);
   return r.sort((a,b)=>un(a)-un(b)||(b.share||0)-(a.share||0)||b.n-a.n||a.name.localeCompare(b.name))}
 function mcSortBar(){const m=mcSortMode();
-  return `<span class="seg mc-seg" role="group" aria-label="Sort the list by">${[['score','Win per pick'],['wr','Win rate'],['n','Games'],['pick','Pick rate']].map(([k,l])=>`<button class="seg-b ${m===k?'on':''}" aria-pressed="${m===k}" onclick="localStorage.setItem('sl.metasort',${jsq(k)});window._metaRepaint&&window._metaRepaint()">${l}</button>`).join('')}</span>`}
+  return `<span class="seg mc-seg" role="group" aria-label="Sort the list by">${[['score','Win share'],['wr','Win rate'],['n','Games'],['pick','Pick rate']].map(([k,l])=>`<button class="seg-b ${m===k?'on':''}" aria-pressed="${m===k}" onclick="mcSetSort(${jsq(k)})">${l}</button>`).join('')}</span>`}
+function mcSetSort(k){if(!/^(score|wr|n|pick)$/.test(k))return;const fs=slFocusSig();try{localStorage.setItem('sl.metasort',k)}catch(e){}window._metaRepaint&&window._metaRepaint();slFocusBack(fs)}
+/* A tab row repainted by its own click loses the button that had focus, so a
+   keyboard user would land back on the page top: note which tab of which row
+   had focus, and give it back to the same tab of the new row. */
+function slFocusSig(){const a=document.activeElement,g=a&&a.closest&&a.closest(".seg");return g?{l:g.getAttribute("aria-label"),i:[...g.querySelectorAll(".seg-b")].indexOf(a)}:null}
+function slFocusBack(s){if(!s||s.i<0)return;const f=()=>{const a=document.activeElement;if(a&&a!==document.body&&a.isConnected)return!0;const g=[...document.querySelectorAll(".seg")].find(x=>x.getAttribute("aria-label")===s.l&&x.offsetParent),b=g&&g.querySelectorAll(".seg-b")[s.i];return b?(b.focus({preventScroll:!0}),!0):!1};f()||setTimeout(f,80)}
 /* A tab row (.seg) that does not fit scrolls sideways instead of wrapping.
    Whenever a row is drawn, or its active tab changes in place, the active tab
    is brought into view inside the row; the page itself never moves. */
@@ -2492,7 +2553,7 @@ function mcSortBar(){const m=mcSortMode();
 const FAC_HEX={O:"#c8a568",P:"#c0503a",C:"#5b8ec4",L:"#1fb594"};
 function hexMix(a,b,t){const p=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)),x=p(a),y=p(b);return"#"+x.map((v,i)=>Math.round(v+(y[i]-v)*t).toString(16).padStart(2,"0")).join("")}
 function facHex(f){f=String(f||"").replace(/[^OPCL]/g,"");return f?FAC_HEX[f[0]]:null}
-function facShade(base,nth){const s=[0,.26,-.26,.44,-.42,.13,-.13][nth%7];return s>=0?hexMix(base,"#ffffff",s):hexMix(base,"#000000",-s)}
+function facShade(base,nth){const s=[0,.45,-.4,.7,-.62,.22,-.2][nth%7];return s>=0?hexMix(base,"#ffffff",s):hexMix(base,"#000000",-s)}
 function facColors(items,getF){const seen={};return items.map((x,i)=>{const b=facHex(getF(x));if(!b)return PIE_COLORS[i%PIE_COLORS.length];const n=seen[b]||0;seen[b]=n+1;return facShade(b,n)})}
 function mcDonut(items,size,val,opts){
   opts=opts||{};
@@ -2511,7 +2572,7 @@ function mcDonut(items,size,val,opts){
     off+=f*C});
   return `<div class="tp-one"><div class="tp-fig"><svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" role="img" aria-label="${esc(opts.cap||'')}">${defs?`<defs>${defs}</defs>`:''}<circle cx="${R}" cy="${R}" r="${r}" fill="none" stroke="#1e1e1e" stroke-width="${sw}"/>${arcs}</svg><div class="pie-mid"><b>${tot}</b><small>${esc(opts.mid||'')}</small></div></div><span class="tp-cap">${esc(opts.cap||'')}</span></div>`}
 /* --- torte dei Seeker --- */
-function seekerPies(played,matches){
+function seekerPies(played,matches,noLeg){
   if(!played.length)return'';
   const totN=played.reduce((s,r)=>s+r.n,0);if(!totN)return'';
   const lab=r=>r.name.split(',')[0],art=r=>cardImg(r.name);
@@ -2519,7 +2580,7 @@ function seekerPies(played,matches){
   const spRow=(r,i)=>`<div class="sp-row"><i class="tp-sw" style="background:${cols[i]}"></i><span class="tp-nm">${esc(lab(r))}</span><span class="tp-v">${Math.round(100*r.n/totN)}%</span><span class="tp-v">${Math.round(100*r.w/(matches||1))}%</span></div>`;
   const spHd='<div class="sp-row sp-hd"><i></i><span class="tp-nm">Seeker</span><span class="tp-v">Pick</span><span class="tp-v">Wins</span></div>',spHalf=Math.ceil(played.length/2),
     legend=`<div class="sp-col">${spHd}${played.slice(0,spHalf).map((r,j)=>spRow(r,j)).join('')}</div>`+(played.length>spHalf?`<div class="sp-col">${spHd}${played.slice(spHalf).map((r,j)=>spRow(r,spHalf+j)).join('')}</div>`:'');
-  return `<div class="tp-wrap"><div class="tp-pies">${mcDonut(played,132,r=>r.n,{colors:cols,label:lab,mid:'picks',cap:'Pick share',pid:'skp',img:art,crop:CROP_SEEKER})}${mcDonut(played,132,r=>r.w,{colors:cols,label:lab,mid:'wins',cap:'Win share',pid:'skw',img:art,crop:CROP_SEEKER})}</div><div class="sp-leg">${legend}</div></div>`}
+  return `<div class="tp-wrap"><div class="tp-pies">${mcDonut(played,132,r=>r.n,{colors:cols,label:lab,mid:'picks',cap:'Pick share',pid:'skp',img:art,crop:CROP_SEEKER})}${mcDonut(played,132,r=>r.w,{colors:cols,label:lab,mid:'wins',cap:'Win share',pid:'skw',img:art,crop:CROP_SEEKER})}</div>${noLeg?`<div class="sp-chips" role="list" aria-label="Slices, most picked first">${played.map((r,i)=>`<span class="sp-chip" role="listitem"><i style="background:${cols[i]}"></i>${esc(lab(r))}</span>`).join('')}</div>`:`<div class="sp-leg">${legend}</div>`}</div>`}
 /* --- lista completa: tutti i Seeker, barra = win per pick --- */
 function metaChart(rows,opts){
   opts=opts||{};
@@ -2532,21 +2593,32 @@ function metaChart(rows,opts){
   const full=opts.personal?played.map(r=>({...r,share:r.w/matches})):SEEKERS.map(s=>{const k=normName(s.name),r=by[k];
     return r&&r.n>0?{...r,share:r.w/matches}:{k:k,name:s.name,f:s.f,n:0,w:0,wr:0,pick:0,score:0,share:0}});
   const sorted=mcSortRows(full),maxShare=Math.max(...full.map(r=>r.share),.0001);
-  const click=opts.click?r=>r.n?`onclick="metaOpenSeeker(${jsq(r.k)})" role="button" tabindex="0" onkeydown="if(event.key==='Enter')metaOpenSeeker(${jsq(r.k)})"`:'':()=>'';
+  /* Without the pie legend (the page, not a player's chart) a dot in the slice colour ties each row to its slice,
+     and the line under the name leads with what the list is sorted by. */
+  const pc=facColors(played,r=>r.f),pcol={};played.forEach((r,i)=>pcol[r.k]=pc[i]);
+  /* The bold number and the bar show what the list is sorted by (win share,
+     win rate, games or pick rate); the line under the name gives the rest. */
+  const sm=mcSortMode(),gm=r=>`${r.n} ${1===r.n?'game':'games'}`,wrs=r=>`${pct(r.wr)} <span class="wr-wl">win rate</span><span class="wr-ws">WR</span>`,shs=r=>`${pct(r.share)} of wins`,
+    sub=r=>'wr'===sm?`${gm(r)} &middot; ${shs(r)}`:'n'===sm?wrs(r):`${gm(r)} &middot; ${wrs(r)}`,
+    mv=r=>'wr'===sm?r.wr:'n'===sm?r.n:'pick'===sm?r.pick||0:r.share,mx=Math.max(...full.map(mv),1e-4),
+    bw=r=>'wr'===sm?100*r.wr:100*mv(r)/mx,vt=r=>'n'===sm?String(r.n):pct(mv(r));
+  const click=opts.click?r=>r.n?`onclick="metaOpenSeeker(${jsq(r.k)})" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();metaOpenSeeker(${jsq(r.k)})}"`:'':()=>'';
   const dl=r=>{if(!opts.delta||!r.n)return'';const g=opts.delta[r.k];if(g==null)return'';const d=r.wr-g;
     return d>.02?`<span class="mdelta up" title="vs all games ${pct(g)}">&#9650;</span>`:d<-.02?`<span class="mdelta down" title="vs all games ${pct(g)}">&#9660;</span>`:`<span class="mdelta flat" title="vs all games ${pct(g)}">&mdash;</span>`};
   const bars=sorted.map((r,i)=>{const off=!r.n;
     return `<div class="wr-row${off?' off':opts.click?'':' wr-ro'}" ${off?'':click(r)} title="${esc(r.name.split(',')[0])}${off?' &mdash; not played yet':` &mdash; ${pct(r.share)} of all wins, ${pct(r.wr)} win rate on ${r.n} ${1===r.n?'game':'games'}`}">`+
       `<span class="wr-rk">${off?'&middot;':i+1}</span>`+
       `${r.f?fBadges(r.f):'<i class="wr-sw" style="background:var(--line-2)"></i>'}`+
-      `<div class="wr-nm"><b><span class="wr-t">${esc(r.name.split(',')[0])}</span></b><small>${off?'not played yet':`${r.n} ${1===r.n?'game':'games'} &middot; ${pct(r.wr)} win rate`}</small></div>`+
-      `<div class="wr-track">${off?'':`<i class="wr-fill" style="width:${(100*r.share/maxShare).toFixed(1)}%;background:${wrToneBar(r.wr)}"></i>`}</div>`+
-      `<div class="wr-val"><b style="color:${off?'#5e5852':wrTone(r.wr)}">${off?'&mdash;':pct(r.share)}</b>${dl(r)}</div></div>`}).join('');
+      `<div class="wr-nm"><b>${off||opts.personal?'':`<i class="wr-dot" style="background:${pcol[r.k]}"></i>`}<span class="wr-t">${esc(r.name.split(',')[0])}</span></b><small>${off?'not played yet':sub(r)}</small></div>`+
+      `<div class="wr-track">${off?'':`<i class="wr-fill" style="width:${bw(r).toFixed(1)}%;background:${wrToneBar(r.wr)}"></i>`}</div>`+
+      `<div class="wr-val"><b style="color:${off?'#5e5852':wrTone(r.wr)}">${off?'&mdash;':vt(r)}</b>${dl(r)}</div></div>`}).join('');
   const key=`<div class="mc-legend"><span><i class="lg-c" style="background:#3fb96e"></i>&gt;55% win rate</span><span><i class="lg-c" style="background:#d9a134"></i>45&ndash;55%</span><span><i class="lg-c" style="background:#ef3d55"></i>&lt;45%</span><span><i class="lg-c" style="background:#3a3733"></i>never played</span></div>`;
   /* The Meta page states its match count in the bar on top,
      so only a player's own chart says how many games it is built on. */
   const head=opts.personal?`<div class="mc-head"><span class="mc-hint">${total} game${1===total?'':'s'} logged</span></div>`:'';
-  return `${head}${seekerPies(played,matches)}<div class="tm-label" style="margin:16px 0 2px">${opts.personal?'Where the wins come from <span class="mc-sub">&mdash; each Seeker&rsquo;s share of all wins</span>':'Win per pick <span class="mc-sub">&mdash; share of every win in the meta</span>'}</div><div class="mc-sort">${mcSortBar()}</div><div class="wr-list">${bars}</div>${key}`}
+  const main=`<div class="mc-sort">${mcSortBar()}</div><div class="wr-list">${bars}</div>${key}`;
+  /* On a wide screen the Meta page sets the pies beside the list they colour. */
+  return opts.personal?`${head}${seekerPies(played,matches)}<div class="tm-label" style="margin:16px 0 2px">Where the wins come from <span class="mc-sub">&mdash; each Seeker&rsquo;s share of all wins</span></div>${main}`:(pies=>pies?`<div class="mc-2">${pies}<div class="mc-main">${main}</div></div>`:main)(seekerPies(played,matches,!0))}
 /* --- torte dei terrain --- */
 function terrainPies(rows){
   const list=rows.slice().sort((a,b)=>b.n-a.n),
@@ -2559,14 +2631,30 @@ function terrainPies(rows){
       arrow=d>.03?`<span class="mdelta up" title="wins ahead of picks">&#9650;</span>`:d<-.03?`<span class="mdelta down" title="wins behind picks">&#9660;</span>`:`<span class="mdelta flat" title="wins in line with picks">&mdash;</span>`;
     return `<div class="tp-row${row.n<MC_MIN_CONF&&!allLow?' low':''}"><i class="tp-sw" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></i><span class="tp-nm">${esc(row.k)}</span><span class="tp-v">${Math.round(100*ps)}%</span><span class="tp-v">${Math.round(100*ws)}%</span><span class="tp-d">${arrow}</span><b style="color:${wrTone(row.wr)}">${pct(row.wr)}</b><small>${row.n} g</small></div>`}).join('');
   return `<div class="tp-wrap"><div class="tp-pies">${mcDonut(list,132,r=>r.n,{label:lab,mid:'picks',cap:'Pick share',pid:'tpp',img:art,crop:CROP_TERRAIN})}${mcDonut(list,132,r=>r.w,{label:lab,mid:'wins',cap:'Win share',pid:'tpw',img:art,crop:CROP_TERRAIN})}</div><div class="tp-leg"><div class="tp-row tp-hd"><i></i><span class="tp-nm">Terrain</span><span class="tp-v">Pick</span><span class="tp-v">Wins</span><span class="tp-d"></span><b>WR</b><small></small></div>${rowsHtml}</div>${totN<MC_MIN_TOTAL?'<div class="tp-note">Still few games &mdash; these shares will swing with every match logged.</div>':'<div class="tp-note">A bigger slice of wins than of picks means the terrain is overperforming.</div>'}</div>`}
-function metaOverview(e){if(!(e=periodFilter(e)).length)return`<div class="flex-between" style="margin:${metaIsGlobal()?"12px":"0"} 0 12px">${metaIsGlobal()?"":`<h2 style="margin:0">Seeker meta</h2>`}${metaToggles()}</div><div class="empty">No matches in this period.</div>`;const sc=metaKindNow(),n=metaIsGlobal()&&"all"!==sc,t=metaRows(e),r=[...t].sort((e,n)=>n.score-e.score||n.n-e.n),o=Math.max(...t.map(e=>e.n),1),l=n?globalWRMap():null;let c=`<div class="flex-between" style="margin:${metaIsGlobal()?"12px":"0"} 0 12px">\n    ${metaIsGlobal()?"":`<h2 style="margin:0">${"tournament"===sc?"Tournament meta":"standard"===sc?"Standard-match meta":"Seeker meta"}</h2>`}${metaToggles()}</div>\n    ${(()=>{const d=metaDupCount(e);return d?`<p class="hint dup-note"><b>${d} ${1===d?"result looks":"results look"} recorded twice</b> — once as a logged match and once inside a tournament. Both copies are counted below.</p>`:""})()}\n    ${metaTopBar(e,t)}`;c+=metaCards(e,t)+(metaIsGlobal()?"":hallOfRecords(e));const d='',u=(e,n)=>`\n    <div class="bar-row wide" onclick="metaOpenSeeker(${jsq(e.k)})" role="button" tabindex="0"\n      onkeydown="if(event.key==='Enter')metaOpenSeeker(${jsq(e.k)})">\n      <span class="bar-rk">${n}</span>\n      <div class="bar-lab"><span class="bar-nm">${esc(e.name.split(",")[0])}</span>${e.f?fBadges(e.f):""}</div>\n      <div class="bar-track">\n        <div class="bar-fill" style="width:${Math.round(100*e.wr)}%;--c:${wrToneBar(e.wr)}"></div>\n        <div class="bar-vol" style="width:${Math.round(e.n/o*100)}%"></div>\n      </div>\n      <div class="bar-val"><b style="color:${wrTone(e.wr)};--c:${wrTone(e.wr)}">${pct(e.wr)}</b><small>${e.n} g · ${pct(e.pick)}</small></div>\n      ${(e=>{if(!l)return"";const n=l[e.k];if(null==n)return"";const t=e.wr-n;return t>.02?`<span class="mdelta up" title="vs all games ${pct(n)}">▲</span>`:t<-.02?`<span class="mdelta down" title="vs all games ${pct(n)}">▼</span>`:`<span class="mdelta flat" title="vs all games ${pct(n)}">—</span>`})(e)}\n      <span class="bar-go">›</span>\n    </div>`;if(c+='',n)l&&(c+='<div style="text-align:right;margin:-2px 0 6px"><span class="chip-outline">vs all games</span></div>'),c+=d,c+=metaChart(r,{click:!0,delta:l});else c+=d+metaChart(r,{click:!0,delta:l});const p={};e.forEach(e=>{const n=(e,n,t)=>{if(!e)return;const a=p[e]=p[e]||{n:0,w:0,sk:{}};if(a.n++,t&&a.w++,n){const e=normName(n),s=a.sk[e]=a.sk[e]||{w:0,n:0};s.n++,t&&s.w++}};n(e.winner_terrain,e.winner_seeker,!0),n(e.loser_terrain,e.loser_seeker,!1)});const m=Object.entries(p).map(([e,n])=>({k:e,...n,wr:n.w/n.n})).sort((e,n)=>n.n-e.n);c+=metaDecksBlock(e);if(m.length)c+='<div class="tm-label" style="margin:22px 0 8px">Terrain performance</div>'+terrainPies(m);return c}function metaDetail(e,n){const t=metaAgg(e=periodFilter(e))[n];if(!t)return window._metaSeeker=null,metaOverview(e);const a=t.w+t.l,s=a?t.w/a:0,i=a/(2*e.length||1);let r=`<button class="link" onclick="metaOpenSeeker(null)">← All Seekers</button>${(k=>"all"===k?"":`<span class="chip-outline" style="margin-left:8px">${"tournament"===k?"Tournaments only":"Standard matches only"}</span>`)(metaKindNow())}\n    <div class="sd-hero fedge" style="border-left-color:${t.f?fColor(t.f):"var(--line-2)"};background:${t.f?`linear-gradient(135deg, color-mix(in srgb, ${fColor(t.f)} 16%, #232323), #232323 60%)`:"var(--surface)"}">\n      <div class="sd-ic">${t.f?fBadges(t.f):""}</div>\n      <div style="flex:1;min-width:0">\n        <h2 style="margin:0">${esc(t.name)}</h2>\n        <p class="hint" style="margin:2px 0 0">${t.f?esc(factionLabel(t.f))+" · ":""}${a} ${1===a?"game":"games"} · pick ${pct(i)}</p>\n      </div>\n      <div class="sd-wr" style="color:${wrTone(s)}">${pct(s)}</div>\n    </div>`;const o=Object.keys(t.vs).map(e=>{const n=t.vs[e],a=seekerByNorm(e);return{k:e,name:a?a.name:e,f:a?a.f:"",...n,n:n.w+n.l}}).sort((e,n)=>n.n-e.n);r+=(o.length?(MU=>{const B=[...o].sort((a,b)=>b.w/b.n-a.w/a.n||b.n-a.n),G=B.filter(x=>x.w/x.n>=.5),W=B.filter(x=>x.w/x.n<.5).reverse();return`${G.length?'<h3 style="margin:20px 0 8px">Best matchups</h3>'+G.map(MU).join(""):""}${W.length?'<h3 style="margin:20px 0 8px">Worst matchups</h3>'+W.map(MU).join(""):""}`})(e=>{const n=e.w/e.n,t=Math.round(e.w/e.n*100);return`<div class="mu-row${e.n<3?" weak":""}">\n        <div class="mu-ic">${e.f?fBadges(e.f):""}</div>\n        <div class="mu-nm">vs ${esc(e.name.split(",")[0])}</div>\n        <div class="mu-bar"><i class="mw" style="width:${t}%"></i><i class="ml" style="width:${100-t}%"></i></div>\n        <div class="mu-val"><b style="color:${wrTone(n)}">${pct(n)}</b><small>${e.w}–${e.l}</small></div>\n      </div>`}):'<h3 style="margin:20px 0 8px">Matchups</h3><div class="empty">No matchup data yet.</div>');const l=Object.keys(t.ter).map(e=>({t:e,...t.ter[e],n:t.ter[e].w+t.ter[e].l})).sort((e,n)=>n.n-e.n);l.length&&(r+=`<h3 style="margin:20px 0 8px">By terrain</h3>\n      <div class="tgrid">${l.map(e=>{const n=e.w/e.n;return`<div class="tcell" style="border-top:2px solid ${wrToneBar(n)}">\n          <b style="color:${wrTone(n)}">${pct(n)}</b>\n          <small>${esc(e.t)} · ${e.n} g.</small></div>`}).join("")}</div>`);{const e={},t=[];(cache.pubDecks||[]).forEach(n=>{e[n.id]||(e[n.id]=1,t.push(n))}),(cache.myDecks||[]).forEach(n=>{e[n.id]||(e[n.id]=1,t.push(n))});const a=t.filter(e=>e.cards&&normName(e.seeker||"")===n),s={};a.forEach(e=>Object.keys(e.cards).forEach(n=>{const t=s[n]=s[n]||{c:0,d:0};t.c+=e.cards[n],t.d++}));const i=Object.keys(s).map(e=>({cn:e,...s[e]})).sort((e,n)=>n.c-e.c).slice(0,10),o=(cache.pubDecks||[]).filter(e=>e.cards&&normName(e.seeker||"")===n);o.length&&(r+='<h3 style="margin:18px 0 8px">Public decks</h3>'+o.slice(0,8).map(e=>`\n        <div class="sk-row plain">\n          <div class="sk-main"><div class="sk-name plainname">${esc(e.name)}</div>\n            <div class="sk-sub">${metaIsGlobal()?"":`by ${esc((cache.profNames||{})[e.user_id]||"a Seeker")} · `}${deckMainCount(e.cards)} cards</div></div>\n          <a class="dk-open" href="#/deck/${esc(e.id)}">Open ↗</a>\n        </div>`).join("")),i.length&&(r+='<h3 style="margin:18px 0 2px">Most used cards</h3>'+i.map(e=>{const n=CARD_IDX[e.cn],t=CARDS[n];return`<div class="col-row" onmouseenter="colPrev(${n})" onclick="colPrev(${n})">\n          ${t?cardThumb(n):""}\n          <div class="col-main"><div class="col-name">${esc(e.cn)}</div>\n            <div class="col-sub">${e.c} ${1===e.c?"copy":"copies"} in ${e.d} ${1===e.d?"deck":"decks"}</div></div>\n          <div class="col-facs">${t?fBadges(t.f):""}</div>\n        </div>`}).join(""))}return r}/* Seekers say what people bring; decks say what they actually built. Only a
+/* Meta overview (2026-11-07): the head and its filters, one summary card, then
+   sections in reading order. A community leads with its players' records, since
+   the people who play there care most about each other; the global page names
+   nobody. Seekers come next (pies, then the sort tabs right above the list they
+   sort; a row opens that Seeker's matchups, terrains and decks), then decks and
+   terrains, which fold on a phone. */
+function metaOverview(e){if(!(e=periodFilter(e)).length)return metaHead()+'<div class="empty">No matches in this period.</div>';
+  const G=metaIsGlobal(),sc=metaKindNow(),n=G&&"all"!==sc,t=metaRows(e),r=[...t].sort((e,n)=>n.score-e.score||n.n-e.n),l=n?globalWRMap():null,p={};
+  e.forEach(e=>{const n=(e,n,t)=>{if(!e)return;const a=p[e]=p[e]||{n:0,w:0,sk:{}};if(a.n++,t&&a.w++,n){const e=normName(n),s=a.sk[e]=a.sk[e]||{w:0,n:0};s.n++,t&&s.w++}};n(e.winner_terrain,e.winner_seeker,!0),n(e.loser_terrain,e.loser_seeker,!1)});
+  const m=Object.entries(p).map(([e,n])=>({k:e,...n,wr:n.w/n.n})).sort((e,n)=>n.n-e.n||e.k.localeCompare(n.k)),d=metaDupCount(e),dk=metaDeckRows(e).length,rec=G?"":hallOfRecords(e);
+  let c=metaHead()+(d?`<p class="hint dup-note"><b>${d} ${1===d?"result looks":"results look"} recorded twice</b> — once as a logged match and once inside a tournament. Both copies are counted below.</p>`:"")+metaSum(e,t,m);
+  rec&&(c+=metaSec("rec","Records","Personal bests among the players of this community.",rec));
+  c+=metaSec("sk","Seekers","Pick share and win share, then every Seeker ranked by the tab you choose: the number and the bar follow it. Tap a Seeker for its matchups, terrains and decks.",(n&&l?'<div style="text-align:right;margin:0 0 6px"><span class="chip-outline">vs all games</span></div>':"")+metaChart(r,{click:!0,delta:l}));
+  c+=metaSec("dk","Decks",dk?`${dk>10?`Top 10 of ${dk} decks`:`${dk} ${1===dk?"deck":"decks"}`} named in results. Faded = under 3 games.`:"The decks players won and lost with.",metaDecksBlock(e),1);
+  m.length&&(c+=metaSec("tr","Terrains","How often each terrain is picked, and how it does.",terrainPies(m),1));
+  return c}
+function metaDetail(e,n){const t=metaAgg(e=periodFilter(e))[n];if(!t)return window._metaSeeker=null,metaOverview(e);const a=t.w+t.l,s=a?t.w/a:0,i=a/(2*e.length||1);let r=`<button class="link" onclick="metaOpenSeeker(null)">← All Seekers</button>${(k=>"all"===k?"":`<span class="chip-outline" style="margin-left:8px">${"tournament"===k?"Tournaments only":"Standard matches only"}</span>`)(metaKindNow())}\n    <div class="sd-hero fedge" style="border-left-color:${t.f?fColor(t.f):"var(--line-2)"};background:${t.f?`linear-gradient(135deg, color-mix(in srgb, ${fColor(t.f)} 16%, #232323), #232323 60%)`:"var(--surface)"}">\n      <div class="sd-ic">${t.f?fBadges(t.f):""}</div>\n      <div style="flex:1;min-width:0">\n        <h2 style="margin:0">${esc(t.name)}</h2>\n        <p class="hint" style="margin:2px 0 0">${t.f?esc(factionLabel(t.f))+" · ":""}${a} ${1===a?"game":"games"} · pick ${pct(i)}</p>\n      </div>\n      <div class="sd-wr" style="color:${wrTone(s)}">${pct(s)}</div>\n    </div>`;const o=Object.keys(t.vs).map(e=>{const n=t.vs[e],a=seekerByNorm(e);return{k:e,name:a?a.name:e,f:a?a.f:"",...n,n:n.w+n.l}}).sort((e,n)=>n.n-e.n);r+=(o.length?(MU=>{const B=[...o].sort((a,b)=>b.w/b.n-a.w/a.n||b.n-a.n),G=B.filter(x=>x.w/x.n>=.5),W=B.filter(x=>x.w/x.n<.5).reverse();return`${G.length?'<h3 style="margin:20px 0 8px">Best matchups</h3>'+G.map(MU).join(""):""}${W.length?'<h3 style="margin:20px 0 8px">Worst matchups</h3>'+W.map(MU).join(""):""}`})(e=>{const n=e.w/e.n,t=Math.round(e.w/e.n*100);return`<div class="mu-row${e.n<3?" weak":""}">\n        <div class="mu-ic">${e.f?fBadges(e.f):""}</div>\n        <div class="mu-nm">vs ${esc(e.name.split(",")[0])}</div>\n        <div class="mu-bar"><i class="mw" style="width:${t}%"></i><i class="ml" style="width:${100-t}%"></i></div>\n        <div class="mu-val"><b style="color:${wrTone(n)}">${pct(n)}</b><small>${e.w}–${e.l}</small></div>\n      </div>`}):'<h3 style="margin:20px 0 8px">Matchups</h3><div class="empty">No matchup data yet.</div>');const l=Object.keys(t.ter).map(e=>({t:e,...t.ter[e],n:t.ter[e].w+t.ter[e].l})).sort((e,n)=>n.n-e.n);l.length&&(r+=`<h3 style="margin:20px 0 8px">By terrain</h3>\n      <div class="tgrid">${l.map(e=>{const n=e.w/e.n;return`<div class="tcell" style="border-top:2px solid ${wrToneBar(n)}">\n          <b style="color:${wrTone(n)}">${pct(n)}</b>\n          <small>${esc(e.t)} · ${e.n} g.</small></div>`}).join("")}</div>`);{const e={},t=[];(cache.pubDecks||[]).forEach(n=>{e[n.id]||(e[n.id]=1,t.push(n))}),(cache.myDecks||[]).forEach(n=>{e[n.id]||(e[n.id]=1,t.push(n))});const a=t.filter(e=>e.cards&&normName(e.seeker||"")===n),s={};a.forEach(e=>Object.keys(e.cards).forEach(n=>{const t=s[n]=s[n]||{c:0,d:0};t.c+=e.cards[n],t.d++}));const i=Object.keys(s).map(e=>({cn:e,...s[e]})).sort((e,n)=>n.c-e.c).slice(0,10),o=(cache.pubDecks||[]).filter(e=>e.cards&&normName(e.seeker||"")===n);o.length&&(r+='<h3 style="margin:18px 0 8px">Public decks</h3>'+o.slice(0,8).map(e=>`\n        <div class="sk-row plain">\n          <div class="sk-main"><div class="sk-name plainname">${esc(e.name)}</div>\n            <div class="sk-sub">${metaIsGlobal()?"":`by ${esc((cache.profNames||{})[e.user_id]||"a Seeker")} · `}${deckMainCount(e.cards)} cards</div></div>\n          <a class="dk-open" href="#/deck/${esc(e.id)}">Open ↗</a>\n        </div>`).join("")),i.length&&(r+='<h3 style="margin:18px 0 2px">Most used cards</h3>'+i.map(e=>{const n=CARD_IDX[e.cn],t=CARDS[n];return`<div class="col-row" onmouseenter="colPrev(${n})" onclick="colPrev(${n})">\n          ${t?cardThumb(n):""}\n          <div class="col-main"><div class="col-name">${esc(e.cn)}</div>\n            <div class="col-sub">${e.c} ${1===e.c?"copy":"copies"} in ${e.d} ${1===e.d?"deck":"decks"}</div></div>\n          <div class="col-facs">${t?fBadges(t.f):""}</div>\n        </div>`}).join(""))}return r}/* Seekers say what people bring; decks say what they actually built. Only a
    result that names a deck can tell us anything, so a league where nobody
    attaches one gets the note instead of a table. */
 function metaDeckRows(e){const n={},t=(e,t)=>{if(!e)return;const a=n[e]=n[e]||{id:e,w:0,l:0};t?a.w++:a.l++};return(e||[]).forEach(e=>{t(e.winner_deck_id,!0),t(e.loser_deck_id,!1)}),Object.values(n).map(e=>{const n=e.w+e.l;return{...e,n:n,wr:n?e.w/n:0}}).sort((e,n)=>n.wr-e.wr||n.n-e.n)}
 function metaDecksBlock(e){const n=metaDeckRows(e),t=cache.deckMeta||{},G=metaIsGlobal();
-  if(!n.length)return'<div class="tm-label" style="margin:22px 0 8px">Top decks</div><div class="empty">No result names a deck yet. Pick each player&rsquo;s deck under “What they brought” when you set up a tournament, and the decks people are winning with show up here.</div>';
+  if(!n.length)return'<div class="empty">No result names a deck yet. Pick each player&rsquo;s deck under “What they brought” when you set up a tournament, and the decks people are winning with show up here.</div>';
   const a=Math.max(...n.map(e=>e.n),1);
-  return'<div class="tm-label" style="margin:22px 0 8px">Top decks<span style="text-transform:none;letter-spacing:0">faded = under 3 games</span></div>'+n.slice(0,10).map((e,n)=>{const s=t[e.id],i=s?`go('deck',{deckId:${jsq(e.id)}})`:"";
+  return n.slice(0,10).map((e,n)=>{const s=t[e.id],i=s?`go('deck',{deckId:${jsq(e.id)}})`:"";
     /* The precon lists are all by the Malediction Team: naming it on every row says nothing, so those rows show only the Seeker. */
     const au=s?(cache.profNames||{})[s.user_id]||"a Seeker":"not shared",by=G?(s?s.seeker?esc(s.seeker.split(",")[0]):"":"not shared"):[s&&"Malediction Team"===au?"":esc(au),s&&s.seeker?esc(s.seeker.split(",")[0]):""].filter(Boolean).join(" · ");
     return`<div class="bar-row wide dk-row${e.n<3?" weak":""}"${i?` onclick="${i}" role="button" tabindex="0" onkeydown="if(event.key==='Enter')${i}"`:' style="cursor:default"'}>
@@ -6112,7 +6200,7 @@ window.addEventListener("DOMContentLoaded",anView);
 const APP_VERSION="2026.11.01";
 const FD_K={bug:"Bug",idea:"Idea",other:"Other"},FD_ST={new:"New",seen:"Seen",done:"Done"};
 let fdDraft="",fdKindSel="bug",fdContactDraft="",fdContactFor=null,fdMine=null,admNewAt=0,admSeq=0;
-const adm={tab:"reports",st:"all",kind:"all",days:30,list:null,names:{},stats:{}};
+const adm={tab:"reports",st:"all",kind:"all",days:30,list:null,names:{},stats:{},load:{},errs:[],showH:!1,errBase:null,errAt:0,mem:null,jump:""};
 function fdErrText(r){const e=r&&r.error;return e?[e.code,e.message,e.hint,e.details].filter(Boolean).join(" "):""}
 /* The table or function is not there yet: run the migration. */
 function fdMissing(r){return!!(r&&r.error)&&(/PGRST20[0-9]|PGRST205|42P01|42883|schema cache|does not exist|Could not find/i.test(fdErrText(r))||404===r.status)}
@@ -6266,20 +6354,42 @@ async function renderAdmin(){
   if("1"!==anSS("sl.adpurge")){anSS("sl.adpurge","1");try{sb.rpc("purge_app_events").then(()=>{},()=>{})}catch(e){}}
   el.innerHTML=`<div class="panel plain adm">
     <div class="adm-head"><h2>Admin</h2><p class="hint">Player feedback, errors and anonymous usage. Only site admins can open this page.</p></div>
+    <div class="adm-ov" id="adm-ov" role="group" aria-label="Overview"></div>
     <nav class="tabs adm-tabs" id="adm-tabs" aria-label="Admin sections"></nav>
     <div id="adm-pane"></div>
   </div>`;
   admPaintTabs();admPane();
+  admLoad(adm.days).then(()=>{"admin"===route.view&&admPaintTabs()});
   admCountNew(!0).then(()=>{renderChrome();admPaintTabs()});
 }
 function admPaintTabs(){
   const n=$("adm-tabs");if(!n)return;
-  n.innerHTML=[["reports","Reports"],["errors","Errors"],["usage","Usage"]].map(([k,l])=>`<button type="button" class="${adm.tab===k?"active":""}" aria-pressed="${adm.tab===k}" onclick="admTab(${jsq(k)})">${l}${"reports"===k?admBadge(cache.fbNew):""}</button>`).join("");
+  const ne=admErrUnseen(),a=document.activeElement,fi=a&&a.parentNode===n?[...n.children].indexOf(a):-1;
+  n.innerHTML=[["reports","Reports"],["errors","Errors"],["usage","Usage"]].map(([k,l])=>`<button type="button" class="${adm.tab===k?"active":""}" aria-pressed="${adm.tab===k}" onclick="admTab(${jsq(k)})">${l}${"reports"===k?admBadge(cache.fbNew):"errors"===k?admBadge(ne):""}</button>`).join("");
+  fi>=0&&n.children[fi]&&n.children[fi].focus({preventScroll:!0});
+  admOvPaint();
+}
+/* Overview strip above the tabs: what needs a look, then the period's numbers.
+   Each tile opens the tab that explains it. */
+function admOvHtml(){
+  const d=adm.days,s=adm.stats[d],T=s&&s.totals||{},F=s&&s.funnel||{},E=s&&Array.isArray(s.errors)?s.errors:null,
+    nr=+cache.fbNew||0,live=E?E.filter(e=>"yes"!==admErrHand(e)):[],ne=live.filter(admErrNew).length,q=v=>s?fdNum(v):"–",per=d+" days";
+  return[["reports","New reports",fdNum(nr),nr?"waiting to be read":"all read",nr>0],
+    ["errors","Errors · "+per,E?fdNum(live.length):"–",E?ne?ne+" new":live.length?"nothing new":"none to look at":"",ne>0],
+    ["usage","Sessions · "+per,q(T.sessions),s?fdNum(T.views)+" page views":"",!1],
+    ["signup","Sign-ups · "+per,q(F.signup_ok_any),s?"accounts, all sessions":"",!1]]
+    .map(([k,l,v,sub,hot])=>`<button type="button" class="adm-ov-t${hot?" hot":""}" onclick="admOvGo(${jsq(k)})"><small>${esc(l)}</small><b>${v}</b><span>${esc(sub)}</span></button>`).join("");
+}
+function admOvPaint(){const o=$("adm-ov");if(!o)return;const a=document.activeElement,fi=a&&a.parentNode===o?[...o.children].indexOf(a):-1;o.innerHTML=admOvHtml();fi>=0&&o.children[fi]&&o.children[fi].focus({preventScroll:!0})}
+function admOvGo(k){
+  if(!/^(reports|errors|usage|signup)$/.test(k))return;
+  "reports"===k&&(adm.st="new",adm.kind="all");"signup"===k&&(adm.jump="funnel");
+  admTab("signup"===k?"usage":k);
 }
 function admTab(t){if(!/^(reports|errors|usage)$/.test(t))return;adm.tab=t;admPaintTabs();admPane()}
 function admPane(){$("adm-pane")&&("reports"===adm.tab?admReports():admStatsPane())}
 function admSeg(label,cur,opts,fn){return`<div class="seg adm-seg" role="group" aria-label="${label}">${opts.map(([k,l])=>`<button type="button" class="seg-b${cur===k?" on":""}" aria-pressed="${cur===k}" onclick="${fn}(${jsq(k)})">${l}</button>`).join("")}</div>`}
-function admFilt(w,v){"st"===w&&("all"===v||FD_ST[v])&&(adm.st=v);"kind"===w&&("all"===v||FD_K[v])&&(adm.kind=v);admReports()}
+function admFilt(w,v){"st"===w&&("all"===v||FD_ST[v])&&(adm.st=v);"kind"===w&&("all"===v||FD_K[v])&&(adm.kind=v);const fs=slFocusSig();admReports();slFocusBack(fs)}
 function admSt(v){admFilt("st",v)}
 function admKind(v){admFilt("kind",v)}
 async function admReports(){
@@ -6352,8 +6462,17 @@ async function admSave(i,s){
   const c=$("adm-fb-"+i);c&&(c.outerHTML=admCard(f,i));
   admCountNew(!0).then(()=>{renderChrome();admPaintTabs()});
 }
-function admDays(d){d=+d;[7,30,90].includes(d)&&(adm.days=d,admStatsPane())}
-function admRefresh(){adm.stats={};admPane()}
+function admDays(d){d=+d;if(![7,30,90].includes(d))return;const fs=slFocusSig();adm.days=d;admStatsPane();slFocusBack(fs)}
+function admRefresh(){const r=document.activeElement&&document.activeElement.classList.contains("adm-ref");adm.stats={};adm.load={};admPane();const b=r&&document.querySelector("#adm-pane .adm-ref");b&&b.focus({preventScroll:!0})}
+/* One admin_stats call per period, shared by the overview strip and the
+   Errors and Usage tabs. Failures are not kept, so Refresh can retry. */
+function admLoad(d){
+  if(adm.stats[d])return Promise.resolve({data:adm.stats[d],error:null});
+  if(adm.load[d])return adm.load[d];
+  const p=adm.load[d]=(async()=>{let r;try{r=await sb.rpc("admin_stats",{p_days:d})}catch(e){r={error:{message:"network"}}}
+    adm.load[d]===p&&delete adm.load[d];!r.error&&r.data&&(adm.stats[d]=r.data);return r})();
+  return p;
+}
 async function admStatsPane(){
   const p=$("adm-pane");if(!p)return;
   const seq=++admSeq,d=adm.days,tab=adm.tab;
@@ -6361,29 +6480,123 @@ async function admStatsPane(){
     <p class="fd-small" style="margin:0 0 14px">Anonymous: no user ids, no IPs. Kept 90 days.</p><div id="adm-stats"><div class="empty"><span class="spinner"></span> Loading…</div></div>`;
   let s=adm.stats[d];
   if(!s){
-    let r;try{r=await sb.rpc("admin_stats",{p_days:d})}catch(e){r={error:{message:"network"}}}
+    const r=await admLoad(d);
     if(seq!==admSeq)return;
     const o=$("adm-stats");if(!o)return;
     if(r.error||!r.data)return void(o.innerHTML=r.error&&fdMissing(r)?admMigrate():admFail(r));
-    s=adm.stats[d]=r.data;
+    s=r.data;
   }
   const o=$("adm-stats");if(!o||seq!==admSeq)return;
+  "errors"===tab&&admErrVisit();
   o.innerHTML="errors"===tab?admErrorsHtml(s):admUsageHtml(s);
+  admPaintTabs();
+  if("usage"===tab&&"funnel"===adm.jump){adm.jump="";const f=$("adm-funnel"),q=$("adm-fnote");q&&q.classList.add("adm-hl");f&&f.scrollIntoView({block:"center"})}
+}
+/* Errors tab memory, on this device only (localStorage, one key per admin):
+   when the admin last opened the tab, and the errors they marked handled, each
+   with the last_seen it had then. A newer last_seen brings an error back. */
+function admErrMem(){
+  const id=me&&me.id||"";if(adm.mem&&adm.mem.id===id)return adm.mem;
+  let o=null;try{o=JSON.parse(localStorage.getItem("sl.admerr."+id)||"null")}catch(e){}
+  o&&"object"==typeof o||(o={});
+  /* No prototype, and text values only, so an error named "constructor" or
+     "__proto__" is never taken for one that was marked handled. */
+  const h=Object.create(null),src=o.handled&&"object"==typeof o.handled?o.handled:{};
+  Object.keys(src).forEach(k=>{"string"==typeof src[k]&&(h[k]=src[k])});
+  return adm.mem={id,seen:+o.seen||0,base:+o.base||0,at:+o.at||0,handled:h};
+}
+function admErrSave(){const m=adm.mem;if(!m)return;try{localStorage.setItem("sl.admerr."+m.id,JSON.stringify({seen:m.seen,base:m.base,at:m.at,handled:m.handled}))}catch(e){}}
+/* A visit to the tab: "New" means seen after the visit before it. Painting
+   the tab again within half an hour of the last paint, a reload included,
+   keeps the same visit; it is stored with the rest, so it survives a reload.
+   seen moves on every paint: the tab badge only counts what came after it. */
+const ADM_VISIT=18e5;
+function admErrVisit(){
+  const m=admErrMem(),t=Date.now();
+  t>=m.at&&t-m.at<ADM_VISIT||(m.base=m.seen);
+  m.at=t;m.seen=t;admErrSave();
+}
+function admErrHand(e){const H=admErrMem().handled,k=e&&e.name,h=null!=k&&Object.prototype.hasOwnProperty.call(H,k)?H[k]:"";if(!h)return"";const a=Date.parse(e.last_seen),b=Date.parse(h);return a>b?"back":"yes"}
+function admErrNew(e){const m=admErrMem(),t=Date.now(),b=t>=m.at&&t-m.at<ADM_VISIT?m.base:m.seen;return"yes"!==admErrHand(e)&&Date.parse(e.last_seen)>b}
+/* For the tab badge: not handled and newer than the last time the tab was opened. */
+function admErrUnseen(){const s=adm.stats[adm.days],E=s&&Array.isArray(s.errors)?s.errors:[],b=admErrMem().seen;return E.filter(e=>"yes"!==admErrHand(e)&&Date.parse(e.last_seen)>b).length}
+const ADM_BR={chrome:"Chrome",safari:"Safari",firefox:"Firefox",edge:"Edge",samsung:"Samsung Internet",opera:"Opera",other:"Other browser"};
+const ADM_SRC={js:"Crash",promise:"Failed request",toast:"Error message"};
+/* The readable part of an error row: the message without the "js: Uncaught
+   TypeError:" prefix, its type, and the first named function in the stack
+   (Chrome "at fn (:line:col)" or Safari/Firefox "fn@:line:col"). */
+function admErrParse(e){
+  const raw=String(e&&e.name||""),d=e&&e.sample_detail&&"object"==typeof e.sample_detail?e.sample_detail:{},
+    m0=/^(js|promise|toast):\s*/.exec(raw),src=m0?m0[1]:"",
+    m1=raw.slice(m0?m0[0].length:0).replace(/^Uncaught\s+(\(in promise\)\s*)?/i,""),
+    tm=/^([A-Z][A-Za-z]*(?:Error|Exception)):\s*/.exec(m1),
+    st=String(d.stack||""),
+    fr=st.split("\n").map(l=>{let m=/^\s*at\s+(?:async\s+)?(?:new\s+)?(\S+)\s+\((.*?):(\d+):(\d+)\)\s*$/.exec(l);if(m)return{fn:m[1],ln:m[3],col:m[4]};m=/^\s*(?:async\*)?([^@\s]+)@(.*?):(\d+):(\d+)\s*$/.exec(l);return m?{fn:m[1].replace(/(?:\/?<)+$|\/+$/,""),ln:m[3],col:m[4]}:null}).filter(x=>x&&x.fn&&!/<anonymous>/.test(x.fn)),
+    f=fr[0];
+  return{src,type:tm?tm[1]:"",msg:(tm?m1.slice(tm[0].length):m1).trim()||raw||"Unknown error",fn:f?f.fn.replace(/^Object\./,""):"",
+    at:f?f.ln+":"+f.col:+d.line>0?d.line+":"+(+d.col||0):"",calls:fr.slice(1,4).map(x=>x.fn.replace(/^Object\./,"")),
+    br:(Object.prototype.hasOwnProperty.call(ADM_BR,d.br)?ADM_BR[d.br]:"")||(d.br?String(d.br):"Not recorded"),stack:st,d};
+}
+function admErrUtc(t){const x=null==t||""===t?NaN:new Date(t);return isNaN(x)?"unknown":x.toISOString().slice(0,16).replace("T"," ")+" UTC"}
+function admErrText(e){
+  const p=admErrParse(e),x=Object.assign({},p.d);delete x.stack;
+  return["Seekers League error",
+    "Message: "+(p.type?p.type+": ":"")+p.msg,
+    "Kind: "+(ADM_SRC[p.src]||"other")+(p.src?" ("+p.src+")":""),
+    "Page: "+(e.sample_path||"none"),
+    "Function: "+(p.fn?p.fn+(p.at?" at line "+p.at:""):p.at?"line "+p.at:"unknown")+(p.calls.length?", called from "+p.calls.join(" < "):""),
+    "Browser: "+p.br,
+    "Seen: "+fdNum(e.sessions)+(1==e.sessions?" session, ":" sessions, ")+fdNum(e.hits)+(1==e.hits?" hit (":" hits (")+fdNum(e.count)+" logged)",
+    "First: "+admErrUtc(e.first_seen)+", last: "+admErrUtc(e.last_seen),
+    "Stack:"+(p.stack?"\n"+p.stack:" none recorded"),
+    "Detail: "+JSON.stringify(x)].join("\n");
+}
+function admErrCopy(i){const e=adm.errs[i];e&&copyText(admErrText(e),()=>toast("Copied for the developer",!0))}
+function admErrCopyAll(){const L=adm.errs.filter(e=>"yes"!==admErrHand(e));L.length&&copyText(L.map(admErrText).join("\n\n----\n\n"),()=>toast(L.length+" errors copied for the developer",!0))}
+function admHandle(i,on){
+  const e=adm.errs[i];if(!e)return;const m=admErrMem();
+  on?m.handled[e.name]=e.last_seen:delete m.handled[e.name];
+  const ks=Object.keys(m.handled);ks.length>300&&ks.sort((a,b)=>Date.parse(m.handled[a])-Date.parse(m.handled[b])).slice(0,ks.length-300).forEach(k=>delete m.handled[k]);
+  admErrSave();admErrPaint();
+  /* The pressed button is gone with the repaint: focus goes to the same card
+     if it is still shown, else to the next one, else to Show handled. */
+  const C=[...document.querySelectorAll("#adm-stats .adm-errc")],ix=c=>+c.id.slice(7),
+    t=C.find(c=>ix(c)===i)||C.find(c=>ix(c)>i)||C[C.length-1],
+    b=t?t.querySelector(ix(t)===i?".adm-hdl":".adm-cp"):document.querySelector("#adm-stats .adm-showh");
+  b&&b.focus({preventScroll:!0});
+  toast(on?"Marked as handled on this device":"Moved back to the list",!0);
+}
+function admShowHandled(){adm.showH=!adm.showH;admErrPaint();const b=document.querySelector("#adm-stats .adm-showh");b&&b.focus({preventScroll:!0})}
+function admErrPaint(){const o=$("adm-stats"),s=adm.stats[adm.days];o&&s&&"errors"===adm.tab&&(admErrVisit(),o.innerHTML=admErrorsHtml(s));admPaintTabs()}
+function admErrCard(e,i,h){
+  const p=admErrParse(e),nw=admErrNew(e),x=Object.assign({},p.d);delete x.stack;
+  return`<article class="fd-item adm-errc${"yes"===h?" is-hdl":""}${nw?" is-new":""}" id="adm-er-${i}">
+    <div class="fd-top">${nw?'<span class="fd-tag st-new">New</span>':""}${"back"===h?'<span class="fd-tag k-bug">Back after handled</span>':""}${"yes"===h?'<span class="fd-tag st-done">Handled</span>':""}<span class="fd-tag">${esc(p.type||ADM_SRC[p.src]||"Error")}</span><span class="fd-when">${esc(cbAgo(e.last_seen))}</span></div>
+    <p class="adm-emsg">${esc(p.msg)}</p>
+    ${"toast"===p.src?'<p class="adm-enote">Shown to the player as an error message.</p>':"Script error."===p.msg?'<p class="adm-enote">The browser hid the details: usually an extension or a script from another site.</p>':""}
+    <dl class="adm-kv">
+      <div><dt>Where</dt><dd><span>${p.fn?`<code class="adm-fn">${esc(p.fn)}</code> on `:""}<b>${esc(e.sample_path||"no page")}</b>${p.calls.length?`<small class="adm-calls">called from ${p.calls.map(esc).join(", ")}</small>`:""}</span></dd></div>
+      <div><dt>Browser</dt><dd>${esc(p.br)}</dd></div>
+      <div><dt>Who</dt><dd>${fdNum(e.sessions)} session${1==e.sessions?"":"s"} · ${fdNum(e.hits)} hit${1==e.hits?"":"s"}</dd></div>
+      <div><dt>Last</dt><dd>${esc(fdWhen(e.last_seen))}</dd></div>
+      <div><dt>First</dt><dd>${esc(fdWhen(e.first_seen))}</dd></div>
+    </dl>
+    <details class="fd-inc"><summary>Raw details</summary><pre class="adm-pre">${esc(e.name)}${p.stack?"\n\n"+esc(p.stack):""}\n\n${esc(JSON.stringify(Object.assign({logged:e.count},x),null,2))}</pre></details>
+    <div class="adm-acts"><button type="button" class="ghost adm-cp" onclick="admErrCopy(${i})">Copy for the developer</button><button type="button" class="ghost adm-hdl" onclick="admHandle(${i},${"yes"===h?0:1})">${"yes"===h?"Not handled":"Mark as handled"}</button></div>
+  </article>`;
 }
 function admErrorsHtml(s){
-  const L=Array.isArray(s.errors)?s.errors:[];
+  const L=adm.errs=Array.isArray(s.errors)?s.errors:[];
   if(!L.length)return'<div class="empty">No errors recorded in this period.</div>';
-  return`<p class="fd-small">Grouped by message, most widespread first. A tab sends each error once: <b>sessions</b> is how many visits hit it, <b>hits</b> counts repeats too.</p><div class="adm-list">`+L.map(e=>`<article class="fd-item adm-errc">
-    <p class="adm-err">${esc(e.name)}</p>
-    <div class="adm-nums"><span class="adm-chip"><b>${fdNum(e.count)}</b> reports</span><span class="adm-chip"><b>${fdNum(e.hits)}</b> hits</span><span class="adm-chip"><b>${fdNum(e.sessions)}</b> sessions</span></div>
-    <dl class="adm-kv">
-      <div><dt>Last seen</dt><dd>${esc(fdWhen(e.last_seen))}</dd></div>
-      <div><dt>First</dt><dd>${esc(fdWhen(e.first_seen))}</dd></div>
-      ${e.sample_path?`<div><dt>Page</dt><dd>${esc(e.sample_path)}</dd></div>`:""}
-    </dl>
-    ${e.sample_detail?`<details class="fd-inc"><summary>Detail</summary><pre class="adm-pre">${esc(JSON.stringify(e.sample_detail,null,2))}</pre></details>`:""}
-  </article>`).join("")+"</div>";
+  const H=L.map(admErrHand),nh=H.filter(h=>"yes"===h).length,sh=adm.showH,
+    vis=L.map((e,i)=>i).filter(i=>sh||"yes"!==H[i]),nn=L.filter(admErrNew).length;
+  return`<div class="adm-esum"><span><b>${L.length-nh}</b> to look at${nn?` · <b class="c-new">${nn}</b> new since your last look`:""}${nh?` · ${nh} handled`:""}</span><span class="adm-ebtn">${L.length>nh?'<button type="button" class="act" onclick="admErrCopyAll()">Copy all</button>':""}${nh?`<button type="button" class="ghost adm-showh" aria-pressed="${sh}" onclick="admShowHandled()">${sh?"Hide handled":"Show handled"}</button>`:""}</span></div>
+  <p class="fd-small">Most widespread first. <b>Sessions</b> is roughly how many people hit the error. <b>Handled</b> marks are saved on this device only, and an error comes back if it happens again.</p>
+  ${vis.length?`<div class="adm-list">${vis.map(i=>admErrCard(L[i],i,H[i])).join("")}</div>`:`<div class="empty">All errors in this period are marked handled.</div>`}`;
 }
+/* Readable names for the tracked actions in Usage; an unknown one shows as sent. */
+const ADM_ACT={deck_save:"Saved a deck",deck_import:"Imported a deck",deck_adopt:"Copied a public deck",deck_delete:"Deleted a deck",deck_make_public:"Made a deck public",league_join:"Joined a community",league_create:"Created a community",notice_post:"Posted a notice",notice_delete:"Deleted a notice",event_list:"Listed an event",event_unlist:"Removed an event listing",invite_copy:"Copied an invite",tournament_generate:"Made tournament pairings",tournament_result:"Entered a tournament result",tournament_finalize:"Finished a tournament",free_battle_delete:"Deleted a free battle",delete_undo:"Undid a delete",notify_on:"Turned on notifications",notify_ios_help:"Opened iPhone notification help",feedback_send:"Sent feedback",find_nearest:"Looked for nearby communities",oauth_start:"Started sign-in with a provider",signin_ok:"Signed in",signup_submit:"Sent the sign-up form",signup_ok:"Created an account"};
+function admActName(n){return(Object.prototype.hasOwnProperty.call(ADM_ACT,n)?ADM_ACT[n]:"")||String(n||"")}
 /* Bars are too thin to hit on a phone and a title never shows on touch, so a
    tap anywhere on the chart names the day under the finger in the caption. */
 function admBarTap(e){
@@ -6399,7 +6612,7 @@ function admUsageHtml(s){
     D=Array.isArray(s.per_day)?s.per_day:[],mx=D.reduce((m,x)=>Math.max(m,+x.sessions||0),0),
     F=s.funnel||{},FB=s.feedback||{},
     steps=[["auth_view","Opened the sign-in page"],["signup_submit","Sent the sign-up form"],["signup_ok","Account created"],["league_join","Joined a community"]],f0=+F.auth_view||0;
-  return`<div class="adm-tiles">${[[fdNum(T.views),"Page views"],[fdNum(ses),"Sessions"],[pc(si,ses),"Signed in"],[pc(mob,ses),"On a phone"]].map(([v,l])=>`<div class="adm-tile"><b>${v}</b><small>${l}</small></div>`).join("")}</div>
+  return`<div class="adm-tiles">${[[ses?(+T.views/ses).toFixed(1):"–","Pages per session"],[fdNum(mx),"Busiest day"+(mx?", "+fdDay((D.find(x=>(+x.sessions||0)===mx)||{}).day):"")],[pc(si,ses),"Signed in"],[pc(mob,ses),"On a phone"]].map(([v,l])=>`<div class="adm-tile"><b>${v}</b><small>${l}</small></div>`).join("")}</div>
   <div class="adm-grid">
     <section class="adm-sec adm-span"><h3 class="adm-h">Sessions per day</h3>
     <div class="adm-chart" role="list" aria-label="Sessions per day" onclick="admBarTap(event)">${D.map(x=>{const v=+x.sessions||0,h=mx?Math.max(v?4:1,Math.round(100*v/mx)):1,lab=fdDay(x.day)+": "+v+" session"+(1===v?"":"s");return`<div class="adm-bar${v?"":" zero"}" role="listitem" style="height:${h}%" title="${esc(lab)}" aria-label="${esc(lab)}"></div>`}).join("")}</div>
@@ -6409,10 +6622,10 @@ function admUsageHtml(s){
     <section class="adm-sec"><h3 class="adm-h">Top pages</h3>
     ${admRows(["Page","Views","Sessions"],(Array.isArray(s.top_paths)?s.top_paths:[]).map(x=>[x.path||"(none)",x.views,x.sessions]))}</section>
     <section class="adm-sec"><h3 class="adm-h">Top actions</h3>
-    ${admRows(["Action","Count","Sessions"],(Array.isArray(s.top_actions)?s.top_actions:[]).map(x=>[x.name,x.count,x.sessions]))}</section>
-    <section class="adm-sec"><h3 class="adm-h">Sign-up funnel</h3>
-    <ol class="adm-funnel">${steps.map(([k,l],j)=>{const v=+F[k]||0,pv=j?+F[steps[j-1][0]]||0:v;return`<li><div class="adm-f-top"><span>${j+1}. ${l}</span><b>${v}</b></div><div class="adm-f-track"><div class="adm-f-fill" style="width:${f0?Math.round(100*Math.min(v,f0)/f0):0}%"></div></div><small>${j?pc(v,pv)+" of the step before · "+pc(v,f0)+" of step 1":"Step 1"}</small></li>`}).join("")}</ol>
-    <p class="fd-small">Each step counts tab sessions that did it after the steps before. Confirming an email opens a new tab, so across all sessions: <b>${fdNum(F.signup_ok_any)}</b> accounts created, <b>${fdNum(F.league_join_any)}</b> community joins.</p></section>
+    ${admRows(["Action","Count","Sessions"],(Array.isArray(s.top_actions)?s.top_actions:[]).map(x=>[admActName(x.name),x.count,x.sessions]))}</section>
+    <section class="adm-sec" id="adm-funnel"><h3 class="adm-h">Sign-up funnel</h3>
+    <ol class="adm-funnel">${steps.map(([k,l],j)=>{const v=+F[k]||0,pv=j?+F[steps[j-1][0]]||0:v;return`<li><div class="adm-f-top"><span>${j+1}. ${l}</span><b>${v}</b></div><div class="adm-f-track"><div class="adm-f-fill" style="width:${f0?Math.round(100*Math.min(v,f0)/f0):0}%"></div></div><small>${j?pc(v,pv)+" of the step before · "+pc(v,f0)+" of step 1":"Step 1"}${"signup_ok"===k&&null!=F.signup_ok_any&&+F.signup_ok_any!==v?` · <b>${fdNum(F.signup_ok_any)}</b> across all sessions`:""}</small></li>`}).join("")}</ol>
+    <p class="fd-small" id="adm-fnote">Each step counts tab sessions that did it after the steps before. Confirming an email opens a new tab, so across all sessions: <b>${fdNum(F.signup_ok_any)}</b> accounts created, <b>${fdNum(F.league_join_any)}</b> community joins.</p></section>
     <section class="adm-sec"><h3 class="adm-h">Feedback</h3>
     <div class="adm-tiles adm-mini">${[[FB.total,"In all"],[FB.new,"New"],[FB.seen,"Seen"],[FB.done,"Done"]].map(([v,l])=>`<div class="adm-tile"><b>${fdNum(v)}</b><small>${l}</small></div>`).join("")}</div>
     <p class="fd-small"><b>${fdNum(FB.in_period)}</b> sent in this period.</p></section>
