@@ -186,7 +186,7 @@ a.pf-ln:hover{text-decoration:underline}
 .mx-row i{font-style:normal;font-family:Oswald,sans-serif;font-size:15px;font-weight:600;color:var(--bone-dim);text-align:right}
 .mx-empty{flex:1;display:flex;align-items:center;margin:6px 0;font-size:12.5px;line-height:1.4;color:var(--bone-dim)}
 .mx-foot{margin-top:auto;padding-top:4px;font-size:11px;color:var(--bone-faint)}
-.mc-head.end{justify-content:flex-end}
+.mc-head.end{justify-content:flex-end}.mc-sort{margin:4px 0 6px}.mc-sort .seg{display:flex;width:100%}.mc-sort .seg-b{flex:1 1 auto;padding:0 4px}
 .rec-lab{padding-right:24px}
 @media(max-width:760px){.mx-grid,.pod-grid{gap:8px}}
 @media(max-width:620px){
@@ -2397,7 +2397,7 @@ function mcSortRows(rows){const m=mcSortMode(),un=r=>r.n?0:1,r=rows.slice();
   if(m==='pick')return r.sort((a,b)=>un(a)-un(b)||(b.pick||0)-(a.pick||0)||b.n-a.n);
   return r.sort((a,b)=>un(a)-un(b)||(b.share||0)-(a.share||0)||b.n-a.n||a.name.localeCompare(b.name))}
 function mcSortBar(){const m=mcSortMode();
-  return `<span class="seg mc-seg" role="group" aria-label="Sort by">${[['score','Win per pick'],['wr','Win rate'],['n','Games'],['pick','Pick rate']].map(([k,l])=>`<button class="seg-b ${m===k?'on':''}" aria-pressed="${m===k}" onclick="localStorage.setItem('sl.metasort',${jsq(k)});window._metaRepaint&&window._metaRepaint()">${l}</button>`).join('')}</span>`}
+  return `<span class="seg mc-seg" role="group" aria-label="Sort the list by">${[['score','Win per pick'],['wr','Win rate'],['n','Games'],['pick','Pick rate']].map(([k,l])=>`<button class="seg-b ${m===k?'on':''}" aria-pressed="${m===k}" onclick="localStorage.setItem('sl.metasort',${jsq(k)});window._metaRepaint&&window._metaRepaint()">${l}</button>`).join('')}</span>`}
 /* A tab row (.seg) that does not fit scrolls sideways instead of wrapping.
    Whenever a row is drawn, or its active tab changes in place, the active tab
    is brought into view inside the row; the page itself never moves. */
@@ -2468,8 +2468,8 @@ function metaChart(rows,opts){
   const key=`<div class="mc-legend"><span><i class="lg-c" style="background:#3fb96e"></i>&gt;55% win rate</span><span><i class="lg-c" style="background:#d9a134"></i>45&ndash;55%</span><span><i class="lg-c" style="background:#ef3d55"></i>&lt;45%</span><span><i class="lg-c" style="background:#3a3733"></i>never played</span></div>`;
   /* The Meta page states its match count in the bar on top,
      so only a player's own chart says how many games it is built on. */
-  const head=opts.personal?`<div class="mc-head"><span class="mc-hint">${total} game${1===total?'':'s'} logged</span>${mcSortBar()}</div>`:`<div class="mc-head end">${mcSortBar()}</div>`;
-  return `${head}${seekerPies(played,matches)}<div class="tm-label" style="margin:16px 0 2px">${opts.personal?'Where the wins come from <span class="mc-sub">&mdash; each Seeker&rsquo;s share of all wins</span>':'Win per pick <span class="mc-sub">&mdash; share of every win in the meta</span>'}</div><div class="wr-list">${bars}</div>${key}`}
+  const head=opts.personal?`<div class="mc-head"><span class="mc-hint">${total} game${1===total?'':'s'} logged</span></div>`:'';
+  return `${head}${seekerPies(played,matches)}<div class="tm-label" style="margin:16px 0 2px">${opts.personal?'Where the wins come from <span class="mc-sub">&mdash; each Seeker&rsquo;s share of all wins</span>':'Win per pick <span class="mc-sub">&mdash; share of every win in the meta</span>'}</div><div class="mc-sort">${mcSortBar()}</div><div class="wr-list">${bars}</div>${key}`}
 /* --- torte dei terrain --- */
 function terrainPies(rows){
   const list=rows.slice().sort((a,b)=>b.n-a.n),
