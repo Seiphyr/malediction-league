@@ -11108,3 +11108,1467 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ============================================================
+--  MULTIPLAYER MATCHES (2026-11-17)
+-- ============================================================
+-- Run as migration-2026-11-17-multiplayer.sql.
+-- What changes:
+--   * New tables group_matches and group_match_seats: synced Dominion (3 or
+--     4 players, 40), Allegiance (2v2, 50) and Nemesis (2v1, 50) matches
+--     between signed-in players. One PIN for everyone; seats and sides go
+--     by join order; the match goes live by itself when the last seat fills
+--     (a 4-player Dominion host can start with 3). Only the seated players
+--     read the rows; every change goes through the gm_* functions.
+--   * New functions gm_open, gm_start, gm_set_teams, gm_checkpoint,
+--     gm_claim, gm_answer, gm_leave, gm_cancel, gm_get, gm_mine (signed-in
+--     players) and player_group_matches (the "Multiplayer" profile list,
+--     same visibility as player_matches).
+--   * Owner decisions: a player who leaves a live match is frozen (seat and
+--     Mastery stay, nobody concedes, the others play on). A claim is
+--     confirmed by one player from another side (Dominion: one who did not
+--     win), is saved at once when every player on the other sides has left,
+--     and is saved as claimed after 48 hours.
+--   * The PIN box joins both kinds: duel_join gains a 5-argument version
+--     (p_v) that hands a multiplayer PIN to gm_join; the 4-argument version
+--     cached pages call answers 'needs_update' for one. PINs are unique
+--     across both tables (gen_duel_pin, and the 'duel_pin' lock in duel_open
+--     and gm_open). duel_open and duel_join also cancel the caller's waiting
+--     multiplayer match. duel_sweep runs gm_sweep (same intervals).
+--   * Realtime: private channels 'gm:<id>' (policies on realtime.messages)
+--     and a 'status' broadcast when a match changes.
+--   * erase_user_data: the account's waiting multiplayer matches are
+--     cancelled (or its seat freed) and it is frozen in live ones.
+--   * Not changed: 1v1 results, tournaments, meta_duels and player_matches.
+--     Multiplayer results never reach the Meta or the 1v1 record.
+
+-- 1. Tables ---------------------------------------------------------------------
+-- group_matches: one row per synced multiplayer match. The host opens it
+-- (status waiting, with a 4-digit PIN valid 15 minutes, renewed for 15
+-- minutes at each join but never past an hour after the open), the others
+-- join with the PIN in join order, and the
+-- match goes live by itself when the last seat fills. One player claims the
+-- result (ending), one player from another side confirms it (done), or it is
+-- saved as claimed after 48 hours. rev counts every change except the
+-- checkpoint state; each new rev is broadcast on 'gm:<id>'. Sides:
+-- Allegiance 0 and 1 (2 players each), Nemesis 0 = the Nemesis (1 player)
+-- and 1 = the Union (2 players), Dominion one side per seat (side = seat).
+-- claim_scores is the Mastery of every side, {"0":52,"1":41}. ended_how:
+-- confirmed (a player from another side said yes), auto (48 hours without an
+-- answer), unopposed (nobody could confirm: every player who could had
+-- left). join_pin keeps the PIN after the match goes live (pin is then
+-- null), so a late joiner hears 'full' instead of a wrong PIN.
+create table if not exists public.group_matches (
+  id             uuid primary key default gen_random_uuid(),
+  pin            text,
+  pin_expires_at timestamptz,
+  join_pin       text,                   -- the PIN, kept once live ('full' for a late joiner)
+  status         text not null default 'waiting'
+                 check (status in ('waiting','live','ending','done','cancelled','expired')),
+  mode           text not null check (mode in ('dominion','allegiance','nemesis')),
+  seats          smallint not null,
+  target         int  not null,
+  host_id        uuid not null references public.profiles(id),
+  min_v          smallint not null default 2,
+  rev            int  not null default 0,
+  state          jsonb,
+  state_at       timestamptz,            -- time of the last checkpoint (the 5 s brake)
+  teams_locked   boolean not null default false,
+  claim_by       uuid references public.profiles(id),
+  claim_kind     text check (claim_kind in ('win','draw')),
+  claim_side     smallint,
+  claim_scores   jsonb,
+  claimed_at     timestamptz,            -- saved as claimed after 48 h
+  winner_side    smallint,
+  is_draw        boolean not null default false,
+  ended_how      text check (ended_how in ('confirmed','auto','unopposed')),
+  rounds         int,
+  created_at     timestamptz not null default now(),
+  started_at     timestamptz,
+  ended_at       timestamptz,
+  updated_at     timestamptz not null default now(),
+  constraint gm_seats_mode check ((mode = 'allegiance' and seats = 4) or (mode = 'nemesis' and seats = 3)
+                                  or (mode = 'dominion' and seats in (3, 4))),
+  constraint gm_target_mode check (target = case mode when 'dominion' then 40 else 50 end),
+  constraint gm_pin_only_waiting check ((pin is not null) = (status = 'waiting')),
+  constraint gm_pin_format check (pin is null or pin ~ '^[0-9]{4}$'),
+  constraint gm_claim_shape check ((claim_by is null) = (claim_kind is null)
+                                   and (claim_kind is distinct from 'win' or claim_side is not null)
+                                   and (claim_kind is distinct from 'draw' or claim_side is null)
+                                   and ((claim_kind is null) = (claim_scores is null))),
+  constraint gm_ending_claimed check (status <> 'ending' or claim_by is not null),
+  constraint gm_done_has_result check (status <> 'done'
+                                       or (is_draw and winner_side is null and claim_kind = 'draw')
+                                       or (not is_draw and winner_side is not null and claim_kind = 'win')),
+  constraint gm_draw_done check (not is_draw or status = 'done'),
+  constraint gm_side_range check ((claim_side is null or claim_side between 0 and 3)
+                                  and (winner_side is null or winner_side between 0 and 3)),
+  constraint gm_rounds_range check (rounds is null or rounds between 0 and 999)
+);
+alter table public.group_matches add column if not exists join_pin text;
+create unique index if not exists gm_pin_waiting on public.group_matches(pin) where status = 'waiting';
+create index if not exists idx_gm_host on public.group_matches(host_id, created_at);
+create index if not exists idx_gm_open on public.group_matches(status, updated_at)
+  where status in ('waiting','live','ending');
+create index if not exists idx_gm_done on public.group_matches(ended_at) where status = 'done';
+
+-- group_match_seats: one row per player. The host is seat 0; the others take
+-- the lowest free seat as they join. A player who leaves while the match is
+-- waiting loses the seat (the row goes); a player who leaves once it is live
+-- is frozen (left_at): the seat and its Mastery stay and the match goes on.
+-- final_mastery (the side's Mastery: the team total in team modes), place
+-- (1 = the winner; ties share a place) and result are filled in when the
+-- match is done.
+create table if not exists public.group_match_seats (
+  match_id      uuid not null references public.group_matches(id) on delete cascade,
+  seat          smallint not null check (seat between 0 and 3),
+  user_id       uuid not null references public.profiles(id),
+  side          smallint not null check (side between 0 and 3),
+  seeker        text not null,
+  terrain       text not null,
+  deck_id       uuid references public.decks(id) on delete set null,
+  joined_at     timestamptz not null default now(),
+  left_at       timestamptz,
+  final_mastery int check (final_mastery is null or final_mastery between 0 and 999),
+  place         smallint check (place is null or place between 1 and 4),
+  result        text check (result is null or result in ('win','loss','draw')),
+  constraint group_match_seats_pkey primary key (match_id, seat),
+  constraint group_match_seats_one_seat unique (match_id, user_id)
+);
+create index if not exists idx_gm_seats_user on public.group_match_seats(user_id, match_id);
+create index if not exists idx_gm_seats_deck on public.group_match_seats(deck_id);
+
+-- 2. Who reads them ------------------------------------------------------------
+-- Only the players seated in a match read its rows (a player who left still
+-- does). Nothing is written directly: every change goes through the gm_*
+-- functions below. gm_is_seated is a security definer helper, so the seats
+-- policy does not recurse into itself.
+create or replace function public.gm_is_seated(p_match uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from group_match_seats s
+                  where s.match_id = p_match and s.user_id = auth.uid());
+$$;
+
+alter table public.group_matches enable row level security;
+alter table public.group_match_seats enable row level security;
+revoke all on public.group_matches from anon, authenticated;
+revoke all on public.group_match_seats from anon, authenticated;
+grant select on public.group_matches to authenticated;
+grant select on public.group_match_seats to authenticated;
+drop policy if exists "group players read" on public.group_matches;
+create policy "group players read" on public.group_matches
+  for select to authenticated using (public.gm_is_seated(id));
+drop policy if exists "group seats read" on public.group_match_seats;
+create policy "group seats read" on public.group_match_seats
+  for select to authenticated using (public.gm_is_seated(match_id));
+
+-- 3. Helpers (not callable over the API) ------------------------------------------
+-- The players who may confirm the pending claim: seated, not left, not the
+-- claimer and on a side other than the claimer's. Allegiance and Nemesis:
+-- any player of the other side, whichever side the claim names, so one team
+-- player cannot end the match for their partner without the other side
+-- agreeing. Dominion: any player who did not win and is not the claimer.
+-- When nobody is left in this list (every player who could confirm has
+-- left) the claim is saved at once (unopposed).
+create or replace function public.gm_confirmers(p_id uuid)
+returns setof uuid language sql stable security definer set search_path = public as $$
+  select s.user_id
+    from group_matches g
+    join group_match_seats c on c.match_id = g.id and c.user_id = g.claim_by
+    join group_match_seats s on s.match_id = g.id
+   where g.id = p_id and g.status = 'ending'
+     and s.left_at is null and s.user_id <> g.claim_by and s.side <> c.side
+     and (g.claim_kind = 'draw' or g.mode <> 'dominion' or s.side <> g.claim_side);
+$$;
+
+-- The match as a page sees it: the row, the players (seat order) with their
+-- names, the caller's seat and side, who may confirm the claim and the
+-- server time. players[]: seat, user_id, name, side, seeker, terrain,
+-- deck_id, joined_at, left_at, final_mastery, place, result.
+create or replace function public.gm_json(p_id uuid, p_uid uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  g    group_matches%rowtype;
+  v_me group_match_seats%rowtype;
+begin
+  select * into g from group_matches x where x.id = p_id;
+  if not found then
+    return null;
+  end if;
+  select * into v_me from group_match_seats s where s.match_id = p_id and s.user_id = p_uid;
+  return to_jsonb(g) || jsonb_build_object(
+    'kind', 'group',
+    'host_name', (select p.display_name from profiles p where p.id = g.host_id),
+    'players', coalesce((
+       select jsonb_agg(jsonb_build_object(
+                'seat', s.seat, 'user_id', s.user_id, 'name', p.display_name, 'side', s.side,
+                'seeker', s.seeker, 'terrain', s.terrain, 'deck_id', s.deck_id,
+                'joined_at', s.joined_at, 'left_at', s.left_at,
+                'final_mastery', s.final_mastery, 'place', s.place, 'result', s.result)
+              order by s.seat)
+         from group_match_seats s
+         join profiles p on p.id = s.user_id
+        where s.match_id = p_id), '[]'::jsonb),
+    'seats_n', (select count(*) from group_match_seats s where s.match_id = p_id),
+    'me', v_me.seat,
+    'my_side', v_me.side,
+    'confirmers', coalesce((
+       select jsonb_agg(s.seat order by s.seat)
+         from group_match_seats s
+        where s.match_id = p_id and s.user_id in (select c.u from gm_confirmers(p_id) c(u))), '[]'::jsonb),
+    'can_answer', exists (select 1 from gm_confirmers(p_id) c(u) where c.u = p_uid),
+    'server_now', now());
+end $$;
+
+-- Saves the pending claim as the result (status done). Per side, from
+-- claim_scores: a win puts the winning side 1st and the others after it by
+-- Mastery; a draw puts every side with the top Mastery 1st ('draw') and the
+-- others after them ('loss'). Ties share a place. The seat rows get their
+-- side's Mastery, place and result. Returns false when there is no claim.
+create or replace function public.gm_finish(p_id uuid, p_how text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  g group_matches%rowtype;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if not found or g.status <> 'ending' or g.claim_kind is null then
+    return false;
+  end if;
+  with sc as (
+    select e.key::smallint as side, e.value::int as score
+      from jsonb_each_text(g.claim_scores) e
+  ), pl as (
+    select a.side, a.score,
+           case when g.claim_kind = 'win'
+                then case when a.side = g.claim_side then 1
+                          else 2 + (select count(*) from sc b where b.side <> g.claim_side and b.score > a.score) end
+                else 1 + (select count(*) from sc b where b.score > a.score) end as place,
+           case when g.claim_kind = 'win'
+                then case when a.side = g.claim_side then 'win' else 'loss' end
+                when a.score = (select max(b.score) from sc b) then 'draw'
+                else 'loss' end as result
+      from sc a
+  )
+  update group_match_seats s
+     set final_mastery = pl.score, place = least(pl.place, 4), result = pl.result
+    from pl
+   where s.match_id = p_id and s.side = pl.side;
+  update group_matches
+     set status = 'done', is_draw = (g.claim_kind = 'draw'),
+         winner_side = case when g.claim_kind = 'win' then g.claim_side end,
+         ended_how = p_how, ended_at = now(), updated_at = now(), rev = rev + 1
+   where id = p_id;
+  return true;
+end $$;
+
+-- A player leaves a live (or ending) match: their seat is frozen with its
+-- Mastery and the match goes on. If a claim is pending and nobody can
+-- confirm it any more, it is saved at once (unopposed). If nobody is left
+-- playing, the match is cancelled. Returns the match status afterwards.
+create or replace function public.gm_freeze(p_id uuid, p_uid uuid)
+returns text language plpgsql security definer set search_path = public as $$
+declare
+  g group_matches%rowtype;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if not found then
+    return null;
+  end if;
+  if g.status not in ('live','ending') then
+    return g.status;
+  end if;
+  update group_match_seats set left_at = now()
+   where match_id = p_id and user_id = p_uid and left_at is null;
+  if not found then
+    return g.status;
+  end if;
+  if g.status = 'ending' and not exists (select 1 from gm_confirmers(p_id)) then
+    perform gm_finish(p_id, 'unopposed');
+    return 'done';
+  end if;
+  if not exists (select 1 from group_match_seats s where s.match_id = p_id and s.left_at is null) then
+    update group_matches
+       set status = 'cancelled', ended_at = now(), updated_at = now(), rev = rev + 1
+     where id = p_id;
+    return 'cancelled';
+  end if;
+  update group_matches set updated_at = now(), rev = rev + 1 where id = p_id;
+  return g.status;
+end $$;
+
+-- The account's waiting multiplayer matches make way for a new match: the
+-- ones it hosts are cancelled, and its seat in someone else's waiting match
+-- is freed (that PIN stays valid). p_keep is spared.
+create or replace function public.gm_drop_waiting(p_uid uuid, p_keep uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  r record;
+begin
+  update group_matches
+     set status = 'cancelled', pin = null, ended_at = now(), updated_at = now(), rev = rev + 1
+   where host_id = p_uid and status = 'waiting' and id is distinct from p_keep;
+  for r in
+    select g.id
+      from group_matches g
+      join group_match_seats s on s.match_id = g.id
+     where s.user_id = p_uid and g.status = 'waiting' and g.host_id <> p_uid
+       and g.id is distinct from p_keep
+     order by g.id
+     for update of g
+  loop
+    delete from group_match_seats where match_id = r.id and user_id = p_uid;
+    update group_matches set updated_at = now(), rev = rev + 1 where id = r.id;
+  end loop;
+end $$;
+
+-- Has the game started, by the checkpoint state? A Next round tap (round
+-- above 1 or nr above 0 in section x) or any seat block pN with Mastery
+-- other than 0 (or a relic). Sections are {c: clock, d: data}; anything
+-- that is not a number is ignored.
+create or replace function public.gm_state_started(p jsonb)
+returns boolean language sql immutable security definer set search_path = public as $$
+  select coalesce(jsonb_typeof(p) = 'object' and (
+           (case when jsonb_typeof(p #> '{x,d,round}') = 'number' then (p #> '{x,d,round}')::numeric > 1 else false end)
+        or (case when jsonb_typeof(p #> '{x,d,r}')     = 'number' then (p #> '{x,d,r}')::numeric > 1 else false end)
+        or (case when jsonb_typeof(p #> '{x,d,nr}')    = 'number' then (p #> '{x,d,nr}')::numeric > 0 else false end)
+        or exists (
+             select 1
+               from jsonb_each(case when jsonb_typeof(p) = 'object' then p else '{}'::jsonb end) e
+              where e.key ~ '^p[0-3]$'
+                and (case when jsonb_typeof(e.value #> '{d,m}') = 'number'
+                          then (e.value #> '{d,m}')::numeric <> 0 else false end
+                  or case when jsonb_typeof(e.value #> '{d,rl}') = 'number'
+                          then (e.value #> '{d,rl}')::numeric > 0 else false end))), false);
+$$;
+
+-- Housekeeping, with the same intervals as duel_sweep(): a waiting match
+-- expires with its PIN, a live match idle for 12 hours is cancelled, and a
+-- claim nobody answers for 48 hours is saved as claimed (auto). Matches that
+-- never started go after 7 days, cancelled ones after 30 days. Finished
+-- matches stay. Run at the end of duel_sweep() (pg_cron sl-duel-sweep).
+create or replace function public.gm_sweep()
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+  m int;
+  r record;
+begin
+  update group_matches set status = 'expired', pin = null, ended_at = now(), updated_at = now(), rev = rev + 1
+   where status = 'waiting' and pin_expires_at <= now();
+  get diagnostics m = row_count; n := n + m;
+  update group_matches set status = 'cancelled', ended_at = now(), updated_at = now(), rev = rev + 1
+   where status = 'live' and updated_at < now() - interval '12 hours';
+  get diagnostics m = row_count; n := n + m;
+  for r in
+    select g.id from group_matches g
+     where g.status = 'ending' and coalesce(g.claimed_at, g.updated_at) < now() - interval '48 hours'
+     order by g.id
+     for update skip locked
+  loop
+    if gm_finish(r.id, 'auto') then
+      n := n + 1;
+    end if;
+  end loop;
+  delete from group_matches where status = 'expired' and created_at < now() - interval '7 days';
+  delete from group_matches where status = 'cancelled' and created_at < now() - interval '30 days';
+  return n;
+end $$;
+
+-- 4. One PIN space for both kinds of match ------------------------------------------
+-- gen_duel_pin: as in the MATCH TRACKER section, and the PIN must also be
+-- free among the waiting multiplayer matches. duel_open and gm_open take the
+-- 'duel_pin' lock around picking the PIN and inserting the row, so two opens
+-- at the same moment never take the same PIN in the two tables.
+create or replace function public.gen_duel_pin()
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare
+  b bytea;
+  o int;
+  v int;
+  c text;
+  n int := 0;
+begin
+  loop
+    b := uuid_send(gen_random_uuid());
+    foreach o in array array[0, 2, 4, 10, 12, 14] loop
+      v := get_byte(b, o) * 256 + get_byte(b, o + 1);
+      if v < 60000 then
+        c := lpad((v % 10000)::text, 4, '0');
+        if not exists (select 1 from duels d where d.status = 'waiting' and d.pin = c)
+           and not exists (select 1 from group_matches g where g.status = 'waiting' and g.pin = c) then
+          return c;
+        end if;
+      end if;
+    end loop;
+    n := n + 1;
+    if n > 50 then
+      raise exception 'Could not find a free PIN. Try again in a few minutes.'
+        using errcode = 'P0001', hint = 'busy';
+    end if;
+  end loop;
+end $$;
+
+-- duel_open: as in the MATCH TRACKER section, plus: the caller's waiting
+-- multiplayer matches make way too (gm_drop_waiting), the 30 new matches an
+-- hour per account and the 2000 waiting on the site count both kinds (they
+-- share the PINs), and the PIN is picked under the 'duel_pin' lock.
+create or replace function public.duel_open(p_mode text, p_seeker text, p_terrain text, p_deck_id uuid default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := duel_caller();
+  v_seeker  text := duel_clean(p_seeker);
+  v_terrain text := duel_clean(p_terrain);
+  v_target  int;
+  v_pin     text;
+  v_id      uuid;
+  v_exp     timestamptz := now() + interval '15 minutes';
+  i         int;
+begin
+  if p_mode = 'clash' then
+    v_target := 40;
+  elsif p_mode = 'demo' then
+    v_target := 25;
+  else
+    raise exception 'A synced match is Clash or Demo' using errcode = '22023';
+  end if;
+  if v_seeker is null or v_terrain is null then
+    raise exception 'Pick your Seeker and terrain first' using errcode = '22023';
+  end if;
+  if p_deck_id is not null
+     and not exists (select 1 from decks k where k.id = p_deck_id and k.user_id = v_uid) then
+    raise exception 'Pick one of your own decks' using errcode = '42501';
+  end if;
+
+  perform duel_sweep();
+  perform pg_advisory_xact_lock(hashtext('duel_open:' || v_uid::text));
+  if (select count(*) from duels d
+      where d.host_id = v_uid and d.created_at > now() - interval '1 hour')
+     + (select count(*) from group_matches g
+        where g.host_id = v_uid and g.created_at > now() - interval '1 hour') >= 30 then
+    raise exception 'You started 30 matches in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting';
+  perform gm_drop_waiting(v_uid, null);
+  if (select count(*) from duels d where d.status = 'waiting')
+     + (select count(*) from group_matches g where g.status = 'waiting') >= 2000 then
+    raise exception 'Too many matches are waiting for an opponent right now. Try again in a few minutes.'
+      using errcode = 'P0001', hint = 'busy';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext('duel_pin'));
+  i := 0;
+  loop
+    i := i + 1;
+    v_pin := gen_duel_pin();
+    begin
+      insert into duels (pin, pin_expires_at, status, mode, target, host_id,
+                         host_seeker, host_terrain, host_deck_id)
+      values (v_pin, v_exp, 'waiting', p_mode, v_target, v_uid,
+              v_seeker, v_terrain, p_deck_id)
+      returning id into v_id;
+      exit;
+    exception when unique_violation then
+      if i >= 5 then
+        raise exception 'Could not find a free PIN. Try again in a few minutes.'
+          using errcode = 'P0001', hint = 'busy';
+      end if;
+    end;
+  end loop;
+
+  return jsonb_build_object('id', v_id, 'pin', v_pin, 'pin_expires_at', v_exp, 'server_now', now());
+end $$;
+
+-- 5. Joining -----------------------------------------------------------------------
+-- gm_join: called only from duel_join (which has checked the Seeker,
+-- terrain, deck and the wrong-PIN brakes, and holds the match row). The
+-- caller takes the lowest free seat with its default side (Allegiance:
+-- seats 0-1 are side 0, seats 2-3 side 1; Nemesis: seat 0 is the Nemesis,
+-- the others the Union; Dominion: side = seat), or the other side when the
+-- host's team changes have filled that one. The caller's other waiting
+-- matches of both kinds are cancelled; moving from a seat in someone else's
+-- waiting match counts like a wrong PIN (as gm_leave does), so switching
+-- lobbies back and forth stays slow. The last seat makes the match live;
+-- an earlier one renews the PIN for 15 minutes. A player already seated gets
+-- the match back (again true); the host gets 'own_match'. A table that is
+-- already live answers 'full' (the PIN of a full table is never wrong).
+-- The PIN is renewed at most to an hour after the open.
+create or replace function public.gm_join(p_uid uuid, p_id uuid, p_seeker text, p_terrain text, p_deck_id uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  g      group_matches%rowtype;
+  v_n    int;
+  v_seat smallint;
+  v_side smallint;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if found and g.status in ('live','ending') then
+    if exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = p_uid) then
+      return gm_json(g.id, p_uid) || jsonb_build_object('ok', true, 'again', true);
+    end if;
+    return jsonb_build_object('ok', false, 'reason', 'full');
+  end if;
+  if not found or g.status <> 'waiting' or g.pin_expires_at <= now() then
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+  if g.host_id = p_uid then
+    return jsonb_build_object('ok', false, 'reason', 'own_match');
+  end if;
+  if exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = p_uid) then
+    return gm_json(g.id, p_uid) || jsonb_build_object('ok', true, 'again', true);
+  end if;
+  select count(*) into v_n from group_match_seats s where s.match_id = g.id;
+  select min(q.n)::smallint into v_seat
+    from generate_series(1, g.seats - 1) q(n)
+   where not exists (select 1 from group_match_seats s where s.match_id = g.id and s.seat = q.n);
+  if v_n >= g.seats or v_seat is null then
+    return jsonb_build_object('ok', false, 'reason', 'full');
+  end if;
+  if g.mode = 'dominion' then
+    v_side := v_seat;
+  else
+    v_side := case when g.mode = 'allegiance' then case when v_seat <= 1 then 0 else 1 end
+                   else case when v_seat = 0 then 0 else 1 end end;
+    if (select count(*) from group_match_seats s where s.match_id = g.id and s.side = v_side)
+       >= (case when g.mode = 'allegiance' or v_side = 1 then 2 else 1 end) then
+      v_side := 1 - v_side;
+    end if;
+  end if;
+
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = p_uid and status = 'waiting';
+  if exists (select 1 from group_match_seats s join group_matches x on x.id = s.match_id
+              where s.user_id = p_uid and x.status = 'waiting' and x.host_id <> p_uid and x.id <> g.id) then
+    insert into duel_join_attempts (user_id) values (p_uid);
+  end if;
+  perform gm_drop_waiting(p_uid, g.id);
+  insert into group_match_seats (match_id, seat, user_id, side, seeker, terrain, deck_id)
+  values (g.id, v_seat, p_uid, v_side, p_seeker, p_terrain, p_deck_id);
+  if v_n + 1 >= g.seats then
+    update group_matches
+       set status = 'live', join_pin = g.pin, pin = null, started_at = now(), updated_at = now(), rev = rev + 1
+     where id = g.id;
+  else
+    update group_matches
+       set pin_expires_at = greatest(pin_expires_at,
+                                     least(now() + interval '15 minutes', g.created_at + interval '60 minutes')),
+           updated_at = now(), rev = rev + 1
+     where id = g.id;
+  end if;
+  return gm_json(g.id, p_uid) || jsonb_build_object('ok', true);
+end $$;
+
+-- duel_join with p_v: as in the TOURNAMENT DECKS section, plus: a PIN that
+-- belongs to a waiting multiplayer match is handed to gm_join when the page
+-- says it knows them (p_v 2 or more), and answers 'needs_update' otherwise
+-- (not counted as a wrong PIN). The rows of a multiplayer join are locked in
+-- one order (the caller's waiting 1v1 matches, then the multiplayer rows by
+-- id), so two players joining each other's lobbies never deadlock; a 1v1
+-- join first locks the target and the caller's own waiting 1v1 match by id,
+-- so two hosts typing each other's PIN never deadlock either. The PIN
+-- of a multiplayer table that filled up in the last 15 minutes answers
+-- 'full' (not counted), except to a player still seated there, who gets the
+-- match back (again true). A PIN wrong for both kinds counts once. A
+-- 1v1 join also frees the caller's waiting multiplayer matches, and its
+-- answer says kind 'duel'. p_v has no default, so a call without it reaches
+-- the 4-argument duel_join below and never two functions at once.
+create or replace function public.duel_join(p_pin text, p_seeker text, p_terrain text, p_deck_id uuid, p_v int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := duel_caller();
+  v_seeker  text := duel_clean(p_seeker);
+  v_terrain text := duel_clean(p_terrain);
+  v_pin     text := btrim(coalesce(p_pin, ''));
+  d         duels%rowtype;
+  v_found   boolean;
+  v_gid     uuid;
+  v_tid     uuid;
+  v_tref    text;
+  v_ttitle  text;
+  v_tlabel  text;
+  v_tskip   text;
+begin
+  if v_seeker is null or v_terrain is null then
+    raise exception 'Pick your Seeker and terrain first' using errcode = '22023';
+  end if;
+  if p_deck_id is not null
+     and not exists (select 1 from decks k where k.id = p_deck_id and k.user_id = v_uid) then
+    raise exception 'Pick one of your own decks' using errcode = '42501';
+  end if;
+  if v_pin !~ '^[0-9]{4}$' then
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+
+  perform duel_sweep();
+  perform pg_advisory_xact_lock(hashtext('duel_join:' || v_uid::text));
+  if (select count(*) from duel_join_attempts a
+      where a.user_id = v_uid and a.created_at > now() - interval '1 minute') >= 5
+     or (select count(*) from duel_join_attempts a
+         where a.user_id = v_uid and a.created_at > now() - interval '1 hour') >= 20
+     or (select count(*) from duel_join_attempts a
+         where a.user_id = v_uid and a.created_at > now() - interval '1 day') >= 60 then
+    return jsonb_build_object('ok', false, 'reason', 'rate_limited');
+  end if;
+  if (select count(*) from duel_join_attempts a
+      where a.created_at > now() - interval '10 minutes') >= 600 then
+    return jsonb_build_object('ok', false, 'reason', 'busy');
+  end if;
+
+  perform 1 from duels x
+    where x.status = 'waiting' and (x.pin = v_pin or x.host_id = v_uid)
+    order by x.id
+    for update;
+  select * into d from duels x where x.pin = v_pin and x.status = 'waiting' for update;
+  v_found := found;
+  if not v_found or d.pin_expires_at <= now() then
+    select g.id into v_gid from group_matches g
+     where g.pin = v_pin and g.status = 'waiting' and g.pin_expires_at > now();
+    if v_gid is not null then
+      if coalesce(p_v, 1) < 2 then
+        return jsonb_build_object('ok', false, 'reason', 'needs_update');
+      end if;
+      perform 1 from duels x where x.host_id = v_uid and x.status = 'waiting' order by x.id for update;
+      perform 1 from group_matches g
+        where g.status = 'waiting'
+          and (g.id = v_gid or g.host_id = v_uid
+               or exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = v_uid))
+        order by g.id
+        for update of g;
+      return gm_join(v_uid, v_gid, v_seeker, v_terrain, p_deck_id);
+    end if;
+    select g.id into v_gid from group_matches g
+     where g.join_pin = v_pin and g.status in ('live','ending')
+       and g.started_at > now() - interval '15 minutes'
+     order by exists (select 1 from group_match_seats s
+                       where s.match_id = g.id and s.user_id = v_uid and s.left_at is null) desc,
+              g.started_at desc
+     limit 1;
+    if v_gid is not null and coalesce(p_v, 1) >= 2
+       and exists (select 1 from group_match_seats s
+                    where s.match_id = v_gid and s.user_id = v_uid and s.left_at is null) then
+      return gm_json(v_gid, v_uid) || jsonb_build_object('ok', true, 'again', true);
+    end if;
+    if v_gid is not null then
+      return jsonb_build_object('ok', false, 'reason',
+                                case when coalesce(p_v, 1) < 2 then 'needs_update' else 'full' end);
+    end if;
+    insert into duel_join_attempts (user_id) values (v_uid);
+    return jsonb_build_object('ok', false, 'reason', 'bad_pin');
+  end if;
+  if d.host_id = v_uid then
+    return jsonb_build_object('ok', false, 'reason', 'own_match');
+  end if;
+
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting';
+  perform gm_drop_waiting(v_uid, null);
+  begin
+    select g.tournament_id, g.t_ref, g.title, g.label, g.skip
+      into v_tid, v_tref, v_ttitle, v_tlabel, v_tskip
+      from t_game_for(d.host_id, v_uid, d.mode) g
+     limit 1;
+  exception when others then
+    v_tid := null; v_tref := null; v_ttitle := null; v_tlabel := null; v_tskip := null;
+  end;
+  -- A tournament game counts only when both players picked a deck.
+  if v_tid is not null and (d.host_deck_id is null or p_deck_id is null) then
+    v_tid := null; v_tref := null; v_tskip := 'deck';
+  end if;
+  update duels
+     set status = 'live', pin = null, guest_id = v_uid,
+         guest_seeker = v_seeker, guest_terrain = v_terrain, guest_deck_id = p_deck_id,
+         tournament_id = v_tid, t_ref = case when v_tid is not null then v_tref end,
+         started_at = now(), updated_at = now()
+   where id = d.id;
+
+  return jsonb_build_object(
+    'ok', true, 'kind', 'duel', 'id', d.id, 'host_id', d.host_id,
+    'host_name', (select p.display_name from profiles p where p.id = d.host_id),
+    'mode', d.mode, 'target', d.target,
+    'host_seeker', d.host_seeker, 'host_terrain', d.host_terrain,
+    'server_now', now(),
+    't', case when v_tid is not null or v_tskip is not null
+              then jsonb_build_object('id', v_tid, 'title', v_ttitle, 'label', v_tlabel, 'skip', v_tskip) end);
+end $$;
+
+-- duel_join, the 4-argument version that cached pages call: the same as
+-- the version above with p_v 1, so a multiplayer PIN answers 'needs_update'.
+create or replace function public.duel_join(p_pin text, p_seeker text, p_terrain text, p_deck_id uuid default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+begin
+  return public.duel_join(p_pin, p_seeker, p_terrain, p_deck_id, 1);
+end $$;
+
+-- 6. Opening a match and the lobby ----------------------------------------------------
+-- gm_open: the host picks the mode (dominion 40 for 3 or 4 players, default
+-- 4; allegiance 50 for 4; nemesis 50 for 3), their Seeker, terrain and
+-- optionally one of their own decks, takes seat 0 (side 0: in Nemesis the
+-- host plays the Nemesis) and gets one PIN for everyone. The caller's
+-- waiting matches of both kinds are cancelled. The 1v1 limits apply to both
+-- kinds together: 30 new matches an hour per account and 2000 waiting on the
+-- site. Refusals raise, with hint 'rate_limited' or 'busy'.
+create or replace function public.gm_open(p_mode text, p_seats int, p_seeker text, p_terrain text, p_deck_id uuid default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid     uuid := duel_caller();
+  v_seeker  text := duel_clean(p_seeker);
+  v_terrain text := duel_clean(p_terrain);
+  v_target  int;
+  v_seats   int;
+  v_pin     text;
+  v_id      uuid;
+  v_exp     timestamptz := now() + interval '15 minutes';
+  i         int;
+begin
+  if p_mode = 'dominion' then
+    v_target := 40;
+    v_seats := coalesce(p_seats, 4);
+    if v_seats not in (3, 4) then
+      raise exception 'Dominion is for 3 or 4 players' using errcode = '22023';
+    end if;
+  elsif p_mode = 'allegiance' then
+    v_target := 50;
+    v_seats := 4;
+  elsif p_mode = 'nemesis' then
+    v_target := 50;
+    v_seats := 3;
+  else
+    raise exception 'A multiplayer match is Dominion, Allegiance or Nemesis' using errcode = '22023';
+  end if;
+  if p_seats is not null and p_seats <> v_seats then
+    raise exception 'Allegiance is for 4 players and Nemesis for 3' using errcode = '22023';
+  end if;
+  if v_seeker is null or v_terrain is null then
+    raise exception 'Pick your Seeker and terrain first' using errcode = '22023';
+  end if;
+  if p_deck_id is not null
+     and not exists (select 1 from decks k where k.id = p_deck_id and k.user_id = v_uid) then
+    raise exception 'Pick one of your own decks' using errcode = '42501';
+  end if;
+
+  perform duel_sweep();
+  perform pg_advisory_xact_lock(hashtext('duel_open:' || v_uid::text));
+  if (select count(*) from duels d
+      where d.host_id = v_uid and d.created_at > now() - interval '1 hour')
+     + (select count(*) from group_matches g
+        where g.host_id = v_uid and g.created_at > now() - interval '1 hour') >= 30 then
+    raise exception 'You started 30 matches in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  update duels set status = 'cancelled', pin = null, ended_at = now(), updated_at = now()
+   where host_id = v_uid and status = 'waiting';
+  perform gm_drop_waiting(v_uid, null);
+  if (select count(*) from duels d where d.status = 'waiting')
+     + (select count(*) from group_matches g where g.status = 'waiting') >= 2000 then
+    raise exception 'Too many matches are waiting for players right now. Try again in a few minutes.'
+      using errcode = 'P0001', hint = 'busy';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtext('duel_pin'));
+  i := 0;
+  loop
+    i := i + 1;
+    v_pin := gen_duel_pin();
+    begin
+      insert into group_matches (pin, pin_expires_at, status, mode, seats, target, host_id)
+      values (v_pin, v_exp, 'waiting', p_mode, v_seats, v_target, v_uid)
+      returning id into v_id;
+      exit;
+    exception when unique_violation then
+      if i >= 5 then
+        raise exception 'Could not find a free PIN. Try again in a few minutes.'
+          using errcode = 'P0001', hint = 'busy';
+      end if;
+    end;
+  end loop;
+  insert into group_match_seats (match_id, seat, user_id, side, seeker, terrain, deck_id)
+  values (v_id, 0, v_uid, 0, v_seeker, v_terrain, p_deck_id);
+
+  return gm_json(v_id, v_uid) || jsonb_build_object('ok', true);
+end $$;
+
+-- gm_start: the host of a 4-player Dominion match with 3 players seated
+-- starts it now as a 3-player match. The seats close up in join order (side
+-- = seat). Answers ok false with need_3 when the table does not have 3.
+create or replace function public.gm_start(p_id uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  g     group_matches%rowtype;
+  r     record;
+  k     int := 0;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if not found or not exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = v_uid) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.host_id <> v_uid then
+    raise exception 'Only the host can start the match' using errcode = '42501';
+  end if;
+  if g.status <> 'waiting' then
+    return jsonb_build_object('ok', false, 'status', g.status);
+  end if;
+  if g.mode <> 'dominion' or g.seats <> 4 then
+    raise exception 'Only a 4-player Dominion match can start with 3 players' using errcode = '22023';
+  end if;
+  if (select count(*) from group_match_seats s where s.match_id = g.id) <> 3 then
+    return jsonb_build_object('ok', false, 'status', g.status, 'reason', 'need_3');
+  end if;
+  for r in select s.seat from group_match_seats s where s.match_id = g.id order by s.seat loop
+    update group_match_seats set seat = k, side = k where match_id = g.id and seat = r.seat;
+    k := k + 1;
+  end loop;
+  update group_matches
+     set seats = 3, status = 'live', join_pin = g.pin, pin = null, started_at = now(), updated_at = now(), rev = rev + 1
+   where id = g.id;
+  return gm_json(g.id, v_uid) || jsonb_build_object('ok', true);
+end $$;
+
+-- gm_set_teams: the host changes the sides (Allegiance: Swap / Shuffle
+-- teams; Nemesis: who plays the Nemesis) while the match is waiting or live
+-- and teams are not locked (they lock at the first Next round, the first
+-- Mastery or relic, or the claim). p_sides maps every seated seat to a side,
+-- {"0":0,"1":1,"2":0,"3":1}; Allegiance has at most 2 per side, Nemesis 1
+-- Nemesis (side 0) and 2 in the Union (side 1). Answers ok false with
+-- 'locked' once the teams are locked.
+create or replace function public.gm_set_teams(p_id uuid, p_sides jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  g     group_matches%rowtype;
+  v_q0  int;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if not found or not exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = v_uid) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.host_id <> v_uid then
+    raise exception 'Only the host can change the teams' using errcode = '42501';
+  end if;
+  if exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = v_uid and s.left_at is not null) then
+    raise exception 'You left this match' using errcode = '42501', hint = 'left';
+  end if;
+  if g.status not in ('waiting','live') then
+    return jsonb_build_object('ok', false, 'status', g.status);
+  end if;
+  if g.teams_locked then
+    return jsonb_build_object('ok', false, 'status', g.status, 'reason', 'locked');
+  end if;
+  if g.mode = 'dominion' then
+    raise exception 'Dominion has no teams' using errcode = '22023';
+  end if;
+  if p_sides is null or jsonb_typeof(p_sides) <> 'object'
+     or exists (select 1 from jsonb_each(p_sides) e
+                 where e.key !~ '^[0-3]$' or jsonb_typeof(e.value) <> 'number' or e.value::text not in ('0','1'))
+     or (select count(*) from jsonb_object_keys(p_sides)) <> (select count(*) from group_match_seats s where s.match_id = g.id)
+     or exists (select 1 from group_match_seats s where s.match_id = g.id and not p_sides ? s.seat::text) then
+    raise exception 'Give side 0 or 1 for every seated player' using errcode = '22023';
+  end if;
+  v_q0 := case when g.mode = 'allegiance' then 2 else 1 end;
+  if (select count(*) from jsonb_each_text(p_sides) e where e.value = '0') > v_q0
+     or (select count(*) from jsonb_each_text(p_sides) e where e.value = '1') > 2 then
+    raise exception '%', case when g.mode = 'allegiance' then 'Allegiance is 2 players against 2'
+                              else 'Nemesis is one Nemesis against a Union of two' end
+      using errcode = '22023', hint = 'bad_teams';
+  end if;
+  update group_match_seats s set side = (p_sides->>s.seat::text)::smallint where s.match_id = g.id;
+  update group_matches set updated_at = now(), rev = rev + 1 where id = g.id;
+  return gm_json(g.id, v_uid) || jsonb_build_object('ok', true);
+end $$;
+
+-- 7. Playing and ending ---------------------------------------------------------------
+-- gm_checkpoint: the last tracker state from any player still in the match,
+-- for reconnecting. A JSON object of at most 16 KB (seat blocks may hold a
+-- negative share of a team's Mastery), one write per 5 seconds per match
+-- (extra calls answer ok with skipped). It locks the teams once the state
+-- shows the game has started (gm_state_started), even on a skipped call.
+-- Every answer carries the status, so a phone that missed a change re-reads
+-- the match. A match that is no longer live or ending, or a player who left,
+-- answers ok false.
+create or replace function public.gm_checkpoint(p_id uuid, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := duel_caller();
+  g      group_matches%rowtype;
+  s      group_match_seats%rowtype;
+  v_lock boolean;
+begin
+  if p_state is null or jsonb_typeof(p_state) <> 'object' then
+    raise exception 'The match state must be a JSON object' using errcode = '22023';
+  end if;
+  if octet_length(p_state::text) > 16384 then
+    raise exception 'The match state is too large' using errcode = '22023', hint = 'too_large';
+  end if;
+  select * into g from group_matches x where x.id = p_id for update;
+  if found then
+    select * into s from group_match_seats z where z.match_id = g.id and z.user_id = v_uid;
+  end if;
+  if g.id is null or s.match_id is null then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.status not in ('live','ending') then
+    return jsonb_build_object('ok', false, 'status', g.status);
+  end if;
+  if s.left_at is not null then
+    return jsonb_build_object('ok', false, 'status', g.status, 'left', true);
+  end if;
+  v_lock := not g.teams_locked and gm_state_started(p_state);
+  if g.state_at is not null and g.state_at > now() - interval '5 seconds' then
+    if v_lock then
+      update group_matches set teams_locked = true, updated_at = now(), rev = rev + 1 where id = g.id;
+    end if;
+    return jsonb_build_object('ok', true, 'skipped', true, 'status', g.status,
+                              'locked', g.teams_locked or v_lock);
+  end if;
+  update group_matches
+     set state = p_state, state_at = now(), updated_at = now(),
+         teams_locked = teams_locked or v_lock,
+         rev = rev + case when v_lock then 1 else 0 end
+   where id = g.id;
+  return jsonb_build_object('ok', true, 'status', g.status, 'locked', g.teams_locked or v_lock);
+end $$;
+
+-- gm_claim: a player still in a live match claims the result: p_kind 'win'
+-- with the winning side p_side (it may be the claimer's own side or
+-- another), or 'draw' (p_side ignored; send null) when two or more sides
+-- share the top Mastery. p_scores is the Mastery of every side,
+-- {"0":52,"1":41}, each 0 to 999; p_rounds 0 to 999 or null; p_state the
+-- final state (optional, 16 KB at most). The teams lock. The match waits for
+-- one player from another side (gm_confirmers), or is saved at once when
+-- nobody can confirm (unopposed).
+create or replace function public.gm_claim(p_id uuid, p_kind text, p_side int, p_scores jsonb,
+                                           p_rounds int, p_state jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid    uuid := duel_caller();
+  g        group_matches%rowtype;
+  s        group_match_seats%rowtype;
+  v_sides  int[];
+  v_scores jsonb;
+  v_top    int;
+begin
+  if p_kind is null or p_kind not in ('win','draw') then
+    raise exception 'A claim is a win or a draw' using errcode = '22023';
+  end if;
+  if p_rounds is not null and p_rounds not between 0 and 999 then
+    raise exception 'Rounds must be between 0 and 999' using errcode = '22023';
+  end if;
+  if p_state is not null and (jsonb_typeof(p_state) <> 'object' or octet_length(p_state::text) > 16384) then
+    raise exception 'The match state must be a JSON object of at most 16 KB' using errcode = '22023', hint = 'too_large';
+  end if;
+  select * into g from group_matches x where x.id = p_id for update;
+  if found then
+    select * into s from group_match_seats z where z.match_id = g.id and z.user_id = v_uid;
+  end if;
+  if g.id is null or s.match_id is null then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.status <> 'live' then
+    return jsonb_build_object('ok', false, 'status', g.status);
+  end if;
+  if s.left_at is not null then
+    raise exception 'You left this match' using errcode = '42501', hint = 'left';
+  end if;
+
+  select array_agg(distinct z.side::int order by z.side::int) into v_sides
+    from group_match_seats z where z.match_id = g.id;
+  if p_scores is null or jsonb_typeof(p_scores) <> 'object'
+     or (select count(*) from jsonb_object_keys(p_scores)) <> cardinality(v_sides)
+     or exists (select 1 from unnest(v_sides) q(side) where not p_scores ? q.side::text) then
+    raise exception 'Give the Mastery of every side' using errcode = '22023';
+  end if;
+  if exists (select 1 from jsonb_each(p_scores) e
+              where jsonb_typeof(e.value) <> 'number' or e.value::text !~ '^[0-9]{1,3}$') then
+    raise exception 'Mastery must be between 0 and 999' using errcode = '22023';
+  end if;
+  select jsonb_object_agg(e.key, e.value::int), max(e.value::int) into v_scores, v_top
+    from jsonb_each_text(p_scores) e;
+
+  if p_kind = 'win' then
+    if p_side is null or not (p_side = any(v_sides)) then
+      raise exception 'The winner must be one of the sides' using errcode = '22023';
+    end if;
+  elsif (select count(*) from jsonb_each_text(v_scores) e where e.value::int = v_top) < 2 then
+    raise exception 'A draw needs the same top Mastery for two sides or more' using errcode = '22023', hint = 'draw_unequal';
+  end if;
+
+  update group_matches
+     set status = 'ending', claim_by = v_uid, claim_kind = p_kind,
+         claim_side = case when p_kind = 'win' then p_side end,
+         claim_scores = v_scores, claimed_at = now(), rounds = p_rounds,
+         state = coalesce(p_state, state), state_at = case when p_state is null then state_at else now() end,
+         teams_locked = true, updated_at = now(), rev = rev + 1
+   where id = g.id;
+  if not exists (select 1 from gm_confirmers(g.id)) then
+    perform gm_finish(g.id, 'unopposed');
+    return jsonb_build_object('ok', true, 'status', 'done');
+  end if;
+  return jsonb_build_object('ok', true, 'status', 'ending');
+end $$;
+
+-- gm_answer: a player who may confirm the claim (gm_confirmers) accepts it
+-- (done, as claimed) or rejects it (back to live, claim cleared). The first
+-- answer decides. Anyone else is refused.
+create or replace function public.gm_answer(p_id uuid, p_accept boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  g     group_matches%rowtype;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if not found or not exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = v_uid) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.status <> 'ending' then
+    return jsonb_build_object('ok', false, 'status', g.status);
+  end if;
+  if not exists (select 1 from gm_confirmers(g.id) c(u) where c.u = v_uid) then
+    raise exception 'A player from another side confirms this result' using errcode = '42501', hint = 'not_eligible';
+  end if;
+  if coalesce(p_accept, false) then
+    perform gm_finish(g.id, 'confirmed');
+    return jsonb_build_object('ok', true, 'status', 'done');
+  end if;
+  update group_matches
+     set status = 'live', claim_by = null, claim_kind = null, claim_side = null, claim_scores = null,
+         claimed_at = null, rounds = null, updated_at = now(), rev = rev + 1
+   where id = g.id;
+  return jsonb_build_object('ok', true, 'status', 'live');
+end $$;
+
+-- gm_leave: "Leave match". While waiting, the host's leave cancels the match
+-- and anyone else's frees their seat (the PIN stays valid; status 'left').
+-- Leaving a waiting match counts like a wrong PIN toward the join brakes
+-- of duel_join (5 a minute, 20 an hour), so a join-and-leave loop stays slow.
+-- Once live (or ending) the player is frozen (gm_freeze): seat and Mastery
+-- stay, nobody concedes and the others play on. Losing the connection is
+-- not leaving.
+create or replace function public.gm_leave(p_id uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  g     group_matches%rowtype;
+  v_st  text;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if not found or not exists (select 1 from group_match_seats s where s.match_id = g.id and s.user_id = v_uid) then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.status = 'waiting' then
+    if g.host_id = v_uid then
+      update group_matches
+         set status = 'cancelled', pin = null, ended_at = now(), updated_at = now(), rev = rev + 1
+       where id = g.id;
+      return jsonb_build_object('ok', true, 'status', 'cancelled');
+    end if;
+    delete from group_match_seats where match_id = g.id and user_id = v_uid;
+    insert into duel_join_attempts (user_id) values (v_uid);
+    update group_matches set updated_at = now(), rev = rev + 1 where id = g.id;
+    return jsonb_build_object('ok', true, 'status', 'left');
+  end if;
+  if g.status in ('live','ending') then
+    v_st := gm_freeze(g.id, v_uid);
+    return jsonb_build_object('ok', true, 'status', v_st, 'left', true);
+  end if;
+  return jsonb_build_object('ok', false, 'status', g.status);
+end $$;
+
+-- gm_cancel: no result. While waiting, the host only; while live, any player
+-- still in the match, but only until the teams lock. Answers ok false with
+-- 'locked' after that (players can only leave).
+create or replace function public.gm_cancel(p_id uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  g     group_matches%rowtype;
+  s     group_match_seats%rowtype;
+begin
+  select * into g from group_matches x where x.id = p_id for update;
+  if found then
+    select * into s from group_match_seats z where z.match_id = g.id and z.user_id = v_uid;
+  end if;
+  if g.id is null or s.match_id is null then
+    raise exception 'This is not one of your matches' using errcode = '42501';
+  end if;
+  if g.status = 'waiting' then
+    if g.host_id <> v_uid then
+      raise exception 'Only the host can cancel. Tap Leave to free your seat.' using errcode = '42501';
+    end if;
+  elsif g.status = 'live' then
+    if s.left_at is not null then
+      raise exception 'You left this match' using errcode = '42501', hint = 'left';
+    end if;
+    if g.teams_locked then
+      return jsonb_build_object('ok', false, 'status', g.status, 'reason', 'locked');
+    end if;
+  else
+    return jsonb_build_object('ok', false, 'status', g.status);
+  end if;
+  update group_matches
+     set status = 'cancelled', pin = null, ended_at = now(), updated_at = now(), rev = rev + 1
+   where id = g.id;
+  return jsonb_build_object('ok', true, 'status', 'cancelled');
+end $$;
+
+-- gm_get: the match (gm_json) for (re)loading it. Null when it does not
+-- exist or the caller is not seated in it.
+create or replace function public.gm_get(p_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+begin
+  if not exists (select 1 from group_match_seats s where s.match_id = p_id and s.user_id = v_uid) then
+    return null;
+  end if;
+  return gm_json(p_id, v_uid);
+end $$;
+
+-- gm_mine: the caller's open multiplayer match (waiting, live or ending, and
+-- not left), the newest one, or null.
+create or replace function public.gm_mine()
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_id  uuid;
+begin
+  select g.id into v_id
+    from group_matches g
+    join group_match_seats s on s.match_id = g.id
+   where s.user_id = v_uid and s.left_at is null and g.status in ('waiting','live','ending')
+   order by g.created_at desc
+   limit 1;
+  if v_id is null then
+    return null;
+  end if;
+  return gm_json(v_id, v_uid);
+end $$;
+
+-- 8. Housekeeping ------------------------------------------------------------------
+-- duel_sweep: as in the SWISS TOURNAMENTS section, and then gm_sweep() for
+-- the multiplayer matches (a failure there never stops the 1v1 sweep).
+create or replace function public.duel_sweep()
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+  m int;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('duel_sweep')) then
+    return 0;
+  end if;
+  update duels set status = 'expired', pin = null, ended_at = now(), updated_at = now()
+   where status = 'waiting' and pin_expires_at <= now();
+  get diagnostics m = row_count; n := n + m;
+  update duels set status = 'cancelled', ended_at = now(), updated_at = now()
+   where status = 'live' and updated_at < now() - interval '12 hours';
+  get diagnostics m = row_count; n := n + m;
+  update duels set status = 'done',
+         winner_id = case when is_draw then null else claim_winner end,
+         loser_id = case when is_draw then null
+                         when claim_winner = host_id then guest_id else host_id end,
+         ended_at = now(), updated_at = now()
+   where status = 'ending' and (claim_winner is not null or is_draw)
+     and coalesce(claimed_at, updated_at) < now() - interval '48 hours';
+  get diagnostics m = row_count; n := n + m;
+  delete from duels where status = 'expired' and created_at < now() - interval '7 days';
+  delete from duels where status = 'cancelled' and created_at < now() - interval '30 days';
+  delete from duel_join_attempts where created_at < now() - interval '2 days';
+  begin
+    n := n + gm_sweep();
+  exception when others then
+    raise warning 'gm_sweep: %', sqlerrm;
+  end;
+  return n;
+end $$;
+
+-- 9. Realtime: private channels 'gm:<id>' ----------------------------------------------
+-- Every seated player may join a match channel and receive on it; only a
+-- player still in the match (not left) may send (tracker taps, presence).
+-- Realtime checks this when a channel is joined (and when the token
+-- refreshes), not on every message, so the phones also ignore what a player
+-- who left sends, and any change to a frozen seat, on the channel.
+-- gm_topic_ok checks the topic shape before reading the id, so a topic that
+-- is not 'gm:<uuid>' is simply refused.
+create or replace function public.gm_topic_ok(p_topic text, p_send boolean)
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce(
+    exists (select 1 from group_match_seats s
+             where s.match_id = case when p_topic ~* '^gm:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                     then substr(p_topic, 4)::uuid end
+               and s.user_id = auth.uid()
+               and (not coalesce(p_send, false) or s.left_at is null)), false);
+$$;
+
+do $outer$
+begin
+  if to_regclass('realtime.messages') is null then
+    raise warning 'realtime.messages does not exist: the group channel policies were not created.';
+    return;
+  end if;
+  begin
+    execute 'drop policy if exists "group players receive" on realtime.messages';
+    execute $p$
+      create policy "group players receive" on realtime.messages
+        for select to authenticated
+        using (realtime.topic() like 'gm:%' and public.gm_topic_ok(realtime.topic(), false))$p$;
+    execute 'drop policy if exists "group players send" on realtime.messages';
+    execute $p$
+      create policy "group players send" on realtime.messages
+        for insert to authenticated
+        with check (realtime.topic() like 'gm:%' and public.gm_topic_ok(realtime.topic(), true))$p$;
+  exception when others then
+    raise warning 'The group channel policies were not created (%).', sqlerrm;
+  end;
+end $outer$;
+
+-- Each change of status or rev (joins, leaves, team changes, the lock, a
+-- claim and its answer, the end) is pushed to the match channel as a
+-- 'status' broadcast {status, seats_n, seats, locked, claim, v: rev}; the
+-- phones then call gm_get. Checkpoints alone are not broadcast. A Realtime
+-- failure never blocks the write.
+create or replace function public.gm_notify()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.status is distinct from old.status or new.rev is distinct from old.rev then
+    begin
+      perform realtime.send(
+        jsonb_build_object('status', new.status,
+                           'seats_n', (select count(*) from group_match_seats s where s.match_id = new.id),
+                           'seats', new.seats,
+                           'locked', new.teams_locked,
+                           'claim', case when new.claim_by is not null
+                                         then jsonb_build_object('by', new.claim_by, 'kind', new.claim_kind,
+                                                                 'side', new.claim_side) end,
+                           'v', new.rev),
+        'status', 'gm:' || new.id::text, true);
+    exception when others then
+      null;
+    end;
+  end if;
+  return null;
+end $$;
+drop trigger if exists gm_notify on public.group_matches;
+create trigger gm_notify after update on public.group_matches
+  for each row execute function public.gm_notify();
+
+-- 10. Profile history ---------------------------------------------------------------
+-- player_group_matches: the finished multiplayer matches of one player,
+-- newest first, for the "Multiplayer" filter of the Matches list (never in
+-- the 1v1 record or win rate, never in the Meta). Shown as p_user's
+-- matches_visibility allows, exactly like player_matches; a viewer always
+-- sees the matches they played. In players[] every other player keeps their
+-- own setting: when it does not let this viewer see them, the entry stays
+-- but with no id, Seeker or terrain and the name 'Private player' (or
+-- 'Deleted player' for a deleted account). players[]: seat, side, id, name,
+-- seeker, terrain, mastery (the side's), place, result, left, me.
+create or replace function public.player_group_matches(p_user uuid)
+returns table (id uuid, played_at timestamptz, mode text, seats smallint,
+               my_seat smallint, my_side smallint, my_seeker text, my_terrain text,
+               my_mastery int, place smallint, result text,
+               is_draw boolean, winner_side smallint, rounds int, players jsonb)
+language sql stable security definer set search_path = public as $$
+  with v as (
+    select auth.uid() as viewer,
+           auth.uid() is not null
+             and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+             and exists (select 1 from profiles vp where vp.id = auth.uid() and vp.deleted_at is null) as signed_in,
+           (select p.matches_visibility from profiles p where p.id = p_user) as vis
+  )
+  select g.id,
+         g.ended_at,
+         g.mode,
+         g.seats,
+         me.seat,
+         me.side,
+         me.seeker,
+         me.terrain,
+         me.final_mastery,
+         me.place,
+         me.result,
+         g.is_draw,
+         g.winner_side,
+         g.rounds,
+         (select jsonb_agg(jsonb_build_object(
+                   'seat', s.seat, 'side', s.side,
+                   'id', case when x.shown then s.user_id end,
+                   'name', case when x.shown then op.display_name
+                                when op.deleted_at is not null then 'Deleted player'
+                                else 'Private player' end,
+                   'seeker', case when x.shown then s.seeker end,
+                   'terrain', case when x.shown then s.terrain end,
+                   'mastery', s.final_mastery, 'place', s.place, 'result', s.result,
+                   'left', s.left_at is not null, 'me', s.user_id = p_user)
+                 order by s.seat)
+            from group_match_seats s
+            join profiles op on op.id = s.user_id
+           cross join lateral (
+             select s.user_id = p_user
+                    or vs.seated
+                    or op.matches_visibility = 'public'
+                    or (op.matches_visibility = 'players' and v.signed_in) as shown
+           ) x
+           where s.match_id = g.id)
+    from group_matches g
+    cross join v
+    join group_match_seats me on me.match_id = g.id and me.user_id = p_user
+    cross join lateral (
+      select coalesce(exists (select 1 from group_match_seats z
+                               where z.match_id = g.id and z.user_id = v.viewer), false) as seated
+    ) vs
+   where g.status = 'done'
+     and (v.viewer = p_user
+          or vs.seated
+          or v.vis = 'public'
+          or (v.vis = 'players' and v.signed_in))
+   order by g.ended_at desc;
+$$;
+
+-- 11. erase_user_data(): as in the TOURNAMENT AUTOMATION section, and the
+-- account's multiplayer matches: its waiting ones are cancelled (or its
+-- seat freed), and in a live one it is frozen like a player who left, so
+-- the others play on. Finished matches keep its seat rows, shown as
+-- "Deleted player".
+create or replace function erase_user_data(p_user uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  l record;
+  v_t record;
+  v_e jsonb;
+  v_k text;
+  v_g record;
+begin
+  if p_user is null then
+    return;
+  end if;
+  for l in select id, name, archived_at from leagues where owner_id = p_user for update loop
+    if not exists (select 1 from memberships m where m.league_id = l.id and m.user_id <> p_user)
+       and not exists (select 1 from matches mt where mt.league_id = l.id)
+       and not exists (select 1 from attendance a join sessions s on s.id = a.session_id
+                       where s.league_id = l.id and a.user_id <> p_user) then
+      delete from leagues where id = l.id;
+    elsif l.archived_at is null and exists (
+      select 1 from memberships m
+      where m.league_id = l.id and m.user_id <> p_user and m.dropped_at is null
+    ) then
+      raise exception 'This account owns the league "%", which still has players. Hand it over to one of them or archive it first (Manage).', l.name
+        using errcode = 'P0001', hint = 'sl_owns_league';
+    else
+      update leagues set archived_at = coalesce(archived_at, now()) where id = l.id;
+    end if;
+  end loop;
+
+  delete from collection     where user_id = p_user;
+  delete from free_battles   where user_id = p_user;
+  delete from feedback       where user_id = p_user;
+  delete from site_admins    where user_id = p_user;
+  delete from member_discord where user_id = p_user;
+  delete from duel_join_attempts where user_id = p_user;
+  delete from t_auto_log     where user_id = p_user;
+
+  update duels
+     set status = 'cancelled', pin = null, ended_at = coalesce(ended_at, now()), updated_at = now()
+   where status in ('waiting','live','ending') and (host_id = p_user or guest_id = p_user);
+
+  begin
+    perform gm_drop_waiting(p_user, null);
+    for v_g in
+      select g.id
+        from group_matches g
+        join group_match_seats s on s.match_id = g.id
+       where s.user_id = p_user and s.left_at is null and g.status in ('live','ending')
+       order by g.id
+    loop
+      perform gm_freeze(v_g.id, p_user);
+    end loop;
+  exception when others then
+    raise warning 'erase_user_data group matches: %', sqlerrm;
+  end;
+
+  update tournaments set organizer_id = null where organizer_id = p_user;
+  begin
+    for v_t in
+      select x.id, x.payload
+        from tournaments x
+       where x.status is not null
+         and x.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', p_user::text))
+       order by x.created_at
+       for update
+    loop
+      select q.x into v_e
+        from jsonb_array_elements(v_t.payload->'entrants') q(x)
+       where q.x->>'id' = p_user::text
+       limit 1;
+      v_k := case when coalesce(v_e->>'pid', '') ~ '^[A-Za-z0-9]{6,32}$'
+                       and not (v_t.payload->'entrants' @> jsonb_build_array(jsonb_build_object('id', 'pn:' || (v_e->>'pid'))))
+                  then 'pn:' || (v_e->>'pid') else t_rand_key(v_t.payload) end;
+      update tournaments set payload = t_rekey(payload, p_user::text, v_k), rev = rev + 1 where id = v_t.id;
+    end loop;
+  exception when others then
+    raise warning 'erase_user_data tournaments: %', sqlerrm;
+  end;
+  delete from decks            where user_id = p_user and not is_public;
+  delete from tournament_decks where user_id = p_user;
+
+  update memberships
+     set dropped_at = coalesce(dropped_at, now()), is_admin = false
+   where user_id = p_user and (dropped_at is null or is_admin);
+
+  update profiles
+     set display_name = 'Deleted player',
+         role = 'player',
+         herald_rank = null,
+         discord = null,
+         malediction_url = null,
+         lat = null,
+         lon = null,
+         place = null,
+         matches_visibility = 'private',
+         deleted_at = coalesce(deleted_at, now())
+   where id = p_user;
+end $$;
+
+-- 12. Who may call what ----------------------------------------------------------------
+revoke all on function public.gm_confirmers(uuid)                        from public, anon, authenticated;
+revoke all on function public.gm_json(uuid, uuid)                        from public, anon, authenticated;
+revoke all on function public.gm_finish(uuid, text)                      from public, anon, authenticated;
+revoke all on function public.gm_freeze(uuid, uuid)                      from public, anon, authenticated;
+revoke all on function public.gm_drop_waiting(uuid, uuid)                from public, anon, authenticated;
+revoke all on function public.gm_state_started(jsonb)                    from public, anon, authenticated;
+revoke all on function public.gm_sweep()                                 from public, anon, authenticated;
+revoke all on function public.gm_join(uuid, uuid, text, text, uuid)      from public, anon, authenticated;
+revoke all on function public.gm_notify()                                from public, anon, authenticated;
+revoke all on function public.gen_duel_pin()                             from public, anon, authenticated;
+revoke all on function public.duel_sweep()                               from public, anon, authenticated;
+revoke all on function erase_user_data(uuid)                             from public, anon, authenticated;
+revoke all on function public.gm_is_seated(uuid)                         from public, anon;
+revoke all on function public.gm_topic_ok(text, boolean)                 from public, anon;
+revoke all on function public.duel_open(text, text, text, uuid)          from public, anon;
+revoke all on function public.duel_join(text, text, text, uuid)          from public, anon;
+revoke all on function public.duel_join(text, text, text, uuid, int)     from public, anon;
+revoke all on function public.gm_open(text, int, text, text, uuid)       from public, anon;
+revoke all on function public.gm_start(uuid)                             from public, anon;
+revoke all on function public.gm_set_teams(uuid, jsonb)                  from public, anon;
+revoke all on function public.gm_checkpoint(uuid, jsonb)                 from public, anon;
+revoke all on function public.gm_claim(uuid, text, int, jsonb, int, jsonb) from public, anon;
+revoke all on function public.gm_answer(uuid, boolean)                   from public, anon;
+revoke all on function public.gm_leave(uuid)                             from public, anon;
+revoke all on function public.gm_cancel(uuid)                            from public, anon;
+revoke all on function public.gm_get(uuid)                               from public, anon;
+revoke all on function public.gm_mine()                                  from public, anon;
+revoke all on function public.player_group_matches(uuid)                 from public;
+grant execute on function public.gm_is_seated(uuid)                      to authenticated;
+grant execute on function public.gm_topic_ok(text, boolean)              to authenticated;
+grant execute on function public.duel_open(text, text, text, uuid)       to authenticated;
+grant execute on function public.duel_join(text, text, text, uuid)       to authenticated;
+grant execute on function public.duel_join(text, text, text, uuid, int)  to authenticated;
+grant execute on function public.gm_open(text, int, text, text, uuid)    to authenticated;
+grant execute on function public.gm_start(uuid)                          to authenticated;
+grant execute on function public.gm_set_teams(uuid, jsonb)               to authenticated;
+grant execute on function public.gm_checkpoint(uuid, jsonb)              to authenticated;
+grant execute on function public.gm_claim(uuid, text, int, jsonb, int, jsonb) to authenticated;
+grant execute on function public.gm_answer(uuid, boolean)                to authenticated;
+grant execute on function public.gm_leave(uuid)                          to authenticated;
+grant execute on function public.gm_cancel(uuid)                         to authenticated;
+grant execute on function public.gm_get(uuid)                            to authenticated;
+grant execute on function public.gm_mine()                               to authenticated;
+grant execute on function public.player_group_matches(uuid)              to anon, authenticated;
