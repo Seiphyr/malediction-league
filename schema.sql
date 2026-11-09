@@ -14158,3 +14158,281 @@ revoke all on function public.t_entrant(uuid, int, text, text, text, text)      
 revoke all on function public.t_seat(uuid, int, text, uuid)                       from public, anon;
 grant execute on function public.t_entrant(uuid, int, text, text, text, text)     to authenticated;
 grant execute on function public.t_seat(uuid, int, text, uuid)                    to authenticated;
+
+-- ============================================================
+--  PLAY NETWORK DECK DEDUPE (2026-11-21)
+-- ============================================================
+-- Run as migration-2026-11-21-pn-deck-dedupe.sql.
+-- What changes:
+--   * New deck_sig(p_seeker, p_cards, p_side): the same text for two decks
+--     with the same Seeker, main deck and side deck, whatever the spelling
+--     (case, apostrophes, spaces), the Seeker card inside the main deck (the
+--     builder adds it since 2026-09-29, the Play Network list never has
+--     it), the Seeker's own Legacy inside the main deck (the builder always
+--     adds it, a Play Network list may lack it), entries with 0 copies, or
+--     an empty side deck against none. The rules are written so the page
+--     can compute the same text (see the comment on deck_sig). Helpers
+--     deck_sig_name, deck_sig_legacy, deck_sig_items and deck_sig_in go
+--     with it. None of them is callable over the API.
+--   * t_pn_save_deck finds the caller's deck with the same list by deck_sig
+--     instead of an exact jsonb match, so a deck made in the builder (Seeker
+--     card and Legacy in the list), a deck re-saved after picking the Seeker
+--     again, or one with a different apostrophe is found and no copy is
+--     added. When several match, the one with the same Play Network link
+--     comes first. A matched deck with no link gets the Play Network deck
+--     link (a link already set is never changed), so My decks shows its
+--     Play Network badge.
+--   * A deck read only in part: if the caller already has a deck from the
+--     same Play Network link that holds every card of the part read, that
+--     deck is the answer (no incomplete copy is added). If this read is
+--     full and the caller has the copy saved from a part read of the same
+--     link, still with its "Only part of the card list..." note and with no
+--     card that the full list lacks, that copy gets the full list and loses
+--     the note, and it is the answer (existing true), instead of a second
+--     deck.
+--   * Not changed: the per-player lock, the answer {ok, deck_id, existing,
+--     partial, unk}, the refusals (not_allowed, no_deck, rate_limited,
+--     error) and who may call it.
+
+-- 1. Deck signature helpers (not callable over the API) -------------------------
+-- deck_sig_name: a card or Seeker name for comparing. Every character other
+-- than A-Z, a-z and 0-9 is removed, then the rest is lowercased.
+-- In JavaScript: (s||"").replace(/[^A-Za-z0-9]/g,"").toLowerCase(). That is
+-- the page's normName for every name (normName lowercases first; the two
+-- differ only for the characters U+0130 and U+212A, in no card name).
+create or replace function public.deck_sig_name(p text)
+returns text language sql immutable set search_path = public as $$
+  select lower(regexp_replace(coalesce(p, ''), '[^A-Za-z0-9]', '', 'g'));
+$$;
+
+-- deck_sig_legacy: the deck_sig_name of the Legacy bound to a Seeker, given
+-- the Seeker's deck_sig_name; null for a Seeker not listed. Each Legacy card
+-- of the page's card list names its Seeker (legacyOf in index.html); this is
+-- that list as of this migration (10 Seekers). A Seeker added to the page
+-- later and not here only means its Legacy still counts in deck_sig, as
+-- before.
+create or replace function public.deck_sig_legacy(p text)
+returns text language sql immutable set search_path = public as $$
+  select '{"auricevenhand":"willoftheforge","countessmorridaumberland":"soulstitcher",
+           "grizalingeringwound":"ihreniv","ingorthespiritbound":"effigyofchaos",
+           "karmamok":"lienawhodreams","londrielspellwarden":"arkoflamentation",
+           "polinoreprimearchivist":"runefoldgauntlet","sigrithandravos":"andravon",
+           "thundersteps":"stormseye","vorendalthedreadheart":"heartlock"}'::jsonb ->> nullif(p, '');
+$$;
+
+-- deck_sig_items: a card list (jsonb object name -> copies) as rows (k, q):
+--   * a value that is not a jsonb object counts as an empty list (null,
+--     {}, an array, a string: no rows, never an error);
+--   * only entries whose value is a JSON number of at least 1 count (0,
+--     negative, a string such as "3", true, null are dropped); the copies
+--     are rounded down and at most 999 per entry;
+--   * k is deck_sig_name of the name; an empty k is dropped, and so is k
+--     equal to p_skip (the Seeker's own name, for the main deck) or to
+--     deck_sig_legacy(p_skip) (that Seeker's own Legacy: the builder always
+--     adds it, a Play Network list may lack it);
+--   * entries whose names give the same k are added together.
+create or replace function public.deck_sig_items(p jsonb, p_skip text default null)
+returns table (k text, q int) language sql immutable set search_path = public as $$
+  select x.k, sum(x.q)::int
+    from (select deck_sig_name(e.key) as k,
+                 case when jsonb_typeof(e.value) is distinct from 'number' then null
+                      when (e.value #>> '{}')::numeric >= 1
+                      then least(floor((e.value #>> '{}')::numeric), 999)::int end as q
+            from jsonb_each(case when jsonb_typeof(p) = 'object' then p else '{}'::jsonb end) e) x
+   where x.q is not null and x.k <> '' and x.k is distinct from nullif(p_skip, '')
+     and x.k is distinct from deck_sig_legacy(p_skip)
+   group by x.k;
+$$;
+
+-- deck_sig: one text for a deck's Seeker, main deck (terrain and legacy
+-- included) and side deck:
+--   S + "#" + list(p_cards, skip S and its Legacy) + "#" + list(p_side)
+-- where S is deck_sig_name of the Seeker after duel_clean (control
+-- characters removed, spaces trimmed, first 80 characters: real Seeker
+-- names are far shorter, so in JavaScript normName-style S is enough), and
+-- list() is the rows of deck_sig_items as "k:q", sorted by k in byte order
+-- (k holds only a-z and 0-9; JavaScript's default sort() gives the same
+-- order) and joined with ",". An empty list is "". A null side deck and {}
+-- give the same text. Example: Seeker "Polinore, Prime Archivist", cards
+-- {"Spellbound Bahig'udjin":3,"Polinore, Prime Archivist":1,"Starcast
+-- Halls":1,"Runefold Gauntlet":1}, no side deck ->
+--   "polinoreprimearchivist#spellboundbahigudjin:3,starcasthalls:1#"
+-- In JavaScript (legacyOf is the page's Seeker -> Legacy name):
+--   const nn=s=>(s||"").replace(/[^A-Za-z0-9]/g,"").toLowerCase(),
+--   L=(o,x,y)=>{const m={};if(o&&typeof o=="object"&&!Array.isArray(o))for(const n in o){
+--     const v=o[n];if(typeof v!="number"||!(v>=1))continue;const k=nn(n);if(!k||k===x||k===y)continue;
+--     m[k]=(m[k]||0)+Math.min(Math.floor(v),999)}
+--     return Object.keys(m).sort().map(k=>k+":"+m[k]).join(",")},
+--   deckSig=(s,c,sd)=>{const S=nn(s);return S+"#"+L(c,S,nn(legacyOf(s))||null)+"#"+L(sd,null,null)};
+create or replace function public.deck_sig(p_seeker text, p_cards jsonb, p_side jsonb)
+returns text language sql immutable set search_path = public as $$
+  select z.s
+      || '#' || coalesce((select string_agg(i.k || ':' || i.q, ',' order by i.k collate "C")
+                            from deck_sig_items(p_cards, z.s) i), '')
+      || '#' || coalesce((select string_agg(i.k || ':' || i.q, ',' order by i.k collate "C")
+                            from deck_sig_items(p_side, null) i), '')
+    from (select deck_sig_name(duel_clean(p_seeker)) as s) z;
+$$;
+
+-- deck_sig_in: true when every card of the first list is in the second at
+-- least as many times, main deck against main deck and side deck against
+-- side deck, by the rules of deck_sig (the Seeker card and its Legacy in a
+-- main deck do not count). The Seeker itself is not compared: the caller does that.
+create or replace function public.deck_sig_in(p_seeker text, p_cards jsonb, p_side jsonb,
+                                              p_in_cards jsonb, p_in_side jsonb)
+returns boolean language sql immutable set search_path = public as $$
+  select not exists (select 1 from deck_sig_items(p_cards, z.s) a
+                       left join deck_sig_items(p_in_cards, z.s) b on b.k = a.k
+                      where b.q is null or b.q < a.q)
+     and not exists (select 1 from deck_sig_items(p_side, null) a
+                       left join deck_sig_items(p_in_side, null) b on b.k = a.k
+                      where b.q is null or b.q < a.q)
+    from (select deck_sig_name(duel_clean(p_seeker)) as s) z;
+$$;
+
+-- 2. t_pn_save_deck: a player keeps their Play Network deck in My decks ----------
+-- As in the PLAY NETWORK DECKLISTS section, except how an existing deck is
+-- found (2026-11-21):
+--   * a deck of the caller with the same deck_sig (Seeker, main deck, side
+--     deck) is the answer (existing true): one with the Play Network deck
+--     link first, then the oldest; so a deck made in the builder, which
+--     holds the Seeker card and its Legacy in its list, matches the Play
+--     Network list, which never has the Seeker card and may lack the Legacy.
+--     If that deck has no link and the Play Network deck has one, it gets
+--     that link (a link already set is never changed; if the update fails
+--     the deck is still the answer), so My decks shows its Play Network
+--     badge;
+--   * else, when the Play Network deck has a link: if this read is partial,
+--     a deck of the caller with the same link and Seeker that holds every
+--     card read is the answer; if this read is full, a deck of the caller
+--     with the same link and Seeker that still has the partial-read note as
+--     its description and no card beyond the full list gets the full list,
+--     loses the note, and is the answer (existing true).
+-- Everything else is unchanged: the copy is private, named after the Play
+-- Network deck (else "<Seeker> (Play Network)", at most 60 characters),
+-- with the Play Network deck link as its link; only the caller's own list
+-- is copied, into their own decks, and the answer holds no card list.
+-- Answer: {ok, deck_id, existing, partial, unk (cards the site does not
+-- know)}, or t_no with reason
+--   not_allowed   signed out, a guest, a deleted account, no such tournament
+--   no_deck       the caller has no imported deck in this tournament (no
+--                 seat, the seat is no longer theirs, or a deck registered
+--                 from My decks, which is there already)
+--   rate_limited  a limit on decks refused the insert (none today)
+--   error         anything else (the deck is not saved)
+-- Any status: the deck is the player's own, also after the start or close.
+create or replace function public.t_pn_save_deck(p_tid uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_t    tournaments%rowtype;
+  v_row  tournament_decks%rowtype;
+  v_n    tournament_pn%rowtype;
+  v_id   uuid;
+  v_name text;
+  v_desc text;
+  v_side jsonb;
+  v_hint text;
+  v_sig  text;
+  v_sk   text;
+  v_note constant text := 'Only part of the card list could be read from the Play Network. Check it against the link.';
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) or p_tid is null
+     or not exists (select 1 from profiles pr where pr.id = v_uid and pr.deleted_at is null) then
+    return t_no('not_allowed', 'Sign in first, then reload the page.');
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if not found or v_t.status is null then
+    return t_no('not_allowed', 'This tournament was not found.');
+  end if;
+  select * into v_row from tournament_decks k
+   where k.tournament_id = p_tid and k.user_id = v_uid and k.src = 'pn';
+  if not found or v_row.cards is null or jsonb_typeof(v_row.cards) <> 'object'
+     or not exists (select 1 from jsonb_array_elements(coalesce(v_t.payload->'entrants', '[]'::jsonb)) q(x)
+                     where jsonb_typeof(q.x) = 'object' and q.x->>'id' = v_uid::text and q.x->>'pid' = v_row.pn_pid) then
+    return t_no('no_deck', 'You have no deck from the Play Network in this tournament.');
+  end if;
+  select * into v_n from tournament_pn n
+   where n.tournament_id = p_tid and n.pid = v_row.pn_pid and n.seeker is not null;
+  if not found then
+    return t_no('no_deck', 'You have no deck from the Play Network in this tournament.');
+  end if;
+  v_side := case when jsonb_typeof(v_row.side) = 'object' and v_row.side <> '{}'::jsonb then v_row.side end;
+  v_sig  := deck_sig(v_row.seeker, v_row.cards, v_side);
+  v_sk   := deck_sig_name(duel_clean(v_row.seeker));
+  -- one save at a time per player, so two taps cannot add the deck twice
+  perform pg_advisory_xact_lock(hashtext('t_pn_save_deck'), hashtext(v_uid::text));
+  -- the same list, however it is spelled or was made
+  select d.id into v_id
+    from decks d
+   where d.user_id = v_uid
+     and deck_sig(d.seeker, d.cards, d.side) = v_sig
+   order by coalesce(d.url = v_n.deck_url, false) desc, d.created_at, d.id
+   limit 1;
+  -- a matched deck with no link keeps the Play Network link from now on
+  if v_id is not null and v_n.deck_url is not null then
+    begin
+      update decks set url = v_n.deck_url
+       where id = v_id and coalesce(btrim(url), '') = '';
+    exception when others then
+      null;
+    end;
+  end if;
+  -- the same Play Network deck, read in full one time and in part another
+  if v_id is null and v_n.deck_url is not null then
+    if v_n.deck_st = 'partial' then
+      select d.id into v_id
+        from decks d
+       where d.user_id = v_uid and d.url = v_n.deck_url
+         and deck_sig_name(duel_clean(d.seeker)) = v_sk
+         and deck_sig_in(v_row.seeker, v_row.cards, v_side, d.cards, d.side)
+       order by d.created_at, d.id
+       limit 1;
+    else
+      select d.id into v_id
+        from decks d
+       where d.user_id = v_uid and d.url = v_n.deck_url
+         and d.description = v_note
+         and deck_sig_name(duel_clean(d.seeker)) = v_sk
+         and deck_sig_in(v_row.seeker, d.cards, d.side, v_row.cards, v_side)
+       order by d.created_at, d.id
+       limit 1;
+      if v_id is not null then
+        begin
+          update decks set cards = v_row.cards, side = v_side, description = null
+           where id = v_id;
+        exception when others then
+          return t_no('error', 'Could not save the deck. Try again.');
+        end;
+      end if;
+    end if;
+  end if;
+  if v_id is not null then
+    return jsonb_build_object('ok', true, 'deck_id', v_id, 'existing', true,
+                              'partial', v_n.deck_st = 'partial', 'unk', coalesce(v_n.unk_n, 0));
+  end if;
+  v_name := left(coalesce(nullif(btrim(v_row.name), ''), v_row.seeker || ' (Play Network)'), 60);
+  v_desc := case when v_n.deck_st = 'partial' then v_note end;
+  begin
+    insert into decks (user_id, name, seeker, faction, url, description, cards, side, tag, is_public)
+    values (v_uid, v_name, v_row.seeker, null, v_n.deck_url, v_desc, v_row.cards, v_side, null, false)
+    returning id into v_id;
+  exception when others then
+    get stacked diagnostics v_hint = pg_exception_hint;
+    if v_hint = 'rate_limited' then
+      return t_no('rate_limited', 'Too many decks saved in a short time. Wait a minute, then try again.');
+    end if;
+    return t_no('error', 'Could not save the deck. Try again.');
+  end;
+  return jsonb_build_object('ok', true, 'deck_id', v_id, 'existing', false,
+                            'partial', v_n.deck_st = 'partial', 'unk', coalesce(v_n.unk_n, 0));
+end $$;
+
+-- 3. Who may call what -------------------------------------------------------------
+revoke all on function public.deck_sig_name(text)                               from public, anon, authenticated;
+revoke all on function public.deck_sig_legacy(text)                             from public, anon, authenticated;
+revoke all on function public.deck_sig_items(jsonb, text)                       from public, anon, authenticated;
+revoke all on function public.deck_sig(text, jsonb, jsonb)                      from public, anon, authenticated;
+revoke all on function public.deck_sig_in(text, jsonb, jsonb, jsonb, jsonb)     from public, anon, authenticated;
+revoke all on function public.t_pn_save_deck(uuid)                              from public, anon, authenticated;
+grant execute on function public.t_pn_save_deck(uuid)                           to authenticated;
