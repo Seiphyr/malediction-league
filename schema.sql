@@ -14436,3 +14436,1195 @@ revoke all on function public.deck_sig(text, jsonb, jsonb)                      
 revoke all on function public.deck_sig_in(text, jsonb, jsonb, jsonb, jsonb)     from public, anon, authenticated;
 revoke all on function public.t_pn_save_deck(uuid)                              from public, anon, authenticated;
 grant execute on function public.t_pn_save_deck(uuid)                           to authenticated;
+
+-- ============================================================
+--  WEB PUSH NOTIFICATIONS (2026-11-22)
+-- ============================================================
+-- Run as migration-2026-11-22-push.sql. Turn on pg_net first (Dashboard >
+-- Database > Extensions, schema extensions): without it this section stops
+-- with an error. Then store the shared secret in Vault as 'sl_push_secret'.
+-- What changes:
+--   * Web Push notifications. New tables push_subscriptions (each browser that
+--     turned notifications on, at most 10 per player), notify_prefs (four
+--     switches per player: tournaments, matches, events, notices; no row means
+--     all on), push_outbox (the messages waiting to be sent), push_event_sent
+--     (which event reminders went out, so none repeats) and push_config (local
+--     fallback for the shared secret). RLS on and no policies: only the
+--     functions below read or write them.
+--   * Triggers queue a message, never for the player who did the thing (on any
+--     of their devices), only for players with a subscription and the family
+--     switched on. A push problem never fails the write.
+--       - Swiss tournaments: a new round (your opponent and table, or a bye);
+--         the organizer when only games without a tracked result are left, and
+--         when a round is complete and nothing paired it within 3 minutes
+--         ("pair round N+1", or "close it" after the last round); a tracked
+--         tournament game invitation ("X is waiting for you").
+--       - Matches: a player joins your match; the other player ends it and
+--         waits for you to confirm; multiplayer: a player sits down, the match
+--         is on, a claim to confirm.
+--       - Community events: a new listing (several within 2 minutes become
+--         one message), reminders the day before and one hour before (every
+--         minute through pg_cron job sl-push), "Event removed" after a
+--         reminder. An event listed in two communities is reminded once.
+--       - Board notices: a new notice, 60 s late, so a notice deleted within
+--         the undo window is never pushed.
+--   * New RPCs for the page (signed-in players): push_subscribe,
+--     push_unsubscribe, push_set_pref, push_state, push_test. For the
+--     push-send edge function (service role only): push_claim, push_done.
+--     Every other new function is not callable over the API.
+--   * Each message is checked again when push-send takes it (push_stale): a
+--     family switched off, a community left, a notice deleted, a round
+--     unpaired, a match answered or an event moved drops it.
+--   * push-send is asked to run through pg_net (net.http_post) after commit,
+--     with the shared secret from Vault ('sl_push_secret'). pg_net must be on
+--     first: without it this file stops and changes nothing.
+--   * purge_old_rows also clears old push rows and pg_cron's run log (7 days).
+--   * Deleting an account removes its push rows.
+
+-- 0. pg_net (the owner turns it on first) -----------------------------------------
+-- push_kick calls net.http_post. Without pg_net nothing can be delivered, so
+-- the migration stops here and changes nothing.
+do $$
+begin
+  begin
+    create extension if not exists pg_net with schema extensions;
+  exception when others then
+    raise notice 'pg_net could not be created here (%).', sqlerrm;
+  end;
+  if not exists (select 1 from pg_proc p where p.proname = 'http_post'
+                  and p.pronamespace = to_regnamespace('net')) then
+    raise exception 'pg_net is not installed: turn it on in Dashboard > Database > Extensions (pg_net, schema extensions), then run this file again. Nothing was changed.';
+  end if;
+end $$;
+
+-- 1. Tables (RLS on, no policies: only the functions below read or write them) ----
+create table if not exists public.push_subscriptions (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references public.profiles(id) on delete cascade,
+  endpoint     text not null unique check (endpoint ~ '^https://' and char_length(endpoint) <= 1024),
+  p256dh       text not null check (p256dh ~ '^[A-Za-z0-9_-]{86,88}$'),
+  auth         text not null check (auth ~ '^[A-Za-z0-9_-]{21,24}$'),
+  ua           text check (char_length(ua) <= 200),
+  created_at   timestamptz not null default now(),
+  last_seen_at timestamptz,
+  last_ok_at   timestamptz,
+  fails        int not null default 0
+);
+create index if not exists idx_push_subs_user on public.push_subscriptions(user_id);
+
+create table if not exists public.notify_prefs (
+  user_id     uuid primary key references public.profiles(id) on delete cascade,
+  tournaments boolean not null default true,
+  matches     boolean not null default true,
+  events      boolean not null default true,
+  notices     boolean not null default true,
+  updated_at  timestamptz not null default now()
+);
+
+create table if not exists public.push_outbox (
+  id            bigint generated always as identity primary key,
+  user_id       uuid not null references public.profiles(id) on delete cascade,
+  family        text not null check (family in ('tournaments','matches','events','notices','test')),
+  kind          text not null check (kind ~ '^[a-z_]{2,24}$'),
+  title         text not null check (char_length(title) between 1 and 120),
+  body          text not null default '' check (char_length(body) <= 300),
+  url           text not null check (url ~ '^#/' and char_length(url) <= 300),
+  tag           text not null check (char_length(tag) between 1 and 80),
+  data          jsonb not null default '{}'::jsonb,
+  urgency       text not null default 'normal' check (urgency in ('very-low','low','normal','high')),
+  dedupe_key    text not null unique,
+  merge_key     text,
+  not_before    timestamptz not null default now(),
+  expires_at    timestamptz not null,
+  created_at    timestamptz not null default now(),
+  claimed_until timestamptz,
+  sent_at       timestamptz,
+  attempts      int not null default 0,
+  last_error    text
+);
+create index if not exists idx_push_outbox_due on public.push_outbox(not_before, id) where sent_at is null;
+create index if not exists idx_push_outbox_user on public.push_outbox(user_id);
+create index if not exists idx_pn_events_start on public.pn_events(starts_at);
+create unique index if not exists uq_push_outbox_merge on public.push_outbox(merge_key)
+  where sent_at is null and merge_key is not null;
+
+-- Event reminders sent-log. Keyed on pn_id (not pn_events.id), so an event
+-- listed in two communities reminds a member of both only once. No foreign
+-- key to pn_events, so it survives the listing being removed.
+create table if not exists public.push_event_sent (
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  pn_id       int  not null,
+  kind        text not null check (kind in ('new','day','hour','removed')),
+  slot        timestamptz not null,           -- starts_at the message was about; 'epoch' when none
+  league_id   uuid,
+  pn_event_id uuid,
+  sent_at     timestamptz not null default now(),
+  primary key (user_id, pn_id, kind, slot)
+);
+
+-- Fallback for the shared secret (local tests). Production keeps it in Vault.
+create table if not exists public.push_config (k text primary key, v text not null);
+
+alter table public.push_subscriptions enable row level security;
+alter table public.notify_prefs       enable row level security;
+alter table public.push_outbox        enable row level security;
+alter table public.push_event_sent    enable row level security;
+alter table public.push_config        enable row level security;
+revoke all on table public.push_subscriptions, public.notify_prefs, public.push_outbox,
+                    public.push_event_sent, public.push_config from public, anon, authenticated;
+do $$
+begin
+  execute format('revoke all on sequence %s from public, anon, authenticated',
+                 pg_get_serial_sequence('public.push_outbox', 'id'));
+end $$;
+
+-- 2. Helpers (none is callable over the API) ---------------------------------------
+-- push_cfg: a setting of the push sender. Vault secret 'sl_push_<k>' first,
+-- then push_config. Keys: 'secret' (required), 'url' (optional). Spaces, tabs
+-- and line breaks around a pasted value are dropped, as push-send does.
+create or replace function public.push_cfg(p_k text)
+returns text language plpgsql stable security definer set search_path = public as $$
+declare
+  v text;
+begin
+  if to_regclass('vault.decrypted_secrets') is not null then
+    begin
+      execute 'select decrypted_secret from vault.decrypted_secrets where name = $1 limit 1'
+        into v using 'sl_push_' || p_k;
+    exception when others then
+      v := null;
+    end;
+  end if;
+  if nullif(btrim(v, E' \t\r\n'), '') is null then
+    select c.v into v from push_config c where c.k = p_k;
+  end if;
+  return nullif(btrim(v, E' \t\r\n'), '');
+end $$;
+
+-- push_kick: asks push-send to run, once per transaction. pg_net sends the
+-- request only after commit, so a rolled-back write sends nothing.
+create or replace function public.push_kick()
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  v_secret text;
+begin
+  if current_setting('sl.push_kick', true) = '1' then
+    return true;
+  end if;
+  perform set_config('sl.push_kick', '1', true);
+  if to_regnamespace('net') is null then
+    return false;
+  end if;
+  v_secret := push_cfg('secret');
+  if v_secret is null then
+    return false;
+  end if;
+  execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := 8000)'
+    using coalesce(push_cfg('url'), 'https://mrcciuwekqijitngvojc.supabase.co/functions/v1/push-send'),
+          '{"src":"db"}'::jsonb,
+          jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', v_secret);
+  return true;
+exception when others then
+  raise warning 'push_kick: %', sqlerrm;
+  return false;
+end $$;
+
+-- push_on: the family switch of a player (no row: everything on).
+create or replace function public.push_on(p_user uuid, p_fam text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select coalesce((select case p_fam when 'tournaments' then n.tournaments
+                                     when 'matches'     then n.matches
+                                     when 'events'      then n.events
+                                     when 'notices'     then n.notices
+                                     else true end
+                     from notify_prefs n where n.user_id = p_user), true);
+$$;
+
+create or replace function public.push_prefs(p_user uuid)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('tournaments', coalesce(n.tournaments, true), 'matches', coalesce(n.matches, true),
+                            'events', coalesce(n.events, true), 'notices', coalesce(n.notices, true))
+    from (select 1) z left join notify_prefs n on n.user_id = p_user;
+$$;
+
+-- push_name: a player's name in a message.
+create or replace function public.push_name(p_user uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select coalesce((select nullif(btrim(p.display_name), '') from profiles p
+                    where p.id = p_user and p.deleted_at is null), 'A player');
+$$;
+
+-- push_t_name: a tournament key's name (account, else the entrant's name).
+create or replace function public.push_t_name(p jsonb, p_key text)
+returns text language sql stable security definer set search_path = public as $$
+  select coalesce(
+    case when t_acct(p_key) then (select nullif(btrim(pr.display_name), '') from profiles pr
+                                   where pr.id = p_key::uuid and pr.deleted_at is null) end,
+    (select nullif(btrim(q.x->>'name'), '')
+       from jsonb_array_elements(case when jsonb_typeof(p->'entrants') = 'array' then p->'entrants'
+                                      else '[]'::jsonb end) q(x)
+      where q.x->>'id' = p_key limit 1),
+    'your opponent');
+$$;
+
+-- push_t_drop: the entrant with this key has dropped.
+create or replace function public.push_t_drop(p jsonb, p_key text)
+returns boolean language sql immutable security definer set search_path = public as $$
+  select coalesce(p->'entrants' @> jsonb_build_array(jsonb_build_object('id', p_key, 'st', 'drop')), false);
+$$;
+
+-- push_t_open: round p_r's games without a result, both players with an
+-- account (o_t) or not (o_h). Games of two dropped players do not count.
+create or replace function public.push_t_open(p jsonb, p_r int, out o_t int, out o_h int)
+language sql immutable security definer set search_path = public as $$
+  select (count(*) filter (where t_acct(q.x->>'a') and t_acct(q.x->>'b')))::int,
+         (count(*) filter (where not (t_acct(q.x->>'a') and t_acct(q.x->>'b'))))::int
+    from jsonb_array_elements(case when jsonb_typeof(p->'gm') = 'array' then p->'gm' else '[]'::jsonb end) q(x)
+   where q.x->>'r' = p_r::text and q.x->>'b' is not null and q.x->>'w' is null
+     and not (push_t_drop(p, q.x->>'a') and push_t_drop(p, q.x->>'b'));
+$$;
+
+-- push_members: who in a community can get its pushes: active members and
+-- the owner, not deleted, with a subscription; nobody when archived.
+create or replace function public.push_members(p_league uuid)
+returns setof uuid language sql stable security definer set search_path = public as $$
+  select m.user_id from memberships m join profiles p on p.id = m.user_id
+   where m.league_id = p_league and m.dropped_at is null and p.deleted_at is null
+     and exists (select 1 from leagues l where l.id = p_league and l.archived_at is null)
+     and exists (select 1 from push_subscriptions s where s.user_id = m.user_id)
+  union
+  select l.owner_id from leagues l join profiles p on p.id = l.owner_id
+   where l.id = p_league and l.archived_at is null and p.deleted_at is null
+     and exists (select 1 from push_subscriptions s where s.user_id = l.owner_id);
+$$;
+
+-- push_enqueue: the single way into the outbox. Skips the actor (not for
+-- 'test'), deleted or unknown profiles, players without a subscription and
+-- switched-off families. p_merge (ev_new only) folds messages into one row.
+create or replace function public.push_enqueue(
+  p_user uuid, p_fam text, p_kind text, p_title text, p_body text, p_url text, p_tag text,
+  p_data jsonb, p_dedupe text, p_ttl_s int, p_urgency text default 'normal',
+  p_not_before timestamptz default now(), p_merge text default null)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare
+  v_id    bigint;
+  v_merge text := p_merge;
+  v_nb    timestamptz := coalesce(p_not_before, now());
+  v_ttl   int := coalesce(p_ttl_s, 3600);
+  v_again boolean := false;
+begin
+  if p_user is null or p_dedupe is null then
+    return false;
+  end if;
+  if p_fam <> 'test' and p_user is not distinct from auth.uid() then
+    return false;
+  end if;
+  if not exists (select 1 from profiles where id = p_user and deleted_at is null) then
+    return false;
+  end if;
+  if not exists (select 1 from push_subscriptions where user_id = p_user) then
+    return false;
+  end if;
+  if p_fam <> 'test' and not push_on(p_user, p_fam) then
+    return false;
+  end if;
+  if v_merge is not null and exists (select 1 from push_outbox o where o.dedupe_key = p_dedupe) then
+    return false;
+  end if;
+  loop
+    if v_merge is not null then
+      update push_outbox o
+         set data = o.data || jsonb_build_object('n', coalesce((o.data->>'n')::int, 1) + 1, 'last', p_data->>'last'),
+             title = left(format('%s new events in %s', coalesce((o.data->>'n')::int, 1) + 1, p_data->>'league'), 120),
+             body  = left(format('%s and %s more', p_data->>'last', coalesce((o.data->>'n')::int, 1)), 300),
+             expires_at = greatest(o.expires_at, now() + make_interval(secs => greatest(3600, least(v_ttl, 604800))))
+       where o.merge_key = v_merge and o.sent_at is null and o.claimed_until is null
+      returning o.id into v_id;
+      if v_id is not null then
+        return true;
+      end if;
+      -- The pending row is being sent right now: this event gets its own row,
+      -- without a merge key (the insert would hit uq_push_outbox_merge).
+      if exists (select 1 from push_outbox o where o.merge_key = v_merge and o.sent_at is null) then
+        v_merge := null;
+      end if;
+    end if;
+    insert into push_outbox (user_id, family, kind, title, body, url, tag, data, urgency,
+                             dedupe_key, merge_key, not_before, expires_at)
+    values (p_user, p_fam, p_kind, left(p_title, 120), left(coalesce(p_body, ''), 300), p_url, p_tag,
+            coalesce(p_data, '{}'::jsonb) || jsonb_build_object('n', 1), coalesce(p_urgency, 'normal'),
+            p_dedupe, v_merge, v_nb, v_nb + make_interval(secs => greatest(60, least(v_ttl, 604800))))
+    on conflict do nothing
+    returning id into v_id;
+    -- 2026-11-09: a merge row that another transaction inserted and had not
+    -- committed was invisible to the update above; the insert waited for it
+    -- and skipped. It is committed now: merge into it, once.
+    exit when v_id is not null or v_merge is null or v_again
+           or exists (select 1 from push_outbox o where o.dedupe_key = p_dedupe);
+    v_again := true;
+  end loop;
+  if v_id is not null and v_nb <= now() then
+    perform push_kick();
+  end if;
+  return v_id is not null;
+end $$;
+
+-- 3. Enqueue points (each trigger swallows its own errors: a push problem never
+--    fails the write) ---------------------------------------------------------------
+-- (1) Swiss tournaments: a new round (players), results left to enter by hand
+-- (organizer), a round complete that nothing paired (organizer).
+create or replace function public.push_t_after()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_or     int;
+  v_nr     int;
+  v_tid    text;
+  v_url    text;
+  v_title  text;
+  v_x      jsonb;
+  v_s      int;
+  v_k      text;
+  v_o      text;
+  v_tb     text;
+  v_nt     int;
+  v_nh     int;
+  v_ot     int := 0;
+  v_oh     int := 0;
+  v_sig    text;
+  v_rounds int;
+begin
+  begin
+    if new.status is distinct from 'running' or coalesce(new.payload->>'fmt', '') <> 'swiss' then
+      return null;
+    end if;
+    v_or := t_sw_cur(old.payload);
+    v_nr := t_sw_cur(new.payload);
+    v_tid := new.id::text;
+    v_url := '#/tournaments/' || v_tid;
+    v_title := coalesce(nullif(btrim(new.payload #>> '{pn,title}'), ''), 'Tournament');
+
+    -- players of the new round (t_start, t_pair, t_auto_pair)
+    if v_nr > v_or then
+      for v_x in select q.x from jsonb_array_elements(new.payload->'gm') q(x) where q.x->>'r' = v_nr::text loop
+        if v_x->>'src' = 'bye' or v_x->>'b' is null then
+          v_k := v_x->>'a';
+          if t_acct(v_k) and not push_t_drop(new.payload, v_k) then
+            perform push_enqueue(v_k::uuid, 'tournaments', 't_bye', format('Round %s: you have a bye', v_nr),
+                                 '3 points and 20 mastery differential · ' || v_title, v_url, 'sl-next-t' || v_tid,
+                                 jsonb_build_object('tid', v_tid, 'r', v_nr),
+                                 format('t_bye:%s:%s:%s:%s', v_tid, v_nr, new.rev, v_k), 43200, 'normal');
+          end if;
+        else
+          v_tb := case when v_x->>'tb' ~ '^[0-9]{1,4}$' then v_x->>'tb' end;
+          for v_s in 0..1 loop
+            v_k := case when v_s = 0 then v_x->>'a' else v_x->>'b' end;
+            v_o := case when v_s = 0 then v_x->>'b' else v_x->>'a' end;
+            if t_acct(v_k) and not push_t_drop(new.payload, v_k) then
+              perform push_enqueue(v_k::uuid, 'tournaments', 't_round',
+                                   format('Round %s: you play %s', v_nr, push_t_name(new.payload, v_o)),
+                                   concat_ws(' · ', 'Table ' || v_tb, v_title), v_url, 'sl-next-t' || v_tid,
+                                   jsonb_build_object('tid', v_tid, 'r', v_nr),
+                                   format('t_round:%s:%s:%s:%s', v_tid, v_nr, new.rev, v_k), 43200, 'high');
+            end if;
+          end loop;
+        end if;
+      end loop;
+    end if;
+
+    if new.organizer_id is not null and v_nr >= 1 then
+      -- organizer: only games without a tracked result are left
+      select q.o_t, q.o_h into v_nt, v_nh from push_t_open(new.payload, v_nr) q;
+      if v_nh > 0 and v_nt = 0 then
+        if v_or >= v_nr then
+          select q.o_t, q.o_h into v_ot, v_oh from push_t_open(old.payload, v_nr) q;
+        end if;
+        if not (v_oh > 0 and v_ot = 0) then
+          select md5(coalesce(string_agg(coalesce(q.x->>'a', '') || '-' || coalesce(q.x->>'b', ''), ','
+                                         order by case when q.x->>'tb' ~ '^[0-9]{1,4}$' then (q.x->>'tb')::int end
+                                                  nulls last, q.x->>'a'), ''))
+            into v_sig
+            from jsonb_array_elements(new.payload->'gm') q(x) where q.x->>'r' = v_nr::text;
+          perform push_enqueue(new.organizer_id, 'tournaments', 't_org_hand',
+                               format('Round %s: results to enter by hand', v_nr),
+                               case when v_nh = 1 then '1 game has a player without an account · '
+                                    else v_nh || ' games have a player without an account · ' end || v_title,
+                               v_url, 'sl-org-t' || v_tid, jsonb_build_object('tid', v_tid, 'r', v_nr),
+                               format('t_org_hand:%s:%s:%s', v_tid, v_nr, v_sig), 86400, 'normal');
+        end if;
+      end if;
+
+      -- organizer: the round just became complete (checked again when sent)
+      if v_nr = v_or and t_gm_done(new.payload) and not t_gm_done(old.payload) then
+        v_rounds := case when new.payload->>'rounds' ~ '^[0-9]{1,3}$' then (new.payload->>'rounds')::int else 0 end;
+        perform push_enqueue(new.organizer_id, 'tournaments', 't_org_pair', format('Round %s is complete', v_nr),
+                             case when v_nr < v_rounds then format('Pair round %s · %s', v_nr + 1, v_title)
+                                  else 'Open the tournament to close it · ' || v_title end,
+                             v_url, 'sl-org-t' || v_tid, jsonb_build_object('tid', v_tid, 'r', v_nr),
+                             format('t_org_pair:%s:%s:%s', v_tid, v_nr, new.rev), 86400, 'normal',
+                             now() + interval '3 minutes');
+      end if;
+    end if;
+  exception when others then
+    raise warning 'push_t_after: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_t_after on public.tournaments;
+create trigger push_t_after after update on public.tournaments
+  for each row when (new.status = 'running' and new.payload->>'fmt' = 'swiss' and old.payload is distinct from new.payload)
+  execute function public.push_t_after();
+
+-- (1b, 2) Duels: a tournament invitation (guest), a join (host), a claim to
+-- confirm (the other player).
+create or replace function public.push_duel_after()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_t    tournaments%rowtype;
+  v_ttl  int;
+  v_to   uuid;
+  v_sc   text;
+  v_at   timestamptz;
+begin
+  begin
+    if tg_op = 'INSERT' then
+      if coalesce(new.t_invite, false) and new.status = 'waiting' and new.guest_id is not null
+         and new.tournament_id is not null then
+        select * into v_t from tournaments x where x.id = new.tournament_id;
+        if found then
+          v_ttl := greatest(60, least(1800, coalesce(floor(extract(epoch from new.pin_expires_at - now()))::int, 1800)));
+          perform push_enqueue(new.guest_id, 'tournaments', 't_invite',
+                               format('%s is waiting for you', push_name(new.host_id)),
+                               concat_ws(' · ', 'Join your tournament game', t_game_label(v_t.payload, new.t_ref),
+                                         coalesce(nullif(btrim(v_t.payload #>> '{pn,title}'), ''), 'Tournament')),
+                               '#/tournaments/' || new.tournament_id, 'sl-next-t' || new.tournament_id,
+                               jsonb_build_object('tid', new.tournament_id::text, 'duel', new.id::text),
+                               't_invite:' || new.id, v_ttl, 'high');
+        end if;
+      end if;
+    elsif old.status = 'waiting' and new.status = 'live' and new.guest_id is not null then
+      perform push_enqueue(new.host_id, 'matches', 'm_join', format('%s joined your match', push_name(new.guest_id)),
+                           coalesce('Playing ' || nullif(btrim(new.guest_seeker), ''), 'Open the tracker to play'),
+                           '#/tracker', 'sl-duel-' || new.id, jsonb_build_object('duel', new.id::text),
+                           'm_join:' || new.id, 900, 'high');
+    elsif old.status = 'live' and new.status = 'ending' then
+      v_to := case when new.claim_by = new.host_id then new.guest_id else new.host_id end;
+      v_at := coalesce(new.claimed_at, now());
+      v_sc := case when new.winner_score is not null and new.loser_score is not null
+                   then format(' %s–%s', new.winner_score, new.loser_score) else '' end;
+      perform push_enqueue(v_to, 'matches', 'm_confirm',
+                           format('%s ended the match: confirm the result', push_name(new.claim_by)),
+                           case when new.is_draw then 'Draw' || v_sc
+                                else push_name(coalesce(new.claim_winner, new.claim_by)) || ' won' || v_sc end,
+                           '#/tracker', 'sl-duel-' || new.id, jsonb_build_object('duel', new.id::text),
+                           format('m_confirm:%s:%s', new.id, floor(extract(epoch from v_at) * 1000)::bigint),
+                           greatest(600, 172800 - floor(extract(epoch from now() - v_at))::int), 'normal');
+    end if;
+  exception when others then
+    raise warning 'push_duel_after: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_duel_after on public.duels;
+create trigger push_duel_after after insert or update of status on public.duels
+  for each row execute function public.push_duel_after();
+
+-- (2) Multiplayer: a player sits down (host, until the match is full).
+create or replace function public.push_gm_seat_after()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  g   group_matches%rowtype;
+  v_n int;
+begin
+  begin
+    select * into g from group_matches x where x.id = new.match_id;
+    if found and g.status = 'waiting' then
+      select count(*) into v_n from group_match_seats s where s.match_id = new.match_id;
+      if v_n < g.seats then
+        perform push_enqueue(g.host_id, 'matches', 'gm_join', format('%s joined your match', push_name(new.user_id)),
+                             format('%s/%s seated · %s', v_n, g.seats, initcap(g.mode)),
+                             '#/tracker', 'sl-gm-' || g.id, jsonb_build_object('gm', g.id::text),
+                             format('gm_join:%s:%s:%s', g.id, new.user_id,
+                                    floor(extract(epoch from new.joined_at) * 1000)::bigint),
+                             900, 'high');
+      end if;
+    end if;
+  exception when others then
+    raise warning 'push_gm_seat_after: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_gm_seat_after on public.group_match_seats;
+create trigger push_gm_seat_after after insert on public.group_match_seats
+  for each row when (new.seat <> 0) execute function public.push_gm_seat_after();
+
+-- (2) Multiplayer: the match is on (every seated player), a claim to confirm
+-- (gm_confirmers).
+create or replace function public.push_gm_after()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_u     uuid;
+  v_names text;
+  v_body  text;
+begin
+  begin
+    if old.status = 'waiting' and new.status = 'live' then
+      select string_agg(push_name(s.user_id), ', ' order by s.seat) into v_names
+        from group_match_seats s where s.match_id = new.id and s.left_at is null;
+      for v_u in select s.user_id from group_match_seats s where s.match_id = new.id and s.left_at is null loop
+        perform push_enqueue(v_u, 'matches', 'gm_live', 'Your match is on',
+                             concat_ws(' · ', initcap(new.mode), v_names),
+                             '#/tracker', 'sl-gm-' || new.id, jsonb_build_object('gm', new.id::text),
+                             format('gm_live:%s:%s', new.id, v_u), 1800, 'high');
+      end loop;
+    elsif old.status = 'live' and new.status = 'ending' then
+      if new.claim_kind = 'draw' then
+        v_body := 'Draw';
+      else
+        select 'Winner: ' || string_agg(push_name(s.user_id), ', ' order by s.seat) into v_body
+          from group_match_seats s where s.match_id = new.id and s.side = new.claim_side;
+      end if;
+      for v_u in select c.u from gm_confirmers(new.id) c(u) loop
+        perform push_enqueue(v_u, 'matches', 'gm_confirm',
+                             format('%s ended the match: confirm the result', push_name(new.claim_by)),
+                             coalesce(v_body, ''), '#/tracker', 'sl-gm-' || new.id,
+                             jsonb_build_object('gm', new.id::text),
+                             format('gm_confirm:%s:%s:%s', new.id,
+                                    floor(extract(epoch from coalesce(new.claimed_at, now())) * 1000)::bigint, v_u),
+                             172800, 'normal');
+      end loop;
+    end if;
+  exception when others then
+    raise warning 'push_gm_after: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_gm_after on public.group_matches;
+create trigger push_gm_after after update of status on public.group_matches
+  for each row execute function public.push_gm_after();
+
+-- (3) Community events: a new listing (members except who added it; several
+-- within 2 minutes become one message).
+create or replace function public.push_ev_ins()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  l   leagues%rowtype;
+  v_u uuid;
+begin
+  begin
+    select * into l from leagues x where x.id = new.league_id and x.archived_at is null;
+    if not found or (new.starts_at is not null and new.starts_at <= now()) then
+      return null;
+    end if;
+    for v_u in select m.u from push_members(new.league_id) m(u) where m.u is distinct from new.created_by loop
+      insert into push_event_sent (user_id, pn_id, kind, slot, league_id, pn_event_id)
+      values (v_u, new.pn_id, 'new', coalesce(new.starts_at, 'epoch'), new.league_id, new.id)
+      on conflict do nothing;
+      if found then
+        perform push_enqueue(v_u, 'events', 'ev_new', format('New event in %s', l.name),
+                             case when new.starts_at is null then new.title else new.title || ' · {t}' end,
+                             format('#/league/%s/events', new.league_id), 'sl-evn-' || new.league_id,
+                             jsonb_build_object('lid', new.league_id::text, 'pn_id', new.pn_id, 'starts_at', new.starts_at,
+                                                'league', l.name, 'last', new.title),
+                             format('ev_new:%s:%s', new.pn_id, v_u),
+                             case when new.starts_at is null then 604800
+                                  else greatest(3600, least(604800, floor(extract(epoch from new.starts_at - now()))::int)) end,
+                             'normal', now() + interval '2 minutes',
+                             format('ev_new:%s:%s', new.league_id, v_u));
+      end if;
+    end loop;
+  exception when others then
+    raise warning 'push_ev_ins: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_ev_ins on public.pn_events;
+create trigger push_ev_ins after insert on public.pn_events
+  for each row execute function public.push_ev_ins();
+
+-- (3) Reminders the day before (24 h to 3 h) and one hour before (60 to 5
+-- minutes), run every minute by push_tick. A slot within 15 minutes of one
+-- already reminded counts as the same; no "Coming up" within 12 hours of
+-- "New event".
+create or replace function public.push_event_sweep()
+returns int language plpgsql security definer set search_path = public as $$
+declare
+  r     record;
+  n     int := 0;
+  v_ven text;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('push_event_sweep')) then
+    return 0;
+  end if;
+  for r in
+    select distinct on (m.u, e.pn_id, k.kind)
+           m.u, e.id as eid, e.pn_id, e.league_id, e.title, e.starts_at, e.venue, e.location_type,
+           k.kind, l.name as lname
+      from pn_events e
+      join leagues l on l.id = e.league_id and l.archived_at is null
+     cross join lateral (values ('day'), ('hour')) k(kind)
+     cross join lateral push_members(e.league_id) m(u)
+     where e.starts_at between now() and now() + interval '25 hours'
+       and ((k.kind = 'day' and now() >= e.starts_at - interval '24 hours' and now() < e.starts_at - interval '3 hours'
+                            and e.created_at <= e.starts_at - interval '24 hours')
+         or (k.kind = 'hour' and now() >= e.starts_at - interval '60 minutes' and now() < e.starts_at - interval '5 minutes'))
+       and not exists (select 1 from push_event_sent s
+                        where s.user_id = m.u and s.pn_id = e.pn_id and s.kind = k.kind
+                          and abs(extract(epoch from s.slot - e.starts_at)) < 900)
+       and not (k.kind = 'day' and exists (select 1 from push_event_sent s
+                                            where s.user_id = m.u and s.pn_id = e.pn_id and s.kind = 'new'
+                                              and s.sent_at > now() - interval '12 hours'))
+     order by m.u, e.pn_id, k.kind, e.created_at
+  loop
+    insert into push_event_sent (user_id, pn_id, kind, slot, league_id, pn_event_id)
+    values (r.u, r.pn_id, r.kind, r.starts_at, r.league_id, r.eid)
+    on conflict do nothing;
+    if found then
+      n := n + 1;
+      v_ven := coalesce(nullif(btrim(r.venue), ''), nullif(btrim(r.location_type), ''));
+      if r.kind = 'day' then
+        perform push_enqueue(r.u, 'events', 'ev_day', 'Coming up: ' || r.title,
+                             concat_ws(' · ', '{t}', v_ven, r.lname),
+                             format('#/league/%s/events', r.league_id), 'sl-ev-' || r.pn_id,
+                             jsonb_build_object('lid', r.league_id::text, 'pn_id', r.pn_id, 'starts_at', r.starts_at),
+                             format('ev_day:%s:%s:%s', r.pn_id, floor(extract(epoch from r.starts_at))::bigint, r.u),
+                             greatest(60, floor(extract(epoch from r.starts_at - now()))::int), 'normal');
+      else
+        perform push_enqueue(r.u, 'events', 'ev_hour', 'Starts soon: ' || r.title,
+                             concat_ws(' · ', '{h}', v_ven),
+                             format('#/league/%s/events', r.league_id), 'sl-ev-' || r.pn_id,
+                             jsonb_build_object('lid', r.league_id::text, 'pn_id', r.pn_id, 'starts_at', r.starts_at),
+                             format('ev_hour:%s:%s:%s', r.pn_id, floor(extract(epoch from r.starts_at))::bigint, r.u),
+                             greatest(60, floor(extract(epoch from r.starts_at - now()))::int), 'high');
+      end if;
+    end if;
+  end loop;
+  return n;
+end $$;
+
+-- (3, extra) A listing removed after its reminder: "Event removed", unless the
+-- member still sees the event in another of their communities.
+create or replace function public.push_ev_del()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  l   leagues%rowtype;
+  v_u uuid;
+begin
+  begin
+    if old.starts_at is null or old.starts_at <= now() then
+      return null;
+    end if;
+    select * into l from leagues x where x.id = old.league_id and x.archived_at is null;
+    if not found then
+      return null;
+    end if;
+    for v_u in
+      select distinct s.user_id
+        from push_event_sent s
+       where s.pn_id = old.pn_id and s.kind in ('day','hour') and s.league_id = old.league_id
+         and abs(extract(epoch from s.slot - old.starts_at)) < 900
+         and s.user_id in (select m.u from push_members(old.league_id) m(u))
+         and not exists (select 1 from pn_events e2
+                          join leagues l2 on l2.id = e2.league_id and l2.archived_at is null
+                         where e2.pn_id = old.pn_id and e2.id <> old.id
+                           and (e2.league_id in (select m.league_id from memberships m
+                                                  where m.user_id = s.user_id and m.dropped_at is null)
+                                or l2.owner_id = s.user_id))
+    loop
+      insert into push_event_sent (user_id, pn_id, kind, slot, league_id, pn_event_id)
+      values (v_u, old.pn_id, 'removed', old.starts_at, old.league_id, old.id)
+      on conflict do nothing;
+      if found then
+        perform push_enqueue(v_u, 'events', 'ev_removed', 'Event removed: ' || old.title,
+                             l.name || ' took it off its events',
+                             format('#/league/%s/events', old.league_id), 'sl-ev-' || old.pn_id,
+                             jsonb_build_object('lid', old.league_id::text, 'pn_id', old.pn_id, 'starts_at', old.starts_at),
+                             format('ev_removed:%s:%s:%s', old.pn_id, floor(extract(epoch from old.starts_at))::bigint, v_u),
+                             greatest(60, floor(extract(epoch from old.starts_at - now()))::int), 'normal');
+      end if;
+    end loop;
+  exception when others then
+    raise warning 'push_ev_del: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_ev_del on public.pn_events;
+create trigger push_ev_del after delete on public.pn_events
+  for each row execute function public.push_ev_del();
+
+-- (4) Board notices: a new notice (members and owner except the author), 60 s
+-- late so a notice deleted in the undo window is never pushed.
+create or replace function public.push_nt_ins()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  l   leagues%rowtype;
+  v_u uuid;
+  v_b text;
+begin
+  begin
+    if new.league_id is null or (new.expires_at is not null and new.expires_at <= now()) then
+      return null;
+    end if;
+    select * into l from leagues x where x.id = new.league_id and x.archived_at is null;
+    if not found then
+      return null;
+    end if;
+    v_b := regexp_replace(coalesce(trim_blank(new.body), ''), '\s+', ' ', 'g');
+    v_b := left(v_b, 100) || case when char_length(v_b) > 100 then '…' else '' end;
+    for v_u in select m.u from push_members(new.league_id) m(u) where m.u is distinct from new.author_id loop
+      perform push_enqueue(v_u, 'notices', 'nt_new', l.name || ': new notice', v_b,
+                           format('#/league/%s/about', new.league_id), 'sl-nt-' || new.league_id,
+                           jsonb_build_object('lid', new.league_id::text, 'aid', new.id::text),
+                           format('nt_new:%s:%s', new.id, v_u),
+                           case when new.expires_at is null then 259200
+                                else greatest(60, least(259200, floor(extract(epoch from new.expires_at - now()))::int - 60)) end,
+                           'normal', now() + interval '60 seconds');
+    end loop;
+  exception when others then
+    raise warning 'push_nt_ins: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_nt_ins on public.announcements;
+create trigger push_nt_ins after insert on public.announcements
+  for each row execute function public.push_nt_ins();
+
+-- Account deletion (erase_user_data sets deleted_at last): no push rows stay.
+create or replace function public.push_profile_gone()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  begin
+    delete from push_subscriptions where user_id = new.id;
+    delete from notify_prefs       where user_id = new.id;
+    delete from push_outbox        where user_id = new.id;
+    delete from push_event_sent    where user_id = new.id;
+  exception when others then
+    raise warning 'push_profile_gone: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_profile_gone on public.profiles;
+create trigger push_profile_gone after update of deleted_at on public.profiles
+  for each row when (old.deleted_at is null and new.deleted_at is not null)
+  execute function public.push_profile_gone();
+
+-- 4. Client RPCs (signed-in players) ------------------------------------------------
+-- push_uid: the caller, null when signed out, a guest or deleted.
+create or replace function public.push_uid()
+returns uuid language sql stable security definer set search_path = public as $$
+  select p.id from profiles p
+   where p.id = auth.uid() and p.deleted_at is null
+     and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false);
+$$;
+
+-- push_subscribe: this browser's subscription, for the caller (moved from
+-- another account when the browser is the same). At most 10 per player.
+create or replace function public.push_subscribe(p_endpoint text, p_p256dh text, p_auth text,
+                                                 p_ua text default null, p_old text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := push_uid();
+  v_host text;
+  v_id   uuid;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'code', 'signed_out');
+  end if;
+  v_host := lower(substring(p_endpoint from '^https://([^/:?#]+)'));
+  if p_endpoint is null or char_length(p_endpoint) > 1024 or v_host is null
+     or v_host !~ '^(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9.-]+\.push\.apple\.com|[a-z0-9.-]+\.notify\.windows\.com)$' then
+    return jsonb_build_object('ok', false, 'code', 'bad_endpoint');
+  end if;
+  if coalesce(p_p256dh, '') !~ '^[A-Za-z0-9_-]{86,88}$' or coalesce(p_auth, '') !~ '^[A-Za-z0-9_-]{21,24}$' then
+    return jsonb_build_object('ok', false, 'code', 'bad_keys');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('push_subscribe:' || v_uid::text));
+  insert into push_subscriptions (user_id, endpoint, p256dh, auth, ua, last_seen_at, fails)
+  values (v_uid, p_endpoint, p_p256dh, p_auth, left(nullif(btrim(p_ua), ''), 200), now(), 0)
+  on conflict (endpoint) do update
+     set user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, ua = excluded.ua,
+         last_seen_at = now(), fails = 0
+  returning id into v_id;
+  if p_old is not null and p_old <> p_endpoint then
+    delete from push_subscriptions where user_id = v_uid and endpoint = p_old;
+  end if;
+  delete from push_subscriptions
+   where id in (select s.id from push_subscriptions s where s.user_id = v_uid
+                 order by coalesce(s.last_seen_at, s.created_at) desc, s.created_at desc, s.id
+                 offset 10);
+  return jsonb_build_object('ok', true, 'id', v_id);
+end $$;
+
+create or replace function public.push_unsubscribe(p_endpoint text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := push_uid();
+  v_n   int;
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'code', 'signed_out');
+  end if;
+  delete from push_subscriptions where user_id = v_uid and endpoint = p_endpoint;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('ok', true, 'removed', v_n);
+end $$;
+
+create or replace function public.push_set_pref(p_family text, p_on boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := push_uid();
+  v_on  boolean := coalesce(p_on, false);
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'code', 'signed_out');
+  end if;
+  if p_family is null or p_family not in ('tournaments','matches','events','notices') then
+    return jsonb_build_object('ok', false, 'code', 'bad_family');
+  end if;
+  insert into notify_prefs (user_id) values (v_uid) on conflict (user_id) do nothing;
+  update notify_prefs
+     set tournaments = case when p_family = 'tournaments' then v_on else tournaments end,
+         matches     = case when p_family = 'matches'     then v_on else matches end,
+         events      = case when p_family = 'events'      then v_on else events end,
+         notices     = case when p_family = 'notices'     then v_on else notices end,
+         updated_at  = now()
+   where user_id = v_uid;
+  return jsonb_build_object('ok', true, 'prefs', push_prefs(v_uid));
+end $$;
+
+-- push_state: prefs, devices, whether p_endpoint is the caller's, and whether
+-- the server side is set up (never the secret itself).
+create or replace function public.push_state(p_endpoint text default null)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare
+  v_uid uuid := push_uid();
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'code', 'signed_out');
+  end if;
+  return jsonb_build_object(
+    'ok', true, 'prefs', push_prefs(v_uid),
+    'devices', (select count(*) from push_subscriptions s where s.user_id = v_uid),
+    'here', p_endpoint is not null
+            and exists (select 1 from push_subscriptions s where s.user_id = v_uid and s.endpoint = p_endpoint),
+    'ready', push_cfg('secret') is not null and to_regnamespace('net') is not null);
+end $$;
+
+-- push_test: one test message to the caller's devices, at most one a minute.
+create or replace function public.push_test()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := push_uid();
+begin
+  if v_uid is null then
+    return jsonb_build_object('ok', false, 'code', 'signed_out');
+  end if;
+  return jsonb_build_object('ok', true, 'queued',
+    push_enqueue(v_uid, 'test', 'test', 'Notifications work', 'This is a test from Seekers League.', '#/', 'sl-test',
+                 '{}'::jsonb, format('test:%s:%s', v_uid, floor(extract(epoch from now()) / 60)::bigint), 600, 'normal'));
+end $$;
+
+-- 5. Sender RPCs (push-send, service role) ------------------------------------------
+-- push_stale: why a claimed row must not go out any more (null: send it).
+create or replace function public.push_stale(o public.push_outbox)
+returns text language plpgsql stable security definer set search_path = public as $$
+declare
+  d    jsonb := coalesce(o.data, '{}'::jsonb);
+  v_t  tournaments%rowtype;
+  v_e  pn_events%rowtype;
+  v_s  text;
+  v_c  int;
+begin
+  if o.family <> 'test' and not push_on(o.user_id, o.family) then
+    return 'pref_off';
+  end if;
+  if o.family in ('events','notices')
+     and not exists (select 1 from push_members((d->>'lid')::uuid) m(u) where m.u = o.user_id) then
+    return 'not_member';
+  end if;
+  if o.kind = 'nt_new' then
+    if not exists (select 1 from announcements a where a.id = (d->>'aid')::uuid
+                    and (a.expires_at is null or a.expires_at > now())) then
+      return 'gone';
+    end if;
+  elsif (o.kind = 'ev_new' and coalesce((d->>'n')::int, 1) = 1) or o.kind in ('ev_day','ev_hour') then
+    select * into v_e from pn_events e
+     where e.league_id = (d->>'lid')::uuid and e.pn_id = (d->>'pn_id')::int
+     order by e.created_at limit 1;
+    if not found then
+      return 'gone';
+    end if;
+    if o.kind in ('ev_day','ev_hour')
+       and (v_e.starts_at is null
+            or abs(extract(epoch from v_e.starts_at - (d->>'starts_at')::timestamptz)) > 900) then
+      return 'moved';
+    end if;
+  elsif o.kind in ('t_round','t_bye','t_org_hand','t_org_pair') then
+    select * into v_t from tournaments x where x.id = (d->>'tid')::uuid;
+    if not found or v_t.status is distinct from 'running' then
+      return 'stale';
+    end if;
+    v_c := t_sw_cur(v_t.payload);
+    if o.kind = 't_org_pair' then
+      if v_c > (d->>'r')::int or not t_gm_done(v_t.payload) then
+        return 'stale';
+      end if;
+    elsif v_c <> (d->>'r')::int then
+      return 'stale';
+    end if;
+  elsif o.kind in ('t_invite','m_join','m_confirm') then
+    select x.status into v_s from duels x where x.id = (d->>'duel')::uuid;
+    if v_s is distinct from (case o.kind when 't_invite' then 'waiting' when 'm_join' then 'live' else 'ending' end) then
+      return 'stale';
+    end if;
+  elsif o.kind in ('gm_join','gm_live','gm_confirm') then
+    select x.status into v_s from group_matches x where x.id = (d->>'gm')::uuid;
+    if v_s is distinct from (case o.kind when 'gm_join' then 'waiting' when 'gm_live' then 'live' else 'ending' end) then
+      return 'stale';
+    end if;
+    if o.kind = 'gm_confirm'
+       and not exists (select 1 from gm_confirmers((d->>'gm')::uuid) c(u) where c.u = o.user_id) then
+      return 'stale';
+    end if;
+  end if;
+  return null;
+exception when others then
+  return null;
+end $$;
+
+-- push_claim: up to p_limit due rows, leased for p_lease_s seconds, each with
+-- the player's subscriptions. Rows without a subscription, or stale ones, are
+-- closed here and not returned.
+create or replace function public.push_claim(p_limit int default 40, p_lease_s int default 120)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_lim   int := least(greatest(coalesce(p_limit, 40), 1), 200);
+  v_lease int := least(greatest(coalesce(p_lease_s, 120), 10), 900);
+  o       push_outbox%rowtype;
+  v_subs  jsonb;
+  v_why   text;
+  v_out   jsonb := '[]'::jsonb;
+begin
+  for o in
+    with due as (
+      select x.id from push_outbox x
+       where x.sent_at is null and x.not_before <= now() and x.expires_at > now() and x.attempts < 6
+         and (x.claimed_until is null or x.claimed_until < now())
+       order by x.not_before, x.id
+       limit v_lim
+       for update skip locked
+    )
+    update push_outbox x
+       set claimed_until = now() + make_interval(secs => v_lease), attempts = x.attempts + 1
+      from due where x.id = due.id
+    returning x.*
+  loop
+    select jsonb_agg(jsonb_build_object('id', s.id, 'endpoint', s.endpoint, 'p256dh', s.p256dh, 'auth', s.auth)
+                     order by coalesce(s.last_seen_at, s.created_at) desc, s.id)
+      into v_subs
+      from push_subscriptions s where s.user_id = o.user_id;
+    if v_subs is null then
+      update push_outbox set sent_at = now(), claimed_until = null, last_error = 'no_subscription' where id = o.id;
+      continue;
+    end if;
+    v_why := push_stale(o);
+    if v_why is not null then
+      update push_outbox set sent_at = now(), claimed_until = null, last_error = 'stale:' || v_why where id = o.id;
+      continue;
+    end if;
+    v_out := v_out || jsonb_build_array(jsonb_build_object(
+      'id', o.id, 'kind', o.kind, 'fam', o.family, 'title', o.title, 'body', o.body, 'url', o.url, 'tag', o.tag,
+      'urgency', o.urgency, 'ttl', greatest(0, floor(extract(epoch from o.expires_at - now())))::int,
+      'attempts', o.attempts, 'ts', to_char(o.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+      'data', o.data, 'subs', v_subs));
+  end loop;
+  return v_out;
+end $$;
+
+-- push_uuids: the uuid strings of a jsonb array (anything else is skipped).
+create or replace function public.push_uuids(p jsonb)
+returns uuid[] language sql immutable security definer set search_path = public as $$
+  select coalesce(array_agg(v::uuid), '{}')
+    from jsonb_array_elements_text(case when jsonb_typeof(p) = 'array' then p else '[]'::jsonb end) q(v)
+   where v ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+$$;
+
+-- push_done: what push-send did with each claimed row and subscription.
+create or replace function public.push_done(p_res jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  x       jsonb;
+  v_id    bigint;
+  v_err   text;
+  v_ra    int;
+  v_att   int;
+  v_n     int;
+  v_sent  int := 0;
+  v_retry int := 0;
+  v_fail  int := 0;
+  v_gone  int := 0;
+begin
+  if jsonb_typeof(p_res) is distinct from 'array' then
+    return jsonb_build_object('ok', false, 'code', 'bad_input');
+  end if;
+  for x in select q.x from jsonb_array_elements(p_res) q(x) where jsonb_typeof(q.x) = 'object' loop
+    -- the subscriptions, even when the row is no longer claimed
+    delete from push_subscriptions where id = any(push_uuids(x->'gone'));
+    get diagnostics v_n = row_count;
+    v_gone := v_gone + v_n;
+    update push_subscriptions set last_ok_at = now(), fails = 0 where id = any(push_uuids(x->'okd'));
+    update push_subscriptions set fails = fails + 1 where id = any(push_uuids(x->'bad'));
+    delete from push_subscriptions
+     where id = any(push_uuids(x->'bad')) and fails >= 8
+       and coalesce(last_ok_at, created_at) < now() - interval '14 days';
+
+    -- the row
+    if coalesce(x->>'id', '') !~ '^[0-9]{1,18}$' then
+      continue;
+    end if;
+    v_id := (x->>'id')::bigint;
+    v_err := left(nullif(btrim(x->>'err'), ''), 200);
+    if x->>'status' in ('sent','failed') then
+      update push_outbox set sent_at = now(), claimed_until = null, last_error = v_err
+       where id = v_id and sent_at is null;
+      get diagnostics v_n = row_count;
+      if x->>'status' = 'sent' then v_sent := v_sent + v_n; else v_fail := v_fail + v_n; end if;
+    elsif x->>'status' = 'retry' then
+      select o.attempts into v_att from push_outbox o
+       where o.id = v_id and o.sent_at is null and o.claimed_until is not null for update;
+      if not found then
+        continue;
+      end if;
+      if v_att >= 6 then
+        update push_outbox set sent_at = now(), claimed_until = null, last_error = 'gave_up:' || coalesce(v_err, 'retry')
+         where id = v_id;
+        v_fail := v_fail + 1;
+      else
+        v_ra := case when jsonb_typeof(x->'retry_after_s') = 'number'
+                     then least(greatest(floor((x->>'retry_after_s')::numeric), 0), 86400)::int end;
+        update push_outbox
+           set claimed_until = null, last_error = v_err,
+               not_before = now() + make_interval(secs => least(3600, greatest(coalesce(v_ra, 0),
+                                                                             60 * power(2, greatest(v_att, 1) - 1))))
+         where id = v_id;
+        v_retry := v_retry + 1;
+      end if;
+    end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'sent', v_sent, 'retry', v_retry, 'failed', v_fail, 'gone', v_gone);
+end $$;
+
+-- 6. Delivery schedule and retention -------------------------------------------------
+-- push_tick (pg_cron, every minute): the reminders, expired rows closed, and a
+-- kick when something is due (rows queued for later, retries).
+create or replace function public.push_tick()
+returns int language plpgsql security definer set search_path = public as $$
+declare
+  n int := 0;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('push_tick')) then
+    return 0;
+  end if;
+  begin
+    n := push_event_sweep();
+  exception when others then
+    raise warning 'push_tick (reminders): %', sqlerrm;
+  end;
+  update push_outbox set sent_at = now(), claimed_until = null, last_error = 'expired'
+   where sent_at is null and expires_at <= now() and (claimed_until is null or claimed_until < now());
+  update push_outbox set sent_at = now(), claimed_until = null, last_error = 'gave_up:lease'
+   where sent_at is null and attempts >= 6 and (claimed_until is null or claimed_until < now());
+  if exists (select 1 from push_outbox o
+              where o.sent_at is null and o.not_before <= now() and o.expires_at > now() and o.attempts < 6
+                and (o.claimed_until is null or o.claimed_until < now())) then
+    perform push_kick();
+  end if;
+  return n;
+end $$;
+
+-- purge_old_rows (nightly sl-purge-old-rows): the two old deletes unchanged,
+-- plus the push tables and pg_cron's run log.
+create or replace function public.purge_old_rows()
+returns integer language plpgsql security definer set search_path = public as $$
+declare n integer; m integer; t integer := 0;
+begin
+  delete from app_events where created_at < now() - interval '90 days';
+  get diagnostics n = row_count;
+  delete from feedback where created_at < now() - interval '12 months';
+  get diagnostics m = row_count;
+  t := n + m;
+  delete from push_outbox where created_at < now() - interval '7 days';
+  get diagnostics m = row_count; t := t + m;
+  delete from push_event_sent
+   where (slot > 'epoch' and slot < now() - interval '7 days')
+      or (slot = 'epoch' and sent_at < now() - interval '60 days');
+  get diagnostics m = row_count; t := t + m;
+  delete from push_subscriptions where coalesce(last_ok_at, last_seen_at, created_at) < now() - interval '120 days';
+  get diagnostics m = row_count; t := t + m;
+  if to_regclass('cron.job_run_details') is not null then
+    begin
+      execute 'delete from cron.job_run_details where end_time < now() - interval ''7 days''';
+    exception when others then
+      raise warning 'purge cron log: %', sqlerrm;
+    end;
+  end if;
+  return t;
+end $$;
+
+-- pg_cron job sl-push, every minute. Re-running replaces the job.
+do $$
+begin
+  begin
+    create extension if not exists pg_cron with schema pg_catalog;
+  exception when others then
+    raise notice 'pg_cron is not available (%); nothing sends queued pushes on a schedule.', sqlerrm;
+  end;
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    begin
+      perform cron.unschedule(j.jobid) from cron.job j where j.jobname = 'sl-push';
+      perform cron.schedule('sl-push', '* * * * *', 'select public.push_tick()');
+    exception when others then
+      raise notice 'Could not schedule sl-push (%).', sqlerrm;
+    end;
+  end if;
+end $$;
+
+-- 7. Who may call what -----------------------------------------------------------------
+revoke all on function public.push_cfg(text)                                   from public, anon, authenticated;
+revoke all on function public.push_kick()                                      from public, anon, authenticated;
+revoke all on function public.push_on(uuid, text)                              from public, anon, authenticated;
+revoke all on function public.push_prefs(uuid)                                 from public, anon, authenticated;
+revoke all on function public.push_name(uuid)                                  from public, anon, authenticated;
+revoke all on function public.push_t_name(jsonb, text)                         from public, anon, authenticated;
+revoke all on function public.push_t_drop(jsonb, text)                         from public, anon, authenticated;
+revoke all on function public.push_t_open(jsonb, int)                          from public, anon, authenticated;
+revoke all on function public.push_members(uuid)                               from public, anon, authenticated;
+revoke all on function public.push_enqueue(uuid, text, text, text, text, text, text, jsonb, text, int, text, timestamptz, text)
+                                                                               from public, anon, authenticated;
+revoke all on function public.push_t_after()                                   from public, anon, authenticated;
+revoke all on function public.push_duel_after()                                from public, anon, authenticated;
+revoke all on function public.push_gm_seat_after()                             from public, anon, authenticated;
+revoke all on function public.push_gm_after()                                  from public, anon, authenticated;
+revoke all on function public.push_ev_ins()                                    from public, anon, authenticated;
+revoke all on function public.push_event_sweep()                               from public, anon, authenticated;
+revoke all on function public.push_ev_del()                                    from public, anon, authenticated;
+revoke all on function public.push_nt_ins()                                    from public, anon, authenticated;
+revoke all on function public.push_profile_gone()                              from public, anon, authenticated;
+revoke all on function public.push_uid()                                       from public, anon, authenticated;
+revoke all on function public.push_stale(public.push_outbox)                   from public, anon, authenticated;
+revoke all on function public.push_uuids(jsonb)                                from public, anon, authenticated;
+revoke all on function public.push_tick()                                      from public, anon, authenticated;
+revoke all on function public.purge_old_rows()                                 from public, anon, authenticated;
+revoke all on function public.push_subscribe(text, text, text, text, text)     from public, anon, authenticated;
+revoke all on function public.push_unsubscribe(text)                           from public, anon, authenticated;
+revoke all on function public.push_set_pref(text, boolean)                     from public, anon, authenticated;
+revoke all on function public.push_state(text)                                 from public, anon, authenticated;
+revoke all on function public.push_test()                                      from public, anon, authenticated;
+revoke all on function public.push_claim(int, int)                             from public, anon, authenticated;
+revoke all on function public.push_done(jsonb)                                 from public, anon, authenticated;
+grant execute on function public.push_subscribe(text, text, text, text, text)  to authenticated;
+grant execute on function public.push_unsubscribe(text)                        to authenticated;
+grant execute on function public.push_set_pref(text, boolean)                  to authenticated;
+grant execute on function public.push_state(text)                              to authenticated;
+grant execute on function public.push_test()                                   to authenticated;
+grant execute on function public.push_claim(int, int)                          to service_role;
+grant execute on function public.push_done(jsonb)                              to service_role;

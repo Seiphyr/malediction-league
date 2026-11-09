@@ -67,6 +67,11 @@ a.pf-ln:hover{text-decoration:underline}
 .acc-rule{height:1px;background:var(--line);margin:18px 0 14px}
 .acc-danger>b{display:block;margin-bottom:4px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--crimson-txt)}
 .acc-danger .t-danger-b{margin-left:0}
+/* 2026-11-09: Account > Notifications */
+.push-sw{align-items:flex-start;margin:0 0 12px}.push-sw input{margin-top:2px}.push-sw b{display:block;font-weight:600;color:var(--bone)}.push-sw small{display:block;margin-top:2px;font-size:12px;line-height:1.45}
+.push-st.on{color:var(--bone)}.push-warn{color:var(--crimson-txt)}#acc-push .acc-save{min-height:40px}
+.push-acts{display:flex;flex-wrap:wrap;gap:8px}.push-acts button{flex:1 1 180px;min-height:40px;margin:0}
+@media(max-width:620px){.acc-tab{flex:1 1 auto;padding:11px 3px;letter-spacing:.06em}}
 @media(max-width:620px){.acc-wrap{grid-template-columns:minmax(0,1fr);gap:16px}.acc-nav{flex-direction:row;gap:0;border-bottom:1px solid var(--line)}.acc-tab{flex:1 1 0;text-align:center;border-left:0;border-bottom:2px solid transparent;border-radius:0;margin-bottom:-1px;padding:11px 6px}.acc-tab.on{border-bottom-color:var(--crimson);background:0 0}.acc-panes{min-height:0}}
 .geo-bar{display:flex;gap:8px;margin-bottom:10px}
 .geo-bar input{flex:1 1 auto;min-width:0}
@@ -2310,6 +2315,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   session=sess;
   const now=sess&&sess.user?sess.user.id:null;
   sess?await loadMe():me=null;
+  sess||!was||slPushOrphan();
   if("PASSWORD_RECOVERY"===evt){recoveryPending=!0;return void showSetNewPassword()}
   if(recoveryPending)return;
   /* Coming back to the window makes supabase re-check the session and announce
@@ -2320,7 +2326,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   if(was!==now){slUserReset();now&&me&&fetchMyLeagues().then(L=>{me&&me.id===now&&(cache.myLeagues=L,renderChrome())}).catch(()=>{})}
   "SIGNED_IN"===evt&&oaRestore();
   renderChrome();render();
-});const{data:t}=await sb.auth.getSession();return session=t.session,session&&await loadMe(),await new Promise(e=>setTimeout(e,60)),oa&&oaFinish(e),recoveryPending||n&&session?(recoveryPending=!0,showSetNewPassword(),!0):void 0}async function loadMe(){
+});const{data:t}=await sb.auth.getSession();return session=t.session,session&&await loadMe(),session||slPushOrphan(),await new Promise(e=>setTimeout(e,60)),oa&&oaFinish(e),recoveryPending||n&&session?(recoveryPending=!0,showSetNewPassword(),!0):void 0}async function loadMe(){
   if(!session)return;
   const u=session.user||{};
   const{data:d}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
@@ -2333,7 +2339,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   const{data:d2}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
   if(d2)me=d2,nkSoon();
 }
-async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote()}async function signOut(){await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
+async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote()}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
 /* Every load of the player's communities also refreshes the menu (see slNavLg),
    repainting only when the ids, names or archived flags changed. A failed read
    keeps the menu as it was. */
@@ -4460,7 +4466,7 @@ function duInvSet(L,add){
   const A=window._duInvAnn=window._duInvAnn||{};
   c.list.forEach(x=>{if(!x.host_name||A[x.id])return;A[x.id]=1;
     try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}
-    "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(`${x.host_name} is waiting for you`,`Join your tournament game${x.label?" · "+x.label:""}${x.title?" · "+x.title:""}`,tvNoteData(null,x.tid,null,!0))});
+    "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(`${x.host_name} is waiting for you`,`Join your tournament game${x.label?" · "+x.label:""}${x.title?" · "+x.title:""}`,tvNoteData(null,x.tid,null,!0),"invite")});
   JSON.stringify(c.list)!==was&&duInvRepaint();
 }
 function duInvRepaint(){"tracker"===route.view&&!DU&&duPickPaint();"tournaments"===route.view&&t3Repaint();"browse"===route.view&&paintHomeNext();duInvNote()}
@@ -4531,13 +4537,13 @@ function duInbT(tid){
     /* Automatic pairing and close ask the server from here too (swKick, when the page has it). */
     t&&"function"==typeof window.swKick&&window.swKick(t);
     if(!t||!o||!swIsSwiss(t.payload))return;
-    const cur=swCur(t.payload),T=t3Title(t);let a="",b="";
-    if("running"===t.status&&cur>o0){const n=tvMyNext([t]);a=`Round ${cur} is paired`;b=n?`Your next game: vs ${n.oppName}${n.table?", table "+n.table:""}.`:swMyBye(t)?"You have a bye.":""}
+    const cur=swCur(t.payload),T=t3Title(t);let a="",b="",kd="";
+    if("running"===t.status&&cur>o0){const n=tvMyNext([t]);kd=n?"round":swMyBye(t)?"bye":"";a=`Round ${cur} is paired`;b=n?`Your next game: vs ${n.oppName}${n.table?", table "+n.table:""}.`:swMyBye(t)?"You have a bye.":""}
     /* The same words as swDid, whichever of the two hears of the close first. */
-    else if("closed"===t.status&&"closed"!==os){const p=t.payload||{},S=Array.isArray(p.standings)?p.standings:[],ch=p.champion||swChampion(S);a="The tournament is closed";b=ch?`Champion: ${swNmIn(tid,ch,R)}`:S.length?"First place is shared.":"See the final standings."}
+    else if("closed"===t.status&&"closed"!==os){kd="closed";const p=t.payload||{},S=Array.isArray(p.standings)?p.standings:[],ch=p.champion||swChampion(S);a="The tournament is closed";b=ch?`Champion: ${swNmIn(tid,ch,R)}`:S.length?"First place is shared.":"See the final standings."}
     if(!a)return;
     if(!swSay(tid,t.rev|0,`${a}.${b?" "+b:""}`))return;
-    "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(a,(b?b+" ":"")+T,tvNoteData(null,tid,null,!0));
+    "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(a,(b?b+" ":"")+T,tvNoteData(null,tid,null,!0),kd);
   });
 }
 document.addEventListener("visibilitychange",()=>{document.hidden||duInboxPoll()});
@@ -5885,11 +5891,13 @@ function slIosNotifyHelp(){let n=$("ios-nt-modal");n||(n=document.createElement(
     <ol class="hint" style="margin:0 0 12px;padding-left:20px;line-height:1.6">
       <li>Tap the <b>Share</b> button in Safari.</li>
       <li>Choose <b>Add to Home Screen</b>.</li>
-      <li>Open Seekers League from the new icon and tap <b>Notify me</b> again.</li>
+      <li>Open Seekers League from the new icon and tap <b>Notify me</b> again, or turn them on in <b>Account &gt; Notifications</b>.</li>
     </ol>
     <button class="act" style="padding:10px 16px;min-height:40px" onclick="document.getElementById('ios-nt-modal').remove()">Got it</button>
   </div>`}
 async function tvNotifyAsk(){
+  /* 2026-11-09: signed in, with push in this browser: Notify me turns push on for this device (Account > Notifications). Without the server side yet, the page-open notifications below. */
+  if(me&&rememberOn()&&slPushSupported()&&!slIosNeedsHome()){const r=await slPushEnable();if(!0===r){const u=me&&me.id,q=u?await slPushRpc("push_set_pref",{p_family:"tournaments",p_on:!0}):null;me&&me.id===u&&q&&q.ok&&q.prefs&&slPushPrefsPut(q.prefs);toast("Notifications are on. Choose which ones in Account > Notifications",!0);tvLastClear();tvWatch(),tvRepaintNext(),tvPoll();return}let pg="";try{pg=Notification.permission}catch(e){}if("granted"!==pg)return}
   if(slIosNeedsHome())return slIosNotifyHelp();
   if(!("Notification"in window))return toast("This browser cannot show notifications");
   let p="denied";
@@ -5901,11 +5909,18 @@ async function tvNotifyAsk(){
   tvLastClear();
   tvWatch(),tvRepaintNext(),tvPoll();
 }
-function tvNotifyOff(){try{localStorage.removeItem("sl.notify")}catch(e){}toast("Notifications off",!0),tvRepaintNext()}
+/* 2026-11-09: with push on here, it turns tournament notifications off (on every device), not the whole device. */
+async function tvNotifyOff(){
+  if(slPushHere()){const u=me.id,r=await slPushRpc("push_set_pref",{p_family:"tournaments",p_on:!1});if(!r.ok||!r.prefs)return toast("missing"===r.code?"Notifications are not available yet":"Could not save that. Try again.");
+    if(!me||me.id!==u)return;slPushPrefsPut(r.prefs);window._pushSt&&window._pushSt.uid===u&&(window._pushSt.prefs=r.prefs);slPushPaint();
+    try{localStorage.removeItem("sl.notify")}catch(e){}return toast("Tournament notifications off. Other choices: Account > Notifications",!0),tvRepaintNext()}
+  try{localStorage.removeItem("sl.notify")}catch(e){}toast("Notifications off",!0),tvRepaintNext()}
 /* Tapping the notification opens the tournament itself. The page address
    travels in the notification's data; sw.js only ever focuses or opens a page
    of this site, and the page only follows a #/league/<id>/tournament route. */
-async function tvNotify(title,body,data){
+/* 2026-11-09: kind is round, bye, invite or closed. Swiss rounds, byes and invitations come by push when it is on here; closes, community and groups-and-finals tournaments stay local. */
+async function tvNotify(title,body,data,kind){
+  if(data&&data.tid&&!data.lid&&/^(round|bye|invite)$/.test(kind||"")&&slPushActive("tournaments"))return;
   try{
     const r="serviceWorker"in navigator?await navigator.serviceWorker.getRegistration():null;
     const tag="sl-next"+(data&&data.lid?"-"+data.lid:data&&data.tid?"-t"+data.tid:"");
@@ -5922,13 +5937,147 @@ function tvOpenNote(d){
     const t3=/^#\/tournaments\/([0-9a-f-]{36})$/.exec(u.hash);
     if(t3)return void go("tournaments",{tournamentId:t3[1]});
     const m=/^#\/league\/([A-Za-z0-9-]{1,64})\/tournament$/.exec(u.hash);
+    /* 2026-11-09: push routes: community events or about, the Match page, home. */
+    const lg=/^#\/league\/([A-Za-z0-9-]{1,64})\/(events|about)$/.exec(u.hash);
+    if(lg)return void go("league",{leagueId:lg[1],tab:lg[2]});
+    if("#/tracker"===u.hash){window._duFind=null;window._duBoot=null;return void go("tracker")}
+    if("#/"===u.hash||""===u.hash)return void go("browse");
     if(!m)return;
     const ok=x=>"string"==typeof x&&/^[A-Za-z0-9-]{1,64}$/.test(x);
     ok(d.tid)&&(window._tPick=d.tid);ok(d.month)&&(window._tMonth=d.month);
     go("league",{leagueId:m[1],tab:"tournament"});
   }catch(e){}
 }
-"serviceWorker"in navigator&&(()=>{try{navigator.serviceWorker.addEventListener("message",e=>{const d=e.data;d&&"sl-open"===d.type&&tvOpenNote(d)});navigator.serviceWorker.startMessages&&navigator.serviceWorker.startMessages()}catch(e){}})();
+"serviceWorker"in navigator&&(()=>{try{navigator.serviceWorker.addEventListener("message",e=>{const d=e.data;d&&"object"==typeof d&&("sl-open"===d.type?tvOpenNote(d):"sl-push"===d.type?slPushInPage(d):"sl-resub"===d.type&&slPushSync(!0,"string"==typeof d.old?d.old:null))});navigator.serviceWorker.startMessages&&navigator.serviceWorker.startMessages()}catch(e){}})();
+/* 2026-11-09: Web Push. sl.push {uid, ep, at} means this device is on for that account; sl.push.prefs caches the
+   four switches, which live on the account. The browser subscription goes to push_subscribe, the server sends
+   through push-send and sw.js shows it. Another account's subscription is never kept on this device. */
+const SL_VAPID_PUB="BFgwFf5-rPc8VLKLyJyNMoNJ75Y0gH0MUQne8mTWUrbyUUDEYmE6ETm8qemqOWunAnJ0hGpTydIVwZESZ16-2eE";
+function slB64uBytes(s){s=String(s||"").replace(/-/g,"+").replace(/_/g,"/");s+="===".slice((s.length+3)%4);const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+function slPushGet(){try{const o=JSON.parse(localStorage.getItem("sl.push")||"null");return o&&"object"==typeof o&&o.uid?o:null}catch(e){return null}}
+function slPushPut(o){try{o?localStorage.setItem("sl.push",JSON.stringify(o)):localStorage.removeItem("sl.push")}catch(e){}}
+function slPushPrefs(){try{const o=JSON.parse(localStorage.getItem("sl.push.prefs")||"null");return o&&"object"==typeof o&&me&&o.uid===me.id?o:{}}catch(e){return{}}}
+function slPushPrefsPut(p){try{me&&p&&"object"==typeof p&&localStorage.setItem("sl.push.prefs",JSON.stringify(Object.assign({},p,{uid:me.id})))}catch(e){}}
+function slPushSupported(){try{return"serviceWorker"in navigator&&"PushManager"in window&&"Notification"in window}catch(e){return!1}}
+function slPushHere(){try{const s=slPushGet();return!!(me&&s&&s.uid===me.id&&"Notification"in window&&"granted"===Notification.permission)}catch(e){return!1}}
+function slPushActive(f){return slPushHere()&&!1!==slPushPrefs()[f]}
+/* The SQL accepts only unpadded base64url keys. */
+function slPushK(k){return String(k||"").replace(/=+$/,"").replace(/\+/g,"-").replace(/\//g,"_")}
+function slPushKeyOk(sub){try{const k=sub&&sub.options&&sub.options.applicationServerKey;if(!k)return!0;const a=new Uint8Array(k),b=slB64uBytes(SL_VAPID_PUB);return a.length===b.length&&a.every((x,i)=>x===b[i])}catch(e){return!0}}
+/* {ok:false, code:"missing"} until the push SQL is in the database. */
+async function slPushRpc(n,a){try{const r=await sb.rpc(n,a||{});if(r&&r.error)return{ok:!1,code:slNoCol(r.error)?"missing":"error"};const d=r&&r.data;return d&&"object"==typeof d?d:{ok:!1,code:"missing"}}catch(e){return{ok:!1,code:"error"}}}
+function slPushWait(p,ms){return Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error("timeout")),ms))])}
+async function slPushReg(){const r=await navigator.serviceWorker.register("sw.js");return await slPushWait(navigator.serviceWorker.ready,1e4)||r}
+async function slPushCur(ms){try{if(!("serviceWorker"in navigator))return null;const g=await slPushWait(navigator.serviceWorker.getRegistration(),ms||5e3);return g&&g.pushManager?await slPushWait(g.pushManager.getSubscription(),ms||5e3):null}catch(e){return null}}
+async function slPushSubGet(reg,mk){let s=null;try{s=reg&&reg.pushManager?await reg.pushManager.getSubscription():null}catch(e){}
+  if(s&&!slPushKeyOk(s)){try{await s.unsubscribe()}catch(e){}s=null}
+  return s||!mk||!reg||!reg.pushManager?s:await reg.pushManager.subscribe({userVisibleOnly:!0,applicationServerKey:slB64uBytes(SL_VAPID_PUB)})}
+async function slPushSend(sub,u,old){
+  const j=sub&&sub.toJSON?sub.toJSON():{},k=j&&j.keys||{},ep=j&&j.endpoint||sub&&sub.endpoint||"",s=slPushGet();
+  if(!ep)return{ok:!1,code:"error"};
+  const o=old&&old!==ep?old:s&&s.uid===u&&s.ep&&s.ep!==ep?s.ep:null;
+  const r=await slPushRpc("push_subscribe",{p_endpoint:ep,p_p256dh:slPushK(k.p256dh),p_auth:slPushK(k.auth),p_ua:String(navigator.userAgent||"").slice(0,200),p_old:o});
+  r.ok&&me&&me.id===u&&slPushPut({uid:u,ep,at:Date.now()});return r}
+/* From a tap. Nothing is awaited before the prompt: Safari on iOS accepts it only inside the tap's own task.
+   Answers true, false, or "missing" (no server side yet). */
+async function slPushEnable(){
+  if(!me)return go("auth"),!1;
+  /* 2026-11-09: a session that ends with the tab could leave this device on for the next person. */
+  if(!rememberOn())return toast("Notifications need Keep me signed in: sign out, then sign in with it ticked"),slPushPaint(),!1;
+  if(slIosNeedsHome())return slIosNotifyHelp(),!1;
+  if(!slPushSupported())return toast("This browser cannot show notifications"),!1;
+  let p="denied";try{p=await new Promise(r=>{const q=Notification.requestPermission(r);q&&q.then&&q.then(r,()=>r("denied"))})}catch(e){}
+  if("granted"!==p)return toast("Notifications are blocked for this site — allow them in the browser settings"),slPushPaint(),!1;
+  const u=me.id,b=$("push-on-btn");b&&(b.disabled=!0,b.textContent="Turning on…");
+  let sub=null;try{sub=await slPushSubGet(await slPushReg(),1)}catch(e){}
+  if(!me||me.id!==u)return!1;
+  const r=sub?await slPushSend(sub,u):{ok:!1,code:"error"};
+  if(!me||me.id!==u)return!1;
+  if(!r.ok)return slPushPaint(),toast("missing"===r.code?"Notifications are not available yet":"Could not turn on notifications on this device. Try again."),"missing"===r.code?"missing":!1;
+  try{localStorage.setItem("sl.notify","1")}catch(e){}
+  toast("Notifications are on for this device",!0);slPushState();tvRepaintNext();return!0}
+async function slPushDisable(){
+  const s=slPushGet(),u=me&&me.id,sub=await slPushCur(),E=[s&&s.uid===u&&s.ep,sub&&sub.endpoint].filter((x,i,a)=>x&&a.indexOf(x)===i);
+  for(const ep of E)u&&await slPushRpc("push_unsubscribe",{p_endpoint:ep});
+  try{sub&&await sub.unsubscribe()}catch(e){}
+  slPushPut(null);try{localStorage.removeItem("sl.notify")}catch(e){}
+  toast("Notifications off on this device",!0);slPushState();tvRepaintNext()}
+/* Signing out turns this device off: the server row (at most 1.5 s), then always the browser subscription, so the
+   next person on a shared device gets nothing even offline. local: the account is gone, skip the server. */
+async function slPushOut(local){
+  const s=slPushGet();window._pushBoot=null;window._pushSt=null;
+  if(s&&s.ep&&!local&&me)try{await Promise.race([slPushRpc("push_unsubscribe",{p_endpoint:s.ep}),new Promise(r=>setTimeout(r,1500))])}catch(e){}
+  const sub=await slPushCur(1500);try{sub&&await sub.unsubscribe()}catch(e){}
+  slPushPut(null);
+  /* 2026-11-09: the Notify me opt-in went with it, so no button says Notifying while push is off. */
+  if(s){try{localStorage.removeItem("sl.notify")}catch(e){}try{tvRepaintNext()}catch(e){}}}
+/* 2026-11-09: no session left in this browser (it ended with the tab, or was revoked) while push is on here:
+   turn this device off as Sign out does. A session that only waits for a refresh (offline) keeps its token, and push. */
+function slPushOrphan(){if(!sb||session)return;
+  try{const t=x=>{for(let i=0;i<x.length;i++){const k=x.key(i)||"";if(0===k.indexOf("sb-")&&k.indexOf("auth-token")>0)return!0}return!1};if(t(localStorage)||t(sessionStorage))return}catch(e){return}
+  let g=!1;try{g="granted"===Notification.permission}catch(e){}
+  (slPushGet()||g&&slPushSupported())&&slPushOut(1)}
+function slPushBoot(){if(!me||window._pushBoot===me.id)return;window._pushBoot=me.id;slPushSync()}
+/* After sign-in or boot, and on sl-resub from sw.js. Registering sw.js also lets an updated one install. */
+async function slPushSync(force,old){
+  if(!me||!sb||!slPushSupported())return;const u=me.id;let s=slPushGet(),sub=await slPushCur();
+  if(!me||me.id!==u)return;
+  if(s&&s.uid!==u||!s&&sub){
+    /* Another account's subscription would show its pushes to whoever is signed in now: kept only when the server says it is this account's. */
+    const st=sub?await slPushRpc("push_state",{p_endpoint:sub.endpoint}):null;if(!me||me.id!==u)return;
+    if(st&&st.ok&&!0===st.here)slPushPut(s={uid:u,ep:sub.endpoint,at:0});
+    else{try{sub&&await sub.unsubscribe()}catch(e){}slPushPut(null);return}
+  }
+  if(!slPushHere())return;
+  let reg=null;try{reg=await slPushReg()}catch(e){}
+  try{sub=await slPushSubGet(reg,1)}catch(e){sub=null}
+  if(!sub||!me||me.id!==u)return;
+  s=slPushGet();const ep=sub.endpoint;let r=null;
+  (force||!s||s.ep!==ep||!(Date.now()-(+s.at||0)<6048e5))&&(r=await slPushSend(sub,u,old||null));
+  if(!me||me.id!==u)return;
+  let st=await slPushRpc("push_state",{p_endpoint:ep});
+  /* The server dropped this device (a failed send): give it the subscription again, once. */
+  st.ok&&!st.here&&!r&&(r=await slPushSend(sub,u))&&r.ok&&(st=await slPushRpc("push_state",{p_endpoint:ep}));
+  if(!me||me.id!==u)return;
+  st.ok&&st.prefs&&slPushPrefsPut(st.prefs);window._pushSt=Object.assign({uid:u},st);slPushPaint()}
+async function slPushState(){if(!me)return;const u=me.id,s=slPushGet(),r=await slPushRpc("push_state",{p_endpoint:s&&s.uid===u?s.ep:null});if(!me||me.id!==u)return;
+  r.ok&&r.prefs&&slPushPrefsPut(r.prefs);window._pushSt=Object.assign({uid:u},r);slPushPaint()}
+function slPushPaint(){const e=$("acc-push");e&&(e.innerHTML=slPushPane())}
+const SL_PUSH_FAM=[["tournaments","Tournaments","New rounds: your opponent and table, or a bye. Your opponent waiting for you. Organizers: a round to pair, or results to enter by hand."],
+  ["matches","Matches","A player joins your match, or ends it and waits for you to confirm the result."],
+  ["events","Community events","New events in your communities, and reminders the day before and one hour before. Also when an event you were reminded of is removed."],
+  ["notices","Board notices","New notices from your communities' organizers."]];
+function slPushPane(){
+  if(!me)return"";
+  const st=window._pushSt&&window._pushSt.uid===me.id?window._pushSt:null,ok=!!st&&!0===st.ok,miss=!!st&&!ok&&"missing"===st.code,P=ok&&st.prefs||slPushPrefs();
+  let pm="";try{pm=Notification.permission}catch(e){}
+  let d;
+  if(slIosNeedsHome())d='<p class="acc-note">On iPhone and iPad, notifications work only from the Home Screen app.</p><button type="button" class="ghost acc-save" onclick="slIosNotifyHelp()">How to turn them on</button>';
+  else if(!slPushSupported())d='<p class="acc-note">This browser cannot receive notifications.</p>';
+  else if("denied"===pm)d='<p class="acc-note">Notifications are blocked for this site in the browser settings.</p>';
+  else if(miss)d='<p class="acc-note">Notifications are not available yet.</p>';
+  else if(slPushHere())d='<p class="acc-note push-st on">Notifications are on for this device.</p><div class="push-acts"><button type="button" class="act" onclick="slPushTest()">Send a test notification</button><button type="button" class="ghost" onclick="slPushDisable()">Turn off on this device</button></div>';
+  else if(!rememberOn())d='<p class="acc-note push-st">Notifications are off on this device.</p><p class="acc-note">They need <b>Keep me signed in</b> on this device. Sign out, then sign in again with it ticked.</p>';
+  else d='<p class="acc-note push-st">Notifications are off on this device.</p><button type="button" class="act acc-save" id="push-on-btn" onclick="slPushEnable()">Turn on notifications on this device</button>';
+  const n=ok?Math.max(0,st.devices|0):0;
+  n>1&&(d+=`<p class="acc-note">Signed in on ${n} devices with notifications.</p>`);
+  ok&&!1===st.ready&&(d+='<p class="acc-note push-warn">The server side is not set up yet, so nothing will arrive.</p>');
+  return`<div class="push-dev" id="push-dev">${d}</div>${miss?"":`<div class="acc-rule"></div><p class="acc-note">These choices apply to all your devices.</p>${SL_PUSH_FAM.map(([f,l,h])=>`<label class="rem-row push-sw"><input type="checkbox" id="push-f-${f}"${!1!==P[f]?" checked":""} onchange="slPushPref(${jsq(f)},this)"> <span><b>${esc(l)}</b><small>${esc(h)}</small></span></label>`).join("")}`}`}
+async function slPushPref(f,el){
+  if(!me||!el)return;const v=!!el.checked,u=me.id;el.disabled=!0;
+  const r=await slPushRpc("push_set_pref",{p_family:f,p_on:v});el.disabled=!1;
+  if(!r.ok||!r.prefs||"object"!=typeof r.prefs){el.checked=!v;return toast("missing"===r.code?"Notifications are not available yet":"Could not save that. Try again.")}
+  if(!me||me.id!==u)return;slPushPrefsPut(r.prefs);window._pushSt&&window._pushSt.uid===u&&(window._pushSt.prefs=r.prefs)}
+async function slPushTest(){const r=await slPushRpc("push_test");if(!r.ok)return toast("missing"===r.code?"Notifications are not available yet":"Could not send the test. Try again.");r.queued?toast("Sent. It should arrive in a few seconds.",!0):toast("Not sent: wait a minute and try again")}
+/* A push while this page is in front (sw.js shows it silently): a toast, a short buzz for a match or round
+   unless the page already shows it, and a fresh board or event list when that page is open. */
+function slPushInPage(d){try{
+  const k=String(d.kind||""),D=d.data&&"object"==typeof d.data?d.data:{},t=String(d.title||"").slice(0,120),b=String(d.body||"").slice(0,300),lc=x=>String(x||"").toLowerCase();
+  t&&toast(b?t+" — "+b:t,!0);
+  if(/^(t_round|t_bye|t_invite|m_join|gm_join|gm_live|m_confirm|gm_confirm)$/.test(k)&&!(/^g?m_/.test(k)?"tracker"===route.view:!!D.tid&&"tournaments"===route.view&&lc(route.tournamentId)===lc(D.tid)))try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}
+  const lg="league"===route.view&&!!D.lid&&lc(route.leagueId)===lc(D.lid),tb=route.tab||"about";
+  lg&&("nt_new"===k&&/^(about|standings)$/.test(tb)||/^ev_/.test(k)&&/^(events|past)$/.test(tb))&&renderLeague();
+}catch(e){}}
 let tvWatchTimer=null;
 function tvWatch(){
   if(tvWatchTimer||!me)return;
@@ -5973,7 +6122,7 @@ async function tvPoll(){
     if(key===last)return;
     ch=!0;
     try{localStorage.setItem(k,key)}catch(e){}
-    key&&tvNotifyOn()&&(n?tvNotify("Your next match",`vs ${n.oppName}${n.table?" · Table "+n.table:""} · ${n.stage} · ${n.title}`,tvNoteData("",t.id,t.month,!0)):tvNotify("You have a bye",`Round ${by} · ${t3Title(t)}: 3 points and 20 mastery differential`,tvNoteData("",t.id,t.month,!0)));
+    key&&tvNotifyOn()&&(n?tvNotify("Your next match",`vs ${n.oppName}${n.table?" · Table "+n.table:""} · ${n.stage} · ${n.title}`,tvNoteData("",t.id,t.month,!0),t.payload&&"swiss"===t.payload.fmt?"round":void 0):tvNotify("You have a bye",`Round ${by} · ${t3Title(t)}: 3 points and 20 mastery differential`,tvNoteData("",t.id,t.month,!0),t.payload&&"swiss"===t.payload.fmt?"bye":void 0));
   });
   ch&&"browse"===route.view&&paintHomeNext();
 }
@@ -6908,7 +7057,7 @@ function termsHtml(){return`
    whose display name is still exactly the provider's, are asked once per
    device to pick the name the world sees (prefilled with the first name). */
 const NK_SINCE="2026-11-01T00:00:00Z",nkDone={};
-function nkSoon(){setTimeout(()=>{nkMaybe(),pnwMaybe()},700)}
+function nkSoon(){setTimeout(()=>{nkMaybe(),pnwMaybe(),slPushBoot()},700)}
 function nkProvNames(u){const m=u&&u.user_metadata||{};return[m.full_name,m.name,m.global_name,m.user_name,m.preferred_username].map(x=>String(x||"").trim()).flatMap(x=>[x,x.split(/\s+/)[0]]).map(x=>x.slice(0,40).trim()).filter(Boolean)}
 function nkMaybe(){
   try{
@@ -7470,6 +7619,7 @@ function accTab(t){
   window._accTab=t;
   document.querySelectorAll('#pf-modal .acc-tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('#pf-modal .acc-pane').forEach(p=>{p.hidden=p.dataset.t!==t});
+  'notify'===t&&slPushState();
 }
 function pfAccount(){
   if(!me)return;
@@ -7485,7 +7635,7 @@ function pfAccount(){
     <h3>Account</h3>
     <div class="acc-wrap">
       <nav class="acc-nav">
-        ${[['profile','Profile'],['herald','Herald'],['signin','Sign-in']].map(([t,l])=>`<button type="button" class="acc-tab${tab===t?' on':''}" data-t="${t}" onclick="accTab(${jsq(t)})">${l}</button>`).join('')}
+        ${[['profile','Profile'],['herald','Herald'],['signin','Sign-in'],['notify','Notifications']].map(([t,l])=>`<button type="button" class="acc-tab${tab===t?' on':''}" data-t="${t}" onclick="accTab(${jsq(t)})">${l}</button>`).join('')}
       </nav>
       <div class="acc-panes">
         ${pane('profile',`
@@ -7522,9 +7672,11 @@ function pfAccount(){
             <p class="acc-note">Your profile details, collection, private decks, games logged by hand and feedback are erased and you are signed out. Results and matches you played stay, in their communities and in your opponents' match history, as <i>Deleted player</i>, so nobody else's record changes. A match still being played is cancelled. A community you own that still has players must be handed over or archived first.</p>
             <button class="ghost acc-save t-danger-b" id="pf-del-btn" onclick="pfDeleteAccount()">Delete account</button>
           </div>`)}
+        ${pane('notify',`<div id="acc-push">${slPushPane()}</div>`)}
       </div>
     </div>
   </div>`;
+  'notify'===tab&&slPushState();
 }
 /* Deleting your own account: delete_my_account() erases what is private,
    turns the profile into "Deleted player" and removes the login. Its refusal
@@ -7539,7 +7691,7 @@ async function pfDeleteAccount(){
   b&&(b.disabled=!1,b.textContent="Delete account");
   if(x){if(pfDelMissing(x)){if(await slConfirm({title:"Account deletion isn't available yet",body:"Use the feedback form to ask for it, while signed in to this account, so we know the request is yours.",ok:"Open the feedback form"})){const m=$("pf-modal");m&&m.remove();fdOpen()}return}return toast(x.message||"Could not delete the account. Try again.")}
   const m=$("pf-modal");m&&m.remove();
-  try{await sb.auth.signOut({scope:"local"})}catch(e){}
+  await slPushOut(1);try{await sb.auth.signOut({scope:"local"})}catch(e){}
   me=null,session=null,slUserReset(),authBackClear(),joinLinkOk=null,cache.profNames=null,cache.heralds=null;
   go("browse");toast("Your account was deleted",!0);
 }
