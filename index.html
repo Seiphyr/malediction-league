@@ -1450,6 +1450,26 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .pn-acts button{flex:1 1 170px;min-height:40px;white-space:normal;overflow-wrap:anywhere}
 .pn-acts button.ghost{flex:0 1 auto}
 .avatar,.pf-acc{position:relative}
+/* Profile head (2026-11-09): avatar beside the name, chips of one height, contact pills side by side,
+   the win rate as one of four equal tiles (2x2 on a phone), then Share and Account across the width. */
+.pf-head{display:flex;align-items:center;gap:14px}
+.pf-who{min-width:0;flex:1}
+.pf-who h2{overflow-wrap:anywhere}
+.pf-chips>span{display:inline-flex;align-items:center;height:24px;box-sizing:border-box;padding:0 10px;font-size:10.5px;line-height:1;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.ms-hero2 .pf-contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:14px}
+.ms-hero2 .pf-contact .ct-pill{min-height:40px;min-width:0}
+@media(max-width:480px){.ms-hero2 .pf-contact .ct-pill small{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+.ms-hero2 .pf-stats4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 0}
+@media(min-width:640px){.ms-hero2 .pf-stats4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pf-stats4 .stat{min-width:0;margin:0}
+.pf-stats4 .stat b{overflow-wrap:anywhere}
+.pf-stats4 .stat b.pf-top{font-size:20px;line-height:1.25}
+.pf-wr{position:relative;padding-right:58px}
+.ms-hero2 .pf-wr .wr-ring{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:38px;height:38px}
+.ms-hero2 .pf-btns{display:flex;gap:8px;margin-top:14px}
+.ms-hero2 .pf-btns>button{flex:1 1 0;min-height:42px}
+.ms-hero2 .pf-btns.one>button{flex:0 0 auto;padding:0 22px}
+@media(min-width:640px){.ms-hero2 .pf-contact{display:flex;flex-wrap:wrap}.ms-hero2 .pf-btns>button{flex:0 0 auto;min-width:150px}}
 .av-dot{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--crimson);border:2px solid var(--coal);box-sizing:border-box;pointer-events:none}
 .pn-help{margin:-6px 0 14px;font-size:13px;color:var(--bone-dim)}
 .pn-help>summary{display:inline-flex;align-items:center;min-height:40px;cursor:pointer;color:var(--brass);text-decoration:underline;text-underline-offset:3px}
@@ -7831,10 +7851,9 @@ async function renderProfile(){
       <div class="sk-main"><div class="sk-name ${o.f?"":"plainname"}">${esc(o.name)}</div><div class="sk-sub">${o.n} ${1===o.n?"game":"games"}</div></div>
       <div class="sk-wr"><b style="color:${wrTone(o.wr)}">${pct(o.wr)}</b><small>${o.w}–${o.l}</small>${wrBar(o.wr,o.n)}</div></div>`;
   let b=`<div class="ms-hero2">
-    <div class="ms-hero-top">
-      <div class="ms-id">
+    <div class="pf-head">
         <div class="ms-ava big">${esc((u.display_name||"?")[0].toUpperCase())}</div>
-        <div>
+        <div class="pf-who">
           <h2 style="margin:0">${esc(u.display_name||"A Seeker")}</h2>
           <div class="pf-chips">
             <span class="role-chip">${"organizer"===u.role?"Organizer":"Player"}</span>
@@ -7842,25 +7861,21 @@ async function renderProfile(){
             ${null!=u.lat&&u.place?`<span class="pf-tag">◉ ${esc(u.place)}</span>`:""}
             ${streak>=2?`<span class="streak-chip">🔥 ${streak} win streak</span>`:""}
           </div>
-          ${u.discord||safeUrl(u.malediction_url)?`<div class="pf-contact">${discordChip(u.discord)}${malChip(u.malediction_url)}</div>`:""}
         </div>
-      </div>
-      <div class="ms-hero-right">
-        ${own?`<div class="pf-btns"><button class="ghost" onclick="pfShare(${jsq(u.id)})">Share</button><button class="act pf-acc" onclick="${pnLinked()?"pfAccount()":"pnOpenProfile()"}">Account${pnLinked()?"":'<span class="av-dot" aria-hidden="true"></span><span class="sr-only"> (Play Network profile not linked)</span>'}</button></div>`:`<button class="ghost pf-acc" onclick="pfShare(${jsq(u.id)})">Share</button>`}
-        <svg class="wr-ring" viewBox="0 0 84 84" role="img" aria-label="Win rate ${pct(wr)}">
-          <circle cx="42" cy="42" r="36" fill="none" stroke="#383838" stroke-width="7"/>
-          <circle cx="42" cy="42" r="36" fill="none" stroke="var(--crimson)" stroke-width="7" stroke-linecap="round"
-            stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-wr)).toFixed(1)}" transform="rotate(-90 42 42)"/>
-          <text x="42" y="41" text-anchor="middle" class="wr-ring-n">${rd.length?pct(wr):"—"}</text>
-          <text x="42" y="55" text-anchor="middle" class="wr-ring-l">WIN RATE</text>
-        </svg>
-      </div>
     </div>
-    <div class="stat-strip pf-stats" style="margin:16px 0 0">
+    ${u.discord||safeUrl(u.malediction_url)?`<div class="pf-contact">${discordChip(u.discord)}${malChip(u.malediction_url)}</div>`:""}
+    <div class="stat-strip pf-stats4">
+      <div class="stat pf-wr"><b>${rd.length?pct(wr):"—"}</b><small>Win rate</small>
+        <svg class="wr-ring" viewBox="0 0 84 84" aria-hidden="true">
+          <circle cx="42" cy="42" r="36" fill="none" stroke="#383838" stroke-width="9"/>
+          <circle cx="42" cy="42" r="36" fill="none" stroke="var(--crimson)" stroke-width="9" stroke-linecap="round"
+            stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C*(1-wr)).toFixed(1)}" transform="rotate(-90 42 42)"/>
+        </svg></div>
       <div class="stat"><b>${wins}–${losses}${draws?"–"+draws:""}</b><small>Record${draws?" W–L–D":""}</small></div>
       <div class="stat"><b>${leagues}</b><small>Communities</small></div>
-      <div class="stat"><b style="font-size:15px">${played.length?esc(played[0].raw.split(",")[0]):"—"}</b><small>Top Seeker</small></div>
+      <div class="stat"><b class="pf-top">${played.length?esc(played[0].raw.split(",")[0]):"—"}</b><small>Top Seeker</small></div>
     </div>
+    ${own?`<div class="pf-btns"><button class="ghost" onclick="pfShare(${jsq(u.id)})">Share</button><button class="act pf-acc" onclick="${pnLinked()?"pfAccount()":"pnOpenProfile()"}">Account${pnLinked()?"":'<span class="av-dot" aria-hidden="true"></span><span class="sr-only"> (Play Network profile not linked)</span>'}</button></div>`:`<div class="pf-btns one"><button class="ghost pf-acc" onclick="pfShare(${jsq(u.id)})">Share</button></div>`}
     ${pgSum(gmS)}
     ${own?`<div style="margin-top:14px"><span class="seg" role="group" aria-label="Which matches">
       ${[["","All"],["standard","Standard"],["tournament","Tournaments"]].concat(fbs.length?[["fb","By hand"]]:[]).map(([k,l])=>`<button class="seg-b ${scope===k?"on":""}" aria-pressed="${scope===k}" onclick="window._msScope=${jsq(k)};renderProfile()">${l}</button>`).join("")}
