@@ -13826,3 +13826,335 @@ grant execute on function public.t_import(uuid, jsonb, int, jsonb)        to ser
 grant execute on function public.t_deck_set(uuid, uuid, text)             to authenticated;
 grant execute on function public.t_deck_get(uuid)                         to authenticated;
 grant execute on function public.t_pn_save_deck(uuid)                    to authenticated;
+
+-- ============================================================
+--  ORGANIZER SEATS A MEMBER (2026-11-20)
+-- ============================================================
+-- Run as migration-2026-11-20-pn-seat.sql.
+-- What changes:
+--   * New t_seat(p_tid, p_rev, p_key, p_user), for signed-in organizers:
+--     the organizer of a tournament (or the site admin) seats a member's
+--     account on a player of the list who has no account yet ('pn:<pid>'
+--     or 'h:<8>'), for a player who never pasted their Play Network profile
+--     link or registered there under another profile. Same lock, rev check
+--     and answer as t_entrant ({ok, rev}, refusals {ok:false, reason,
+--     message}). Reasons: not_found (no such player), linked (the player
+--     already has an account), no_account (the account is missing or
+--     deleted), not_member (not an active member of the tournament's
+--     community), seated (the account already has a seat), closed (the
+--     tournament is closed), and t_lock's not_allowed, archived and stale.
+--     Works in registration and while running (the account takes over the
+--     player's games, as "Link the account" does).
+--   * The seat keeps the player's pid and name and is marked org:true;
+--     wait and lock go; its pid gets a lock mark instead, so if the
+--     registrant leaves the Play Network list and comes back, the new
+--     'pn:<pid>' comes back locked, not linked to the profile owner.
+--   * t_link_all never moves an org:true seat back to 'pn:<pid>' because
+--     of the account's profile link (changed, removed, or another pid): a
+--     profile save, a Play Network refresh and a relink leave it alone. It
+--     goes back only when its account is deleted or gone, and then it is
+--     locked (as unlink does), so it is not linked to the profile owner
+--     the organizer passed over. A player without an account loses a
+--     leftover org flag and gets that lock.
+--   * t_entrant: unlink of an org:true seat gives it back as usual
+--     ('pn:<pid>', or a new 'h:' key) and drops org; forget drops org too.
+--   * Not changed: t_import (a refresh keeps the seat: it still carries its
+--     pid, so the registrant is never added twice), t_rekey, t_profile_link,
+--     erase_user_data, t_lock.
+
+-- 1. t_link_all: seats chosen by the organizer stay -------------------------------
+-- t_link_all: as in the PLAY NETWORK TOURNAMENTS section, plus the seats
+-- the organizer chose (org:true, t_seat): such a seat stays with its
+-- account whatever pid that account's profile link gives, or none, so a
+-- profile save, a Play Network refresh or a relink never moves it. It goes
+-- back to 'pn:<pid>' (or a new 'h:' key) only when its account is deleted
+-- or gone. A player without an account loses a leftover org (a seat moved
+-- back here or by erase_user_data keeps it) and is locked instead, as
+-- unlink does, so the profile owner the organizer passed over is not
+-- linked to it (2026-11-09).
+create or replace function public.t_link_all(p jsonb, p_new text default '*', out r jsonb, out linked int)
+language plpgsql volatile security definer set search_path = public as $$
+declare
+  v_e  jsonb;
+  v_o  int;
+  v_id uuid;
+begin
+  r := p;
+  for v_e in select q.x from jsonb_array_elements(coalesce(p->'entrants', '[]'::jsonb)) q(x) loop
+    if t_acct(v_e->>'id') and not exists (
+         select 1 from profiles pr
+          where pr.id = (v_e->>'id')::uuid and pr.deleted_at is null
+            and ((v_e->>'org') = 'true'
+                 or (v_e->>'pid' is not null and pr.mg_public_id = v_e->>'pid'))) then
+      r := t_rekey(r, v_e->>'id',
+                   case when coalesce(v_e->>'pid', '') ~ '^[A-Za-z0-9]{6,32}$' then 'pn:' || (v_e->>'pid')
+                        else t_rand_key(r) end);
+    end if;
+  end loop;
+  for v_e, v_o in select q.x, q.o - 1 from jsonb_array_elements(coalesce(r->'entrants', '[]'::jsonb)) with ordinality q(x, o) loop
+    if t_acct(v_e->>'id') then
+      continue;
+    end if;
+    if v_e ? 'org' then
+      r := jsonb_set(r, array['entrants', v_o::text], ((r->'entrants'->v_o) - 'org')
+                  || case when (v_e->>'org') = 'true' then '{"lock":true}'::jsonb else '{}'::jsonb end);
+      if (v_e->>'org') = 'true' then
+        v_e := v_e || '{"lock":true}'::jsonb;
+      end if;
+    end if;
+    v_id := null;
+    if v_e->>'pid' is not null and (v_e->>'lock') is distinct from 'true' then
+      select pr.id into v_id from profiles pr
+       where pr.mg_public_id = v_e->>'pid' and pr.deleted_at is null
+       limit 1;
+      if v_id is not null and r->'entrants' @> jsonb_build_array(jsonb_build_object('id', v_id::text)) then
+        v_id := null;
+      end if;
+    end if;
+    if v_id is not null and (p_new = '*' or p_new = v_e->>'id') then
+      r := jsonb_set(r, array['entrants', v_o::text], (r->'entrants'->v_o) - 'wait');
+      r := t_rekey(r, v_e->>'id', v_id::text);
+    elsif v_id is not null then
+      if (v_e->>'wait') is distinct from 'true' then
+        r := jsonb_set(r, array['entrants', v_o::text, 'wait'], 'true'::jsonb);
+      end if;
+    elsif v_e ? 'wait' then
+      r := jsonb_set(r, array['entrants', v_o::text], (r->'entrants'->v_o) - 'wait');
+    end if;
+  end loop;
+  select count(*) into linked
+    from jsonb_array_elements(coalesce(r->'entrants', '[]'::jsonb)) q(x)
+   where t_acct(q.x->>'id');
+end $$;
+
+-- 2. t_entrant: unlink and forget drop org -------------------------------------------
+-- t_entrant: as in the SWISS TOURNAMENTS section, plus the seats the
+-- organizer chose (t_seat): unlink gives such a seat back as any other
+-- ('pn:<pid>', or a new 'h:' key when it has no pid, with lock) and drops
+-- org; forget drops org too.
+create or replace function public.t_entrant(p_tid uuid, p_rev int, p_op text, p_key text default null,
+                                            p_name text default null, p_link text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := duel_caller();
+  v_no   jsonb;
+  v_t    tournaments%rowtype;
+  v_p    jsonb;
+  v_e    jsonb;
+  v_i    int;
+  v_raw  text;
+  v_pid  text;
+  v_key  text;
+  v_n    int;
+  v_rev  int;
+begin
+  if p_op is null or p_op not in ('drop','undrop','add','remove','unlink','relink','forget') then
+    return t_no('bad_input', 'This change is not known.');
+  end if;
+  v_no := t_lock(p_tid, p_rev, p_op = 'forget');
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  v_p := v_t.payload;
+
+  if p_op <> 'add' then
+    select q.o - 1, q.x into v_i, v_e
+      from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) with ordinality q(x, o)
+     where q.x->>'id' = p_key
+     limit 1;
+    if v_e is null then
+      return t_no('bad_input', 'This player is not in the list.');
+    end if;
+  end if;
+  if p_op in ('drop','undrop','unlink','relink') and v_t.status = 'closed' then
+    return t_no('status', 'The tournament is closed. Reopen it first.');
+  end if;
+  if p_op in ('add','remove') and v_t.status <> 'draft' then
+    return t_no('status', 'The tournament has started, so its list of players is fixed.');
+  end if;
+
+  if p_op = 'drop' then
+    if v_e->>'st' = 'drop' then
+      return jsonb_build_object('ok', true, 'rev', v_t.rev);
+    end if;
+    v_p := jsonb_set(v_p, array['entrants', v_i::text, 'st'], '"drop"'::jsonb);
+    if v_t.status = 'draft' or v_p->>'fmt' = 'swiss' then
+      v_p := jsonb_set(v_p, array['entrants', v_i::text, 'dr'], to_jsonb(t_sw_cur(v_p)));
+    end if;
+    if v_t.status = 'running' then
+      v_p := t_forfeits(v_p);
+      if not t_r0_empty(v_p) then
+        v_p := t_propagate(v_p);
+      end if;
+    end if;
+
+  elsif p_op = 'undrop' then
+    if v_e->>'st' is distinct from 'drop' then
+      return jsonb_build_object('ok', true, 'rev', v_t.rev);
+    end if;
+    if v_t.status = 'running' then
+      if not t_r0_empty(v_p) then
+        return t_no('finals_drawn', 'The finals are drawn; this player stays dropped.');
+      end if;
+      if not (p_key = any(t_grouped(v_p))) then
+        return t_no('status', 'This player was dropped before the start, so they are not in the draw.');
+      end if;
+      if v_p->>'fmt' = 'swiss'
+         and coalesce(case when v_e->>'dr' ~ '^[0-9]{1,3}$' then (v_e->>'dr')::int end, 0) < t_sw_cur(v_p) then
+        return t_no('status', 'Round ' || t_sw_cur(v_p) || ' is already paired without this player, so they stay dropped.');
+      end if;
+    end if;
+    v_p := jsonb_set(v_p, array['entrants', v_i::text], ((v_p->'entrants'->v_i) - 'dr') || '{"st":"in"}'::jsonb);
+    if v_t.status = 'running' then
+      v_p := t_forfeits(v_p);
+    end if;
+
+  elsif p_op = 'add' then
+    v_raw := btrim(regexp_replace(coalesce(p_name, ''), '[[:cntrl:]]', '', 'g'));
+    if char_length(v_raw) not between 1 and 40 then
+      return t_no('bad_input', 'A name has 1 to 40 characters.');
+    end if;
+    if jsonb_array_length(coalesce(v_p->'entrants', '[]'::jsonb)) >= 256 then
+      return t_no('bad_input', 'A tournament has at most 256 players.');
+    end if;
+    if nullif(btrim(coalesce(p_link, '')), '') is not null then
+      v_pid := mg_public_id(p_link);
+      if v_pid is null then
+        return t_no('bad_input', 'Paste the address of a malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/');
+      end if;
+      if coalesce(v_p->'entrants' @> jsonb_build_array(jsonb_build_object('pid', v_pid)), false)
+         or coalesce(v_p->'entrants' @> jsonb_build_array(jsonb_build_object('id', 'pn:' || v_pid)), false) then
+        return t_no('duplicate', 'This player is already in the list.');
+      end if;
+      v_key := 'pn:' || v_pid;
+    else
+      v_key := t_rand_key(v_p);
+    end if;
+    v_p := jsonb_set(v_p, '{entrants}', coalesce(v_p->'entrants', '[]'::jsonb) || jsonb_build_array(
+             jsonb_build_object('id', v_key, 'name', v_raw, 'pid', v_pid, 'src', 'hand', 'st', 'in',
+                                'seeker', '', 'terrain', '', 'deck', '', 'deckId', '')));
+    if v_pid is not null then
+      select q.r into v_p from t_link_all(v_p) q;
+    end if;
+
+  elsif p_op = 'remove' then
+    if v_e->>'src' is distinct from 'hand' then
+      return t_no('bad_input', 'Only players you added can be removed. Drop a registered player instead.');
+    end if;
+    v_p := jsonb_set(v_p, '{entrants}', (v_p->'entrants') - v_i);
+
+  elsif p_op = 'unlink' then
+    v_p := jsonb_set(v_p, array['entrants', v_i::text], ((v_p->'entrants'->v_i) - 'org') || '{"lock":true}'::jsonb);
+    if t_acct(v_e->>'id') then
+      v_key := case when coalesce(v_e->>'pid', '') ~ '^[A-Za-z0-9]{6,32}$' then 'pn:' || (v_e->>'pid')
+                    else t_rand_key(v_p) end;
+      v_p := t_rekey(v_p, v_e->>'id', v_key);
+    end if;
+
+  elsif p_op = 'relink' then
+    v_p := jsonb_set(v_p, array['entrants', v_i::text], (v_p->'entrants'->v_i) - 'lock');
+    if v_e->>'pid' is not null then
+      delete from tournament_marks
+       where tournament_id = p_tid and kind = 'lock' and pid_hash = t_pid_hash(p_tid, v_e->>'pid');
+    end if;
+    select q.r into v_p from t_link_all(v_p, case when v_t.status = 'draft' then '*' else p_key end) q;
+
+  elsif p_op = 'forget' then
+    -- The entrant moves to the end of the list, so its place no longer
+    -- matches the official page, and is named after a counter (fx).
+    v_pid := v_e->>'pid';
+    v_n := coalesce(case when v_p->>'fx' ~ '^[0-9]{1,4}$' then (v_p->>'fx')::int end, 0) + 1;
+    v_e := (v_e - 'wait' - 'org') || jsonb_build_object('name', 'Player ' || v_n, 'pid', null, 'lock', true);
+    v_p := jsonb_set(v_p - 'nx', '{entrants}', ((v_p->'entrants') - v_i) || jsonb_build_array(v_e))
+           || jsonb_build_object('fx', v_n);
+    if v_pid is not null then
+      insert into tournament_marks (tournament_id, pid_hash, kind)
+      values (p_tid, t_pid_hash(p_tid, v_pid), 'forget')
+      on conflict do nothing;
+    end if;
+    if p_key !~ '^h:' then
+      v_p := t_rekey(v_p, p_key, t_rand_key(v_p));
+    end if;
+  end if;
+
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- 3. t_seat: the organizer seats a member ------------------------------------------
+-- The organizer (or the site admin) puts a member's account on a player of
+-- the list who has no account yet ('pn:<pid>' or 'h:<8>'): a player who
+-- never pasted their Play Network profile link, or registered there under
+-- a profile that is not the one on their account. Before and after the
+-- start, never once closed. p_user must be an account that is not deleted,
+-- an active member (not dropped) of the tournament's community, and not in
+-- the list yet (one seat per account). The seat keeps the player's pid and
+-- name and gets org:true, so a profile save, a Play Network refresh or a
+-- relink never moves it (t_link_all); wait and lock go (the organizer chose
+-- this account). Its pid gets a lock mark: should a Play Network refresh
+-- drop the registrant and a later one add them back, the new 'pn:<pid>'
+-- is locked (2026-11-09). Unlink (t_entrant)
+-- gives the seat back. Refusals: as t_lock, then closed, not_found,
+-- linked, no_account, not_member, seated. Answer as t_entrant: {ok, rev}.
+create or replace function public.t_seat(p_tid uuid, p_rev int, p_key text, p_user uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := duel_caller();
+  v_no  jsonb;
+  v_t   tournaments%rowtype;
+  v_p   jsonb;
+  v_e   jsonb;
+  v_i   int;
+  v_rev int;
+begin
+  v_no := t_lock(p_tid, p_rev);
+  if v_no is not null then
+    return v_no;
+  end if;
+  select * into v_t from tournaments x where x.id = p_tid;
+  if v_t.status = 'closed' then
+    return t_no('closed', 'The tournament is closed. Reopen it first.');
+  end if;
+  v_p := v_t.payload;
+  select q.o - 1, q.x into v_i, v_e
+    from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb)) with ordinality q(x, o)
+   where q.x->>'id' = p_key
+   limit 1;
+  if v_e is null then
+    return t_no('not_found', 'This player is not in the list.');
+  end if;
+  if t_acct(v_e->>'id') then
+    return t_no('linked', 'This player already has an account. Unlink it first.');
+  end if;
+  if p_user is null or not exists (select 1 from profiles pr where pr.id = p_user and pr.deleted_at is null) then
+    return t_no('no_account', 'This account was not found.');
+  end if;
+  if v_t.league_id is null or not exists (
+       select 1 from memberships m
+        where m.league_id = v_t.league_id and m.user_id = p_user and m.dropped_at is null) then
+    return t_no('not_member', 'Only an active member of this community can take a seat.');
+  end if;
+  if coalesce(v_p->'entrants' @> jsonb_build_array(jsonb_build_object('id', p_user::text)), false) then
+    return t_no('seated', 'This account already has a seat in this tournament.');
+  end if;
+  v_p := jsonb_set(v_p, array['entrants', v_i::text],
+                   ((v_p->'entrants'->v_i) - 'wait' - 'lock') || '{"org":true}'::jsonb);
+  v_p := t_rekey(v_p, p_key, p_user::text);
+  if v_e->>'pid' is not null then
+    insert into tournament_marks (tournament_id, pid_hash, kind)
+    values (p_tid, t_pid_hash(p_tid, v_e->>'pid'), 'lock')
+    on conflict do nothing;
+  end if;
+  -- the other players: a wait for this account (it is seated now) goes
+  select q.r into v_p from t_link_all(v_p, case when v_t.status = 'draft' then '*' end) q;
+  update tournaments set payload = v_p, rev = rev + 1 where id = p_tid returning rev into v_rev;
+  return jsonb_build_object('ok', true, 'rev', v_rev);
+end $$;
+
+-- 4. Who may call what -------------------------------------------------------------
+revoke all on function public.t_link_all(jsonb, text)                             from public, anon, authenticated;
+revoke all on function public.t_entrant(uuid, int, text, text, text, text)        from public, anon;
+revoke all on function public.t_seat(uuid, int, text, uuid)                       from public, anon;
+grant execute on function public.t_entrant(uuid, int, text, text, text, text)     to authenticated;
+grant execute on function public.t_seat(uuid, int, text, uuid)                    to authenticated;
