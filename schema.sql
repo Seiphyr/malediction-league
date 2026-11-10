@@ -15628,3 +15628,52 @@ grant execute on function public.push_state(text)                              t
 grant execute on function public.push_test()                                   to authenticated;
 grant execute on function public.push_claim(int, int)                          to service_role;
 grant execute on function public.push_done(jsonb)                              to service_role;
+
+-- ============================================================
+--  PLAYER ICONS (2026-11-23)
+-- ============================================================
+-- Run as migration-2026-11-23-avatars.sql.
+-- What changes:
+--   * profiles.avatar text, null by default. null = the default image (the
+--     Seekers League emblem); 'O', 'C', 'P' or 'L' = the icon of Order,
+--     Conclave, Primal or Legion (the page's faction letters, FAC_HEX and
+--     LICON in index.html). Anything else is refused (profiles_avatar_check).
+--   * Who may change it: the player, on their own row, like the name
+--     ("own profile update" policy; guard_profile_update still refuses a
+--     deleted account). Everyone may read it, like the rest of the profile
+--     ("profiles readable").
+--   * A deleted account goes back to the default image: the new trigger
+--     profile_avatar_tombstone clears avatar on any row with deleted_at set
+--     (erase_user_data sets deleted_at, so it needs no change).
+--   * Not changed: no function or view returns a fixed list of profile
+--     columns that the page shows as a picture. The page shows icons for the
+--     signed-in player (loadMe: select()) and on a player's profile page
+--     (a direct select on profiles that now names avatar).
+
+-- 1. The column ------------------------------------------------------------------
+alter table public.profiles add column if not exists avatar text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'profiles_avatar_check' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_avatar_check
+      check (avatar in ('O', 'C', 'P', 'L'));
+  end if;
+end $$;
+comment on column public.profiles.avatar is
+  'The player''s icon: null = default image, O/C/P/L = Order/Conclave/Primal/Legion icon. Set by the player.';
+
+-- 2. A deleted account shows the default image ---------------------------------------
+create or replace function public.profile_avatar_tombstone()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.avatar := null;
+  return new;
+end $$;
+revoke all on function public.profile_avatar_tombstone() from public, anon, authenticated;
+drop trigger if exists profile_avatar_tombstone on public.profiles;
+create trigger profile_avatar_tombstone before insert or update on public.profiles
+  for each row when (new.deleted_at is not null and new.avatar is not null)
+  execute function public.profile_avatar_tombstone();
+update public.profiles set avatar = null where deleted_at is not null and avatar is not null;
+
