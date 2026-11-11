@@ -4,7 +4,9 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.seekersleague.app",
-      "sha256_cert_fingerprints": []
+      "sha256_cert_fingerprints": [
+        "D4:EA:D2:C4:FC:D4:B6:E7:3B:68:02:73:74:41:EB:6E:F1:18:23:21:AE:6C:D3:56:BB:F6:6D:04:31:C8:AC:F4"
+      ]
     }
   }
 ]
