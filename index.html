@@ -68,7 +68,7 @@ a.pf-ln:hover{text-decoration:underline}
 .acc-danger>b{display:block;margin-bottom:4px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--crimson-txt)}
 .acc-danger .t-danger-b{margin-left:0}
 /* 2026-11-09: Account > Notifications */
-.push-sw{align-items:flex-start;margin:0 0 12px}.push-sw input{margin-top:2px}.push-sw b{display:block;font-weight:600;color:var(--bone)}.push-sw small{display:block;margin-top:2px;font-size:12px;line-height:1.45}
+.push-sw{align-items:flex-start;margin:0 0 12px;min-height:40px}/* 2026-11-11: a one-line switch (Board notices) was 39.5px at phone width with no scrollbar */.push-sw input{margin-top:2px}.push-sw b{display:block;font-weight:600;color:var(--bone)}.push-sw small{display:block;margin-top:2px;font-size:12px;line-height:1.45}
 .push-st.on{color:var(--bone)}.push-warn{color:var(--crimson-txt)}#acc-push .acc-save{min-height:40px}
 .push-acts{display:flex;flex-wrap:wrap;gap:8px}.push-acts button{flex:1 1 180px;min-height:40px;margin:0}
 @media(max-width:620px){.acc-tab{flex:1 1 auto;padding:11px 3px;letter-spacing:.06em}}
@@ -124,21 +124,43 @@ a.pf-ln:hover{text-decoration:underline}
 .how-n{flex:0 0 22px;height:22px;border-radius:50%;border:1px solid var(--brass-dim);color:var(--brass);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:11px;font-weight:600}
 @media(max-width:620px){.how-steps{grid-template-columns:1fr;gap:6px}.how-steps li{padding:8px 11px;font-size:12.5px}}
 
-.gs-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.gs-item{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:var(--coal-2);display:flex;flex-direction:column;gap:8px;min-width:0}
+/* 2026-11-11: Where to start (wtsOpen): the Play Network link while there is none, then the four ways into a
+   community, one row each (what it is, then its button, under it on a phone). The quiet button under the Home
+   greeting opens it again; its dot stays while there is something left to do (wtsTodo). */
+.wts-btn{display:inline-flex;align-items:center;gap:7px;min-height:40px;max-width:100%;margin:6px 0 0 -4px;padding:0 10px 0 4px;background:0 0;border:0;border-radius:8px;color:var(--bone-dim);font-family:Barlow,sans-serif;font-size:13.5px;cursor:pointer}
+.wts-btn:hover,.wts-btn:focus-visible{color:var(--bone)}
+.wts-btn>span:first-of-type{text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px}
+.wts-ic{width:18px;height:18px;flex:0 0 18px;color:var(--brass)}
+.wts-dot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--brass);box-shadow:0 0 0 3px rgba(200,165,104,.18)}
+.wts-btn:not(.todo) .wts-dot,.wts-btn:not(.todo) .wts-sr{display:none}
+.tkmodal.wts-box{width:min(92vw,480px);padding:20px 18px}
+.wts-box .tkx{width:40px;height:40px;top:8px;right:8px}
+.tkmodal.wts-box h3{padding-right:44px;margin:0 0 12px;font-size:19px;letter-spacing:.06em}
+.wts-kick{margin:0 0 4px;padding-right:44px;color:var(--brass);font-family:Oswald,sans-serif;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
+.wts-sh{margin:0 0 4px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}
+.wts-pn{border:1px solid var(--brass-dim);border-left:3px solid var(--brass);border-radius:12px;background:linear-gradient(135deg,rgba(200,165,104,.1),var(--surface) 60%);padding:12px 14px 0;margin:0 0 16px}
+.wts-box .hint{color:var(--bone-dim);font-size:13.5px;line-height:1.45}
+.wts-pn .hint{margin:0 0 10px}
+.wts-pn .nk-acts{margin:0 0 12px}
+.wts-pn .nk-acts button{flex:0 0 auto;min-width:112px}/* 2026-11-11: one compact primary, not a full-width bar */
+.wts-err{margin:-4px 0 10px;font-size:13px;line-height:1.45;color:var(--crimson-txt);overflow-wrap:anywhere}
+.wts-pn.ok{border:0;background:0 0;padding:0}
+.wts-ok{display:flex;align-items:center;gap:8px;margin:0;color:var(--bone-dim);font-size:13.5px}
+.wts-ok>span{color:var(--win);font-weight:700}
+.wts-ok:focus{outline:none}
+.wts-box>.hint{margin:0}
+.gs-list{display:flex;flex-direction:column;gap:8px;margin:10px 0 16px}
+.gs-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--coal-2)}
 .gs-t{font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone)}
-.gs-x{flex:1;min-width:0}
-.gs-item p{margin:3px 0 0;font-size:12.5px;line-height:1.45;color:var(--bone-dim)}
-.gs-item button{min-height:40px}
-.gs-join{display:flex;gap:8px}
+.gs-x{flex:1 1 190px;min-width:0}
+.gs-item p{margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--bone-dim)}
+.gs-item>button{flex:0 0 auto;min-height:40px;margin-left:auto;padding-left:12px;padding-right:12px}
+.gs-join{display:flex;gap:8px;flex:1 1 100%;min-width:0}
 .gs-join input{flex:1 1 auto;min-width:0;text-transform:uppercase;letter-spacing:.25em;font-family:Oswald,sans-serif;font-size:16px;padding:8px 10px}
-.gs-join button{flex:0 0 auto}@media(min-width:621px){.gs-list{gap:12px}.gs-item{padding:14px 15px 15px}}@media(min-width:1260px){.gs-list{grid-template-columns:repeat(4,minmax(0,1fr))}}
-/* On a phone each way in is one row: what it is on the left, the button on the right. */
-@media(max-width:620px){.gs-list{grid-template-columns:1fr;gap:8px}
-.gs-item{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:9px 11px}
-.gs-item p{display:none}
-.gs-item>button{flex:0 0 auto;padding-left:12px;padding-right:12px}
-.gs-join{flex:1 1 100%}}
+.gs-join button{flex:0 0 auto;min-height:40px}
+.wts-foot{justify-content:flex-end}
+/* Its join-code messages show above it (toasts sit under every .tkov); the address messages show under the field. */
+body:has(#wts-modal) #toast{z-index:1700}
 /* The demo note and its buttons. */
 .dn-cta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .dn-cta button{min-height:40px}
@@ -1442,8 +1464,8 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .nk-box{width:min(92vw,420px)}
 .nk-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .nk-acts button{flex:1 1 160px;min-height:40px;white-space:normal;overflow-wrap:anywhere}
-/* 2026-11-09: linking the Play Network profile: the Home card (pnNudgeHtml), the red dot on the avatar and on Account,
-   the "Where do I find it?" help under the field and the list in the welcome. */
+/* 2026-11-09: linking the Play Network profile: the Home cards (pnNudgeHtml), the red dot on the avatar and on Account,
+   the "Where do I find it?" help under the field (Account and Where to start). */
 .pn-nudge{border:1px solid var(--brass-dim);border-left:3px solid var(--brass);border-radius:12px;background:linear-gradient(135deg,rgba(200,165,104,.1),var(--surface) 60%);padding:14px 16px;margin-bottom:16px}
 .pn-nudge h2{font-family:Oswald,sans-serif;font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:0 0 4px;color:var(--bone)}
 .pn-nudge p{margin:0 0 12px;font-size:13.5px;line-height:1.45;color:var(--bone-dim)}
@@ -2209,7 +2231,8 @@ function slmDecorate(r){
   b.hasAttribute("role")||b.setAttribute("role","dialog");
   b.setAttribute("aria-modal","true");
   const lb=b.getAttribute("aria-labelledby");
-  if(!b.hasAttribute("aria-label")&&!(lb&&b.querySelector("#"+CSS.escape(lb)))){
+  /* 2026-11-11: aria-labelledby may name several ids (Where to start: its welcome line + title). */
+  if(!b.hasAttribute("aria-label")&&!(lb&&lb.trim().split(/\s+/).every(i=>b.querySelector("#"+CSS.escape(i))))){
     const h=b.querySelector("h1,h2,h3,.sheet-title,.ip-name,.cl-name");
     if(h){h.id||(h.id="slm-h"+ ++slmSeq);b.setAttribute("aria-labelledby",h.id)}else b.setAttribute("aria-label","Dialog")}
   b.hasAttribute("tabindex")||b.setAttribute("tabindex","-1")}
@@ -3452,7 +3475,7 @@ async function nbPin(id,on){
 async function nbDelete(e){
   if(!await slConfirm({title:"Delete this message?",ok:"Delete",danger:!0}))return;
   await slDeferDelete({kind:"notice",id:e,table:"announcements",msg:"Message deleted",none:"Could not delete the message: it is already gone, or you can no longer manage it."});
-}function paintHomeHead(){paintHomePn();const e=$("home-head");if(!e)return;if(!me)return void(e.innerHTML=`<div class="hero hero-centered">\n      <img class="hero-logo" src="${ASSETS.brandLogo}" alt="Seekers League">\n      <p class="hero-p">A free, unofficial companion to the official Malediction Play Network. Organize on the Play Network, play and keep score here:\n      run Swiss tournaments, play matches synced on two phones, see which Seekers actually win — and build your decks!</p>\n      <div class="home-ctas">\n        <button class="act" onclick="goSignup()">Create account</button>\n        <button class="ghost" onclick="goFind('c')">Find a community</button>\n      </div>\n      <div class="how-lab">How a community works</div>\n      <ol class="how-steps">\n        <li><span class="how-n">1</span><span><b>Join or start a community</b> at your local store or club.</span></li>\n        <li><span class="how-n">2</span><span><b>Play at its events</b>, listed from the official Play Network.</span></li>\n        <li><span class="how-n">3</span><span><b>Battle in tournaments</b> or a match on two phones, and watch the Meta show what wins.</span></li>\n      </ol>\n      <div class="hero-links">\n        <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>\n        <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Find official events ↗</a>\n      </div>\n    </div>`);const n=myLeaguesSafe().length>0;e.innerHTML=`<div class="home-greet">\n    <h1>Welcome back, ${esc(me.display_name)}</h1>\n    ${n?"":"<p>You are not in a community yet.</p>"}\n  </div>${n?"":homeStartPanel()}`}
+}function paintHomeHead(){paintHomePn();const e=$("home-head");if(!e)return;if(!me)return void(e.innerHTML=`<div class="hero hero-centered">\n      <img class="hero-logo" src="${ASSETS.brandLogo}" alt="Seekers League">\n      <p class="hero-p">A free, unofficial companion to the official Malediction Play Network. Organize on the Play Network, play and keep score here:\n      run Swiss tournaments, play matches synced on two phones, see which Seekers actually win — and build your decks!</p>\n      <div class="home-ctas">\n        <button class="act" onclick="goSignup()">Create account</button>\n        <button class="ghost" onclick="goFind('c')">Find a community</button>\n      </div>\n      <div class="how-lab">How a community works</div>\n      <ol class="how-steps">\n        <li><span class="how-n">1</span><span><b>Join or start a community</b> at your local store or club.</span></li>\n        <li><span class="how-n">2</span><span><b>Play at its events</b>, listed from the official Play Network.</span></li>\n        <li><span class="how-n">3</span><span><b>Battle in tournaments</b> or a match on two phones, and watch the Meta show what wins.</span></li>\n      </ol>\n      <div class="hero-links">\n        <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>\n        <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Find official events ↗</a>\n      </div>\n    </div>`);const n=myLeaguesSafe().length>0;e.innerHTML=`<div class="home-greet">\n    <h1>Welcome back, ${esc(me.display_name)}</h1>\n    ${n?"":"<p>You are not in a community yet.</p>"}\n    ${wtsBtnHtml()}\n  </div>`,wtsSoon()}
 /* ===== Next up =====
    One list for every community you play in (archived ones left out): your
    next tournament match and, for organizers, a tournament still to finish.
@@ -3658,35 +3681,11 @@ async function findSavePin(){
 /* Home keeps one line pointing at the page, for whoever has no league yet. */
 function paintHomeCta(){
   const e=$("home-cta");if(!e)return;
-  /* Signed in: the Getting started panel at the top already covers this.
+  /* Signed in: the Where to start button under the greeting (wtsOpen) covers this.
      Signed out: the hero above already has its own Find a league button. */
   e.innerHTML="";
 }
 function goSignup(){authMode="signup";go("auth")}
-/* Signed in with no league yet, the usual first visit in the beta: every way
-   in sits on the home page, and the panel goes once they belong to a league. */
-function homeStartPanel(){
-  return`<div class="panel plain">
-    <h2 style="margin:0 0 3px">Getting started</h2>
-    <p class="hint" style="margin:0">Pick any of these. You can do more than one.</p>
-    <div class="gs-list">
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Find a community near you</div>
-        <p>Every public community, on a map and in a list.</p></div>
-        <button class="act" onclick="goFind('c')">Find a community</button></div>
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Join with a code</div>
-        <p>Your organizer has a 6-character code for the community.</p></div>
-        <div class="gs-join"><input type="text" id="gs-code" placeholder="Code" maxlength="12" autocomplete="off" aria-label="Community join code"
-          onkeydown="if(event.key==='Enter')joinByCode('gs-code')">
-        <button class="act" onclick="joinByCode('gs-code')">Join</button></div></div>
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Create your own community</div>
-        <p>For your store, club or group of friends. You list its events and run its tournaments.</p></div>
-        <button class="ghost" onclick="gsOpen('create')">Start a community</button></div>
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Play a match</div>
-        <p>Both players sign in, pick a Seeker and terrain and share a 4-digit PIN. The result lands in both profiles.</p></div>
-        <button class="ghost" onclick="go('tracker')">⚔ Play a match</button></div>
-    </div>
-  </div>`;
-}
 /* Opens the leagues page with one of its panes (join / create) already open. */
 function gsOpen(p){
   go("leagues");openPane=p;
@@ -7186,7 +7185,7 @@ function termsHtml(){return`
    whose display name is still exactly the provider's, are asked once per
    device to pick the name the world sees (prefilled with the first name). */
 const NK_SINCE="2026-11-01T00:00:00Z",nkDone={};
-function nkSoon(){setTimeout(()=>{nkMaybe(),pnwMaybe(),slPushBoot()},700)}
+function nkSoon(){setTimeout(()=>{nkMaybe(),wtsMaybe(),slPushBoot()},700)}
 function nkProvNames(u){const m=u&&u.user_metadata||{};return[m.full_name,m.name,m.global_name,m.user_name,m.preferred_username].map(x=>String(x||"").trim()).flatMap(x=>[x,x.split(/\s+/)[0]]).map(x=>x.slice(0,40).trim()).filter(Boolean)}
 function nkMaybe(){
   try{
@@ -7214,7 +7213,7 @@ function nkOpen(cur){
   </div>`;
   const i=$("nk-name");i&&(i.onkeydown=e=>{"Enter"===e.key&&(e.preventDefault(),nkSave())},setTimeout(()=>{try{i.focus(),i.select()}catch(e){}},50));
 }
-function nkKeep(){nkMark();const m=$("nk-modal");m&&m.remove();pnwSoon()}
+function nkKeep(){nkMark();const m=$("nk-modal");m&&m.remove();wtsSoon()}
 async function nkSave(){
   if(!me)return nkKeep();
   const v=String(($("nk-name")||{}).value||"").trim().replace(/\s+/g," ");
@@ -7226,41 +7225,38 @@ async function nkSave(){
   if(x)return toast(x.message||"Could not save the name. Try again.");
   me.display_name=v,cache.profNames=null,cache.heralds=null;nkMark();
   const m=$("nk-modal");m&&m.remove();
-  toast("Name saved",!0),renderChrome(),render(),pnwSoon();
+  toast("Name saved",!0),renderChrome(),render(),wtsSoon();
 }
 /* ===== Linking the Play Network profile (2026-11-09) =====
    With the malediction.gg profile linked, tournament games start in the tracker
    by themselves, results are recorded automatically and the Play Network
    decklist is imported. pnLinked() reads me (mg_public_id is the generated
    column, kept in step by pnSet after a save). */
-const PNW_SINCE="2026-11-09T00:00:00Z",pnwDone={},
-  PN_WHY="Link it to enable Malediction Play Network integration such as decks and tournaments.";
+const PN_WHY="Link it to enable Malediction Play Network integration such as decks and tournaments.";
 function pnLinked(){return!!me&&!!mgPid(me.malediction_url)&&(!("mg_public_id"in me)||!!me.mg_public_id)}
 /* The address as saved: the canonical form, null when blank, false when it is not a malediction.gg profile. */
 function pnUrlOf(t){t=String(t??"").trim();if(!t)return null;const p=mgPid(t);return p?"https://malediction.gg/app/profile/"+p+"/":!1}
 function pnBadMsg(){return"Paste the address of your malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/"}
 function pnDupMsg(i){return"23505"===i.code||/mg_public_id/.test(i.message||"")?"This malediction.gg profile is already linked to another Seekers League account. If it is yours, write to us from Feedback.":i.message||"Could not save. Try again."}
 function pnHelpHtml(){return`<details class="pn-help"><summary>Where do I find it?</summary><p>On <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">malediction.gg</a> open your profile and copy the address from the address bar. It looks like <code class="pn-eg">https://malediction.gg/app/profile/AbC123xYz0/</code></p></details>`}
-/* After a link is saved (Account or the welcome): me, the tournaments cache and every place that shows the
+/* After a link is saved (Account or Where to start): me, the tournaments cache and every place that shows the
    link state: the top bar dot, the Home card and Next up, your own player page's Account button, the tournament page hint (reloaded, as the server
    may have seated the account in a draft). The reloads run only when the link itself changed. */
 function pnSet(u){const ch=(me.mg_public_id||null)!==(u?mgPid(u):null);me.malediction_url=u||null,me.mg_public_id=u?mgPid(u):null,cache.t3Mine=null,cache.profNames=null;pnRepaint(ch)}
 function pnRepaint(full){renderChrome(),paintHomePn();if(!full)return;const v=route&&route.view;"tournaments"===v&&route.tournamentId&&cache.tourney&&$("t3-root")?t3Reload():"browse"===v&&me?renderBrowse():"profile"===v&&me&&(!route.profileId||route.profileId===me.id)&&renderProfile()}
 /* Account > Profile with the malediction.gg field focused. */
 function pnOpenProfile(){if(!me)return go("auth");window._accTab="profile";pfAccount();const i=$("pf-mg");i&&setTimeout(()=>{try{i.scrollIntoView({block:"center"}),i.focus()}catch(e){}},60)}
-/* Home reminder for a signed-in account with no link, any age. "Not now" hides it for 7 days on this device
-   (sl.pnnudge.<uid>). Returns "" otherwise, so a later step can put a tournament-specific card here. */
-function pnSnoozed(tid){if(!me)return!0;let v=0;try{v=+localStorage.getItem("sl.pnnudge."+me.id+(tid?"."+tid:""))||0}catch(e){}return v>0&&Date.now()-v<7*864e5}
-/* 2026-11-09: a tournament of your communities with Play Network registrations nobody holds comes first, as a
-   "This is me" card (pnTnCard); its Not now hides that tournament (and the plain card) for 7 days. */
+/* 2026-11-11: the Home cards for an unlinked account are the contextual ones only (the plain "Link your Play Network
+   profile" card is now in Where to start, wtsOpen): the organizer's seat (pnOrgCard), then a tournament of your
+   communities with Play Network registrations nobody holds, as a "This is me" card (pnTnCard). Their Not now /
+   No thanks hides that tournament's card for 7 days on this device (sl.pnnudge.<uid>.<tid>). */
+function pnSnoozed(tid){if(!me||!tid)return!0;let v=0;try{v=+localStorage.getItem("sl.pnnudge."+me.id+"."+tid)||0}catch(e){}return v>0&&Date.now()-v<7*864e5}
 function pnNudgeHtml(){
   if(!me||me.deleted_at||pnLinked())return"";
   const o=pnOrgTn();if(o)return pnOrgCard(o);
-  const t=pnHomeTn();if(t)return pnTnCard(t);
-  if(pnSnoozed())return"";
-  return`<section class="pn-nudge" aria-labelledby="pn-nudge-h"><h2 id="pn-nudge-h">Link your Play Network profile</h2><p>Link it to enable Malediction Play Network integration such as decks and tournaments.</p><div class="pn-acts"><button class="act" onclick="pnOpenProfile()">Add my malediction.gg link</button><button class="ghost" onclick="pnSnooze()">Not now</button></div></section>`;
+  const t=pnHomeTn();return t?pnTnCard(t):"";
 }
-function pnSnooze(tid){if(!me)return;try{const n=String(Date.now());localStorage.setItem("sl.pnnudge."+me.id,n);tid&&localStorage.setItem("sl.pnnudge."+me.id+"."+tid,n)}catch(e){}paintHomePn()}
+function pnSnooze(tid){if(!me||!tid)return;try{localStorage.setItem("sl.pnnudge."+me.id+"."+tid,String(Date.now()))}catch(e){}paintHomePn()}
 /* "This is me" (2026-11-09). The registrations of a draft or running Play Network tournament that an unlinked
    player may claim: pn:<pid> keys with a valid pid, not locked or forgotten (lock), not dropped, no account
    already waiting on them. Only the nickname and picture the payload shows members anyway. Your display name
@@ -7293,7 +7289,7 @@ function pnPickHtml(t,L){L=L||pnOpen(t);const many=L.length>PN_PK_MAX;
 function pnPickFilter(i){const b=i.closest(".pn-pick");if(!b)return;const q=pnNm(i.value);let n=0;
   b.querySelectorAll(".pn-pk-l li").forEach((li,k)=>{const s=q?String(li.firstElementChild.dataset.n||"").includes(q):k<PN_PK_MAX;li.hidden=!s;s&&n++});
   const m=b.querySelector(".pn-pk-more");m&&(m.hidden=!!q);b.querySelector(".pn-pk-none").hidden=!!n}
-/* Saving the link: the same write as the welcome (profiles.malediction_url; 23505 = another account has it). */
+/* Saving the link: the same write as Account and Where to start (profiles.malediction_url; 23505 = another account has it). */
 async function pnSaveUrl(u){let x=null;try{x=(await sb.from("profiles").update({malediction_url:u}).eq("id",me.id)).error}catch(e){x=e}return x}
 async function pnClaim(tid,key){
   if(!me)return go("auth");if(pnLinked())return toast("Your Play Network profile is already linked");if(window._pnBusy)return;
@@ -7327,44 +7323,107 @@ async function pnOrgSave(tid){
   if(e)return toast(pnDupMsg(e));
   toast("Play Network profile saved: your next tournaments link by themselves",!0);pnSet(u)}
 function pnOrgNo(tid){pnSnooze(tid);const t=cache.tourney;t&&t.id===tid&&t3Repaint()}
-function paintHomePn(){const e=$("home-pn");e&&(e.innerHTML=pnNudgeHtml())}
-/* Welcome for accounts created from PNW_SINCE on with no link: once per account per device (sl.welcome.<uid>),
-   after the "Choose your public name" step (nkKeep and nkSave call pnwSoon) and never on top of another dialog. */
-function pnwSoon(){setTimeout(pnwMaybe,700)}
-function pnwMaybe(n){
+function paintHomePn(){const e=$("home-pn");e&&(e.innerHTML=pnNudgeHtml());const b=$("wts-btn");b&&b.classList.toggle("todo",wtsTodo())}
+/* ===== Where to start (2026-11-11) =====
+   One dialog: the Play Network link while the account has none (the same save as Account), then the four ways into
+   a community (once the Getting started panel on Home). It opens by itself once per account per device
+   (sl.welcome.<uid>, the key of the old welcome, so whoever saw that is not asked again) for an account with no link
+   or no community, after the "Choose your public name" step (nkKeep and nkSave call wtsSoon) and never on top of
+   another dialog. Only on Home: a match, a tournament or an invite is never covered; Home asks again when it paints
+   (paintHomeHead). Afterwards the Where to start button under the Home greeting opens it, with a dot while there is
+   still something to do. A button that leaves for another page closes it first. */
+const wtsDone={};let wtsT=0;
+function wtsTodo(){return!!me&&!me.deleted_at&&(!pnLinked()||!myLeaguesSafe().length)}
+function wtsBtnHtml(){return`<button type="button" id="wts-btn" class="wts-btn${wtsTodo()?" todo":""}" onclick="wtsOpen(this)" aria-haspopup="dialog"><svg class="wts-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.1 4.9-4.9 2.1 2.1-4.9z"/></svg><span>Where to start</span><span class="wts-dot" aria-hidden="true"></span><span class="sr-only wts-sr"> (steps left)</span></button>`}
+function wtsSoon(){clearTimeout(wtsT),wtsT=setTimeout(wtsMaybe,700)}
+function wtsOk(){return!!me&&!!session&&!!session.user&&me.id===session.user.id&&!recoveryPending&&!me.deleted_at&&!wtsDone[me.id]&&!$("wts-modal")&&"browse"===route.view}
+/* Another dialog open: a .tkov or any visible aria-modal (the card preview on Home is not a .tkov). */
+function wtsBusy(){return!!document.querySelector(".tkov")||[...document.querySelectorAll('[aria-modal="true"]')].some(x=>x.getClientRects().length)}
+function wtsMark(){if(!me)return;wtsDone[me.id]=1;try{localStorage.setItem("sl.welcome."+me.id,"1")}catch(e){}}
+async function wtsMaybe(n){
   try{
-    if(!me||!session||!session.user||me.id!==session.user.id||recoveryPending||me.deleted_at||pnwDone[me.id]||pnLinked()||$("pnw-modal"))return;
-    if(!(new Date(me.created_at||0)>=new Date(PNW_SINCE)))return;
+    if(!wtsOk())return;
     let seen=null;try{seen=localStorage.getItem("sl.welcome."+me.id)}catch(e){}
     if(seen||$("nk-modal"))return;
-    if(document.querySelector(".tkov"))return void((n|0)<40&&setTimeout(()=>pnwMaybe((n|0)+1),1500));
-    pnwDone[me.id]=1;try{localStorage.setItem("sl.welcome."+me.id,"1")}catch(e){}
-    pnwOpen();
+    const later=()=>void((n|0)<40&&(clearTimeout(wtsT),wtsT=setTimeout(()=>wtsMaybe((n|0)+1),1500)));
+    if(wtsBusy())return later();
+    /* Linked: only with no community; one read when Home has not loaded them yet (a failed read: next sign-in).
+       Linked and in a community: not now, for this session only (not marked seen: leaving them all asks again). */
+    if(pnLinked()){const u=me.id,L=myLeaguesSafe().length?myLeaguesSafe():await fetchMyLeagues0();if(!L||!me||me.id!==u)return;if(L.length)return void(wtsDone[u]=1);
+      if(!wtsOk()||$("nk-modal"))return;if(wtsBusy())return later()}
+    wtsMark();wtsOpen(null,1);
   }catch(e){}
 }
-function pnwOpen(){
-  let m=$("pnw-modal");
-  if(!m){m=document.createElement("div");m.id="pnw-modal";m.className="tkov";m.onclick=e=>{e.target===m&&pnwClose()};document.body.appendChild(m)}
-  m.innerHTML=`<div class="tkmodal nk-box" role="dialog" aria-modal="true" aria-labelledby="pnw-h">
-    <h3 id="pnw-h">Welcome to Seekers League</h3>
-    <p class="hint" style="margin:0 0 8px">Link your Malediction Play Network profile to enable Malediction Play Network integration such as decks and tournaments.</p>
-    <label class="field"><span>Your profile on malediction.gg</span><input type="url" id="pnw-url" placeholder="https://malediction.gg/app/profile/..." autocomplete="off"></label>
+function wtsPnHtml(){return pnLinked()?`<p class="wts-ok" id="wts-ok" tabindex="-1"><span aria-hidden="true">✓</span> Play Network profile linked</p>`:`<h4 class="wts-sh">Link your Play Network profile</h4>
+    <p class="hint">Link your Malediction Play Network profile to enable Malediction Play Network integration such as decks and tournaments.</p>
+    <label class="field"><span>Your profile on malediction.gg</span><input type="url" id="wts-url" placeholder="https://malediction.gg/app/profile/..." autocomplete="off" aria-describedby="wts-err" oninput="wtsErr('')" onkeydown="if(event.key==='Enter'){event.preventDefault();wtsSave()}"></label>
+    <p class="wts-err" id="wts-err" role="alert" hidden></p>
     ${pnHelpHtml()}
-    <div class="nk-acts"><button class="act" id="pnw-save" onclick="pnwSave()">Save</button><button class="ghost" onclick="pnwClose()">Later</button></div>
-  </div>`;
-  const i=$("pnw-url");i&&(i.onkeydown=e=>{"Enter"===e.key&&(e.preventDefault(),pnwSave())});
+    <div class="nk-acts"><button type="button" class="act" id="wts-save" onclick="wtsSave()">Save</button></div>`}
+/* 2026-11-11: already in a community: only the match step (finding or joining one is done). */
+function wtsStartHtml(){
+  const play=`<div class="gs-item"><div class="gs-x"><div class="gs-t">Play a match</div>
+        <p>Both players sign in, pick a Seeker and terrain and share a 4-digit PIN. The result lands in both profiles.</p></div>
+        <button type="button" class="${pnLinked()?"act":"ghost"}" onclick="wtsClose(1);go(\x27tracker\x27)">⚔ Play a match</button></div>`;
+  if(myLeaguesSafe().length)return`<h4 class="wts-sh">Next step</h4>
+    <div class="gs-list">${play}</div>`;
+  return`<h4 class="wts-sh">Getting started</h4>
+    <p class="hint">Pick any of these. You can do more than one.</p>
+    <div class="gs-list">
+      <div class="gs-item"><div class="gs-x"><div class="gs-t">Find a community near you</div>
+        <p>Every public community, on a map and in a list.</p></div>
+        <button type="button" class="${pnLinked()?"act":"ghost"}" id="wts-find" onclick="wtsClose(1);goFind('c')">Find a community</button></div>
+      <div class="gs-item"><div class="gs-x"><div class="gs-t">Join with a code</div>
+        <p>Your organizer has a 6-character code for the community.</p></div>
+        <div class="gs-join"><input type="text" id="wts-code" placeholder="Code" maxlength="12" autocomplete="off" aria-label="Community join code"
+          onkeydown="if(event.key==='Enter')wtsJoin()">
+        <button type="button" class="ghost" id="wts-join" onclick="wtsJoin()">Join</button></div></div>
+      <div class="gs-item"><div class="gs-x"><div class="gs-t">Create your own community</div>
+        <p>For your store, club or group of friends. You list its events and run its tournaments.</p></div>
+        <button type="button" class="ghost" onclick="wtsClose(1);gsOpen('create')">Start a community</button></div>
+      <div class="gs-item"><div class="gs-x"><div class="gs-t">Play a match</div>
+        <p>Both players sign in, pick a Seeker and terrain and share a 4-digit PIN. The result lands in both profiles.</p></div>
+        <button type="button" class="ghost" onclick="wtsClose(1);go('tracker')">⚔ Play a match</button></div>
+    </div>`;
 }
-function pnwClose(){const m=$("pnw-modal");m&&m.remove()}
-async function pnwSave(){
-  if(!me)return pnwClose();
-  const u=pnUrlOf(($("pnw-url")||{}).value);
-  if(!u)return toast(null===u?"Paste your malediction.gg profile address first, or tap Later":pnBadMsg());
-  const b=$("pnw-save");b&&(b.disabled=!0,b.textContent="Saving…");
+/* b: the button that opened it (focus goes back there on close); first: the automatic opening. Esc, the backdrop,
+   ✕ and Got it close it; Tab stays inside. */
+function wtsOpen(b,first){
+  if(!me)return;wtsClose(1);
+  window._wtsBtn=b||document.activeElement;
+  const m=document.createElement("div");m.id="wts-modal";m.className="tkov";m.onclick=e=>{e.target===m&&wtsClose()};
+  m.onkeydown=e=>{if("Escape"===e.key)return e.preventDefault(),void wtsClose();if("Tab"!==e.key)return;
+    const f=[...m.querySelectorAll("button,input,summary,a[href]")].filter(x=>!x.disabled&&x.getClientRects().length),a=f[0],z=f[f.length-1],c=document.activeElement;if(!a)return;
+    e.shiftKey?(c===a||!f.includes(c))&&(e.preventDefault(),z.focus()):(c===z||!f.includes(c))&&(e.preventDefault(),a.focus())};
+  m.innerHTML=`<div class="tkmodal nk-box wts-box" role="dialog" aria-modal="true" aria-labelledby="${first?"wts-kick ":""}wts-h" tabindex="-1">
+    <button type="button" class="tkx" onclick="wtsClose()" aria-label="Close">✕</button>
+    ${first?'<p class="wts-kick" id="wts-kick">Welcome to Seekers League</p>':""}<h3 id="wts-h">Where to start</h3>
+    <div class="wts-pn${pnLinked()?" ok":""}" id="wts-pn">${wtsPnHtml()}</div>
+    ${wtsStartHtml()}
+    <div class="nk-acts wts-foot"><button type="button" class="ghost" onclick="wtsClose()">Got it</button></div>
+  </div>`;
+  document.body.appendChild(m);try{m.firstElementChild.focus({preventScroll:!0})}catch(e){}
+}
+/* nav: a button that leaves for another page (no focus back). The Home button repainted meanwhile: the new one. */
+function wtsClose(nav){const m=$("wts-modal");if(!m)return;m.remove();const b=window._wtsBtn;window._wtsBtn=null;if(nav)return;
+  const f=b&&b.isConnected?b:b&&"wts-btn"===b.id?$("wts-btn"):null;try{f&&f.focus({preventScroll:!0})}catch(e){}}
+async function wtsSave(){
+  if(!me)return wtsClose();
+  const b=$("wts-save");if(b&&b.disabled)return;
+  const u=pnUrlOf(($("wts-url")||{}).value);
+  if(!u)return wtsErr(null===u?"Paste your malediction.gg profile address first":pnBadMsg());
+  wtsErr("");b&&(b.disabled=!0,b.textContent="Saving…");
   const x=await pnSaveUrl(u);
   b&&(b.disabled=!1,b.textContent="Save");
-  if(x)return toast(pnDupMsg(x));
-  pnwClose(),toast("Play Network profile linked",!0),pnSet(u);
+  if(x)return wtsErr(pnDupMsg(x));
+  pnSet(u);
+  /* No toast: the linked line takes focus and says it (a toast would cover Got it and say it twice). */
+  const s=$("wts-pn");s&&(s.className="wts-pn ok",s.innerHTML=wtsPnHtml());const f=$("wts-find");f&&(f.className="act");const k=$("wts-ok");try{k&&k.focus({preventScroll:!0})}catch(e){}
 }
+/* Address messages under the field (the dialog closed meanwhile: a toast). */
+function wtsErr(t){const e=$("wts-err"),i=$("wts-url");if(!e)return void(t&&toast(t));e.textContent=t,e.hidden=!t;i&&(t?(i.setAttribute("aria-invalid","true"),i.focus()):i.removeAttribute("aria-invalid"))}
+/* Join with a code: joinWithCode opens the community it joined, so the dialog goes. */
+async function wtsJoin(){const b=$("wts-join");if(!b||b.disabled)return;b.disabled=!0;let n=null;try{n=await joinByCode("wts-code")}catch(e){}b.disabled=!1;n&&wtsClose(1)}
 async function tFinalize(){
   const t=cache.tourney;if(!t||!t.payload)return;
   const b=t.payload.bracket||[],f=b.length?b[b.length-1][0]:null,
