@@ -15677,3 +15677,104 @@ create trigger profile_avatar_tombstone before insert or update on public.profil
   execute function public.profile_avatar_tombstone();
 update public.profiles set avatar = null where deleted_at is not null and avatar is not null;
 
+-- ============================================================
+--  MAKERS (2026-11-24)
+-- ============================================================
+-- Run as migration-2026-11-24-makers.sql.
+-- What changes:
+--   * profiles.makes text, null by default. null = makes nothing; otherwise
+--     the letters of what the player makes for other players, in this order:
+--     F = FDM printing, R = resin printing, P = painting ('F', 'R', 'P',
+--     'FR', 'FP', 'RP' or 'FRP'). Anything else is refused
+--     (profiles_makes_check), so each letter appears at most once.
+--   * profiles.makes_note text, null by default: a short note (at most 80
+--     characters, e.g. "32mm minis, pickup in Naples"). Stored trimmed (spaces,
+--     no-break and other Unicode spaces, zero-width marks); blank becomes null;
+--     no control characters and no bidi override/isolate characters, which
+--     could flip the text around it (profiles_makes_note_check). Only
+--     kept while makes is set: clearing makes clears the note
+--     (profiles_makes_note_needs_makes, and the trigger below does it for you).
+--   * Who may change them: the player, on their own row, like the name
+--     ("own profile update" policy; guard_profile_update still refuses a
+--     deleted account). Everyone may read them, signed in or not, like the
+--     map pin and the Herald rank ("profiles readable"): the page lists makers
+--     on a community's Makers tab and on Explore > Makers.
+--   * The new trigger profile_makes_tidy removes bidi controls from the note,
+--     trims it, turns a blank one into null (e.g. only zero-width spaces),
+--     drops the note when makes is null, and clears both on any
+--     row with deleted_at set (a deleted account is never listed as a maker;
+--     erase_user_data sets deleted_at, so it needs no change).
+--   * profiles_makers_idx: a small partial index for the Explore list
+--     (makes is not null and deleted_at is null).
+--   * Not changed: no function or view returns a fixed list of profile
+--     columns that the page uses for makers (the page reads profiles and
+--     memberships -> profiles directly).
+
+-- 1. The columns -----------------------------------------------------------------
+alter table public.profiles add column if not exists makes text;
+alter table public.profiles add column if not exists makes_note text;
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                 where conname = 'profiles_makes_check' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_makes_check
+      check (makes in ('F', 'R', 'P', 'FR', 'FP', 'RP', 'FRP'));
+  end if;
+  -- an earlier draft of this file had no bidi/Unicode-space rule: replace it
+  if exists (select 1 from pg_constraint
+              where conname = 'profiles_makes_note_check' and conrelid = 'public.profiles'::regclass
+                and pg_get_constraintdef(oid) not like '%u202A%') then
+    alter table public.profiles drop constraint profiles_makes_note_check;
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'profiles_makes_note_check' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_makes_note_check
+      check (char_length(makes_note) between 1 and 80
+             and makes_note = btrim(makes_note)
+             and makes_note !~ '[[:cntrl:]]'
+             and makes_note !~ '[\u202A-\u202E\u2066-\u2069]'
+             and makes_note !~ '^[[:space:]\u00A0\u1680\u2000-\u200D\u2028\u2029\u202F\u205F\u2060\u3000\uFEFF]|[[:space:]\u00A0\u1680\u2000-\u200D\u2028\u2029\u202F\u205F\u2060\u3000\uFEFF]$');
+  end if;
+  if not exists (select 1 from pg_constraint
+                 where conname = 'profiles_makes_note_needs_makes' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_makes_note_needs_makes
+      check (makes_note is null or makes is not null);
+  end if;
+end $$;
+comment on column public.profiles.makes is
+  'What the player makes for other players (Makers): null = nothing, else F (FDM printing), R (resin printing), P (painting) in that order. Public. Set by the player.';
+comment on column public.profiles.makes_note is
+  'Makers: a short public note (1..80 characters, trimmed, no bidi controls), only while makes is set. Set by the player.';
+
+-- 2. Tidy the note; a deleted account makes nothing --------------------------------
+create or replace function public.profile_makes_tidy()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.deleted_at is not null then
+    new.makes := null;
+    new.makes_note := null;
+    return new;
+  end if;
+  -- bidi override/isolate characters out; then trim spaces (any Unicode
+  -- space) and zero-width marks at both ends, as the page does
+  new.makes_note := nullif(regexp_replace(
+                      regexp_replace(new.makes_note, '[\u202A-\u202E\u2066-\u2069]', '', 'g'),
+                      '^[[:space:]\u00A0\u1680\u2000-\u200D\u2028\u2029\u202F\u205F\u2060\u3000\uFEFF]+|[[:space:]\u00A0\u1680\u2000-\u200D\u2028\u2029\u202F\u205F\u2060\u3000\uFEFF]+$',
+                      '', 'g'), '');
+  if new.makes is null then
+    new.makes_note := null;
+  end if;
+  return new;
+end $$;
+revoke all on function public.profile_makes_tidy() from public, anon, authenticated;
+drop trigger if exists profile_makes_tidy on public.profiles;
+create trigger profile_makes_tidy before insert or update on public.profiles
+  for each row when (new.makes is not null or new.makes_note is not null)
+  execute function public.profile_makes_tidy();
+update public.profiles set makes = null, makes_note = null
+ where deleted_at is not null and (makes is not null or makes_note is not null);
+
+-- 3. The Explore list reads only the makers ------------------------------------------
+create index if not exists profiles_makers_idx on public.profiles (id)
+  where makes is not null and deleted_at is null;
+
