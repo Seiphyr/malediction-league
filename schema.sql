@@ -15778,3 +15778,25 @@ update public.profiles set makes = null, makes_note = null
 create index if not exists profiles_makers_idx on public.profiles (id)
   where makes is not null and deleted_at is null;
 
+-- ============================================================
+--  NEW SEEKERS IN THE DECK DEDUPE (2026-11-25)
+-- ============================================================
+-- Run as migration-2026-11-25-new-seekers.sql.
+-- What changes:
+--   * deck_sig_legacy (PLAY NETWORK DECK DEDUPE above) knows the two Seekers
+--     of the Fury and Dread Seeker Decks (out 2026-11-12): Mad Jonru,
+--     Starving Maw -> Malwat Cauldron and Nar'Tak Bluebane -> Guise of the
+--     Videre (12 Seekers in all, as on the page). Before it, for those two a
+--     Play Network list without the Legacy and the same deck made in the
+--     builder were seen as different decks.
+create or replace function public.deck_sig_legacy(p text)
+returns text language sql immutable set search_path = public as $$
+  select '{"auricevenhand":"willoftheforge","countessmorridaumberland":"soulstitcher",
+           "grizalingeringwound":"ihreniv","ingorthespiritbound":"effigyofchaos",
+           "karmamok":"lienawhodreams","londrielspellwarden":"arkoflamentation",
+           "madjonrustarvingmaw":"malwatcauldron","nartakbluebane":"guiseofthevidere",
+           "polinoreprimearchivist":"runefoldgauntlet","sigrithandravos":"andravon",
+           "thundersteps":"stormseye","vorendalthedreadheart":"heartlock"}'::jsonb ->> nullif(p, '');
+$$;
+revoke all on function public.deck_sig_legacy(text) from public, anon, authenticated;
+
