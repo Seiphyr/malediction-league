@@ -2612,6 +2612,9 @@ async function oauthSignIn(p){
     if(btn){btn.disabled=!1;btn.classList.remove('busy')}
     toast(e&&e.message?e.message:'Sign-in failed')}
 }
+/* 2026-11-13: Brave on Android, back from the Google sign-in, can lay this page out at desktop width (980px, the viewport meta ignored) and keeps it for every in-page navigation; Discord does not do it. In the Android app only, once a minute at most: a phone-sized screen with a page at least 1.6 times wider gets one fresh load of the same place. */
+function slVpWide(){try{const sw=screen.width||0,sh=screen.height||0,w=document.documentElement.clientWidth||window.innerWidth||0;return sw>0&&Math.min(sw,sh)<=600&&w>=1.6*sw}catch(e){return!1}}
+function slVpHeal(){try{if(!SL_TWA||!slVpWide())return!1;const k="sl.vpheal",t=+sessionStorage.getItem(k)||0;if(Date.now()-t<6e4)return!1;sessionStorage.setItem(k,String(Date.now()));location.replace(location.pathname+"?src=twa"+location.hash);return!0}catch(e){return!1}}
 function oaRestore(){const back=authBackTake();const rotto=!back&&("auth"===route.view||!document.getElementById(route.view)&&"join"!==route.view);const dove=back||(rotto?"#/browse":null);if(dove){try{history.replaceState(null,"",dove)}catch(e){location.hash=dove}route=parseHash()}}
 function oaFinish(h){
   let back=authBackTake();
@@ -2639,7 +2642,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   if(was!==now){slUserReset();now&&me&&fetchMyLeagues().then(L=>{me&&me.id===now&&(cache.myLeagues=L,renderChrome())}).catch(()=>{})}
   "SIGNED_IN"===evt&&oaRestore();
   renderChrome();render();
-});const{data:t}=await sb.auth.getSession();return session=t.session,session&&await loadMe(),session||slPushOrphan(),await new Promise(e=>setTimeout(e,60)),oa&&oaFinish(e),recoveryPending||n&&session?(recoveryPending=!0,showSetNewPassword(),!0):void 0}async function loadMe(){
+});const{data:t}=await sb.auth.getSession();return session=t.session,session&&await loadMe(),session||slPushOrphan(),await new Promise(e=>setTimeout(e,60)),oa&&(oaFinish(e),setTimeout(slVpHeal,400)),recoveryPending||n&&session?(recoveryPending=!0,showSetNewPassword(),!0):void 0}async function loadMe(){
   if(!session)return;
   const u=session.user||{};
   const{data:d}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
