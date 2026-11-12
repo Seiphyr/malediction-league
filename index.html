@@ -2612,9 +2612,9 @@ async function oauthSignIn(p){
     if(btn){btn.disabled=!1;btn.classList.remove('busy')}
     toast(e&&e.message?e.message:'Sign-in failed')}
 }
-/* 2026-11-13: Brave on Android, back from the Google sign-in, can lay this page out at desktop width (980px, the viewport meta ignored) and keeps it for every in-page navigation; Discord does not do it. In the Android app only, once a minute at most: a phone-sized screen with a page at least 1.6 times wider gets one fresh load of the same place. */
+/* 2026-11-13: Brave on Android, back from the Google sign-in, can lay this page out at desktop width (980px, the viewport meta ignored) and keeps it for every in-page navigation; Discord does not do it. In the Android app only, right after an OAuth return (the token in the address): a phone-sized screen with a page at least 1.6 times wider gets one fresh load of the same place. That load has no token, so it never loops; the 5 s stamp only stops a double call. */
 function slVpWide(){try{const sw=screen.width||0,sh=screen.height||0,w=document.documentElement.clientWidth||window.innerWidth||0;return sw>0&&Math.min(sw,sh)<=600&&w>=1.6*sw}catch(e){return!1}}
-function slVpHeal(){try{if(!SL_TWA||!slVpWide())return!1;const k="sl.vpheal",t=+sessionStorage.getItem(k)||0;if(Date.now()-t<6e4)return!1;sessionStorage.setItem(k,String(Date.now()));location.replace(location.pathname+"?src=twa"+location.hash);return!0}catch(e){return!1}}
+function slVpHeal(){try{if(!SL_TWA||!slVpWide())return!1;const k="sl.vpheal",t=+sessionStorage.getItem(k)||0;if(Date.now()-t<5e3)return!1;sessionStorage.setItem(k,String(Date.now()));location.replace(location.pathname+"?src=twa"+location.hash);return!0}catch(e){return!1}}
 function oaRestore(){const back=authBackTake();const rotto=!back&&("auth"===route.view||!document.getElementById(route.view)&&"join"!==route.view);const dove=back||(rotto?"#/browse":null);if(dove){try{history.replaceState(null,"",dove)}catch(e){location.hash=dove}route=parseHash()}}
 function oaFinish(h){
   let back=authBackTake();
