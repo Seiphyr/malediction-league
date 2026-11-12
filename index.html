@@ -159,7 +159,7 @@ a.pf-ln:hover{text-decoration:underline}
 @media(max-width:620px){.how-steps{grid-template-columns:1fr;gap:6px}.how-steps li{padding:8px 11px;font-size:12.5px}}
 
 /* 2026-11-11: Where to start (wtsOpen): the Play Network link while there is none, then the four ways into a
-   community, one row each (what it is, then its button, under it on a phone). The quiet button under the Home
+   community (2026-11-12: one compact list, a full-width row each, about half the old height). The quiet button under the Home
    greeting opens it again; its dot stays while there is something left to do (wtsTodo). */
 .wts-btn{display:inline-flex;align-items:center;gap:7px;min-height:40px;max-width:100%;margin:6px 0 0 -4px;padding:0 10px 0 4px;background:0 0;border:0;border-radius:8px;color:var(--bone-dim);font-family:Barlow,sans-serif;font-size:13.5px;cursor:pointer}
 .wts-btn:hover,.wts-btn:focus-visible{color:var(--bone)}
@@ -167,32 +167,49 @@ a.pf-ln:hover{text-decoration:underline}
 .wts-ic{width:18px;height:18px;flex:0 0 18px;color:var(--brass)}
 .wts-dot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:var(--brass);box-shadow:0 0 0 3px rgba(200,165,104,.18)}
 .wts-btn:not(.todo) .wts-dot,.wts-btn:not(.todo) .wts-sr{display:none}
-.tkmodal.wts-box{width:min(92vw,480px);padding:20px 18px}
+.tkmodal.wts-box{width:min(92vw,480px);padding:18px 14px 14px}
 .wts-box .tkx{width:40px;height:40px;top:8px;right:8px}
 .tkmodal.wts-box h3{padding-right:44px;margin:0 0 12px;font-size:19px;letter-spacing:.06em}
 .wts-kick{margin:0 0 4px;padding-right:44px;color:var(--brass);font-family:Oswald,sans-serif;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}
-.wts-sh{margin:0 0 4px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}
-.wts-pn{border:1px solid var(--brass-dim);border-left:3px solid var(--brass);border-radius:12px;background:linear-gradient(135deg,rgba(200,165,104,.1),var(--surface) 60%);padding:12px 14px 0;margin:0 0 16px}
-.wts-box .hint{color:var(--bone-dim);font-size:13.5px;line-height:1.45}
-.wts-pn .hint{margin:0 0 10px}
-.wts-pn .nk-acts{margin:0 0 12px}
-.wts-pn .nk-acts button{flex:0 0 auto;min-width:112px}/* 2026-11-11: one compact primary, not a full-width bar */
-.wts-err{margin:-4px 0 10px;font-size:13px;line-height:1.45;color:var(--crimson-txt);overflow-wrap:anywhere}
+.wts-sh{margin:0 0 6px;font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}
+.wts-pn{border:1px solid var(--brass-dim);border-left:3px solid var(--brass);border-radius:12px;background:linear-gradient(135deg,rgba(200,165,104,.1),var(--surface) 60%);padding:10px 12px 12px;margin:0 0 14px}
+.wts-box .hint{margin:0 0 2px;color:var(--bone-dim);font-size:13px;line-height:1.4}
+/* 2026-11-12: the label line carries the help link (its text opens under the field); the field and a compact Save share one row. */
+.wts-lrow{display:flex;align-items:center;gap:8px}
+.wts-lrow>label{flex:1 1 auto;min-width:0;font-family:Oswald,sans-serif;font-size:11px;font-weight:500;line-height:1.3;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}
+.wts-lrow>button{flex:0 0 auto;min-height:40px;padding:0;background:0 0;border:0;color:var(--brass);font-size:12.5px;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.wts-in{display:flex;gap:8px;min-width:0}
+.wts-in input{flex:1 1 auto;min-width:0;min-height:40px;padding:8px 10px;text-overflow:ellipsis}
+.gs-join .wts-err{flex:1 0 100%;margin:0}
+.wts-in button{flex:0 0 auto;min-width:72px;padding:8px 14px}
+.wts-err{margin:6px 0 0;font-size:13px;line-height:1.45;color:var(--crimson-txt);overflow-wrap:anywhere}
+.wts-pn .wts-help{margin:8px 0 0}
 .wts-pn.ok{border:0;background:0 0;padding:0}
 .wts-ok{display:flex;align-items:center;gap:8px;margin:0;color:var(--bone-dim);font-size:13.5px}
 .wts-ok>span{color:var(--win);font-weight:700}
 .wts-ok:focus{outline:none}
-.wts-box>.hint{margin:0}
-.gs-list{display:flex;flex-direction:column;gap:8px;margin:10px 0 16px}
-.gs-item{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--coal-2)}
-.gs-t{font-family:Oswald,sans-serif;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone)}
-.gs-x{flex:1 1 190px;min-width:0}
-.gs-item p{margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--bone-dim)}
-.gs-item>button{flex:0 0 auto;min-height:40px;margin-left:auto;padding-left:12px;padding-right:12px}
-.gs-join{display:flex;gap:8px;flex:1 1 100%;min-width:0}
-.gs-join input{flex:1 1 auto;min-width:0;text-transform:uppercase;letter-spacing:.25em;font-family:Oswald,sans-serif;font-size:16px;padding:8px 10px}
+/* 2026-11-12: Getting started is one bordered group with thin separators (a settings list): each row one full-width
+   button (icon, title, one short line, chevron). Join with a code opens its field in a sub-row under its own row. */
+.gs-list{margin:0 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--coal-2);overflow:hidden}
+.gs-list>.gs-row+.gs-row,.gs-list>.gs-join+.gs-row{border-top:1px solid var(--line)}
+.gs-row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;margin:0;padding:9px 12px;background:0 0;border:0;border-radius:0;color:var(--bone);font-family:Barlow,sans-serif;text-align:left;cursor:pointer}
+.gs-row:hover{background:rgba(255,255,255,.03)}
+.gs-row:focus-visible{outline-offset:-2px}
+.gs-ic{flex:0 0 20px;width:20px;height:20px;color:var(--brass)}
+.gs-x{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.gs-t{font-family:Oswald,sans-serif;font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--bone)}
+.gs-d{font-size:12.5px;line-height:1.35;color:var(--bone-dim)}
+.gs-chev{flex:0 0 auto;width:8px;height:14px;color:var(--bone-faint);transition:transform .15s}
+.gs-row[aria-expanded=true] .gs-chev{transform:rotate(90deg)}
+.gs-row.pri{box-shadow:inset 3px 0 0 var(--brass);background:rgba(200,165,104,.07)}
+.gs-row.pri .gs-t{color:var(--brass)}
+.gs-join{display:flex;flex-wrap:wrap;gap:8px;min-width:0;padding:0 12px 10px 44px}
+.gs-join[hidden]{display:none}
+.gs-join input{flex:1 1 0;min-width:0;min-height:40px;text-transform:uppercase;letter-spacing:.25em;font-family:Oswald,sans-serif;font-size:16px;padding:8px 10px}
 .gs-join button{flex:0 0 auto;min-height:40px}
-.wts-foot{justify-content:flex-end}
+.wts-foot{display:flex;justify-content:flex-end}
+.wts-foot button{min-width:96px}
+@media(max-width:360px){.gs-row{gap:10px;padding:9px 10px}.gs-t{font-size:12px;letter-spacing:.06em}.gs-d{font-size:12px}.gs-join{padding-left:10px;padding-right:10px}}
 /* Its join-code messages show above it (toasts sit under every .tkov); the address messages show under the field. */
 body:has(#wts-modal) #toast{z-index:1700}
 /* The demo note and its buttons. */
@@ -4871,7 +4888,7 @@ function tkCompact(e,rc){const t=trk.p[e],a=TK_ACCENTS[e],s=tMasteryOf(e),o=tWon
   await slHomeAdopt(a.id);
   window._lgNew=a.id,openPane=null,window._nlV=null,window._nlKind=null,cache.myLeagues=[],cache.leagues=[],toast("Community created \u2014 code "+t,!0),go("league",{leagueId:a.id,tab:"manage"})
 }
-function joinErr(m){return/No league/i.test(m)?"No community with that code":/archived/i.test(m)?"This community is archived":/Sign in first/i.test(m)?"Sign in first":/retired you/i.test(m)?"An organizer retired you from this community. Ask them to restore you.":null}async function joinByCode(c){return joinWithCode((($("string"==typeof c?c:"join-code")||{}).value||""))}async function joinWithCode(e){e=String(e||"").trim().toUpperCase();if(!joinCodeOk(e))return toast("A join code is letters and digits, usually 6 of them. Check it with your organizer.");if(!me)return joinFromLink(e);let n=null;const jr=await sb.rpc("join_league",{p_code:e}),jm=jr.error?(jr.error.code||"")+" "+(jr.error.message||""):"";if(jr.error&&!/PGRST202|could not find the function/i.test(jm))return toast(joinErr(jm)||jr.error.message);if(jr.error){const{data:d,error:t}=await sb.from("leagues").select("id,name").eq("join_code",e).maybeSingle();if(t||!d)return toast("No community with that code");const{error:a}=await sb.from("memberships").upsert({league_id:d.id,user_id:me.id,dropped_at:null},{onConflict:"league_id,user_id"});if(a)return toast(a.message);n=d}else n=jr.data;await slHomeAdopt(n&&n.id);openPane=null,cache.myLeagues=[],toast("Joined "+n.name,!0),go("league",{leagueId:n.id,tab:"about"});return n}
+function joinErr(m){return/No league/i.test(m)?"No community with that code":/archived/i.test(m)?"This community is archived":/Sign in first/i.test(m)?"Sign in first":/retired you/i.test(m)?"An organizer retired you from this community. Ask them to restore you.":null}async function joinByCode(c){return joinWithCode((($("string"==typeof c?c:"join-code")||{}).value||""))}/* 2026-11-12: say: where its error messages go (Where to start shows them under its field); default a toast. */async function joinWithCode(e,say){const T=say||toast;e=String(e||"").trim().toUpperCase();if(!joinCodeOk(e))return T("A join code is letters and digits, usually 6 of them. Check it with your organizer.");if(!me)return joinFromLink(e);let n=null;const jr=await sb.rpc("join_league",{p_code:e}),jm=jr.error?(jr.error.code||"")+" "+(jr.error.message||""):"";if(jr.error&&!/PGRST202|could not find the function/i.test(jm))return T(joinErr(jm)||jr.error.message);if(jr.error){const{data:d,error:t}=await sb.from("leagues").select("id,name").eq("join_code",e).maybeSingle();if(t||!d)return T("No community with that code");const{error:a}=await sb.from("memberships").upsert({league_id:d.id,user_id:me.id,dropped_at:null},{onConflict:"league_id,user_id"});if(a)return T(a.message);n=d}else n=jr.data;await slHomeAdopt(n&&n.id);openPane=null,cache.myLeagues=[],toast("Joined "+n.name,!0),go("league",{leagueId:n.id,tab:"about"});return n}
 /* One tap on a public league's own page. join_league() itself refuses private
    and archived leagues; a private league takes its code (joinWithCode). */
 async function joinLeague(id){
@@ -7361,7 +7378,9 @@ function pnLinked(){return!!me&&!!mgPid(me.malediction_url)&&(!("mg_public_id"in
 function pnUrlOf(t){t=String(t??"").trim();if(!t)return null;const p=mgPid(t);return p?"https://malediction.gg/app/profile/"+p+"/":!1}
 function pnBadMsg(){return"Paste the address of your malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/"}
 function pnDupMsg(i){return"23505"===i.code||/mg_public_id/.test(i.message||"")?"This malediction.gg profile is already linked to another Seekers League account. If it is yours, write to us from Feedback.":i.message||"Could not save. Try again."}
-function pnHelpHtml(){return`<details class="pn-help"><summary>Where do I find it?</summary><p>On <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">malediction.gg</a> open your profile and copy the address from the address bar. It looks like <code class="pn-eg">https://malediction.gg/app/profile/AbC123xYz0/</code></p></details>`}
+/* 2026-11-12: the help text alone too (Where to start opens it from a link on the field's label line). */
+function pnHelpTxt(){return`<p>On <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">malediction.gg</a> open your profile and copy the address from the address bar. It looks like <code class="pn-eg">https://malediction.gg/app/profile/AbC123xYz0/</code></p>`}
+function pnHelpHtml(){return`<details class="pn-help"><summary>Where do I find it?</summary>${pnHelpTxt()}</details>`}
 /* After a link is saved (Account or Where to start): me, the tournaments cache and every place that shows the
    link state: the top bar dot, the Home card and Next up, your own player page's Account button, the tournament page hint (reloaded, as the server
    may have seated the account in a draft). The reloads run only when the link itself changed. */
@@ -7477,37 +7496,34 @@ async function wtsMaybe(n){
     wtsMark();wtsOpen(null,1);
   }catch(e){}
 }
+/* 2026-11-12: compact: the label line carries the help link, the field and Save share a row. */
 function wtsPnHtml(){return pnLinked()?`<p class="wts-ok" id="wts-ok" tabindex="-1"><span aria-hidden="true">✓</span> Play Network profile linked</p>`:`<h4 class="wts-sh">Link your Play Network profile</h4>
     <p class="hint">Link your Malediction Play Network profile to enable Malediction Play Network integration such as decks and tournaments.</p>
-    <label class="field"><span>Your profile on malediction.gg</span><input type="url" id="wts-url" placeholder="https://malediction.gg/app/profile/..." autocomplete="off" aria-describedby="wts-err" oninput="wtsErr('')" onkeydown="if(event.key==='Enter'){event.preventDefault();wtsSave()}"></label>
+    <div class="wts-lrow"><label for="wts-url">Your profile on malediction.gg</label><button type="button" id="wts-hb" aria-expanded="false" aria-controls="wts-help" onclick="wtsTg(this)">Where do I find it?</button></div>
+    <div class="wts-in"><input type="url" id="wts-url" placeholder="Paste the link" autocomplete="off" aria-describedby="wts-err" oninput="wtsErr('')" onkeydown="if(event.key==='Enter'){event.preventDefault();wtsSave()}">
+      <button type="button" class="act" id="wts-save" onclick="wtsSave()">Save</button></div>
     <p class="wts-err" id="wts-err" role="alert" hidden></p>
-    ${pnHelpHtml()}
-    <div class="nk-acts"><button type="button" class="act" id="wts-save" onclick="wtsSave()">Save</button></div>`}
-/* 2026-11-11: already in a community: only the match step (finding or joining one is done). */
+    <div class="pn-help wts-help" id="wts-help" hidden>${pnHelpTxt()}</div>`}
+/* 2026-11-12: a row that opens the part it controls (aria-controls) under it; f: the field that then takes focus. */
+function wtsTg(b,f){const x=b&&$(b.getAttribute("aria-controls"));if(!x)return;const o="true"!==b.getAttribute("aria-expanded");b.setAttribute("aria-expanded",o),x.hidden=!o;const i=o&&f&&$(f);try{i&&i.focus()}catch(e){}}
+/* 2026-11-11: already in a community: only the match step (finding or joining one is done).
+   2026-11-12: a settings-style list: one full-width row each (icon, title, one line, chevron); pri: the brass accent
+   for the next thing to do once linked (Save stays the only red button while unlinked). */
 function wtsStartHtml(){
-  const play=`<div class="gs-item"><div class="gs-x"><div class="gs-t">Play a match</div>
-        <p>Both players sign in, pick a Seeker and terrain and share a 4-digit PIN. The result lands in both profiles.</p></div>
-        <button type="button" class="${pnLinked()?"act":"ghost"}" onclick="wtsClose(1);go(\x27tracker\x27)">⚔ Play a match</button></div>`;
+  const L=pnLinked(),ic=d=>`<svg class="gs-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`,
+    row=(id,on,c,d,t,s,x)=>`<button type="button" class="gs-row${on?" pri":""}" id="${id}" onclick="${c}"${x||""}>${ic(d)}<span class="gs-x"><span class="gs-t">${t}</span><span class="gs-d">${s}</span></span><svg class="gs-chev" viewBox="0 0 8 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.75 1.5 6.75 7l-5 5.5"/></svg></button>`,
+    play=on=>row("wts-play",on,"wtsClose(1);go('tracker')",'<path d="M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5M5 14l4 4M7 17l-3 3M3 19l2 2"/>',"Play a match","Share a 4-digit PIN with your opponent.");
   if(myLeaguesSafe().length)return`<h4 class="wts-sh">Next step</h4>
-    <div class="gs-list">${play}</div>`;
+    <div class="gs-list">${play(L)}</div>`;
   return`<h4 class="wts-sh">Getting started</h4>
-    <p class="hint">Pick any of these. You can do more than one.</p>
-    <div class="gs-list">
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Find a community near you</div>
-        <p>Every public community, on a map and in a list.</p></div>
-        <button type="button" class="${pnLinked()?"act":"ghost"}" id="wts-find" onclick="wtsClose(1);goFind('c')">Find a community</button></div>
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Join with a code</div>
-        <p>Your organizer has a 6-character code for the community.</p></div>
-        <div class="gs-join"><input type="text" id="wts-code" placeholder="Code" maxlength="12" autocomplete="off" aria-label="Community join code"
-          onkeydown="if(event.key==='Enter')wtsJoin()">
-        <button type="button" class="ghost" id="wts-join" onclick="wtsJoin()">Join</button></div></div>
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Create your own community</div>
-        <p>For your store, club or group of friends. You list its events and run its tournaments.</p></div>
-        <button type="button" class="ghost" onclick="wtsClose(1);gsOpen('create')">Start a community</button></div>
-      <div class="gs-item"><div class="gs-x"><div class="gs-t">Play a match</div>
-        <p>Both players sign in, pick a Seeker and terrain and share a 4-digit PIN. The result lands in both profiles.</p></div>
-        <button type="button" class="ghost" onclick="wtsClose(1);go('tracker')">⚔ Play a match</button></div>
-    </div>`;
+    <div class="gs-list">${row("wts-find",L,"wtsClose(1);goFind('c')",'<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',"Find a community near you","Every public community, on a map.")}
+      ${row("wts-jt",0,"wtsTg(this,'wts-code')",'<circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.7-8.7M16 7l3 3M14 9l2 2"/>',"Join with a code","Your organizer has a 6&#8209;character code.",' aria-expanded="false" aria-controls="wts-jbox"')}
+      <div class="gs-join" id="wts-jbox" hidden><input type="text" id="wts-code" placeholder="Code" maxlength="12" autocomplete="off" aria-label="Community join code" aria-describedby="wts-jerr"
+          oninput="wtsErr('',1)" onkeydown="if(event.key==='Enter')wtsJoin()">
+        <button type="button" class="ghost" id="wts-join" onclick="wtsJoin()">Join</button>
+        <p class="wts-err" id="wts-jerr" role="alert" hidden></p></div>
+      ${row("wts-new",0,"wtsClose(1);gsOpen('create')",'<path d="M5 21V4h11l-2 4 2 4H5"/><path d="M19 15v6M16 18h6"/>',"Create your own community","For your store, club or group of friends.")}
+      ${play(0)}</div>`;
 }
 /* b: the button that opened it (focus goes back there on close); first: the automatic opening. Esc, the backdrop,
    ✕ and Got it close it; Tab stays inside. */
@@ -7523,7 +7539,7 @@ function wtsOpen(b,first){
     ${first?'<p class="wts-kick" id="wts-kick">Welcome to Seekers League</p>':""}<h3 id="wts-h">Where to start</h3>
     <div class="wts-pn${pnLinked()?" ok":""}" id="wts-pn">${wtsPnHtml()}</div>
     ${wtsStartHtml()}
-    <div class="nk-acts wts-foot"><button type="button" class="ghost" onclick="wtsClose()">Got it</button></div>
+    <div class="wts-foot"><button type="button" class="ghost" onclick="wtsClose()">Got it</button></div>
   </div>`;
   document.body.appendChild(m);try{m.firstElementChild.focus({preventScroll:!0})}catch(e){}
 }
@@ -7541,12 +7557,13 @@ async function wtsSave(){
   if(x)return wtsErr(pnDupMsg(x));
   pnSet(u);
   /* No toast: the linked line takes focus and says it (a toast would cover Got it and say it twice). */
-  const s=$("wts-pn");s&&(s.className="wts-pn ok",s.innerHTML=wtsPnHtml());const f=$("wts-find");f&&(f.className="act");const k=$("wts-ok");try{k&&k.focus({preventScroll:!0})}catch(e){}
+  const s=$("wts-pn");s&&(s.className="wts-pn ok",s.innerHTML=wtsPnHtml());const f=$("wts-find")||$("wts-play");f&&f.classList.add("pri");const k=$("wts-ok");try{k&&k.focus({preventScroll:!0})}catch(e){}
 }
-/* Address messages under the field (the dialog closed meanwhile: a toast). */
-function wtsErr(t){const e=$("wts-err"),i=$("wts-url");if(!e)return void(t&&toast(t));e.textContent=t,e.hidden=!t;i&&(t?(i.setAttribute("aria-invalid","true"),i.focus()):i.removeAttribute("aria-invalid"))}
-/* Join with a code: joinWithCode opens the community it joined, so the dialog goes. */
-async function wtsJoin(){const b=$("wts-join");if(!b||b.disabled)return;b.disabled=!0;let n=null;try{n=await joinByCode("wts-code")}catch(e){}b.disabled=!1;n&&wtsClose(1)}
+/* Address messages under the field (the dialog closed meanwhile: a toast). 2026-11-12: j: the join code's field. */
+function wtsErr(t,j){const e=$(j?"wts-jerr":"wts-err"),i=$(j?"wts-code":"wts-url");if(!e)return void(t&&toast(t));e.textContent=t,e.hidden=!t;i&&(t?(i.setAttribute("aria-invalid","true"),i.focus()):i.removeAttribute("aria-invalid"))}
+/* Join with a code: joinWithCode opens the community it joined, so the dialog goes. 2026-11-12: its messages under the field
+   (a toast would land on Got it). */
+async function wtsJoin(){const b=$("wts-join");if(!b||b.disabled)return;b.disabled=!0;let n=null;wtsErr("",1);try{n=await joinWithCode(($("wts-code")||{}).value,t=>wtsErr(t,1))}catch(e){}b.disabled=!1;n&&wtsClose(1)}
 async function tFinalize(){
   const t=cache.tourney;if(!t||!t.payload)return;
   const b=t.payload.bracket||[],f=b.length?b[b.length-1][0]:null,
