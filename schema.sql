@@ -15971,3 +15971,811 @@ revoke all on function public.site_counts() from public;
 grant execute on function public.site_counts() to anon, authenticated;
 comment on function public.site_counts() is
   'Home counters: totals only (communities, players, tournaments, matches = every finished game once; nothing of a Swiss tournament in draft or running). Callable by anyone.';
+
+-- ============================================================
+--  BOARD MODERATION (2026-11-27)
+-- ============================================================
+-- Run as migration-2026-11-27-board-moderation.sql.
+-- What changes:
+--   * Who moderates a community's board: its creator (leagues.owner_id) and
+--     its co-organizers (memberships.is_admin, not dropped), as before for
+--     deleting messages, plus the site admin everywhere. The organizers and
+--     the creator of a community can't be muted, reported or blocked there,
+--     and don't mute or report there themselves (they moderate instead). The
+--     site admin moderates every community, so never mutes or reports.
+--   * board_mutes (new): any member can mute another player. The muted
+--     player's board messages are hidden from them in every community (the
+--     read policy filters them, so "the latest 100" stay 100 visible ones),
+--     except the messages of a community where the muted player is an
+--     organizer or the creator, and except on a board they moderate
+--     themselves. Private: each player reads and deletes only their own rows;
+--     new rows only through board_mute(). At most 1000 per player. The muted
+--     player isn't told.
+--   * board_reports (new): any member can report a board message of their
+--     community (not their own, not an organizer's): spam, harassment,
+--     inappropriate or other, with an optional note (up to 200 characters,
+--     one line). One report per message per reporter; 10 an hour and 30 a
+--     day per reporter. Each report keeps a copy of the message, so it
+--     survives the author deleting it. Only the community's organizers, its
+--     creator and the site admin read reports (who sent them included),
+--     never the reports about their own messages (a member who becomes an
+--     organizer later, or the site admin as a member); they close them: dismiss, delete the message, block the author, or
+--     delete and block. A moderator deleting a message (the board's x or the
+--     Reports list) closes its open reports as 'deleted'; the author deleting
+--     their own message leaves them open.
+--   * board_blocks (new): the moderators of a community can stop a member
+--     from writing on its board, with an optional reason (up to 200
+--     characters) that the blocked player sees (not who blocked them). A
+--     blocked player is still a
+--     member, still reads the board and can still delete their own messages.
+--     The moderators and the blocked player read the row; changes only
+--     through board_block() / board_unblock() / board_resolve(). A block of a
+--     player who later becomes an organizer is ignored (kept, not applied).
+--   * check_board_write(): as in COMMUNITY BOARD AND ADDRESS (2026-11-18),
+--     plus a blocked player is refused (hint 'blocked') before the brake, so
+--     a refused message never counts. The "board members write" policy
+--     refuses a blocked player too (the backstop), the "board members read"
+--     policy hides muted players. "board delete" is not changed: the author,
+--     the organizers and the site admin delete (any message, for the last two).
+--   * Length: not changed. A message is still 1 to 1000 characters as stored,
+--     formatting marks (**bold**, *italic*, __underline__, # Title,
+--     [text](link), :d20:) included; the page counts the same 1000.
+--   * New RPCs for the page (signed-in players with an account; none for
+--     signed-out visitors): board_state, board_mute, board_unmute,
+--     board_mutes, board_report, board_reports_list, board_resolve,
+--     board_block, board_unblock. Each answers jsonb and refuses with a hint
+--     the page reads (sign_in, deleted, self, gone, not_member, moderator,
+--     organizer, own, bad_reason, bad_note, too_many, rate_limited, not_mod,
+--     bad_status, bad_action).
+--   * Push: a new report notifies the creator and the co-organizers of that
+--     community (not the reporter, not the site admin) under their "Board
+--     notices" switch, without the message text (kind bd_report). It is
+--     dropped when the reports of that message are closed before it goes
+--     out (push_stale: as in WEB PUSH NOTIFICATIONS (2026-11-22), plus that
+--     one check). An archived community sends no report push. The other
+--     pushes are not changed.
+--   * Deleting an account removes its mutes (made and received), its reports
+--     (sent and about its messages) and its blocks (trigger
+--     board_profile_gone, like push_profile_gone: erase_user_data is not
+--     changed).
+
+-- 0. Who organizes a community (any player, not only the caller). Used only
+-- inside the functions below; not callable over the API.
+create or replace function public.board_is_org(p_league uuid, p_user uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select p_user is not null and (
+    exists (select 1 from leagues l where l.id = p_league and l.owner_id = p_user)
+    or exists (select 1 from memberships m
+                where m.league_id = p_league and m.user_id = p_user
+                  and m.is_admin and m.dropped_at is null));
+$$;
+
+-- The caller of a board RPC: refused when signed out, a guest (anonymous
+-- sign-in) or deleted, as check_board_write refuses them.
+create or replace function public.board_me()
+returns uuid language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    raise exception 'Sign in with an account to do this' using errcode = '42501', hint = 'sign_in';
+  end if;
+  if not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    raise exception 'This account was deleted' using errcode = '42501', hint = 'deleted';
+  end if;
+  return v_uid;
+end $$;
+
+-- A one-line note: control characters become spaces, bidi controls go,
+-- every kind of blank is trimmed, blank means none.
+create or replace function public.board_clean(p text)
+returns text language sql immutable parallel safe set search_path = public, pg_temp as $$
+  select nullif(trim_blank(regexp_replace(regexp_replace(p, '[\u0001-\u001f\u007f]', ' ', 'g'),
+                                          '[\u202a-\u202e\u2066-\u2069]', '', 'g')), '');
+$$;
+
+-- 1. Tables ------------------------------------------------------------------------
+-- Mutes: user_id hides muted_id's board messages.
+create table if not exists public.board_mutes (
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  muted_id   uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, muted_id)
+);
+alter table public.board_mutes drop constraint if exists board_mutes_not_self;
+alter table public.board_mutes add constraint board_mutes_not_self check (user_id <> muted_id);
+create index if not exists idx_board_mutes_muted on public.board_mutes(muted_id);
+
+-- Blocks: user_id may not write on league_id's board.
+create table if not exists public.board_blocks (
+  league_id  uuid not null references public.leagues(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  reason     text,
+  blocked_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  primary key (league_id, user_id)
+);
+alter table public.board_blocks drop constraint if exists board_blocks_reason_len;
+alter table public.board_blocks add constraint board_blocks_reason_len
+  check (reason is null or char_length(reason) between 1 and 200);
+create index if not exists idx_board_blocks_user on public.board_blocks(user_id);
+
+-- Reports: message_id has no foreign key, so a report outlives the message
+-- (body keeps a copy) and the reports of one message stay together.
+create table if not exists public.board_reports (
+  id          uuid primary key default gen_random_uuid(),
+  league_id   uuid not null references public.leagues(id) on delete cascade,
+  message_id  uuid not null,
+  author_id   uuid references public.profiles(id) on delete cascade,
+  reporter_id uuid not null references public.profiles(id) on delete cascade,
+  reason      text not null,
+  note        text,
+  body        text not null,
+  status      text not null default 'open',
+  resolved_by uuid references public.profiles(id) on delete set null,
+  resolved_at timestamptz,
+  created_at  timestamptz not null default now()
+);
+alter table public.board_reports drop constraint if exists board_reports_reason;
+alter table public.board_reports add constraint board_reports_reason
+  check (reason in ('spam', 'harassment', 'inappropriate', 'other'));
+alter table public.board_reports drop constraint if exists board_reports_note;
+alter table public.board_reports add constraint board_reports_note
+  check (note is null or char_length(note) between 1 and 200);
+alter table public.board_reports drop constraint if exists board_reports_body;
+alter table public.board_reports add constraint board_reports_body
+  check (char_length(body) between 1 and 2000);
+alter table public.board_reports drop constraint if exists board_reports_status;
+alter table public.board_reports add constraint board_reports_status
+  check (status in ('open', 'dismissed', 'deleted', 'blocked', 'deleted_blocked'));
+alter table public.board_reports drop constraint if exists board_reports_closed;
+alter table public.board_reports add constraint board_reports_closed
+  check ((status = 'open') = (resolved_at is null));
+create unique index if not exists uq_board_reports_once on public.board_reports(message_id, reporter_id);
+create index if not exists idx_board_reports_league on public.board_reports(league_id, status, created_at desc);
+create index if not exists idx_board_reports_open on public.board_reports(created_at desc) where status = 'open';
+create index if not exists idx_board_reports_reporter on public.board_reports(reporter_id, created_at);
+create index if not exists idx_board_reports_author on public.board_reports(author_id);
+create index if not exists idx_board_reports_message on public.board_reports(message_id, status);
+
+alter table public.board_mutes   enable row level security;
+alter table public.board_blocks  enable row level security;
+alter table public.board_reports enable row level security;
+drop policy if exists "mutes own read" on public.board_mutes;
+drop policy if exists "mutes own delete" on public.board_mutes;
+drop policy if exists "blocks read" on public.board_blocks;
+drop policy if exists "reports moderators read" on public.board_reports;
+create policy "mutes own read" on public.board_mutes
+  for select to authenticated using (user_id = auth.uid());
+create policy "mutes own delete" on public.board_mutes
+  for delete to authenticated using (user_id = auth.uid());
+create policy "blocks read" on public.board_blocks
+  for select to authenticated
+  using (user_id = auth.uid() or is_league_admin(league_id) or is_site_admin());
+create policy "reports moderators read" on public.board_reports
+  for select to authenticated
+  using ((is_league_admin(league_id) or is_site_admin()) and author_id is distinct from auth.uid());
+
+revoke all on public.board_mutes   from anon, authenticated;
+revoke all on public.board_blocks  from anon, authenticated;
+revoke all on public.board_reports from anon, authenticated;
+grant select, delete on public.board_mutes to authenticated;
+-- Not blocked_by: the blocked player reads their own row, but not who blocked
+-- them (the moderators see that through board_state).
+grant select (league_id, user_id, reason, created_at) on public.board_blocks to authenticated;
+grant select on public.board_reports to authenticated;
+grant select, insert, update, delete on public.board_mutes   to service_role;
+grant select, insert, update, delete on public.board_blocks  to service_role;
+grant select, insert, update, delete on public.board_reports to service_role;
+
+-- 2. Helpers of the policies (about the caller only) ----------------------------------
+-- Does the caller hide p_author's messages in p_league? Their own mute, the
+-- author not an organizer there, the caller not a moderator there.
+create or replace function public.board_muted(p_league uuid, p_author uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select p_author is not null and p_author is distinct from auth.uid()
+     and exists (select 1 from board_mutes b where b.user_id = auth.uid() and b.muted_id = p_author)
+     and not board_is_org(p_league, p_author)
+     and not is_league_admin(p_league) and not is_site_admin();
+$$;
+
+-- Is the caller blocked from writing in p_league? (an organizer never is)
+create or replace function public.board_blocked(p_league uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (select 1 from board_blocks b where b.league_id = p_league and b.user_id = auth.uid())
+     and not board_is_org(p_league, auth.uid());
+$$;
+
+-- 3. The board: the read and write policies, the write check -----------------------
+drop policy if exists "board members read" on public.community_messages;
+drop policy if exists "board members write" on public.community_messages;
+-- As in COMMUNITY BOARD AND ADDRESS (2026-11-18), without the players the
+-- reader muted.
+create policy "board members read" on public.community_messages
+  for select to authenticated
+  using ((is_active_member(league_id) or is_league_admin(league_id) or is_site_admin()
+          or author_id = auth.uid())
+         and not board_muted(league_id, author_id));
+-- The trigger gives the clear refusals; this is the backstop (a blocked
+-- player included).
+create policy "board members write" on public.community_messages
+  for insert to authenticated
+  with check (author_id = auth.uid()
+              and (is_active_member(league_id) or is_league_owner(league_id))
+              and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+              and not board_blocked(league_id));
+
+-- check_board_write(): as in COMMUNITY BOARD AND ADDRESS (2026-11-18), plus
+-- the block, checked before the brake (a refused message is not counted),
+-- and pg_temp last in the search_path.
+create or replace function public.check_board_write(p_league uuid)
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    raise exception 'Sign in with an account to write on the board'
+      using errcode = '42501', hint = 'sign_in';
+  end if;
+  if not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    raise exception 'This account was deleted' using errcode = '42501', hint = 'deleted';
+  end if;
+  if not (is_active_member(p_league) or is_league_owner(p_league)) then
+    raise exception 'Only the members of this community can write on its board'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = p_league and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if exists (select 1 from board_blocks b where b.league_id = p_league and b.user_id = v_uid)
+     and not board_is_org(p_league, v_uid) then
+    raise exception 'You can''t write on this board right now'
+      using errcode = '42501', hint = 'blocked';
+  end if;
+  -- One writer at a time per author, so two quick sends cannot both slip
+  -- under the brake.
+  perform pg_advisory_xact_lock(hashtext('community_board'), hashtext(v_uid::text));
+  delete from community_message_writes w
+   where w.author_id = v_uid and w.at <= now() - interval '1 hour';
+  if (select count(*) from community_message_writes w
+       where w.author_id = v_uid and w.at > now() - interval '1 minute') >= 5 then
+    raise exception 'You wrote 5 messages in the last minute. Wait a moment and try again.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if (select count(*) from community_message_writes w
+       where w.author_id = v_uid and w.at > now() - interval '1 hour') >= 60 then
+    raise exception 'You wrote 60 messages in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if pg_trigger_depth() > 0 then
+    insert into community_message_writes(author_id, at) values (v_uid, now());
+  end if;
+end $$;
+
+-- A moderator deleting a message (the board's x, board_resolve, the SQL
+-- editor) closes its open reports as 'deleted'; the author deleting their
+-- own message (an organizer's included) leaves them open (the copy stays for
+-- the other moderators). A report
+-- problem never blocks a delete.
+create or replace function public.board_message_gone()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  begin
+    if auth.uid() is null
+       or (old.author_id is distinct from auth.uid()
+           and (is_league_admin(old.league_id) or is_site_admin())) then
+      update board_reports
+         set status = 'deleted', resolved_by = auth.uid(), resolved_at = now()
+       where message_id = old.id and status = 'open';
+    end if;
+  exception when others then
+    raise warning 'board_message_gone: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists board_message_gone on public.community_messages;
+create trigger board_message_gone after delete on public.community_messages
+  for each row execute function public.board_message_gone();
+
+-- Account deletion (erase_user_data sets deleted_at last): no mutes, reports
+-- or blocks of the account stay.
+create or replace function public.board_profile_gone()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  begin
+    delete from board_mutes   where user_id = new.id or muted_id = new.id;
+    delete from board_reports where reporter_id = new.id or author_id = new.id;
+    delete from board_blocks  where user_id = new.id;
+    update board_blocks  set blocked_by  = null where blocked_by  = new.id;
+    update board_reports set resolved_by = null where resolved_by = new.id;
+  exception when others then
+    raise warning 'board_profile_gone: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists board_profile_gone on public.profiles;
+create trigger board_profile_gone after update of deleted_at on public.profiles
+  for each row when (old.deleted_at is null and new.deleted_at is not null)
+  execute function public.board_profile_gone();
+
+-- 4. RPCs for the page ------------------------------------------------------------------
+-- board_state: what the board needs besides the messages. blocked* is about
+-- the caller (never for an organizer); open_reports (messages with an open
+-- report) and blocks only for a moderator of p_league. Signed out, a guest or
+-- a deleted account: all false / empty, no error.
+create or replace function public.board_state(p_league uuid)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+  v_mod boolean := false;
+  b     board_blocks%rowtype;
+  v_n   int := 0;
+  v_bl  jsonb := '[]'::jsonb;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+     or not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    return jsonb_build_object('mod', false, 'blocked', false, 'block_reason', null, 'blocked_at', null,
+                              'open_reports', 0, 'blocks', '[]'::jsonb);
+  end if;
+  v_mod := is_league_admin(p_league) or is_site_admin();
+  if not board_is_org(p_league, v_uid) then
+    select * into b from board_blocks x where x.league_id = p_league and x.user_id = v_uid;
+  end if;
+  if v_mod then
+    select count(distinct r.message_id) into v_n from board_reports r
+     where r.league_id = p_league and r.status = 'open' and r.author_id is distinct from v_uid;
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'user_id', x.user_id, 'name', p.display_name, 'avatar', p.avatar, 'reason', x.reason,
+             'at', x.created_at, 'by_name', q.display_name) order by x.created_at desc), '[]'::jsonb)
+      into v_bl
+      from (select * from board_blocks y
+             where y.league_id = p_league and not board_is_org(p_league, y.user_id)
+             order by y.created_at desc limit 200) x
+      join profiles p on p.id = x.user_id
+      left join profiles q on q.id = x.blocked_by;
+  end if;
+  return jsonb_build_object('mod', v_mod, 'blocked', b.user_id is not null,
+                            'block_reason', b.reason, 'blocked_at', b.created_at,
+                            'open_reports', v_n, 'blocks', v_bl);
+end $$;
+
+-- board_mute: a member (not a moderator of p_league, not the site admin)
+-- hides p_user, who is not an organizer of p_league (the community the
+-- message was in). Answers {ok, muted}.
+create or replace function public.board_mute(p_user uuid, p_league uuid)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+begin
+  if p_user = v_uid then
+    raise exception 'You cannot mute yourself' using errcode = '22023', hint = 'self';
+  end if;
+  if p_user is null or not exists (select 1 from profiles p where p.id = p_user and p.deleted_at is null) then
+    raise exception 'This player is no longer here' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if is_league_admin(p_league) or is_site_admin() then
+    raise exception 'You moderate this board: block players instead of muting them'
+      using errcode = '42501', hint = 'moderator';
+  end if;
+  if not is_active_member(p_league) then
+    raise exception 'Only the members of this community can mute players here'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if board_is_org(p_league, p_user) then
+    raise exception 'The organizers of a community cannot be muted there'
+      using errcode = '42501', hint = 'organizer';
+  end if;
+  if not exists (select 1 from board_mutes b where b.user_id = v_uid and b.muted_id = p_user)
+     and (select count(*) from board_mutes b where b.user_id = v_uid) >= 1000 then
+    raise exception 'You muted 1000 players. Unmute some first.' using errcode = 'P0001', hint = 'too_many';
+  end if;
+  insert into board_mutes(user_id, muted_id) values (v_uid, p_user) on conflict do nothing;
+  return jsonb_build_object('ok', true, 'muted', true);
+end $$;
+
+create or replace function public.board_unmute(p_user uuid)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  v_n   int;
+begin
+  delete from board_mutes b where b.user_id = v_uid and b.muted_id = p_user;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('ok', true, 'was', v_n > 0);
+end $$;
+
+-- The caller's mutes, newest first (Account > Muted).
+create or replace function public.board_mutes()
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+begin
+  return coalesce((
+    select jsonb_agg(jsonb_build_object('id', b.muted_id, 'name', p.display_name, 'avatar', p.avatar,
+                                        'at', b.created_at) order by b.created_at desc)
+      from board_mutes b join profiles p on p.id = b.muted_id
+     where b.user_id = v_uid and p.deleted_at is null), '[]'::jsonb);
+end $$;
+
+-- board_report: a member reports a message they can read in their community
+-- (not their own, not an organizer's). Answers {ok, id, already}.
+create or replace function public.board_report(p_message uuid, p_reason text, p_note text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid  uuid := board_me();
+  m      community_messages%rowtype;
+  v_note text := board_clean(p_note);
+  v_id   uuid;
+begin
+  select * into m from community_messages x where x.id = p_message;
+  if not found
+     or not (is_active_member(m.league_id) or is_league_admin(m.league_id) or is_site_admin()
+             or m.author_id = v_uid)
+     or board_muted(m.league_id, m.author_id) then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if is_league_admin(m.league_id) or is_site_admin() then
+    raise exception 'You moderate this board: delete the message or block its author instead'
+      using errcode = '42501', hint = 'moderator';
+  end if;
+  if not is_active_member(m.league_id) then
+    raise exception 'Only the members of this community can report its messages'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if m.author_id = v_uid then
+    raise exception 'You cannot report your own message' using errcode = '22023', hint = 'own';
+  end if;
+  if board_is_org(m.league_id, m.author_id) then
+    raise exception 'The organizers'' messages cannot be reported' using errcode = '42501', hint = 'organizer';
+  end if;
+  if p_reason is null or p_reason not in ('spam', 'harassment', 'inappropriate', 'other') then
+    raise exception 'Pick a reason: spam, harassment, inappropriate or other'
+      using errcode = '22023', hint = 'bad_reason';
+  end if;
+  if char_length(v_note) > 200 then
+    raise exception 'Keep the note to 200 characters' using errcode = '22023', hint = 'bad_note';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('board_report'), hashtext(v_uid::text));
+  select r.id into v_id from board_reports r where r.message_id = p_message and r.reporter_id = v_uid;
+  if v_id is not null then
+    return jsonb_build_object('ok', true, 'id', v_id, 'already', true);
+  end if;
+  if (select count(*) from board_reports r
+       where r.reporter_id = v_uid and r.created_at > now() - interval '1 hour') >= 10
+     or (select count(*) from board_reports r
+          where r.reporter_id = v_uid and r.created_at > now() - interval '24 hours') >= 30 then
+    raise exception 'You sent a lot of reports. Try again later.' using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  insert into board_reports(league_id, message_id, author_id, reporter_id, reason, note, body)
+  values (m.league_id, m.id, m.author_id, v_uid, p_reason, v_note, m.body)
+  on conflict (message_id, reporter_id) do nothing
+  returning id into v_id;
+  if v_id is null then
+    select r.id into v_id from board_reports r where r.message_id = p_message and r.reporter_id = v_uid;
+    return jsonb_build_object('ok', true, 'id', v_id, 'already', true);
+  end if;
+  return jsonb_build_object('ok', true, 'id', v_id, 'already', false);
+end $$;
+
+-- board_reports_list: the reports of p_league (its moderators), or of every
+-- community (p_league null: the site admin), one item per message, newest
+-- report first. p_status: 'open' (at least one open report), 'closed' (all
+-- closed, the last within 30 days) or 'all'. Never the reports about the
+-- caller's own messages. Answers {open, items}.
+create or replace function public.board_reports_list(p_league uuid default null, p_status text default 'open',
+                                                     p_limit int default 50)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid   uuid := board_me();
+  v_lim   int := least(greatest(coalesce(p_limit, 50), 0), 100);
+  v_open  int;
+  v_items jsonb;
+begin
+  if not (case when p_league is null then is_site_admin() else is_league_admin(p_league) or is_site_admin() end) then
+    raise exception 'Only the organizers of this community can see its reports'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  if p_status is null or p_status not in ('open', 'closed', 'all') then
+    raise exception 'Unknown list' using errcode = '22023', hint = 'bad_status';
+  end if;
+  select count(distinct r.message_id) into v_open from board_reports r
+   where (p_league is null or r.league_id = p_league) and r.status = 'open'
+     and r.author_id is distinct from v_uid;
+  with g as (
+    select r.message_id, r.league_id,
+           bool_or(r.status = 'open') as is_open,
+           min(r.created_at) as first_at, max(r.created_at) as last_at,
+           max(r.resolved_at) as last_res
+      from board_reports r
+     where (p_league is null or r.league_id = p_league)
+       and r.author_id is distinct from v_uid
+     group by r.message_id, r.league_id
+  ), s as (
+    select g.* from g
+     where (case p_status when 'open' then g.is_open
+                          when 'closed' then not g.is_open and g.last_res > now() - interval '30 days'
+                          else true end)
+     order by g.last_at desc
+     limit v_lim
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'message_id', s.message_id, 'league_id', s.league_id, 'league_name', l.name,
+           'author_id', a.author_id, 'author_name', pa.display_name,
+           'author_org', board_is_org(s.league_id, a.author_id),
+           'author_blocked', a.author_id is not null
+                             and exists (select 1 from board_blocks b where b.league_id = s.league_id and b.user_id = a.author_id)
+                             and not board_is_org(s.league_id, a.author_id),
+           'message_exists', exists (select 1 from community_messages c where c.id = s.message_id),
+           'body', a.body, 'first_at', s.first_at, 'last_at', s.last_at,
+           'status', case when s.is_open then 'open' else a.last_status end,
+           'reports', a.reports) order by s.last_at desc), '[]'::jsonb)
+    into v_items
+    from s
+    join leagues l on l.id = s.league_id
+    cross join lateral (
+      select (array_agg(r.author_id order by r.created_at desc))[1] as author_id,
+             (array_agg(r.body order by r.created_at desc))[1] as body,
+             (array_agg(r.status order by r.resolved_at desc nulls last))[1] as last_status,
+             jsonb_agg(jsonb_build_object(
+               'id', r.id, 'reporter_id', r.reporter_id, 'reporter_name', pr.display_name,
+               'reason', r.reason, 'note', r.note, 'created_at', r.created_at, 'status', r.status,
+               'resolved_at', r.resolved_at, 'resolved_by_name', pv.display_name) order by r.created_at desc) as reports
+        from board_reports r
+        left join profiles pr on pr.id = r.reporter_id
+        left join profiles pv on pv.id = r.resolved_by
+       where r.message_id = s.message_id and r.league_id = s.league_id
+    ) a
+    left join profiles pa on pa.id = a.author_id;
+  return jsonb_build_object('open', v_open, 'items', v_items);
+end $$;
+
+-- board_block / board_unblock: a moderator of p_league stops p_user (not an
+-- organizer there, not themselves) from writing on its board, or lets them
+-- write again. A new reason replaces the old one; the date stays.
+create or replace function public.board_block(p_league uuid, p_user uuid, p_reason text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  v_r   text := board_clean(p_reason);
+begin
+  if not (is_league_admin(p_league) or is_site_admin()) then
+    raise exception 'Only the organizers of this community can block players here'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  if p_user = v_uid then
+    raise exception 'You cannot block yourself' using errcode = '22023', hint = 'self';
+  end if;
+  if p_user is null or not exists (select 1 from profiles p where p.id = p_user and p.deleted_at is null) then
+    raise exception 'This player is no longer here' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if board_is_org(p_league, p_user) then
+    raise exception 'The organizers of a community cannot be blocked there'
+      using errcode = '42501', hint = 'organizer';
+  end if;
+  if char_length(v_r) > 200 then
+    raise exception 'Keep the reason to 200 characters' using errcode = '22023', hint = 'bad_note';
+  end if;
+  insert into board_blocks(league_id, user_id, reason, blocked_by) values (p_league, p_user, v_r, v_uid)
+  on conflict (league_id, user_id) do update set reason = excluded.reason, blocked_by = excluded.blocked_by;
+  return jsonb_build_object('ok', true);
+end $$;
+
+create or replace function public.board_unblock(p_league uuid, p_user uuid)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  v_n   int;
+begin
+  if not (is_league_admin(p_league) or is_site_admin()) then
+    raise exception 'Only the organizers of this community can unblock players here'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  delete from board_blocks b where b.league_id = p_league and b.user_id = p_user;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('ok', true, 'was', v_n > 0);
+end $$;
+
+-- board_resolve: a moderator closes every open report of a message:
+-- 'dismiss', 'delete' (the message, if still there), 'block' (its author in
+-- that community, p_reason = the block reason) or 'delete_block'. Blocking an
+-- organizer refuses the whole call. Answers {ok, closed, deleted, blocked}.
+create or replace function public.board_resolve(p_message uuid, p_action text, p_reason text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid  uuid := board_me();
+  v_l    uuid;
+  v_a    uuid;
+  v_ids  uuid[];
+  v_del  boolean := false;
+  v_blk  boolean := false;
+  v_st   text;
+  v_r    text := board_clean(p_reason);
+begin
+  if p_action is null or p_action not in ('dismiss', 'delete', 'block', 'delete_block') then
+    raise exception 'Unknown action' using errcode = '22023', hint = 'bad_action';
+  end if;
+  select r.league_id, r.author_id into v_l, v_a from board_reports r
+   where r.message_id = p_message order by r.created_at desc limit 1;
+  if v_l is null then
+    raise exception 'No report for this message' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if not (is_league_admin(v_l) or is_site_admin()) then
+    raise exception 'Only the organizers of this community can close its reports'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  if v_a = v_uid then
+    raise exception 'The reports about your own message are for the other moderators'
+      using errcode = '42501', hint = 'own';
+  end if;
+  if p_action in ('block', 'delete_block') then
+    if v_a is null or not exists (select 1 from profiles p where p.id = v_a and p.deleted_at is null) then
+      raise exception 'This player is no longer here' using errcode = 'P0002', hint = 'gone';
+    end if;
+    if v_a = v_uid or board_is_org(v_l, v_a) then
+      raise exception 'The organizers of a community cannot be blocked there'
+        using errcode = '42501', hint = 'organizer';
+    end if;
+    if char_length(v_r) > 200 then
+      raise exception 'Keep the reason to 200 characters' using errcode = '22023', hint = 'bad_note';
+    end if;
+  end if;
+  select array_agg(r.id) into v_ids from board_reports r
+   where r.message_id = p_message and r.status = 'open';
+  if p_action in ('delete', 'delete_block') then
+    delete from community_messages c where c.id = p_message;
+    v_del := found;
+  end if;
+  if p_action in ('block', 'delete_block') then
+    insert into board_blocks(league_id, user_id, reason, blocked_by) values (v_l, v_a, v_r, v_uid)
+    on conflict (league_id, user_id) do update set reason = excluded.reason, blocked_by = excluded.blocked_by;
+    v_blk := true;
+  end if;
+  v_st := (case p_action when 'dismiss' then 'dismissed' when 'delete' then 'deleted'
+                         when 'block' then 'blocked' else 'deleted_blocked' end);
+  update board_reports r set status = v_st, resolved_by = v_uid, resolved_at = now()
+   where r.id = any(coalesce(v_ids, '{}'::uuid[]));
+  return jsonb_build_object('ok', true, 'closed', coalesce(cardinality(v_ids), 0),
+                            'deleted', v_del, 'blocked', v_blk);
+end $$;
+
+-- 5. Push: a new report tells the creator and the co-organizers --------------------------
+-- (family 'notices', the "Board notices" switch; no message text). Never for
+-- the reporter (push_enqueue skips the actor); nothing in an archived community.
+create or replace function public.board_report_push()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  l   leagues%rowtype;
+  v_u uuid;
+begin
+  begin
+    select * into l from leagues x where x.id = new.league_id and x.archived_at is null;
+    if not found then
+      return null;
+    end if;
+    for v_u in
+      select l.owner_id
+      union
+      select m.user_id from memberships m
+       where m.league_id = new.league_id and m.is_admin and m.dropped_at is null
+    loop
+      perform push_enqueue(v_u, 'notices', 'bd_report', left(l.name, 80) || ': a board message was reported',
+                           'Reason: ' || initcap(new.reason) || '. Open the board to review it.',
+                           format('#/league/%s/about', new.league_id), 'sl-bdr-' || new.league_id,
+                           jsonb_build_object('lid', new.league_id::text, 'mid', new.message_id::text),
+                           format('bd_report:%s:%s', new.id, v_u), 86400, 'normal', now() + interval '30 seconds');
+    end loop;
+  exception when others then
+    raise warning 'board_report_push: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists board_report_push on public.board_reports;
+create trigger board_report_push after insert on public.board_reports
+  for each row execute function public.board_report_push();
+
+-- push_stale(): as in WEB PUSH NOTIFICATIONS (2026-11-22), plus bd_report:
+-- dropped once every report of that message is closed; pg_temp last in the
+-- search_path.
+create or replace function public.push_stale(o public.push_outbox)
+returns text language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  d    jsonb := coalesce(o.data, '{}'::jsonb);
+  v_t  tournaments%rowtype;
+  v_e  pn_events%rowtype;
+  v_s  text;
+  v_c  int;
+begin
+  if o.family <> 'test' and not push_on(o.user_id, o.family) then
+    return 'pref_off';
+  end if;
+  if o.family in ('events','notices')
+     and not exists (select 1 from push_members((d->>'lid')::uuid) m(u) where m.u = o.user_id) then
+    return 'not_member';
+  end if;
+  if o.kind = 'nt_new' then
+    if not exists (select 1 from announcements a where a.id = (d->>'aid')::uuid
+                    and (a.expires_at is null or a.expires_at > now())) then
+      return 'gone';
+    end if;
+  elsif o.kind = 'bd_report' then
+    if not exists (select 1 from board_reports r where r.message_id = (d->>'mid')::uuid
+                    and r.league_id = (d->>'lid')::uuid and r.status = 'open') then
+      return 'gone';
+    end if;
+  elsif (o.kind = 'ev_new' and coalesce((d->>'n')::int, 1) = 1) or o.kind in ('ev_day','ev_hour') then
+    select * into v_e from pn_events e
+     where e.league_id = (d->>'lid')::uuid and e.pn_id = (d->>'pn_id')::int
+     order by e.created_at limit 1;
+    if not found then
+      return 'gone';
+    end if;
+    if o.kind in ('ev_day','ev_hour')
+       and (v_e.starts_at is null
+            or abs(extract(epoch from v_e.starts_at - (d->>'starts_at')::timestamptz)) > 900) then
+      return 'moved';
+    end if;
+  elsif o.kind in ('t_round','t_bye','t_org_hand','t_org_pair') then
+    select * into v_t from tournaments x where x.id = (d->>'tid')::uuid;
+    if not found or v_t.status is distinct from 'running' then
+      return 'stale';
+    end if;
+    v_c := t_sw_cur(v_t.payload);
+    if o.kind = 't_org_pair' then
+      if v_c > (d->>'r')::int or not t_gm_done(v_t.payload) then
+        return 'stale';
+      end if;
+    elsif v_c <> (d->>'r')::int then
+      return 'stale';
+    end if;
+  elsif o.kind in ('t_invite','m_join','m_confirm') then
+    select x.status into v_s from duels x where x.id = (d->>'duel')::uuid;
+    if v_s is distinct from (case o.kind when 't_invite' then 'waiting' when 'm_join' then 'live' else 'ending' end) then
+      return 'stale';
+    end if;
+  elsif o.kind in ('gm_join','gm_live','gm_confirm') then
+    select x.status into v_s from group_matches x where x.id = (d->>'gm')::uuid;
+    if v_s is distinct from (case o.kind when 'gm_join' then 'waiting' when 'gm_live' then 'live' else 'ending' end) then
+      return 'stale';
+    end if;
+    if o.kind = 'gm_confirm'
+       and not exists (select 1 from gm_confirmers((d->>'gm')::uuid) c(u) where c.u = o.user_id) then
+      return 'stale';
+    end if;
+  end if;
+  return null;
+exception when others then
+  return null;
+end $$;
+
+-- 6. Grants -------------------------------------------------------------------------------
+revoke all on function public.board_is_org(uuid, uuid)                  from public, anon, authenticated;
+revoke all on function public.board_me()                                from public, anon, authenticated;
+revoke all on function public.board_clean(text)                         from public, anon, authenticated;
+revoke all on function public.board_message_gone()                      from public, anon, authenticated;
+revoke all on function public.board_profile_gone()                      from public, anon, authenticated;
+revoke all on function public.board_report_push()                          from public, anon, authenticated;
+revoke all on function public.push_stale(public.push_outbox)            from public, anon, authenticated;
+revoke all on function public.board_muted(uuid, uuid)                   from public, anon;
+revoke all on function public.board_blocked(uuid)                       from public, anon;
+revoke all on function public.check_board_write(uuid)                   from public, anon;
+revoke all on function public.board_state(uuid)                         from public, anon;
+revoke all on function public.board_mute(uuid, uuid)                    from public, anon;
+revoke all on function public.board_unmute(uuid)                        from public, anon;
+revoke all on function public.board_mutes()                             from public, anon;
+revoke all on function public.board_report(uuid, text, text)            from public, anon;
+revoke all on function public.board_reports_list(uuid, text, int)       from public, anon;
+revoke all on function public.board_resolve(uuid, text, text)           from public, anon;
+revoke all on function public.board_block(uuid, uuid, text)             from public, anon;
+revoke all on function public.board_unblock(uuid, uuid)                 from public, anon;
+grant execute on function public.board_muted(uuid, uuid)                to authenticated;
+grant execute on function public.board_blocked(uuid)                    to authenticated;
+grant execute on function public.check_board_write(uuid)                to authenticated;
+grant execute on function public.board_state(uuid)                      to authenticated;
+grant execute on function public.board_mute(uuid, uuid)                 to authenticated;
+grant execute on function public.board_unmute(uuid)                     to authenticated;
+grant execute on function public.board_mutes()                          to authenticated;
+grant execute on function public.board_report(uuid, text, text)         to authenticated;
+grant execute on function public.board_reports_list(uuid, text, int)    to authenticated;
+grant execute on function public.board_resolve(uuid, text, text)        to authenticated;
+grant execute on function public.board_block(uuid, uuid, text)          to authenticated;
+grant execute on function public.board_unblock(uuid, uuid)              to authenticated;
