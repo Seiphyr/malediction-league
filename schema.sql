@@ -15800,3 +15800,174 @@ returns text language sql immutable set search_path = public as $$
 $$;
 revoke all on function public.deck_sig_legacy(text) from public, anon, authenticated;
 
+
+-- ============================================================
+--  HOME COUNTERS (2026-11-26)
+-- ============================================================
+-- Run as migration-2026-11-26-site-counts.sql.
+-- What changes:
+--   * site_counts() gives the four numbers of Home's "The Malediction is
+--     growing" band, as totals only (no ids, names or rows), to anyone:
+--       communities  public communities that are not archived;
+--       players      accounts that are not deleted;
+--       tournaments  tournaments past their draft (running, closed, and the
+--                    older ones that have no status);
+--       matches      every finished game, each once:
+--         - tracked 1v1 matches (duels, status 'done', draws included,
+--           tournament games included);
+--         - multiplayer matches (group_matches, status 'done');
+--         - results entered by hand in a tournament (payload v2/v3: a group
+--           or Swiss game with a winner or a draw, a finals game with a
+--           winner), unless a finished tracked match is that game (its 'du',
+--           or a done duel with the tournament, the slot and the same two
+--           players); byes and forfeits ('bye', 'drop') were never played;
+--         - matches logged by hand (the matches table), confirmed, without
+--           the copies sync_tournament once wrote for a tournament
+--           (tournament_id), whose games already count from the payload.
+--     As in the Meta (meta_duels), nothing of a Swiss tournament still in
+--     draft or running counts, so the number cannot tell how far one is.
+--     Cancelled and expired matches never count.
+--     The older tournaments (no status) are still edited from the site by
+--     their community's admins, so there a result counts only between two
+--     accounts, and each pair of players once in the groups and once in the
+--     finals (a round robin and a knockout never pair two players twice).
+--     As in the Meta, a game an organizer both recorded in an older
+--     tournament and logged again as an ordinary match counts twice (the two
+--     cannot be told apart).
+--     Before it, Home counted only the matches table under its read rules
+--     (anon saw a few rows), and the profiles and tournaments it could read.
+--   * idx_duels_tref: finished tournament duels by tournament and slot, so
+--     matching a result to its tracked match stays quick on big tournaments.
+--   * guard_tournament(): an older tournament's payload saved from the site
+--     may not grow past 1 MB (the cap new tournaments already have). Every
+--     other rule of it is as before.
+--   * Not changed: every table, policy and other function.
+create index if not exists idx_duels_tref on public.duels (tournament_id, t_ref)
+  where status = 'done' and tournament_id is not null;
+
+create or replace function public.guard_tournament()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return coalesce(new, old);
+  end if;
+  if tg_op = 'INSERT' then
+    raise exception 'New tournaments are made from a Play Network event' using errcode = '42501';
+  elsif tg_op = 'DELETE' then
+    if old.status is not null then
+      raise exception 'Discard this tournament from its page' using errcode = '42501';
+    end if;
+    return old;
+  end if;
+  if old.status is not null or new.status is not null
+     or new.pn_event_id is distinct from old.pn_event_id
+     or new.organizer_id is distinct from old.organizer_id
+     or new.mode is distinct from old.mode
+     or new.rev is distinct from old.rev
+     or new.payload->>'v' = '3' then
+    raise exception 'This tournament is changed from its page' using errcode = '42501';
+  end if;
+  -- An older tournament's payload may not grow past 1 MB (a real one is a
+  -- few KB); one already bigger can still be saved smaller.
+  if octet_length(new.payload::text) > 1048576
+     and octet_length(new.payload::text) > octet_length(coalesce(old.payload, '{}'::jsonb)::text) then
+    raise exception 'This tournament is too large to save' using errcode = '54000';
+  end if;
+  return new;
+end $$;
+
+create or replace function public.site_counts()
+returns json
+language sql stable security definer set search_path = public, pg_temp as $$
+  with
+  -- Swiss tournaments still in draft or running: none of their games count.
+  hide as (
+    select t.id from tournaments t
+     where t.status in ('draft', 'running') and t.payload->>'fmt' = 'swiss'
+  ),
+  shown as (
+    select t.id, t.payload, t.status is null as legacy from tournaments t
+     where t.payload->>'v' in ('2', '3')
+       and t.status is distinct from 'draft'
+       and not exists (select 1 from hide h where h.id = t.id)
+  ),
+  -- Results in the payloads: a group or Swiss game {a, b, w}, w = a, b or
+  -- 'draw'; a finals game {a: {id}, b: {id}, winner: 'a' | 'b'}.
+  tg as (
+    select s.id as tid, s.legacy, 'g:' || (x.o - 1) as ref,
+           x.m->>'a' as a, x.m->>'b' as b, x.m->>'du' as du
+      from shown s
+     cross join lateral jsonb_array_elements(
+             case when jsonb_typeof(s.payload->'gm') = 'array' then s.payload->'gm' else '[]'::jsonb end
+           ) with ordinality x(m, o)
+     where jsonb_typeof(x.m) = 'object'
+       and x.m->>'a' is not null and x.m->>'b' is not null and x.m->>'a' <> x.m->>'b'
+       and (x.m->>'w' = 'draw' or x.m->>'w' = x.m->>'a' or x.m->>'w' = x.m->>'b')
+       and coalesce(x.m->>'src', '') not in ('bye', 'drop')
+    union all
+    select s.id, s.legacy, 'b:' || (r.o - 1) || ':' || (q.o - 1),
+           q.m #>> '{a,id}', q.m #>> '{b,id}', q.m->>'du'
+      from shown s
+     cross join lateral jsonb_array_elements(
+             case when jsonb_typeof(s.payload->'bracket') = 'array' then s.payload->'bracket' else '[]'::jsonb end
+           ) with ordinality r(rd, o)
+     cross join lateral jsonb_array_elements(
+             case when jsonb_typeof(r.rd) = 'array' then r.rd else '[]'::jsonb end
+           ) with ordinality q(m, o)
+     where jsonb_typeof(q.m) = 'object'
+       and q.m #>> '{a,id}' is not null and q.m #>> '{b,id}' is not null
+       and q.m #>> '{a,id}' <> q.m #>> '{b,id}'
+       and q.m->>'winner' in ('a', 'b')
+       and coalesce(q.m->>'src', '') not in ('bye', 'drop')
+  ),
+  -- Older tournaments (no status) are edited from the site by their
+  -- community's admins: a result counts only between two accounts, and each
+  -- pair once in the groups ('g') and once in the finals ('b').
+  legacy_ok as (
+    select distinct on (tg.tid, left(tg.ref, 1), least(tg.a, tg.b), greatest(tg.a, tg.b)) tg.*
+      from tg
+     where tg.legacy
+       and exists (select 1 from profiles p
+                    where p.id = case when tg.a ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                      then tg.a::uuid end)
+       and exists (select 1 from profiles p
+                    where p.id = case when tg.b ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                      then tg.b::uuid end)
+     order by tg.tid, left(tg.ref, 1), least(tg.a, tg.b), greatest(tg.a, tg.b), tg.ref
+  ),
+  games as (
+    select * from tg where not tg.legacy
+    union all
+    select * from legacy_ok
+  )
+  select json_build_object(
+    'communities', (select count(*) from leagues l where l.is_public and l.archived_at is null),
+    'players',     (select count(*) from profiles p where p.deleted_at is null),
+    'tournaments', (select count(*) from tournaments t where t.status is distinct from 'draft'),
+    'matches',
+      (select count(*) from duels d
+        where d.status = 'done'
+          and not exists (select 1 from hide h where h.id = d.tournament_id))
+    + (select count(*) from group_matches g where g.status = 'done')
+    + (select count(*) from matches m where m.confirmed is true and m.tournament_id is null)
+    -- a result typed in a payload, unless a finished tracked match is that
+    -- game: its 'du', or the same tournament, slot and two players (two
+    -- separate lookups, each by an index)
+    + (select count(*) from games g
+        where not exists (
+                select 1 from duels d
+                 where d.status = 'done'
+                   and d.id = case when g.du ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                   then g.du::uuid end)
+          and not exists (
+                select 1 from duels d
+                 where d.status = 'done'
+                   and d.tournament_id = g.tid and d.t_ref = g.ref
+                   and ((d.host_id::text = g.a and d.guest_id::text = g.b)
+                        or (d.host_id::text = g.b and d.guest_id::text = g.a))))
+  );
+$$;
+revoke all on function public.site_counts() from public;
+grant execute on function public.site_counts() to anon, authenticated;
+comment on function public.site_counts() is
+  'Home counters: totals only (communities, players, tournaments, matches = every finished game once; nothing of a Swiss tournament in draft or running). Callable by anyone.';
