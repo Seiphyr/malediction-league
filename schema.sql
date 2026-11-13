@@ -16779,3 +16779,111 @@ grant execute on function public.board_reports_list(uuid, text, int)    to authe
 grant execute on function public.board_resolve(uuid, text, text)        to authenticated;
 grant execute on function public.board_block(uuid, uuid, text)          to authenticated;
 grant execute on function public.board_unblock(uuid, uuid)              to authenticated;
+
+-- ============================================================
+--  NOTICE TEXT (2026-11-28)
+-- ============================================================
+-- Run as migration-2026-11-28-notice-text.sql.
+-- What changes:
+--   * notice_plain(text) (new, immutable): a notice as one line of plain text
+--     for a notification: the escaped marks (\* \_ \# \: \[ \] \( \) \\) stay
+--     as typed; "# " at the start of a line goes; [text](link) gives text;
+--     the themed shortcodes (:d20:, :order:...) go; a run of * and _ goes
+--     where it marks text, at a word's edge and touching it (snake_case_name,
+--     my__var, 2*3*4, 2**10, a lone * between blanks, faces like ^_^ and the
+--     marks inside an address stay); the shrug keeps its arm, with or without
+--     the backslash; the bidi controls the page drops go too; blanks collapse
+--     to one space, trimmed. Empty when nothing is left.
+--   * push_nt_ins(): as in WEB PUSH NOTIFICATIONS (2026-11-22), the body is
+--     notice_plain(body), still at most 100 characters and "…" (no blank
+--     before the "…"); a notice that is only emoji says "Open the board
+--     to read it." instead of nothing.
+--   * Nothing else: the notices stay 1 to 1000 characters (as the page counts
+--     them, marks included); no table, policy or grant changes.
+
+-- 1. notice_plain() ---------------------------------------------------------------------------
+-- The escaped marks are parked on private-use characters (U+E000 + the mark's
+-- code) and put back at the end, the shrug on U+E100 and its arm typed without
+-- the backslash on U+E101; private-use characters typed in a notice go first
+-- (2026-11-13, fix pass), so none of them can turn into a mark.
+create or replace function public.notice_plain(p text)
+returns text language plpgsql immutable parallel safe set search_path = pg_catalog as $$
+declare
+  s    text := coalesce(p, '');
+  v_bs text := chr(92);
+  v_m  text := '*_#:[]()';
+  v_u  text;
+  i    int;
+begin
+  -- private-use characters, and the bidi controls the page drops (they could turn the text around)
+  s := regexp_replace(s, '[\uE000-\uE1FF\u202A-\u202E\u2066-\u2069]', '', 'g');
+  s := replace(s, v_bs || '_(' || chr(12484) || ')_/', chr(57600));
+  s := replace(s, '_(' || chr(12484) || ')_', chr(57601));
+  s := replace(s, v_bs || v_bs, chr(57344 + 92));
+  for i in 1 .. char_length(v_m) loop
+    s := replace(s, v_bs || substr(v_m, i, 1), chr(57344 + ascii(substr(v_m, i, 1))));
+  end loop;
+  -- a title line
+  s := regexp_replace(s, '(^|\n)# (?=\S)', '\1', 'g');
+  -- [text](link): the text (the link may hold brackets two deep, as the page allows)
+  s := regexp_replace(s, '\[([^][\n]{1,200})\]\((?:[^()\s]|\((?:[^()\s]|\([^()\s]*\))*\))+\)', '\1', 'g');
+  -- the themed emoji
+  s := regexp_replace(s, ':(order|primal|conclave|legion|d20|swords|skull|trophy|echo|calendar|pin|brush|printer|heart):', ' ', 'g');
+  -- an address keeps its * and _ (https://x.com/_a_b), not the marks right after it (**https://x.com**)
+  for v_u in select (regexp_matches(s, '(?:https?://|www\.)[^\s]*[^\s*_]', 'gi'))[1] loop
+    s := replace(s, v_u, translate(v_u, '*_', chr(57344 + 42) || chr(57344 + 95)));
+  end loop;
+  -- a single mark between two equal signs is a face (^_^, -_-), not a mark
+  s := regexp_replace(s, '([^[:alnum:][:space:]*_])_\1', '\1' || chr(57344 + 95) || '\1', 'g');
+  s := regexp_replace(s, '([^[:alnum:][:space:]*_])\*\1', '\1' || chr(57344 + 42) || '\1', 'g');
+  -- bold, italic, underline: a whole run of marks that touches the text it marks, at a word's edge
+  -- (my__var, 2**10, 2*3*4 and a lone * between blanks stay)
+  s := regexp_replace(s, '(?<![[:alnum:]*_])[*_]+(?=[^[:space:]*_])|(?<=[^[:space:]*_])[*_]+(?![[:alnum:]*_])', '', 'g');
+  for i in 1 .. char_length(v_m) loop
+    s := replace(s, chr(57344 + ascii(substr(v_m, i, 1))), substr(v_m, i, 1));
+  end loop;
+  s := replace(s, chr(57344 + 92), v_bs);
+  s := replace(s, chr(57601), '_(' || chr(12484) || ')_');
+  s := replace(s, chr(57600), v_bs || '_(' || chr(12484) || ')_/');
+  return btrim(regexp_replace(s, '\s+', ' ', 'g'));
+end $$;
+revoke all on function public.notice_plain(text) from public, anon, authenticated;
+comment on function public.notice_plain(text) is
+  'A notice as one line of plain text for a notification: the board marks, titles, link addresses and themed shortcodes taken out (2026-11-28).';
+
+-- 2. push_nt_ins(): the body without marks -------------------------------------------------------
+create or replace function public.push_nt_ins()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  l   leagues%rowtype;
+  v_u uuid;
+  v_b text;
+begin
+  begin
+    if new.league_id is null or (new.expires_at is not null and new.expires_at <= now()) then
+      return null;
+    end if;
+    select * into l from leagues x where x.id = new.league_id and x.archived_at is null;
+    if not found then
+      return null;
+    end if;
+    v_b := coalesce(nullif(notice_plain(trim_blank(new.body)), ''), 'Open the board to read it.');
+    v_b := case when char_length(v_b) > 100 then rtrim(left(v_b, 100)) || '…' else v_b end;
+    for v_u in select m.u from push_members(new.league_id) m(u) where m.u is distinct from new.author_id loop
+      perform push_enqueue(v_u, 'notices', 'nt_new', l.name || ': new notice', v_b,
+                           format('#/league/%s/about', new.league_id), 'sl-nt-' || new.league_id,
+                           jsonb_build_object('lid', new.league_id::text, 'aid', new.id::text),
+                           format('nt_new:%s:%s', new.id, v_u),
+                           case when new.expires_at is null then 259200
+                                else greatest(60, least(259200, floor(extract(epoch from new.expires_at - now()))::int - 60)) end,
+                           'normal', now() + interval '60 seconds');
+    end loop;
+  exception when others then
+    raise warning 'push_nt_ins: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists push_nt_ins on public.announcements;
+create trigger push_nt_ins after insert on public.announcements
+  for each row execute function public.push_nt_ins();
+revoke all on function public.push_nt_ins() from public, anon, authenticated;
