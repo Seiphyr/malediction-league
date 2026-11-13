@@ -16887,3 +16887,545 @@ drop trigger if exists push_nt_ins on public.announcements;
 create trigger push_nt_ins after insert on public.announcements
   for each row execute function public.push_nt_ins();
 revoke all on function public.push_nt_ins() from public, anon, authenticated;
+
+-- ============================================================
+--  ADMIN ACCOUNTS (2026-11-29)
+-- ============================================================
+-- Run as migration-2026-11-29-admin-accounts.sql.
+-- What changes:
+--   * admin_accounts (new table): one row per account made from Admin >
+--     Accounts: user_id, the email it was made with, who made it and when,
+--     demo (default true), an optional note (at most 200 characters),
+--     deleted_at and alias_keys. Row level security on and no policy, no
+--     grant to anon or authenticated: only the service role (the Edge
+--     Function) reads and writes it. No password is ever stored here (the
+--     function shows it once). When the account is deleted the row stays
+--     (so a deleted demo account's old games stay out of the numbers) but
+--     its email and note are blanked, as Delete account leaves no address
+--     behind; alias_keys keeps the keys its tournament entries got in the
+--     erase ('pn:<id>' or 'h:<random>'), so those games stay out too.
+--   * admin_account_slots (new table, service role only): one row per
+--     account made, the brake of 30 per admin in 24 hours. A slot is taken
+--     under a lock before the login is made, so requests sent at the same
+--     moment cannot make a 31st.
+--   * is_demo_user(uuid) and demo_keys() (new, callable by anyone): whether
+--     an account is a demo account, and the keys of the demo accounts (their
+--     ids and alias_keys). They tell only that; the page uses the keys to
+--     leave demo accounts out of the numbers it works out itself (the Meta,
+--     deck records and popularity).
+--   * Service role only (the Edge Function): admin_accounts_list(uuid) (the
+--     list for the Admin tab, with the login's current email, last sign-in
+--     and whether it also signs in with Google or Discord),
+--     admin_account_take_slot / admin_account_free_slot (the brake),
+--     admin_account_state(uuid) (made here, deleted, site admin, other
+--     login), admin_account_set_demo(uuid, boolean), admin_account_signout
+--     (uuid) (every session and refresh token of the account goes, after a
+--     password reset) and admin_account_erase(uuid): the deletion of one of
+--     these accounts in one transaction, run as that account (so it is
+--     stamped exactly as when the player deletes it), erase_user_data() and
+--     then the login, exactly as the site's own Delete account
+--     (delete_my_account) does, then deleted_at. A site admin's account is
+--     never changed here; an account that owns a community with players is
+--     refused as Delete account refuses it (hint sl_owns_league).
+--   * site_counts(): as in HOME COUNTERS (2026-11-26), but demo accounts stay
+--     out: players leaves them out; a community, a tournament or a game is
+--     left out only when nobody but demo accounts is in it:
+--       communities  owned by a demo account with no active member that is
+--                    a real account;
+--       tournaments  organized (or made) by a demo account with no entrant
+--                    that is a real account (entrants without an account
+--                    cannot be told apart, so they do not keep it in);
+--                    every game of such a tournament goes too;
+--       matches      a tracked 1v1 match between two demo accounts; a
+--                    multiplayer match whose every seat is a demo account; a
+--                    match logged by hand between two demo accounts; a result
+--                    typed into a tournament between two demo accounts (or
+--                    the keys a deleted demo account's entries got).
+--   * meta_duels(): as in TOURNAMENT AUTOMATION (2026-11-15), without any
+--     tracked match with a demo account on either side (a matchup needs both
+--     sides to be real play). Same columns.
+--   * public_leagues: member_count (the "N players" on Explore) leaves out
+--     demo members, except the viewer (a demo account sees itself counted);
+--     a new last column roster_count counts every active member as before
+--     (the Home cards of your own communities use it, like the community
+--     page). Still security_invoker. A public community that only demo
+--     accounts are in is still listed on Explore (its owner must find it),
+--     with 0 players for everyone else.
+--   * Not changed: every other table, policy and function (profiles, history
+--     and rosters show demo accounts as they are: they are ordinary accounts
+--     for everything else, so app reviewers see the real site).
+
+-- 1. admin_accounts and admin_account_slots ------------------------------------------------------
+create table if not exists public.admin_accounts (
+  user_id    uuid primary key references public.profiles(id) on delete cascade,
+  email      text,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  demo       boolean not null default true,
+  note       text,
+  deleted_at timestamptz,
+  alias_keys text[] not null default '{}'
+);
+alter table public.admin_accounts add column if not exists alias_keys text[] not null default '{}';
+alter table public.admin_accounts alter column email drop not null;
+alter table public.admin_accounts drop constraint if exists admin_accounts_email_len;
+alter table public.admin_accounts add constraint admin_accounts_email_len
+  check ((email is null and deleted_at is not null) or (email is not null and char_length(email) between 3 and 254));
+alter table public.admin_accounts drop constraint if exists admin_accounts_note_len;
+alter table public.admin_accounts add constraint admin_accounts_note_len
+  check (note is null or char_length(note) <= 200);
+create index if not exists idx_admin_accounts_by on public.admin_accounts (created_by, created_at desc);
+create index if not exists idx_admin_accounts_demo on public.admin_accounts (user_id) where demo;
+alter table public.admin_accounts enable row level security;
+-- no policy on purpose: only the service role (which bypasses RLS) uses it
+revoke all on public.admin_accounts from public, anon, authenticated;
+grant select, insert, update, delete on public.admin_accounts to service_role;
+comment on table public.admin_accounts is
+  'Accounts made from Admin > Accounts (Edge Function admin-accounts). Service role only. demo = left out of the public numbers; alias_keys = the keys its tournament entries got when it was deleted.';
+
+create table if not exists public.admin_account_slots (
+  id         bigint generated always as identity primary key,
+  created_by uuid not null references public.profiles(id) on delete cascade,
+  taken_at   timestamptz not null default now()
+);
+create index if not exists idx_admin_account_slots_by on public.admin_account_slots (created_by, taken_at desc);
+alter table public.admin_account_slots enable row level security;
+revoke all on public.admin_account_slots from public, anon, authenticated;
+grant select, insert, delete on public.admin_account_slots to service_role;
+comment on table public.admin_account_slots is
+  'Admin > Accounts: one row per account made, for the 30 per admin in 24 hours brake. Service role only.';
+
+-- 2. Demo helpers -------------------------------------------------------------------------------
+create or replace function public.is_demo_user(p_user uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (select 1 from admin_accounts a where a.user_id = p_user and a.demo);
+$$;
+revoke all on function public.is_demo_user(uuid) from public;
+grant execute on function public.is_demo_user(uuid) to anon, authenticated, service_role;
+comment on function public.is_demo_user(uuid) is
+  'Whether an account is a demo account (Admin > Accounts): left out of the public numbers. Callable by anyone.';
+
+-- demo_user_ids() came with an earlier draft of this file: demo_keys() replaces it.
+drop function if exists public.demo_user_ids();
+create or replace function public.demo_keys()
+returns text[] language sql stable security definer set search_path = public, pg_temp as $$
+  select coalesce(array_agg(s.k order by s.k), '{}'::text[])
+    from (select a.user_id::text as k from admin_accounts a where a.demo
+          union
+          select x.k from admin_accounts a cross join lateral unnest(a.alias_keys) x(k) where a.demo) s;
+$$;
+revoke all on function public.demo_keys() from public;
+grant execute on function public.demo_keys() to anon, authenticated, service_role;
+comment on function public.demo_keys() is
+  'The demo accounts (Admin > Accounts), deleted ones included: their ids and the keys their tournament entries got when deleted. The page leaves them out of the Meta, deck records and popularity. Callable by anyone.';
+
+-- 3. The Admin tab (service role only) ----------------------------------------------------------
+create or replace function public.admin_accounts_list(p_by uuid)
+returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(x.j order by x.created_at desc, x.user_id)
+        from (
+          select a.created_at, a.user_id,
+                 jsonb_build_object(
+                   'user_id', a.user_id,
+                   'email', case when a.deleted_at is null then coalesce(u.email::text, a.email) end,
+                   'display_name', p.display_name,
+                   'demo', a.demo,
+                   'note', a.note,
+                   'created_at', a.created_at,
+                   'created_by', a.created_by,
+                   'created_by_name', cp.display_name,
+                   'deleted_at', coalesce(a.deleted_at, p.deleted_at),
+                   'last_sign_in_at', u.last_sign_in_at,
+                   'is_admin', exists (select 1 from site_admins s where s.user_id = a.user_id),
+                   'other_login', exists (select 1 from auth.identities i
+                                           where i.user_id = a.user_id and i.provider <> 'email')) as j
+            from admin_accounts a
+            left join profiles p   on p.id = a.user_id
+            left join auth.users u on u.id = a.user_id
+            left join profiles cp  on cp.id = a.created_by
+           order by a.created_at desc, a.user_id
+           limit 200) x), '[]'::jsonb),
+    'made_24h', (select count(*) from admin_account_slots s
+                  where s.created_by = p_by and s.taken_at > now() - interval '24 hours'),
+    'max_24h', 30);
+$$;
+revoke all on function public.admin_accounts_list(uuid) from public, anon, authenticated;
+grant execute on function public.admin_accounts_list(uuid) to service_role;
+
+-- The brake: a slot is taken under a lock per admin before the login is made
+-- (requests at the same moment wait for each other), and given back when the
+-- login could not be made.
+create or replace function public.admin_account_take_slot(p_by uuid)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_n  int;
+  v_id bigint;
+begin
+  if p_by is null then
+    return jsonb_build_object('ok', false, 'code', 'bad_request');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('admin_account_slots'), hashtext(p_by::text));
+  delete from admin_account_slots where taken_at < now() - interval '7 days';
+  select count(*) into v_n from admin_account_slots
+   where created_by = p_by and taken_at > now() - interval '24 hours';
+  if v_n >= 30 then
+    return jsonb_build_object('ok', false, 'code', 'rate_limited', 'made_24h', v_n);
+  end if;
+  insert into admin_account_slots (created_by) values (p_by) returning id into v_id;
+  return jsonb_build_object('ok', true, 'slot', v_id, 'made_24h', v_n + 1);
+end $$;
+revoke all on function public.admin_account_take_slot(uuid) from public, anon, authenticated;
+grant execute on function public.admin_account_take_slot(uuid) to service_role;
+
+create or replace function public.admin_account_free_slot(p_slot bigint, p_by uuid)
+returns void language sql security definer set search_path = public, pg_temp as $$
+  delete from admin_account_slots where id = p_slot and created_by = p_by;
+$$;
+revoke all on function public.admin_account_free_slot(bigint, uuid) from public, anon, authenticated;
+grant execute on function public.admin_account_free_slot(bigint, uuid) to service_role;
+
+-- What the function needs to know before it changes an account.
+create or replace function public.admin_account_state(p_user uuid)
+returns jsonb language sql stable security definer set search_path = public, pg_temp as $$
+  select coalesce((
+    select jsonb_build_object(
+             'found', true,
+             'deleted', a.deleted_at is not null or p.deleted_at is not null or u.id is null,
+             'is_admin', exists (select 1 from site_admins s where s.user_id = a.user_id),
+             'other_login', exists (select 1 from auth.identities i
+                                     where i.user_id = a.user_id and i.provider <> 'email'),
+             'demo', a.demo)
+      from admin_accounts a
+      left join profiles p   on p.id = a.user_id
+      left join auth.users u on u.id = a.user_id
+     where a.user_id = p_user), jsonb_build_object('found', false));
+$$;
+revoke all on function public.admin_account_state(uuid) from public, anon, authenticated;
+grant execute on function public.admin_account_state(uuid) to service_role;
+
+-- Demo on or off: only for a live account made here that is not a site admin;
+-- an account that also signs in with Google or Discord is not made a demo
+-- account (a real person may have claimed it).
+create or replace function public.admin_account_set_demo(p_user uuid, p_demo boolean)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_a public.admin_accounts%rowtype;
+begin
+  if p_user is null or p_demo is null then
+    return jsonb_build_object('ok', false, 'code', 'bad_request');
+  end if;
+  select * into v_a from admin_accounts where user_id = p_user for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'not_found');
+  end if;
+  if v_a.deleted_at is not null then
+    return jsonb_build_object('ok', false, 'code', 'deleted');
+  end if;
+  if exists (select 1 from site_admins s where s.user_id = p_user) then
+    return jsonb_build_object('ok', false, 'code', 'is_admin');
+  end if;
+  if p_demo and not v_a.demo
+     and exists (select 1 from auth.identities i where i.user_id = p_user and i.provider <> 'email') then
+    return jsonb_build_object('ok', false, 'code', 'other_login');
+  end if;
+  update admin_accounts set demo = p_demo where user_id = p_user;
+  return jsonb_build_object('ok', true, 'user_id', p_user, 'demo', p_demo);
+end $$;
+revoke all on function public.admin_account_set_demo(uuid, boolean) from public, anon, authenticated;
+grant execute on function public.admin_account_set_demo(uuid, boolean) to service_role;
+
+-- After a password reset: every session (and with it every refresh token) of
+-- the account goes, as signing out everywhere does. Tokens already handed out
+-- keep working until they expire (an hour at most). 'no_signout' when the
+-- project does not let this function touch the auth tables.
+create or replace function public.admin_account_signout(p_user uuid)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_n int := 0;
+begin
+  if p_user is null
+     or not exists (select 1 from admin_accounts a where a.user_id = p_user and a.deleted_at is null) then
+    return jsonb_build_object('ok', false, 'code', 'not_found');
+  end if;
+  if exists (select 1 from site_admins s where s.user_id = p_user) then
+    return jsonb_build_object('ok', false, 'code', 'is_admin');
+  end if;
+  begin
+    delete from auth.refresh_tokens where user_id = p_user::text;
+    delete from auth.sessions where user_id = p_user;
+    get diagnostics v_n = row_count;
+  exception when insufficient_privilege or undefined_table or undefined_column then
+    return jsonb_build_object('ok', false, 'code', 'no_signout');
+  end;
+  return jsonb_build_object('ok', true, 'user_id', p_user, 'sessions', v_n);
+end $$;
+revoke all on function public.admin_account_signout(uuid) from public, anon, authenticated;
+grant execute on function public.admin_account_signout(uuid) to service_role;
+
+-- The same steps as delete_my_account(), for an account made here, run as
+-- that account (the JWT claims of this transaction only, so every stamp -
+-- memberships.dropped_by among them - is as when the player deletes it):
+-- erase, then the login (the delete trigger erases again, harmlessly), then
+-- the mark. erase_user_data() raising (hint sl_owns_league) undoes
+-- everything. The keys its tournament entries get in the erase are kept in
+-- alias_keys; the email and note are blanked.
+create or replace function public.admin_account_erase(p_user uuid)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_a      public.admin_accounts%rowtype;
+  v_at     timestamptz;
+  v_claims text;
+  v_sub    text;
+  v_t      uuid[];
+  v_i      int[];
+  v_k      text[];
+begin
+  if p_user is null then
+    return jsonb_build_object('ok', false, 'code', 'not_found');
+  end if;
+  select * into v_a from admin_accounts where user_id = p_user for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'not_found');
+  end if;
+  if v_a.deleted_at is not null then
+    return jsonb_build_object('ok', true, 'already', true, 'user_id', p_user, 'deleted_at', v_a.deleted_at);
+  end if;
+  if exists (select 1 from site_admins s where s.user_id = p_user) then
+    return jsonb_build_object('ok', false, 'code', 'is_admin');
+  end if;
+  -- where the account sits among the entrants (erase_user_data re-keys it there, in place)
+  select coalesce(array_agg(x.id order by x.id, q.o), '{}'), coalesce(array_agg((q.o - 1)::int order by x.id, q.o), '{}')
+    into v_t, v_i
+    from tournaments x
+   cross join lateral jsonb_array_elements(
+           case when jsonb_typeof(x.payload->'entrants') = 'array' then x.payload->'entrants' else '[]'::jsonb end
+         ) with ordinality q(e, o)
+   where x.status is not null and q.e->>'id' = p_user::text;
+  v_claims := current_setting('request.jwt.claims', true);
+  v_sub := current_setting('request.jwt.claim.sub', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', p_user::text, true);
+  perform erase_user_data(p_user);
+  delete from auth.users where id = p_user;
+  perform set_config('request.jwt.claims', coalesce(v_claims, ''), true);
+  perform set_config('request.jwt.claim.sub', coalesce(v_sub, ''), true);
+  select coalesce(array_agg(distinct s.k), '{}') into v_k
+    from (select x.payload->'entrants'->u.i->>'id' as k
+            from unnest(v_t, v_i) u(t, i) join tournaments x on x.id = u.t) s
+   where s.k is not null and s.k <> p_user::text;
+  update admin_accounts
+     set deleted_at = now(), email = null, note = null,
+         alias_keys = (select coalesce(array_agg(distinct z.k order by z.k), '{}') from unnest(alias_keys || v_k) z(k))
+   where user_id = p_user
+  returning deleted_at into v_at;
+  return jsonb_build_object('ok', true, 'user_id', p_user, 'deleted_at', v_at);
+end $$;
+revoke all on function public.admin_account_erase(uuid) from public, anon, authenticated;
+grant execute on function public.admin_account_erase(uuid) to service_role;
+
+-- 4. site_counts(): demo accounts stay out ------------------------------------------------------
+create or replace function public.site_counts()
+returns json
+language sql stable security definer set search_path = public, pg_temp as $$
+  with
+  -- Demo accounts (Admin > Accounts), deleted ones included.
+  demo as (
+    select a.user_id from admin_accounts a where a.demo
+  ),
+  -- ... and every key their tournament entries have: the id, or after the
+  -- erase the alias it got ('pn:<id>' or 'h:<random>').
+  demo_k as (
+    select a.user_id::text as k from admin_accounts a where a.demo
+    union
+    select x.k from admin_accounts a cross join lateral unnest(a.alias_keys) x(k) where a.demo
+  ),
+  -- Tournaments a demo account organizes (or made: erase_user_data clears
+  -- organizer_id) with no entrant that is a real account: test tournaments.
+  demo_t as (
+    select t.id from tournaments t
+     where coalesce(t.organizer_id, t.created_by) in (select d.user_id from demo d)
+       and not exists (
+             select 1
+               from jsonb_array_elements(
+                      case when jsonb_typeof(t.payload->'entrants') = 'array' then t.payload->'entrants' else '[]'::jsonb end
+                    ) e(x)
+               join profiles p
+                 on p.id = case when e.x->>'id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                then (e.x->>'id')::uuid end
+              where not exists (select 1 from demo d where d.user_id = p.id))
+  ),
+  -- Swiss tournaments still in draft or running: none of their games count.
+  hide as (
+    select t.id from tournaments t
+     where t.status in ('draft', 'running') and t.payload->>'fmt' = 'swiss'
+  ),
+  shown as (
+    select t.id, t.payload, t.status is null as legacy from tournaments t
+     where t.payload->>'v' in ('2', '3')
+       and t.status is distinct from 'draft'
+       and not exists (select 1 from hide h where h.id = t.id)
+       and not exists (select 1 from demo_t x where x.id = t.id)
+  ),
+  -- Results in the payloads: a group or Swiss game {a, b, w}, w = a, b or
+  -- 'draw'; a finals game {a: {id}, b: {id}, winner: 'a' | 'b'}.
+  tg as (
+    select s.id as tid, s.legacy, 'g:' || (x.o - 1) as ref,
+           x.m->>'a' as a, x.m->>'b' as b, x.m->>'du' as du
+      from shown s
+     cross join lateral jsonb_array_elements(
+             case when jsonb_typeof(s.payload->'gm') = 'array' then s.payload->'gm' else '[]'::jsonb end
+           ) with ordinality x(m, o)
+     where jsonb_typeof(x.m) = 'object'
+       and x.m->>'a' is not null and x.m->>'b' is not null and x.m->>'a' <> x.m->>'b'
+       and (x.m->>'w' = 'draw' or x.m->>'w' = x.m->>'a' or x.m->>'w' = x.m->>'b')
+       and coalesce(x.m->>'src', '') not in ('bye', 'drop')
+    union all
+    select s.id, s.legacy, 'b:' || (r.o - 1) || ':' || (q.o - 1),
+           q.m #>> '{a,id}', q.m #>> '{b,id}', q.m->>'du'
+      from shown s
+     cross join lateral jsonb_array_elements(
+             case when jsonb_typeof(s.payload->'bracket') = 'array' then s.payload->'bracket' else '[]'::jsonb end
+           ) with ordinality r(rd, o)
+     cross join lateral jsonb_array_elements(
+             case when jsonb_typeof(r.rd) = 'array' then r.rd else '[]'::jsonb end
+           ) with ordinality q(m, o)
+     where jsonb_typeof(q.m) = 'object'
+       and q.m #>> '{a,id}' is not null and q.m #>> '{b,id}' is not null
+       and q.m #>> '{a,id}' <> q.m #>> '{b,id}'
+       and q.m->>'winner' in ('a', 'b')
+       and coalesce(q.m->>'src', '') not in ('bye', 'drop')
+  ),
+  -- Older tournaments (no status) are edited from the site by their
+  -- community's admins: a result counts only between two accounts, and each
+  -- pair once in the groups ('g') and once in the finals ('b').
+  legacy_ok as (
+    select distinct on (tg.tid, left(tg.ref, 1), least(tg.a, tg.b), greatest(tg.a, tg.b)) tg.*
+      from tg
+     where tg.legacy
+       and exists (select 1 from profiles p
+                    where p.id = case when tg.a ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                      then tg.a::uuid end)
+       and exists (select 1 from profiles p
+                    where p.id = case when tg.b ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                      then tg.b::uuid end)
+     order by tg.tid, left(tg.ref, 1), least(tg.a, tg.b), greatest(tg.a, tg.b), tg.ref
+  ),
+  games as (
+    select * from tg where not tg.legacy
+    union all
+    select * from legacy_ok
+  )
+  select json_build_object(
+    'communities', (select count(*) from leagues l
+                     where l.is_public and l.archived_at is null
+                       and not (exists (select 1 from demo d where d.user_id = l.owner_id)
+                                and not exists (select 1 from memberships m
+                                                 where m.league_id = l.id and m.dropped_at is null
+                                                   and not exists (select 1 from demo d where d.user_id = m.user_id)))),
+    'players',     (select count(*) from profiles p
+                     where p.deleted_at is null
+                       and not exists (select 1 from demo d where d.user_id = p.id)),
+    'tournaments', (select count(*) from tournaments t
+                     where t.status is distinct from 'draft'
+                       and not exists (select 1 from demo_t x where x.id = t.id)),
+    'matches',
+      (select count(*) from duels d
+        where d.status = 'done'
+          and not exists (select 1 from hide h where h.id = d.tournament_id)
+          and not exists (select 1 from demo_t x where x.id = d.tournament_id)
+          and not (exists (select 1 from demo z where z.user_id = d.host_id)
+                   and exists (select 1 from demo z where z.user_id = d.guest_id)))
+    + (select count(*) from group_matches g
+        where g.status = 'done'
+          and not (exists (select 1 from group_match_seats s where s.match_id = g.id)
+                   and not exists (select 1 from group_match_seats s
+                                    where s.match_id = g.id
+                                      and not exists (select 1 from demo z where z.user_id = s.user_id))))
+    + (select count(*) from matches m
+        where m.confirmed is true and m.tournament_id is null
+          and not (exists (select 1 from demo z where z.user_id = m.winner_id)
+                   and exists (select 1 from demo z where z.user_id = m.loser_id)))
+    -- a result typed in a payload, unless a finished tracked match is that
+    -- game: its 'du', or the same tournament, slot and two players (two
+    -- separate lookups, each by an index); a game between two demo accounts
+    -- (by id or by the alias a deleted one's entry got) does not count
+    + (select count(*) from games g
+        where not exists (
+                select 1 from duels d
+                 where d.status = 'done'
+                   and d.id = case when g.du ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                                   then g.du::uuid end)
+          and not exists (
+                select 1 from duels d
+                 where d.status = 'done'
+                   and d.tournament_id = g.tid and d.t_ref = g.ref
+                   and ((d.host_id::text = g.a and d.guest_id::text = g.b)
+                        or (d.host_id::text = g.b and d.guest_id::text = g.a)))
+          and not (exists (select 1 from demo_k z where z.k = g.a)
+                   and exists (select 1 from demo_k z where z.k = g.b)))
+  );
+$$;
+revoke all on function public.site_counts() from public;
+grant execute on function public.site_counts() to anon, authenticated;
+comment on function public.site_counts() is
+  'Home counters: totals only (communities, players, tournaments, matches = every finished game once; nothing of a Swiss tournament in draft or running; demo accounts and what only they play left out). Callable by anyone.';
+
+-- 5. meta_duels(): no tracked match with a demo account -----------------------------------------
+-- As in TOURNAMENT AUTOMATION (2026-11-15), plus the last condition (and
+-- pg_temp last in the search path, like the new functions). The columns do
+-- not change, so the function is not dropped.
+create or replace function public.meta_duels(p_since timestamptz default null)
+returns table (id uuid, played_at timestamptz,
+               winner_seeker text, loser_seeker text,
+               winner_terrain text, loser_terrain text,
+               winner_deck_id uuid, loser_deck_id uuid,
+               in_tournament boolean, is_draw boolean)
+language sql stable security definer set search_path = public, pg_temp as $$
+  select d.id,
+         date_trunc('day', d.ended_at),
+         case when x.wh then d.host_seeker  else d.guest_seeker  end,
+         case when x.wh then d.guest_seeker  else d.host_seeker  end,
+         case when x.wh then d.host_terrain else d.guest_terrain end,
+         case when x.wh then d.guest_terrain else d.host_terrain end,
+         case when wk.is_public and wp.matches_visibility = 'public' then wk.id end,
+         case when lk.is_public and lp.matches_visibility = 'public' then lk.id end,
+         d.tournament_id is not null,
+         d.is_draw
+    from duels d
+    cross join lateral (select d.is_draw or d.winner_id = d.host_id as wh) x
+    join profiles wp on wp.id = case when x.wh then d.host_id else d.guest_id end
+    join profiles lp on lp.id = case when x.wh then d.guest_id else d.host_id end
+    left join decks wk on wk.id = case when x.wh then d.host_deck_id else d.guest_deck_id end
+    left join decks lk on lk.id = case when x.wh then d.guest_deck_id else d.host_deck_id end
+    left join tournaments t on t.id = d.tournament_id
+   where d.status = 'done'
+     and (p_since is null or d.ended_at >= p_since)
+     and not coalesce(t.status in ('draft','running') and t.payload->>'fmt' = 'swiss', false)
+     and not exists (select 1 from admin_accounts a where a.demo and a.user_id in (d.host_id, d.guest_id))
+   order by d.ended_at desc;
+$$;
+revoke all on function public.meta_duels(timestamptz) from public;
+grant execute on function public.meta_duels(timestamptz) to anon, authenticated;
+
+-- 6. public_leagues: member_count without demo members ------------------------------------------
+-- As in COMMUNITIES AND PLAY NETWORK EVENTS (2026-11-08), the same 16 columns
+-- in the same order (so the view keeps its grants) plus roster_count at the
+-- end, still security_invoker.
+create or replace view public.public_leagues
+with (security_invoker = on) as
+select
+  l.id, l.name, l.location, l.city, l.country, l.description, l.created_at,
+  (select count(*) from memberships m
+    where m.league_id = l.id and m.dropped_at is null
+      and (not public.is_demo_user(m.user_id) or m.user_id = auth.uid())) as member_count,
+  (select count(*) from sessions s where s.league_id = l.id)    as session_count,
+  (select max(s.date) from sessions s where s.league_id = l.id) as last_session,
+  l.lat, l.lon,
+  l.is_online, l.region, l.timezone,
+  (select max(e.starts_at) from pn_events e where e.league_id = l.id) as last_event,
+  (select count(*) from memberships m
+    where m.league_id = l.id and m.dropped_at is null) as roster_count
+from leagues l
+where l.is_public;

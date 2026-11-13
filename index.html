@@ -1400,6 +1400,46 @@ details.msec:not([open])>summary{margin-bottom:0}
 .adm-note textarea{font-size:14px}
 .adm-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .adm-acts button{min-height:40px}
+/* 2026-11-13: Admin > Accounts (aac-*): one column on phones, the form in two from 720px, the list in two from 1000px; long emails wrap */
+.aac{max-width:1000px;min-width:0}
+.aac-intro{margin:0 0 12px}
+.aac-note{margin:0 0 14px}
+.aac h3{font-family:Oswald,sans-serif;font-size:15px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin:0 0 12px;color:var(--bone)}
+.aac-new,.aac-once{background:var(--coal-2);border:1px solid var(--line);padding:14px 16px;margin:0 0 18px;min-width:0}
+.aac-once{border-color:var(--brass-dim);border-left:3px solid var(--brass)}
+.aac-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:0 16px}
+.aac input:not([type=checkbox]){min-height:44px}
+.aac-tip{margin:-6px 0 10px;font-size:13px;overflow-wrap:anywhere}
+.aac .aac-chk{min-height:44px;margin:0 0 10px;font-size:14px;color:var(--bone)}
+.aac .aac-chk input{width:20px;height:20px}
+.aac-err{margin:0 0 4px;color:var(--crimson-txt);font-family:Barlow,sans-serif;font-size:14px}
+.aac-kv{display:grid;gap:12px;margin:0 0 12px}
+.aac-kv>div{display:grid;gap:5px;min-width:0}
+.aac-kv dt{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
+.aac-kv dd{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;min-width:0}
+.aac-v{flex:1 1 200px;min-width:0;font-family:ui-monospace,Consolas,monospace;font-size:15px;line-height:1.4;color:var(--bone);background:var(--coal);border:1px solid var(--line-2);padding:9px 10px;overflow-wrap:anywhere;user-select:all}
+.aac-pw{font-size:17px;letter-spacing:.04em}
+.aac-cp{min-height:40px;min-width:76px}
+.aac-warn{margin:0;color:var(--brass);font-family:Barlow,sans-serif;font-size:14px;font-weight:600}
+.aac-cnt{margin:-6px 0 12px;font-size:13px}
+.aac-list{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start}
+.aac .aac-row{margin:0;min-width:0;border-left:3px solid var(--line-2)}
+.aac .aac-row.is-demo{border-left-color:var(--brass)}
+.aac .aac-row.is-del{border-left-color:var(--crimson);opacity:.8}
+.aac-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 4px;min-width:0}
+.aac-nm{font-family:Barlow,sans-serif;font-size:16px;color:var(--bone);overflow-wrap:anywhere;min-width:0}
+.aac .fd-tag.aac-demo{color:var(--brass);border-color:var(--brass-dim)}
+.aac-em{font-family:ui-monospace,Consolas,monospace;font-size:13.5px;color:var(--bone-dim);overflow-wrap:anywhere;margin:0 0 6px}
+.aac-nt{margin:0 0 4px;font-family:Barlow,sans-serif;font-size:14px;color:var(--bone);overflow-wrap:anywhere}
+.aac .adm-acts button{min-height:40px}
+/* 2026-11-13: Admin > Accounts review: a field's error right under it with a red border; a line under the reset panel's heading */
+.aac-f{min-width:0}
+.aac-ferr{margin:-6px 0 12px;color:var(--crimson-txt);font-family:Barlow,sans-serif;font-size:14px;overflow-wrap:anywhere}
+.aac input[aria-invalid=true]{border-color:var(--crimson)}
+.aac-sub{margin:-4px 0 12px;font-family:Barlow,sans-serif;font-size:14px;color:var(--bone-dim)}
+.aac-dh{margin:4px 0 0;font-size:13px}
+@media (min-width:720px){.aac-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.aac-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .adm-upd{display:block;margin-top:8px;font-family:Barlow,sans-serif;font-size:11.5px;color:var(--bone-faint)}
 .adm-err{margin:0 0 8px;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.45;color:var(--bone);overflow-wrap:anywhere}
 .adm-nums{display:flex;flex-wrap:wrap;gap:4px 14px;font-family:Barlow,sans-serif;font-size:12.5px;color:var(--bone-dim);margin:0 0 6px}
@@ -2086,6 +2126,8 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .adm .adm-filters{align-items:stretch}
 .adm .adm-tabs{margin:12px 0 14px}
 .adm .adm-tabs button{flex:1 1 0;padding:12px 4px;font-size:12px}
+/* 2026-11-13: five tabs (Board and Accounts) fit in 320px: each as wide as its word */
+@media(max-width:360px){.adm .adm-tabs button{flex:1 1 auto;min-width:40px;padding:12px 3px;font-size:11px;letter-spacing:.05em}.adm .adm-tabs .adm-badge{margin-left:3px;padding:0 4px;min-width:16px}}
 .adm .adm-filters{flex-direction:column;gap:4px;padding:6px 10px 8px}
 .adm .adm-fgrp{flex-direction:column;align-items:stretch;gap:0}
 .adm .adm-fgrp .seg{display:flex;width:100%}
@@ -2664,7 +2706,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   const{data:d2}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
   if(d2)me=d2,nkSoon();
 }
-async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote()}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
+async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,duDrop(),cache.myDecks=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote(),window.aacReset&&aacReset(1)}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
 /* Every load of the player's communities also refreshes the menu (see slNavLg),
    repainting only when the ids, names or archived flags changed. A failed read
    keeps the menu as it was. */
@@ -2693,6 +2735,16 @@ async function fetchTourneySes(){const u=me&&me.id||"";if(cache._tSesIds&&cache.
    created_at); a new source (tracked matches) is concatenated here. Tournament
    games come from the payloads only: fetchAllMatches leaves out the copies
    sync_tournament once wrote, so every game counts once. */
+/* 2026-11-13: demo accounts (Admin > Accounts, migration-2026-11-29-admin-accounts.sql) stay out of the public numbers
+   the page works out itself: the Meta (and the Seekers' win rates it feeds), a community's Meta, a deck's record and the
+   public decks' popularity and copies. demo_keys() once per load (again after a change in Admin > Accounts): the demo
+   accounts' ids and the keys a deleted one's tournament entries got ('pn:...' or 'h:...', matched on the payload's
+   own keys, winner_key / loser_key of tvSynthMatches); before that SQL, or on any error, nobody is a demo account and
+   every number is as before. A game with a demo account on either side is left out, as meta_duels() does on the
+   server. Profiles, rosters and My decks show demo accounts as they are: for everything else they are ordinary
+   accounts. */
+async function slDemoIds(){if(cache.demoIds)return cache.demoIds;let s=null;try{const{data:d,error:x}=await sb.rpc("demo_keys");!x&&Array.isArray(d)&&(s=new Set(d.filter(v=>/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(pn|h):[A-Za-z0-9]{1,40})$/i.test(v||""))))}catch(e){}return s?cache.demoIds=s:new Set}
+function slNoDemo(rows,D){return D&&D.size?(rows||[]).filter(m=>!(m&&(D.has(m.winner_id)||D.has(m.loser_id)||D.has(m.winner_key)||D.has(m.loser_key)))):rows||[]}
 async function fetchGames(du){const[m,t,s,d]=await Promise.all([fetchAllMatches(),fetchAllTourneys(),fetchTourneySes(),du?fetchMetaDuels():[]]);return metaTag(m.concat(tvAllSynth(t),d),s)}/* Matches played with the match tracker (Play › Match), as meta_duels() gives
    them: no player ids, the day only. They count as standard matches. Before
    that function exists the Meta simply goes without them. A draw is a win
@@ -4870,7 +4922,7 @@ function tPatch(){const e=document.getElementById("tk-round");e&&e.value!==Strin
    Meta tab, so the menu keeps to what stays short however big the site gets:
    everything and tournaments on their own. This page is for everyone, so it
    names no league (and no player); any other value falls back to everything. */
-async function renderMetaView(){const n=$("meta-body");n.innerHTML='<div class="empty"><span class="spinner"></span> Crunching matches…</div>';const t=await fetchGames(1);cache.globalMatches=t,cache._gwr=null,me&&!cache.myDecks&&(cache.myDecks=await fetchMyDecks()),await ensurePubDecks(),await ensureProfNames(),await detectCardImgs(),await loadDeckMeta(matchDeckIds(t)),window._metaRepaint=()=>{$("meta-body").innerHTML=renderMeta(cache.metaMatches)},n.innerHTML=renderMeta(t)}/* Two trackers share this code. The Basic tracker (Utilities, #/basic-tracker) keeps
+async function renderMetaView(){const n=$("meta-body");n.innerHTML='<div class="empty"><span class="spinner"></span> Crunching matches…</div>';const[t0,D0]=await Promise.all([fetchGames(1),slDemoIds()]),t=slNoDemo(t0,D0);cache.globalMatches=t,cache._gwr=null,me&&!cache.myDecks&&(cache.myDecks=await fetchMyDecks()),await ensurePubDecks(),await ensureProfNames(),await detectCardImgs(),await loadDeckMeta(matchDeckIds(t)),window._metaRepaint=()=>{$("meta-body").innerHTML=renderMeta(cache.metaMatches)},n.innerHTML=renderMeta(t)}/* Two trackers share this code. The Basic tracker (Utilities, #/basic-tracker) keeps
    score on this device only, saved under TRK_KEY. Play > Match (#/tracker) is the
    synced match: signed in, both phones. While one is on screen, trk is its state and
    tkDu is null for the Basic tracker or the synced match's hooks: save() instead of
@@ -5777,7 +5829,9 @@ function tkCompact(e,rc){const t=trk.p[e],a=TK_ACCENTS[e],s=tMasteryOf(e),o=tWon
   /* Your communities, each with the details you keep needing, then the two
      ways in: a join code or a new community. A card opens the community. */
   const hm=myLeaguesSafe().length>1?getActiveLeagueId():null,t=myLeaguesSafe().slice().sort((a,b)=>(b.id===hm)-(a.id===hm)),pc={};
-  (cache.leagues||[]).forEach(p=>{p&&null!=p.member_count&&(pc[p.id]=+p.member_count||0)});
+  /* 2026-11-13: your own communities count every member (roster_count, as the community page does); Explore's
+     member_count leaves demo accounts out. */
+  (cache.leagues||[]).forEach(p=>{p&&null!=p.member_count&&(pc[p.id]=+(null!=p.roster_count?p.roster_count:p.member_count)||0)});
   let a=`<div class="panel plain">
     <h2 style="margin:0 0 3px">Explore communities</h2>
     <p class="hint" style="margin:0">Open one of your communities, join one with its code or start your own. The map below finds more.</p>
@@ -5973,7 +6027,7 @@ async function renderLeague(){const e=route.leagueId;let n,t,a,s=[];
   if("meta"===u&&(s=await fetchMatches(e),fetchMatches.err))return void lgLoadFail(e,lgAgain);
   "manage"===u&&(cache.lgHasEv=await lgHasEvents(e));
   await ensurePubDecks();await ensureProfNames();await loadDeckMeta(matchDeckIds(s).concat(tvDeckIds(cache.tourneys)));
-  const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"tournament":"tournaments"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",makers:"Makers",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");/* No Tournaments tab: tournaments are found in Play › Tournaments; their page still opens here from links. */$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");bdEdSave(p);"about"===u&&(await cbLoad(n),bdEdSave(p),p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"makers"===u&&(await mkMdLoad(t),p.innerHTML=paintLgMakers()),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
+  const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"tournament":"tournaments"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",makers:"Makers",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");/* No Tournaments tab: tournaments are found in Play › Tournaments; their page still opens here from links. */$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");bdEdSave(p);"about"===u&&(await cbLoad(n),bdEdSave(p),p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(slNoDemo(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await slDemoIds()),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"makers"===u&&(await mkMdLoad(t),p.innerHTML=paintLgMakers()),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
   if(lgAgain&&Math.abs(window.scrollY-lgY)>2){window.scrollTo(0,lgY);requestAnimationFrame(()=>{Math.abs(window.scrollY-lgY)>2&&window.scrollTo(0,lgY)})}}/* ===== Community › About =====
    Who runs it, which Heralds play here, how big it is and where to talk to
    them. */
@@ -7850,7 +7904,7 @@ async function renderAdmin(){
 function admPaintTabs(){
   const n=$("adm-tabs");if(!n)return;
   const ne=admErrUnseen(),a=document.activeElement,fi=a&&a.parentNode===n?[...n.children].indexOf(a):-1;
-  n.innerHTML=[["reports","Reports"],["errors","Errors"],["usage","Usage"]].concat(null!=cache.bdOpen?[["board","Board"]]:[]).map(([k,l])=>`<button type="button" class="${adm.tab===k?"active":""}" aria-pressed="${adm.tab===k}" onclick="admTab(${jsq(k)})">${l}${"reports"===k?admBadge(cache.fbNew):"errors"===k?admBadge(ne):"board"===k?admBadge(cache.bdOpen,"open"):""}</button>`).join("");
+  n.innerHTML=[["reports","Reports"],["errors","Errors"],["usage","Usage"]].concat(null!=cache.bdOpen?[["board","Board"]]:[],[["accounts","Accounts"]]).map(([k,l])=>`<button type="button" class="${adm.tab===k?"active":""}" aria-pressed="${adm.tab===k}" onclick="admTab(${jsq(k)})">${l}${"reports"===k?admBadge(cache.fbNew):"errors"===k?admBadge(ne):"board"===k?admBadge(cache.bdOpen,"open"):""}</button>`).join("");
   fi>=0&&n.children[fi]&&n.children[fi].focus({preventScroll:!0});
   admOvPaint();
 }
@@ -7871,8 +7925,171 @@ function admOvGo(k){
   "reports"===k&&(adm.st="new",adm.kind="all");"signup"===k&&(adm.jump="funnel");
   admTab("signup"===k?"usage":k);
 }
-function admTab(t){if(!/^(reports|errors|usage|board)$/.test(t))return;adm.tab=t;admPaintTabs();admPane()}
-function admPane(){$("adm-pane")&&("reports"===adm.tab?admReports():"board"===adm.tab?bdAdmPane():admStatsPane())}
+/* 2026-11-13: leaving Accounts with a password not copied yet asks first (aacKeepOk). */
+function admTab(t){if(!/^(reports|errors|usage|board|accounts)$/.test(t))return;if("accounts"!==t&&"accounts"===adm.tab&&window.aacUnsaved&&aacUnsaved())return void aacKeepOk().then(y=>{y&&(aacReset(),admTab(t))});"accounts"!==t&&adm.ac&&(adm.ac.once=null);adm.tab=t;admPaintTabs();admPane()}
+function admPane(){$("adm-pane")&&("reports"===adm.tab?admReports():"board"===adm.tab?bdAdmPane():"accounts"===adm.tab?aacPane():admStatsPane())}
+/* 2026-11-13: Admin > Accounts. Accounts made here skip email confirmation (testing, demos, app reviewers): the Edge
+   Function admin-accounts makes them (Verify JWT off; it checks site_admins itself) and the table admin_accounts keeps
+   them (migration-2026-11-29-admin-accounts.sql). A password is shown once: it lives only in adm.ac.once, never in
+   storage, the URL or the list. Until Copy password has put it on the clipboard, Done, another tab, Create and Reset
+   password ask first, closing the page warns, and leaving Admin keeps it for when you come back; once copied it goes
+   with another tab or leaving Admin. Signing out always drops it. Codes and texts as the function's; "missing" = the
+   function is not deployed yet (404, network, CORS, relay): then (and for forbidden / not_ready) Create waits. A form
+   error sits under its field and is part of its description. Demo accounts stay out of the counters and the Meta
+   (slDemoIds). */
+const AAC_MSG={missing:"Deploy the admin-accounts function first. Until then accounts cannot be made here.",offline:"You seem to be offline. Check your connection and try again.",
+  forbidden:"Only site admins can manage accounts. Sign in again if you are one.",not_ready:"Run migration-2026-11-29-admin-accounts.sql first.",
+  bad_email:"Enter a valid email address.",bad_name:"Pick a display name of 1 to 40 characters.",bad_note:"Keep the note under 200 characters.",
+  email_taken:"An account with this email already exists.",rate_limited:"You made 30 accounts in the last 24 hours. Try again later.",
+  not_found:"This account was not made here.",deleted:"This account was deleted.",is_admin:"Site admin accounts are not changed here.",
+  other_login:"This account also signs in with Google or Discord, so it is not changed here.",
+  owns_community:"This account owns a community that still has players. Hand it over or archive it first (Manage).",
+  password_rule:"Supabase refused the generated password. Check the password requirements.",bad_request:"That request is not valid.",error:"Something went wrong. Try again."},
+  AAC_NOTE=new Set(["missing","offline","forbidden","not_ready"]),AAC_WAIT=new Set(["missing","forbidden","not_ready"]),
+  AAC_LISTNOTE={missing:"The list appears once the admin-accounts function is deployed.",not_ready:"The list appears once the migration has run.",
+    forbidden:"The list appears once you are signed in as a site admin.",offline:"The list appears once you are back online."},
+  AAC_EMAIL=/^[^\s@]+@[^\s@.][^\s@]*\.[^\s@]+$/;
+function aacSt(){const u=me&&me.id||null;(!adm.ac||adm.ac.uid!==u)&&(adm.ac={uid:u,items:null,busy:0,err:null,once:null,made:0,max:30,go:0,act:""});return adm.ac}
+function aacReset(all){adm.ac&&(adm.ac.once=null,all&&(adm.ac=null));const o=$("aac-once");o&&(o.innerHTML="")}
+function aacIn(){return"admin"===route.view&&"accounts"===adm.tab&&!!$("aac-list")}
+async function aacInvoke(b){let d=null,er=null;try{({data:d,error:er}=await sb.functions.invoke("admin-accounts",{body:b}))}catch(x){er=x}
+  if(!er&&d&&"object"==typeof d)return d.ok?{ok:!0,data:d}:{ok:!1,code:AAC_MSG[d.code]?d.code:"error"};
+  if(navigator.onLine===!1)return{ok:!1,code:"offline"};
+  const st=er&&er.context&&er.context.status,nm=er&&er.name||"";
+  return{ok:!1,code:401===st||403===st?"forbidden":404===st||/FunctionsFetchError|FunctionsRelayError/.test(nm)?"missing":"error"}}
+function aacLive(t){const l=$("aac-live");if(!l)return;l.textContent="";setTimeout(()=>{l.textContent=t},60)}
+function aacErr(t){const p=$("aac-err");p&&(p.textContent=t||"",p.hidden=!t)}
+/* A field's message sits right under it, marks it (aria-invalid, red border) and joins its description; typing clears it. */
+function aacFieldErr(el,t){if(!el)return;const p=$(el.id+"-err"),d=((t?el.id+"-err ":"")+(el.dataset.tip||"")).trim();
+  p&&(p.textContent=t||"",p.hidden=!t);t?el.setAttribute("aria-invalid","true"):el.removeAttribute("aria-invalid");
+  d?el.setAttribute("aria-describedby",d):el.removeAttribute("aria-describedby")}
+function aacBad(el,code){aacFieldErr(el,AAC_MSG[code]||AAC_MSG.error);el&&el.focus()}
+function aacDemoChanged(){cache.demoIds=null;cache._gwr=null;cache.cdPlays=null}
+function aacWaits(){const A=aacSt();return!!A.err&&AAC_WAIT.has(A.err)}
+function aacGoState(){const b=$("aac-go");b&&!aacSt().go&&(b.disabled=aacWaits())}
+function aacCntTxt(){const A=aacSt();return`${A.made} of ${A.max} made in the last 24 hours`}
+/* A password on screen that Copy password has not put on the clipboard yet: ask before it goes. */
+function aacUnsaved(){const o=adm.ac&&adm.ac.once;return!!(o&&!o.copied)}
+async function aacKeepOk(){return!aacUnsaved()||slConfirm({title:"The password is not copied yet",body:"It cannot be shown again. Without it you will have to reset the password.",ok:"Close it anyway",cancel:"Keep it on screen"})}
+function aacPane(){
+  const p=$("adm-pane");if(!p)return;const A=aacSt(),on=!!A.err&&AAC_NOTE.has(A.err);
+  p.innerHTML=`<div class="aac">
+    <p class="hint aac-intro">Accounts made here skip email confirmation. Use them for testing, demos and app reviewers.</p>
+    <div id="aac-note" class="banner warn aac-note" role="alert" tabindex="-1"${on?"":" hidden"}>${on?esc(AAC_MSG[A.err]):""}</div>
+    <div id="aac-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <section class="aac-new" aria-labelledby="aac-new-h"><h3 id="aac-new-h">New account</h3>
+      <div class="aac-grid">
+        <div class="aac-f"><label class="field"><span>Email</span><input type="email" id="aac-email" maxlength="254" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="email" aria-describedby="aac-email-tip" data-tip="aac-email-tip" oninput="aacFieldErr(this)"></label>
+          <p class="aac-ferr" id="aac-email-err" hidden></p><p class="hint aac-tip" id="aac-email-tip">Tip: seekersleague+review@gmail.com delivers to the project inbox.</p></div>
+        <div class="aac-f"><label class="field"><span>Display name</span><input id="aac-name" maxlength="40" autocomplete="off" oninput="aacFieldErr(this)"></label><p class="aac-ferr" id="aac-name-err" hidden></p></div>
+      </div>
+      <label class="rem-row aac-chk"><input type="checkbox" id="aac-demo" checked><span>Demo account (hidden from counters and Meta)</span></label>
+      <div class="aac-f"><label class="field"><span>Note (optional)</span><input id="aac-notein" maxlength="200" autocomplete="off" placeholder="e.g. Google Play review" oninput="aacFieldErr(this)"></label><p class="aac-ferr" id="aac-notein-err" hidden></p></div>
+      <p id="aac-err" class="aac-err" role="alert" hidden></p>
+      <div class="adm-acts"><button type="button" class="act" id="aac-go" onclick="aacCreate()"${aacWaits()?" disabled":""}>Create account</button></div>
+    </section>
+    <div id="aac-once">${aacOnceHtml()}</div>
+    <section aria-labelledby="aac-list-h"><h3 id="aac-list-h" tabindex="-1">Accounts made here</h3><p class="hint aac-cnt" id="aac-cnt"${A.items?"":" hidden"}>${aacCntTxt()}</p><div id="aac-list">${aacListHtml()}</div></section>
+  </div>`;
+  A.items||A.busy||aacLoad()}
+async function aacLoad(){
+  const A=aacSt();if(A.busy)return;A.busy=1;A.err=null;aacPaintList();
+  const r=await aacInvoke({action:"list"});A.busy=0;if(aacSt()!==A)return;
+  r.ok?(A.items=Array.isArray(r.data.accounts)?r.data.accounts:[],A.made=+r.data.made_24h||0,A.max=+r.data.max_24h||30):A.err=r.code;
+  aacPaintList()}
+function aacListHtml(){
+  const A=aacSt();
+  if(!A.items)return A.busy||!A.err?'<div class="empty"><span class="spinner"></span> Loading…</div>':`<div class="empty">${esc(AAC_LISTNOTE[A.err]||AAC_MSG[A.err]||AAC_MSG.error)} <button type="button" class="ghost" onclick="aacLoad()">Try again</button></div>`;
+  return A.items.length?`<div class="aac-list">${A.items.map(aacRow).join("")}</div>`:'<div class="empty">No accounts made here yet.</div>'}
+/* A row is named by its account; its buttons too ("Reset password for X", "Demo account for X", "Delete X"). A deleted
+   row or a site admin's has no buttons (the function refuses them); one that also signs in with Google or Discord has
+   no Reset password. */
+function aacRow(x){
+  const nm=x.display_name||"A Seeker",del=!!x.deleted_at,ad=!!x.is_admin,ol=!!x.other_login,id=String(x.user_id||""),hid="aac-nm-"+id.replace(/[^0-9a-z-]/gi,""),
+    acts=del||ad?"":`${ol?"":`<button type="button" class="ghost aac-rp" aria-label="Reset password for ${esc(nm)}" onclick="aacPw(${jsq(id)})">Reset password</button>`}<button type="button" class="ghost aac-dt" aria-pressed="${!!x.demo}" aria-label="Demo account for ${esc(nm)}" onclick="aacDemo(${jsq(id)})">Demo: ${x.demo?"on":"off"}</button><button type="button" class="ghost t-danger-b aac-del" aria-label="Delete ${esc(nm)}" onclick="aacDelete(${jsq(id)})">Delete</button>`;
+  return`<article class="fd-item aac-row${x.demo?" is-demo":""}${del?" is-del":""}" data-id="${esc(id)}" aria-labelledby="${hid}">
+    <div class="aac-top"><b class="aac-nm" id="${hid}">${esc(nm)}</b>${x.demo?'<span class="fd-tag aac-demo">Demo</span>':""}${del?'<span class="fd-tag k-bug">Deleted</span>':""}${ad?'<span class="fd-tag">Site admin</span>':""}${ol?'<span class="fd-tag">Google or Discord sign-in</span>':""}</div>
+    <div class="aac-em">${x.email?esc(x.email):del?"Email removed with the account":""}</div>
+    <div class="adm-meta"><span>Created ${esc(fdWhen(x.created_at))}${x.created_by_name?" by "+esc(x.created_by_name):""}</span>${del?"":`<span>${x.last_sign_in_at?"Last sign-in "+esc(cbAgo(x.last_sign_in_at)):"Never signed in"}</span>`}</div>
+    ${x.note?`<p class="aac-nt">${esc(x.note)}</p>`:""}${del&&x.demo?'<p class="hint aac-dh">Its past games stay out of the counters and the Meta.</p>':""}${ad&&!del?'<p class="hint aac-dh">Site admin accounts are not changed here.</p>':""}
+    ${acts?`<div class="adm-acts">${acts}</div>`:""}
+  </article>`}
+function aacPaintList(){
+  if(!aacIn())return;const A=aacSt(),n=$("aac-note"),on=!!A.err&&AAC_NOTE.has(A.err),c=$("aac-cnt");
+  n&&(n.hidden=!on,n.textContent=on?AAC_MSG[A.err]:"");
+  c&&(c.hidden=!A.items,c.textContent=aacCntTxt());
+  $("aac-list").innerHTML=aacListHtml();aacGoState()}
+function aacOnceHtml(){
+  const o=aacSt().once;if(!o)return"";
+  return`<section class="aac-once" aria-labelledby="aac-once-h"><h3 id="aac-once-h" tabindex="-1">${"reset"===o.kind?"New password for "+esc(o.name):"Account created"}</h3>
+    ${"reset"===o.kind?`<p class="aac-sub">${o.out?"Signed out everywhere: the old password no longer works.":"The old password no longer works. Sessions already open could not be signed out: delete the account to cut them off."}</p>`:""}
+    <dl class="aac-kv"><div><dt>Email</dt><dd><code class="aac-v">${esc(o.email)}</code><button type="button" class="ghost aac-cp" aria-label="Copy email" onclick="aacCopy('email',this)">Copy</button></dd></div>
+    <div><dt>Password</dt><dd><code class="aac-v aac-pw" id="aac-pw">${esc(o.password)}</code><button type="button" class="ghost aac-cp" aria-label="Copy password" onclick="aacCopy('password',this)">Copy</button></dd></div></dl>
+    <p class="aac-warn">This password is shown only now.</p>
+    <div class="adm-acts"><button type="button" class="act" onclick="aacDone()">Done</button></div></section>`}
+/* The whole panel in view (on a wide screen it would start at the bottom edge), then focus on its heading. */
+function aacPaintOnce(){const o=$("aac-once");o&&(o.innerHTML=aacOnceHtml());const s=o&&o.firstElementChild,h=$("aac-once-h");try{s&&s.scrollIntoView({block:"nearest"})}catch(e){}h&&h.focus({preventScroll:!0})}
+async function aacDone(){if(!await aacKeepOk())return;aacReset();const h=$("aac-list-h");h&&h.focus()}
+async function aacCopy(k,b){
+  const o=aacSt().once;if(!o||!b)return;const v="email"===k?o.email:o.password;let ok=!1;
+  try{await navigator.clipboard.writeText(v);ok=!0}catch(e){}
+  if(!ok){const c=b.previousElementSibling;try{const r=document.createRange();r.selectNodeContents(c);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
+  ok&&"password"===k&&(o.copied=!0);
+  let tc=!1;try{tc=matchMedia("(pointer:coarse)").matches}catch(e){}
+  b.textContent=ok?"Copied":"Selected";aacLive(ok?("email"===k?"Email copied":"Password copied"):tc?"Selected: long-press it to copy":"Selected: press Ctrl+C to copy it");
+  clearTimeout(b._t);b._t=setTimeout(()=>{b.isConnected&&(b.textContent="Copy")},2e3)}
+function aacFocus(id,cls){const r=[...document.querySelectorAll("#aac-list .aac-row")].find(a=>a.dataset.id===id),b=r&&(r.querySelector(cls)||r.querySelector("button")),h=$("aac-list-h");b?b.focus():h&&h.focus()}
+/* A row action that failed: the toast (a status region) says it once. */
+function aacFail(code,id,cls){
+  const A=aacSt(),t=AAC_MSG[code]||AAC_MSG.error;AAC_NOTE.has(code)&&(A.err=code,aacPaintList());toast(t);id&&aacFocus(id,cls)}
+async function aacCreate(){
+  const A=aacSt();if(A.go)return;
+  const em=$("aac-email"),ni=$("aac-name"),dm=$("aac-demo"),nt=$("aac-notein");if(!em||!ni)return;
+  const e=em.value.trim().toLowerCase(),n=ni.value.trim(),note=(nt&&nt.value||"").trim(),demo=!dm||dm.checked;
+  [em,ni,nt].forEach(x=>aacFieldErr(x));aacErr("");
+  if(e.length>254||!AAC_EMAIL.test(e))return aacBad(em,"bad_email");
+  const nl=[...n].length;if(nl<1||nl>40)return aacBad(ni,"bad_name");
+  if([...note].length>200)return aacBad(nt,"bad_note");
+  if(aacWaits())return aacErr(AAC_MSG[A.err]);
+  A.go=1;if(!await aacKeepOk()||aacSt()!==A||!aacIn())return void(A.go=0);
+  const b=$("aac-go");b&&(b.disabled=!0,b.textContent="Creating…");
+  const r=await aacInvoke({action:"create",email:e,display_name:n,demo,note:note||null});
+  A.go=0;const b2=$("aac-go");b2&&(b2.disabled=!1,b2.textContent="Create account");
+  if(aacSt()!==A||!aacIn())return;
+  if(!r.ok){
+    if(AAC_NOTE.has(r.code)){A.err=r.code;aacPaintList();aacErr(AAC_MSG[r.code]);const f=b2&&!b2.disabled?b2:$("aac-note");return void(f&&f.focus())}
+    const f={bad_email:em,email_taken:em,bad_name:ni,bad_note:nt}[r.code];return f?aacBad(f,r.code):(aacErr(AAC_MSG[r.code]||AAC_MSG.error),void(b2&&b2.focus()))}
+  const d=r.data,x=d.account&&"object"==typeof d.account?d.account:{user_id:d.user_id,email:d.email,display_name:n,demo,note:note||null,created_at:new Date().toISOString()};
+  x.created_by_name=x.created_by_name||me&&me.display_name||null;
+  A.err=null;A.made++;A.items=[x].concat((A.items||[]).filter(y=>y.user_id!==x.user_id));
+  A.once={kind:"new",email:String(d.email||e),name:n,password:String(d.password||"")};
+  em.value="";ni.value="";nt&&(nt.value="");dm&&(dm.checked=!0);
+  demo&&aacDemoChanged();aacPaintList();aacPaintOnce();aacLive("Account created. The password is shown below, only once.")}
+async function aacPw(id){
+  const A=aacSt(),x=(A.items||[]).find(y=>y.user_id===id);if(!x||A.act)return;const nm=x.display_name||"this account";
+  if(!await aacKeepOk())return aacFocus(id,".aac-rp");
+  if(!await slConfirm({title:`Reset the password of ${nm}?`,body:"The old password stops working and the account is signed out everywhere. The new password is shown once.",ok:"Reset password"}))return aacFocus(id,".aac-rp");
+  A.act=id;const r=await aacInvoke({action:"reset_password",user_id:id});A.act="";if(aacSt()!==A||!aacIn())return;
+  if(!r.ok)return aacFail(r.code,id,".aac-rp");
+  A.once={kind:"reset",email:String(x.email||""),name:nm,password:String(r.data.password||""),out:!0===r.data.signed_out};aacPaintOnce();aacLive(`New password for ${nm}. It is shown below, only once.`)}
+async function aacDemo(id){
+  const A=aacSt(),x=(A.items||[]).find(y=>y.user_id===id);if(!x||A.act)return;
+  A.act=id;const r=await aacInvoke({action:"set_demo",user_id:id,demo:!x.demo});A.act="";if(aacSt()!==A||!aacIn())return;
+  if(!r.ok)return aacFail(r.code,id,".aac-dt");
+  const nm=x.display_name||"this account";x.demo=!0===r.data.demo;aacDemoChanged();aacPaintList();aacFocus(id,".aac-dt");
+  x.demo?aacLive(`Demo on for ${nm}: hidden from the counters and the Meta`):toast(`Demo off: ${nm}'s games now count in the counters and the Meta`,!0,5e3)}
+async function aacDelete(id){
+  const A=aacSt(),x=(A.items||[]).find(y=>y.user_id===id);if(!x||A.act)return;const nm=x.display_name||"this account";
+  if(!await slConfirm({title:`Delete ${nm}'s account?`,body:`${x.email?x.email+"\n\n":""}This cannot be undone. The login is removed and the account is erased the same way as when a player deletes their own account: profile details, collection, private decks and feedback go; results stay under "Deleted player".`,ok:"Delete account",danger:!0}))return aacFocus(id,".aac-del");
+  A.act=id;const r=await aacInvoke({action:"delete",user_id:id});A.act="";if(aacSt()!==A||!aacIn())return;
+  if(!r.ok)return aacFail(r.code,id,".aac-del");
+  x.deleted_at=r.data.deleted_at||new Date().toISOString();x.display_name="Deleted player";x.email=null;x.note=null;aacDemoChanged();aacPaintList();
+  const h=$("aac-list-h");h&&h.focus();aacLive(`${nm} deleted`)}
+/* Leaving Admin drops a password that was copied; one not copied yet leaves the page but stays in memory for when you
+   come back (a toast says so).
+   Closing or reloading the page with it on screen asks first. */
+{const rc=window.renderChrome;"function"==typeof rc&&(window.renderChrome=function(){const v=rc.apply(this,arguments);try{const o=adm.ac&&adm.ac.once;"admin"!==route.view&&o&&(o.copied?aacReset():(o.told||(o.told=1,toast("The new password stays in Admin > Accounts until you press Done",!0,6e3)),$("aac-once")&&($("aac-once").innerHTML="")))}catch(e){}return v})}
+window.addEventListener("beforeunload",e=>{try{aacUnsaved()&&(e.preventDefault(),e.returnValue="")}catch(x){}});
 function admSeg(label,cur,opts,fn){return`<div class="seg adm-seg" role="group" aria-label="${label}">${opts.map(([k,l])=>`<button type="button" class="seg-b${cur===k?" on":""}" aria-pressed="${cur===k}" onclick="${fn}(${jsq(k)})">${l}</button>`).join("")}</div>`}
 function admFilt(w,v){"st"===w&&("all"===v||FD_ST[v])&&(adm.st=v);"kind"===w&&("all"===v||FD_K[v])&&(adm.kind=v);const fs=slFocusSig();admReports();slFocusBack(fs)}
 function admSt(v){admFilt("st",v)}
@@ -10575,13 +10792,13 @@ async function renderDeckPage(){
 /* Only the leagues this reader is allowed to see count, so the record a visitor
    is shown is the record they could have worked out by reading those leagues. */
 async function deckRecord(e){if(!DECK_ID_RE.test(e||""))return null;
-  const[n0,s]=await Promise.all([slPaged(()=>sb.from("matches").select("winner_deck_id,loser_deck_id,winner_seeker,loser_seeker,confirmed,tournament_id").or(`winner_deck_id.eq.${e},loser_deck_id.eq.${e}`).order("id")),fetchAllTourneys()]),n={...n0,data:(n0.data||[]).filter(m=>slCounts(m)&&!m.tournament_id)};
+  const[n0,s,D]=await Promise.all([slPaged(()=>sb.from("matches").select("winner_deck_id,loser_deck_id,winner_seeker,loser_seeker,confirmed,tournament_id,winner_id,loser_id").or(`winner_deck_id.eq.${e},loser_deck_id.eq.${e}`).order("id")),fetchAllTourneys(),slDemoIds()]),n={...n0,data:slNoDemo((n0.data||[]).filter(m=>slCounts(m)&&!m.tournament_id),D)};
   /* Each game is also kept against the Seeker on the other side of the table,
      for the deck page's matchup table. Same games as the record above it. */
   const r=[],vs={},add=(w,o)=>{r.push(w);const k=normName(o||""),v=vs[k]=vs[k]||{sk:o||"",w:0,l:0};w?v.w++:v.l++};
   (n.error?[]:n.data||[]).forEach(n=>{n.winner_deck_id===e?add(!0,n.loser_seeker):add(!1,n.winner_seeker)});let t=0;
   (s||[]).forEach(n=>{if(!((n.payload||{}).entrants||[]).some(n=>n.deckId===e))return;t++;
-    tvSynthMatches(n).forEach(n=>{n.winner_deck_id===e?add(!0,n.loser_seeker):n.loser_deck_id===e&&add(!1,n.winner_seeker)})});
+    slNoDemo(tvSynthMatches(n),D).forEach(n=>{n.winner_deck_id===e?add(!0,n.loser_seeker):n.loser_deck_id===e&&add(!1,n.winner_seeker)})});
   const a=r.filter(Boolean).length;return{w:a,l:r.length-a,t:t,vs:Object.values(vs).sort((a,b)=>b.w+b.l-(a.w+a.l)||b.w-a.w||(a.sk||"~").localeCompare(b.sk||"~"))}}
 /* The deck's record against each Seeker it has met, most games first. */
 function deckVsHtml(rec){if(!rec)return"";const v=rec.vs||[];
@@ -10608,7 +10825,7 @@ function tvSynthMatches(t){
   const sid="tv:"+t.id,out=[],uid=k=>v3&&!t3IdOk(k)?null:k,skip=m=>v3&&!!(m.du||"drop"===m.src||"bye"===m.src||"draw"===m.w||null==m.b),
     row=(w,l)=>{const W=ent[w]||{},L=ent[l]||{};
       out.push({id:sid+":"+out.length,session_id:sid,league_id:t.league_id,created_at:t.created_at,
-        winner_id:uid(w),loser_id:uid(l),
+        winner_id:uid(w),loser_id:uid(l),winner_key:w,loser_key:l,
         winner_seeker:W.seeker||null,loser_seeker:L.seeker||null,
         winner_terrain:W.terrain||null,loser_terrain:L.terrain||null,
         winner_decklist:null,loser_decklist:null,
@@ -10715,16 +10932,16 @@ function cdCardPick(i){const c=CARDS[i];if(!c)return;window._cdCard=c.n;const e=
 function cdFilterOn(){return!!(window._cdValid||me&&window._cdBuild||cdCardKeys())}
 function cdBuildable(d){if(!d.cards)return!1;const all={};[d.cards,d.side||{}].forEach(o=>Object.keys(o).forEach(k=>all[k]=(all[k]||0)+(+o[k]||0)));return Object.keys(all).every(k=>all[k]<=0||ownedCopies(k)>=all[k])}
 function cdKeep(d,k){if(window._cdValid&&!(deckLegal(d)||{}).ok)return!1;if(me&&window._cdBuild&&!cdBuildable(d))return!1;return!k||k.some(n=>(d.cards||{})[n]>0||(d.side||{})[n]>0)}
-function cdCopies(){const p=cache.pubDecks||[];if(cdCopies._p===p)return cdCopies._v;/* Only the first credit line names the deck this one was copied from, and a
+function cdCopies(){const p=cache.pubDecks||[],D=cache.demoIds||null;if(cdCopies._p===p&&cdCopies._d===D)return cdCopies._v;/* Only the first credit line names the deck this one was copied from, and a
    player counts once per original however many copies they keep public; a
    copy of your own deck, or a deck crediting itself, does not count. */
-const own={},by={};p.forEach(d=>{own[d.id]=d.user_id});p.forEach(d=>{const x=deckCredits(d.description).cr[0];if(!x)return;const o=x[3];if(o===d.id||null!=own[o]&&own[o]===d.user_id)return;(by[o]=by[o]||new Set).add(d.user_id||d.id)});const m={};Object.keys(by).forEach(k=>{m[k]=by[k].size});cdCopies._p=p;return cdCopies._v=m}
+const own={},by={};p.forEach(d=>{own[d.id]=d.user_id});p.forEach(d=>{const x=deckCredits(d.description).cr[0];if(!x)return;const o=x[3];if(o===d.id||null!=own[o]&&own[o]===d.user_id)return;if(D&&D.has(d.user_id))return;(by[o]=by[o]||new Set).add(d.user_id||d.id)});const m={};Object.keys(by).forEach(k=>{m[k]=by[k].size});cdCopies._p=p;cdCopies._d=D;return cdCopies._v=m}
 function cdPop(d){return((cache.cdPlays||{})[d.id]||0)+(cdCopies()[d.id]||0)}
 function cdCmp(){const so=window._cdSort||"new",nw=(e,n)=>(n.created_at||"").localeCompare(e.created_at||"");
   return"name"===so?(e,n)=>(e.name||"").localeCompare(n.name||"",void 0,{sensitivity:"base"})||nw(e,n):"pop"===so?(e,n)=>cdPop(n)-cdPop(e)||nw(e,n):(e,n)=>isPrecon(e)!==isPrecon(n)?isPrecon(e)?-1:1:nw(e,n)}
 function cdPopNote(d){if("pop"!==window._cdSort||!cache.cdPlays)return"";const g=cache.cdPlays[d.id]||0,c=cdCopies()[d.id]||0;return g||c?` · ${g?g+" "+(1===g?"game":"games"):""}${g&&c?", ":""}${c?c+" "+(1===c?"copy":"copies"):""}`:""}
 async function cdSortSet(v){window._cdSort=v;paintCDecks();"pop"!==v||cache.cdPlays||(await cdPlaysLoad(),"cdecks"===route.view&&cdPaintList())}
-async function cdPlaysLoad(){if(cache.cdPlays)return;const[m,t]=await Promise.all([slPaged(()=>sb.from("matches").select("winner_deck_id,loser_deck_id,confirmed,tournament_id").or("winner_deck_id.not.is.null,loser_deck_id.not.is.null").order("id")).then(r=>({...r,data:(r.data||[]).filter(m=>slCounts(m)&&!m.tournament_id)})),fetchAllTourneys()]),p={},add=x=>{x.winner_deck_id&&(p[x.winner_deck_id]=(p[x.winner_deck_id]||0)+1);x.loser_deck_id&&x.loser_deck_id!==x.winner_deck_id&&(p[x.loser_deck_id]=(p[x.loser_deck_id]||0)+1)};(m.error?[]:m.data||[]).forEach(add);tvAllSynth(t).forEach(add);cache.cdPlays=p}
+async function cdPlaysLoad(){if(cache.cdPlays)return;const[m,t,D]=await Promise.all([slPaged(()=>sb.from("matches").select("winner_deck_id,loser_deck_id,confirmed,tournament_id,winner_id,loser_id").or("winner_deck_id.not.is.null,loser_deck_id.not.is.null").order("id")).then(r=>({...r,data:(r.data||[]).filter(m=>slCounts(m)&&!m.tournament_id)})),fetchAllTourneys(),slDemoIds()]),p={},add=x=>{x.winner_deck_id&&(p[x.winner_deck_id]=(p[x.winner_deck_id]||0)+1);x.loser_deck_id&&x.loser_deck_id!==x.winner_deck_id&&(p[x.loser_deck_id]=(p[x.loser_deck_id]||0)+1)};slNoDemo(m.error?[]:m.data||[],D).forEach(add);slNoDemo(tvAllSynth(t),D).forEach(add);cache.cdPlays=p}
 async function cdColLoad(){if(!me||cache.collection)return;const{data:e,error:n}=await sb.from("collection").select("*").eq("user_id",me.id);if(n)return;cache.collection={},(e||[]).forEach(e=>cache.collection[e.card_key]=colNorm(e))}
 async function cdBuildTog(){if(!me)return go("auth");window._cdBuild=!window._cdBuild;if(window._cdBuild&&(await cdColLoad(),!cache.collection)){window._cdBuild=!1;toast("Could not load your collection. Check your connection and try again.")}paintCDecks()}
 function paintCDecks(){const e=$("cdecks-body");if(!e)return;e.innerHTML=`<div class="panel plain">\n    <h2 style="margin:0 0 14px">Public decks</h2>\n    <input type="search" id="cd-q" placeholder="Search deck, player or Seeker…" value="${esc(window._cdQ||"")}" style="margin-bottom:10px"\n      oninput="window._cdQ=this.value;cdPaintList()">\n    <div class="frow" style="display:flex;flex-direction:row;gap:8px;flex-wrap:wrap;margin:0 0 6px">\n      <select class="tr-pick" style="flex:1 1 0;min-width:150px;width:auto" onchange="window._cdSk=this.value;paintCDecks()">\n        <option value="">Seeker: all</option>\n        ${seekerList().map(e=>`<option value="${esc(e.n)}" ${normName(window._cdSk||"")===normName(e.n)?"selected":""}>${esc(e.n.split(",")[0])}</option>`).join("")}\n      </select>\n      <select class="tr-pick" style="flex:1 1 0;min-width:130px;width:auto" onchange="window._cdTag=this.value;paintCDecks()">\n        <option value="">Tag: all</option>\n        ${Object.keys(DTAGS).map(e=>`<option value="${e}" ${(window._cdTag||"")===e?"selected":""}>${DTAGS[e]}</option>`).join("")}\n      </select>\n    </div>\n    ${cdToolsHtml()}\n    <div id="cd-list"></div>\n  </div>`,cdPaintList()}function cdPaintList(){const e=$("cd-list");if(!e)return;const n=(window._cdQ||"").toLowerCase(),t=window._cdSk||"",a=window._cdTag||"",s=e=>(cache.profNames||{})[e]||"a Seeker",ck=cdCardKeys(),cf=cdFilterOn(),i=(cache.pubDecks||[]).filter(e=>!(t&&normName(e.seeker||"")!==normName(t)||a&&e.tag!==a||n&&!((e.name||"").toLowerCase().includes(n)||s(e.user_id).toLowerCase().includes(n)||(e.seeker||"").toLowerCase().includes(n)))).filter(e=>cdKeep(e,ck)).sort(cdCmp());e.innerHTML=`${cdCardNote(ck)}${me&&window._cdBuild&&!bldOwnedCount()?`<div class="hint cd-note">Nothing is marked as owned yet. <button type="button" class="link tap" onclick="go('collection')">Mark your cards in Collection</button></div>`:""}<div class="col-count">${i.length} ${1===i.length?"deck":"decks"}${"pop"===window._cdSort?cache.cdPlays?" · most played first":' · <span class="spinner"></span> counting games…':""}</div>\n    ${i.length?i.map(e=>{const n=seekerByNorm(normName(e.seeker||"")),t=e.cards?deckMainCount(e.cards):0,a=window._cdOpen===e.id;return`<div class="sk-row${a?" open":""}" onclick="cdOpen(${jsq(e.id)})" role="button" tabindex="0"\n        onkeydown="if(event.key==='Enter')cdOpen(${jsq(e.id)})">\n        <div class="sk-ic">${n&&n.f?fBadges(n.f):""}</div>\n        <div class="sk-main"><div class="sk-name plainname">${esc(e.name)}\n          ${e.tag?`<span class="dk-tag t-${e.tag}">${DTAGS[e.tag]||esc(e.tag)}</span>`:""}${dkPnBadge(e)}</div>\n          <div class="sk-sub">by ${esc(s(e.user_id))}${e.seeker?` · ${esc(e.seeker)}`:""}${t?` · ${t} cards`:""}${cdPopNote(e)}</div></div>\n        <div class="dk-act cd-more"><button class="dk-kebab" aria-label="Deck options" aria-haspopup="menu" onclick="event.stopPropagation();const m=this.nextElementSibling;document.querySelectorAll('.dk-menu.open').forEach(x=>{if(x!==m)x.classList.remove('open')});m.classList.toggle('open')">⋮</button>\n        <div class="dk-menu" onclick="event.stopPropagation();this.classList.remove('open')">\n          ${me?`<button class="dk-mi" onclick="deckAdopt(${jsq(e.id)})">⧉ Make a personal copy</button>`:""}\n          <button class="dk-mi" onclick="deckShare(${jsq(e.id)})">Share</button>\n          <button class="dk-mi" onclick="deckCopyList(${jsq(e.id)})">Copy list</button>\n          <button class="dk-mi" onclick="go('deck',{deckId:${jsq(e.id)}})">Open page</button>\n          ${e.cards?`<button class="dk-mi" onclick="dkPick('pub',${jsq(e.id)});dkExportList()">Download list</button>\n          <button class="dk-mi" onclick="dkPick('pub',${jsq(e.id)});dkExportProxies()">Print proxies…</button>`:""}\n          ${safeUrl(e.url)?`<a class="dk-mi" href="${esc(safeUrl(e.url))}" target="_blank" rel="noopener noreferrer">Official builder ↗</a>`:""}\n        </div></div>\n        <span class="sk-go">${a?"⌄":"›"}</span>\n      </div>${a?'<div class="dk-drop">'+deckPanel(e,{mine:!1,close:`cdOpen(${jsq(e.id)})`,rerender:"paintCDecks()"})+"</div>":""}`}).join(""):`<div class="empty">No public decks${n||t||a||cf?" match these filters":" yet — be the first to share one"}.</div>`}`}/* My decks: one deck open at a time. Opening another closes the first and
