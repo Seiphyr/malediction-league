@@ -17429,3 +17429,383 @@ select
     where m.league_id = l.id and m.dropped_at is null) as roster_count
 from leagues l
 where l.is_public;
+
+-- ============================================================
+--  MESSAGE EDIT + ALPHA ICON (2026-11-30)
+-- ============================================================
+-- Run as migration-2026-11-30-edit-alpha.sql (after 11-28 and 11-29).
+-- What changes:
+--   * community_messages.edited_at and announcements.edited_at (new, null = never
+--     edited): when the text was last changed. created_at never moves, so the New
+--     marks and the counts of what is new are not raised again by an edit.
+--   * edit_board_message(id, body) and edit_notice(id, body) (new, security
+--     definer, for signed-in accounts): the only way to change a text. Only its
+--     author, and only the text: nothing else of the row can change.
+--       - a board message: its author, still an active member (or the creator)
+--         of a community that is not archived, not blocked from that board;
+--       - a notice: its author, still allowed to post it (the site admin for a
+--         notice for everyone, an organizer or the creator of that community),
+--         the notice not expired, the community not archived.
+--     Organizers and the site admin cannot edit other people's texts (they still
+--     delete them and block players). A deleted account or a guest cannot edit
+--     (hints deleted / sign_in). The text is trimmed as a new message is
+--     (trim_blank) and must be 1 to 1000 characters (hint bad_body, 23514). The
+--     same text again changes nothing (same = true). A brake of its own (not the
+--     posting one): 10 edits a minute and 60 an hour per account (hint
+--     edit_limited), counted in message_edits (new, service role only, kept an
+--     hour). Answers {ok, id, body, edited_at, same}.
+--   * No notification: no trigger runs on an update of community_messages, and
+--     push_nt_ins stays AFTER INSERT on announcements. A new community notice's
+--     push is sent a minute after posting: an edit inside that minute puts the
+--     new text in the push still waiting (push_outbox, kind nt_new, not sent).
+--   * stamp_announcement(): as before (an update keeps created_at), and a new
+--     notice never starts as edited (edited_at cleared on insert).
+--   * The site loses its unused UPDATE grant on announcements (there was no
+--     update policy, so it could not update anything; set_notice_pinned and
+--     edit_notice are security definer).
+--   * board_reports_list(): as in BOARD MODERATION (2026-11-27), but body is the
+--     copy kept by the FIRST report (the text as it was first reported; of the
+--     reports still open, when some are), and each item also has edited_at and,
+--     when the message was edited after that report, cur_body (the text as it is
+--     now). The copies themselves (board_reports.body) never change.
+--   * board_report(): a member whose report of a message was closed (dismissed,
+--     or the message kept) can report it again once its author has edited it
+--     since: the new report keeps the new text and the organizers are told as
+--     for any report. Still one open report per message per reporter (the index
+--     uq_board_reports_open replaces uq_board_reports_once) and the same report
+--     brakes (10 an hour, 30 a day). Unchanged since that report: already = true.
+--   * The Alpha icon: profiles.avatar may also be 'A'. is_alpha(uuid) (new):
+--     an account made before 2026-11-14 00:00 in Rome (2026-11-13 23:00 UTC,
+--     auth.users.created_at, which only the login service writes; not
+--     profiles.created_at, which a player can change on their own row), not a
+--     guest, or a site admin; never a deleted account. The trigger
+--     profile_avatar_alpha (new, BEFORE INSERT OR UPDATE OF avatar) refuses 'A'
+--     from the site for anyone else (42501, hint not_alpha). Accounts made later
+--     (also from Admin > Accounts) are not alpha. Nobody's icon changes by
+--     itself; a deleted account still goes back to the default image
+--     (profile_avatar_tombstone).
+
+-- 1. edited_at ---------------------------------------------------------------------------------
+alter table public.community_messages add column if not exists edited_at timestamptz;
+alter table public.announcements add column if not exists edited_at timestamptz;
+comment on column public.community_messages.edited_at is
+  'When its author last changed the text (edit_board_message); null = never edited (2026-11-30).';
+comment on column public.announcements.edited_at is
+  'When its author last changed the text (edit_notice); null = never edited (2026-11-30).';
+
+-- stamp_announcement(): as in SECURITY HARDENING, plus edited_at cleared on insert.
+create or replace function public.stamp_announcement()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_at := now();
+    new.edited_at := null;
+    if current_user in ('authenticated', 'anon') and new.league_id is not null then
+      perform check_notice_quota(new.league_id);
+    end if;
+  else
+    new.created_at := old.created_at;
+  end if;
+  return new;
+end $$;
+
+-- The site never updates a notice directly (no update policy since SECURITY HARDENING).
+revoke update on public.announcements from anon, authenticated;
+
+-- 2. The edit brake ------------------------------------------------------------------------------
+create table if not exists public.message_edits (
+  author_id uuid not null references public.profiles(id) on delete cascade,
+  at        timestamptz not null default now()
+);
+create index if not exists idx_message_edits_author on public.message_edits (author_id, at);
+alter table public.message_edits enable row level security;
+revoke all on public.message_edits from public, anon, authenticated;
+grant all on public.message_edits to service_role;
+
+-- message_edit_brake(uid): one edit at a time per account, 10 a minute, 60 an hour.
+create or replace function public.message_edit_brake(p_uid uuid)
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('message_edit'), hashtext(p_uid::text));
+  delete from message_edits e where e.author_id = p_uid and e.at <= now() - interval '1 hour';
+  if (select count(*) from message_edits e where e.author_id = p_uid and e.at > now() - interval '1 minute') >= 10 then
+    raise exception 'You edited 10 times in the last minute. Wait a moment and try again.'
+      using errcode = 'P0001', hint = 'edit_limited';
+  end if;
+  if (select count(*) from message_edits e where e.author_id = p_uid and e.at > now() - interval '1 hour') >= 60 then
+    raise exception 'You edited 60 times in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'edit_limited';
+  end if;
+  insert into message_edits(author_id, at) values (p_uid, now());
+end $$;
+
+-- 3. edit_board_message -------------------------------------------------------------------------
+create or replace function public.edit_board_message(p_id uuid, p_body text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  m     community_messages%rowtype;
+  v     text := trim_blank(coalesce(p_body, ''));
+  v_at  timestamptz;
+begin
+  select * into m from community_messages x where x.id = p_id for update;
+  if not found then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if m.author_id is distinct from v_uid then
+    raise exception 'Only its author can edit a message' using errcode = '42501', hint = 'not_author';
+  end if;
+  if not (is_active_member(m.league_id) or is_league_owner(m.league_id)) then
+    raise exception 'Only the members of this community can write on its board'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = m.league_id and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if exists (select 1 from board_blocks b where b.league_id = m.league_id and b.user_id = v_uid)
+     and not board_is_org(m.league_id, v_uid) then
+    raise exception 'You can''t write on this board right now' using errcode = '42501', hint = 'blocked';
+  end if;
+  if char_length(v) < 1 or char_length(v) > 1000 then
+    raise exception 'A message needs some text, up to 1000 characters' using errcode = '23514', hint = 'bad_body';
+  end if;
+  if v = m.body then
+    return jsonb_build_object('ok', true, 'id', m.id, 'body', m.body, 'edited_at', m.edited_at, 'same', true);
+  end if;
+  perform message_edit_brake(v_uid);
+  update community_messages c set body = v, edited_at = now() where c.id = p_id returning c.edited_at into v_at;
+  return jsonb_build_object('ok', true, 'id', p_id, 'body', v, 'edited_at', v_at, 'same', false);
+end $$;
+
+-- 4. edit_notice --------------------------------------------------------------------------------
+create or replace function public.edit_notice(p_id uuid, p_body text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  a     announcements%rowtype;
+  v     text := trim_blank(coalesce(p_body, ''));
+  v_at  timestamptz;
+  v_b   text;
+begin
+  select * into a from announcements x where x.id = p_id for update;
+  if not found or (a.expires_at is not null and a.expires_at <= now()) then
+    raise exception 'This notice is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if a.author_id is distinct from v_uid then
+    raise exception 'Only its author can edit a notice' using errcode = '42501', hint = 'not_author';
+  end if;
+  if not (case when a.league_id is null then is_site_admin() else is_league_admin(a.league_id) end) then
+    raise exception 'Only the organizers can edit their notices here' using errcode = '42501', hint = 'not_mod';
+  end if;
+  if a.league_id is not null
+     and exists (select 1 from leagues l where l.id = a.league_id and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if char_length(v) < 1 or char_length(v) > 1000 then
+    raise exception 'A notice needs some text, up to 1000 characters' using errcode = '23514', hint = 'bad_body';
+  end if;
+  if v = a.body then
+    return jsonb_build_object('ok', true, 'id', a.id, 'body', a.body, 'edited_at', a.edited_at, 'same', true);
+  end if;
+  perform message_edit_brake(v_uid);
+  update announcements x set body = v, edited_at = now() where x.id = p_id returning x.edited_at into v_at;
+  -- The new-notice push still waiting (sent a minute after posting) gets the new text, as push_nt_ins words it.
+  if a.league_id is not null then
+    v_b := coalesce(nullif(notice_plain(v), ''), 'Open the board to read it.');
+    v_b := case when char_length(v_b) > 100 then rtrim(left(v_b, 100)) || '…' else v_b end;
+    update push_outbox o set body = v_b
+     where o.kind = 'nt_new' and o.sent_at is null and o.data->>'aid' = p_id::text;
+  end if;
+  return jsonb_build_object('ok', true, 'id', p_id, 'body', v, 'edited_at', v_at, 'same', false);
+end $$;
+
+-- 5. board_reports_list: the first copy, and the current text when edited after it -------------
+create or replace function public.board_reports_list(p_league uuid default null, p_status text default 'open',
+                                                     p_limit int default 50)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid   uuid := board_me();
+  v_lim   int := least(greatest(coalesce(p_limit, 50), 0), 100);
+  v_open  int;
+  v_items jsonb;
+begin
+  if not (case when p_league is null then is_site_admin() else is_league_admin(p_league) or is_site_admin() end) then
+    raise exception 'Only the organizers of this community can see its reports'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  if p_status is null or p_status not in ('open', 'closed', 'all') then
+    raise exception 'Unknown list' using errcode = '22023', hint = 'bad_status';
+  end if;
+  select count(distinct r.message_id) into v_open from board_reports r
+   where (p_league is null or r.league_id = p_league) and r.status = 'open'
+     and r.author_id is distinct from v_uid;
+  with g as (
+    select r.message_id, r.league_id,
+           bool_or(r.status = 'open') as is_open,
+           min(r.created_at) as first_at, max(r.created_at) as last_at,
+           max(r.resolved_at) as last_res
+      from board_reports r
+     where (p_league is null or r.league_id = p_league)
+       and r.author_id is distinct from v_uid
+     group by r.message_id, r.league_id
+  ), s as (
+    select g.* from g
+     where (case p_status when 'open' then g.is_open
+                          when 'closed' then not g.is_open and g.last_res > now() - interval '30 days'
+                          else true end)
+     order by g.last_at desc
+     limit v_lim
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'message_id', s.message_id, 'league_id', s.league_id, 'league_name', l.name,
+           'author_id', a.author_id, 'author_name', pa.display_name,
+           'author_org', board_is_org(s.league_id, a.author_id),
+           'author_blocked', a.author_id is not null
+                             and exists (select 1 from board_blocks b where b.league_id = s.league_id and b.user_id = a.author_id)
+                             and not board_is_org(s.league_id, a.author_id),
+           'message_exists', c.id is not null,
+           'body', a.body, 'first_at', s.first_at, 'last_at', s.last_at,
+           'edited_at', c.edited_at,
+           'cur_body', case when c.edited_at > a.body_at then c.body end,
+           'status', case when s.is_open then 'open' else a.last_status end,
+           'reports', a.reports) order by s.last_at desc), '[]'::jsonb)
+    into v_items
+    from s
+    join leagues l on l.id = s.league_id
+    cross join lateral (
+      select (array_agg(r.author_id order by r.created_at desc))[1] as author_id,
+             (array_agg(r.body order by r.created_at) filter (where r.status = 'open' or not s.is_open))[1] as body,
+             min(r.created_at) filter (where r.status = 'open' or not s.is_open) as body_at,
+             (array_agg(r.status order by r.resolved_at desc nulls last))[1] as last_status,
+             jsonb_agg(jsonb_build_object(
+               'id', r.id, 'reporter_id', r.reporter_id, 'reporter_name', pr.display_name,
+               'reason', r.reason, 'note', r.note, 'created_at', r.created_at, 'status', r.status,
+               'resolved_at', r.resolved_at, 'resolved_by_name', pv.display_name) order by r.created_at desc) as reports
+        from board_reports r
+        left join profiles pr on pr.id = r.reporter_id
+        left join profiles pv on pv.id = r.resolved_by
+       where r.message_id = s.message_id and r.league_id = s.league_id
+    ) a
+    left join profiles pa on pa.id = a.author_id
+    left join community_messages c on c.id = s.message_id;
+  return jsonb_build_object('open', v_open, 'items', v_items);
+end $$;
+
+-- 5b. board_report: a report again after an edit ------------------------------------------------
+-- As in BOARD MODERATION (2026-11-27), but one report per message per reporter only while it is
+-- open: once it was closed and the author edited the message after it, the same member can report
+-- the new text (a new row with its own copy). Unchanged since their last report, or one still open:
+-- already = true, as before.
+drop index if exists public.uq_board_reports_once;
+create unique index if not exists uq_board_reports_open on public.board_reports(message_id, reporter_id)
+  where status = 'open';
+create or replace function public.board_report(p_message uuid, p_reason text, p_note text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid  uuid := board_me();
+  m      community_messages%rowtype;
+  v_note text := board_clean(p_note);
+  v_id   uuid;
+begin
+  select * into m from community_messages x where x.id = p_message;
+  if not found
+     or not (is_active_member(m.league_id) or is_league_admin(m.league_id) or is_site_admin()
+             or m.author_id = v_uid)
+     or board_muted(m.league_id, m.author_id) then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if is_league_admin(m.league_id) or is_site_admin() then
+    raise exception 'You moderate this board: delete the message or block its author instead'
+      using errcode = '42501', hint = 'moderator';
+  end if;
+  if not is_active_member(m.league_id) then
+    raise exception 'Only the members of this community can report its messages'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if m.author_id = v_uid then
+    raise exception 'You cannot report your own message' using errcode = '22023', hint = 'own';
+  end if;
+  if board_is_org(m.league_id, m.author_id) then
+    raise exception 'The organizers'' messages cannot be reported' using errcode = '42501', hint = 'organizer';
+  end if;
+  if p_reason is null or p_reason not in ('spam', 'harassment', 'inappropriate', 'other') then
+    raise exception 'Pick a reason: spam, harassment, inappropriate or other'
+      using errcode = '22023', hint = 'bad_reason';
+  end if;
+  if char_length(v_note) > 200 then
+    raise exception 'Keep the note to 200 characters' using errcode = '22023', hint = 'bad_note';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('board_report'), hashtext(v_uid::text));
+  select r.id into v_id from board_reports r
+   where r.message_id = p_message and r.reporter_id = v_uid
+     and (r.status = 'open' or m.edited_at is null or m.edited_at <= r.created_at)
+   order by r.created_at desc limit 1;
+  if v_id is not null then
+    return jsonb_build_object('ok', true, 'id', v_id, 'already', true);
+  end if;
+  if (select count(*) from board_reports r
+       where r.reporter_id = v_uid and r.created_at > now() - interval '1 hour') >= 10
+     or (select count(*) from board_reports r
+          where r.reporter_id = v_uid and r.created_at > now() - interval '24 hours') >= 30 then
+    raise exception 'You sent a lot of reports. Try again later.' using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  insert into board_reports(league_id, message_id, author_id, reporter_id, reason, note, body)
+  values (m.league_id, m.id, m.author_id, v_uid, p_reason, v_note, m.body)
+  on conflict (message_id, reporter_id) where status = 'open' do nothing
+  returning id into v_id;
+  if v_id is null then
+    select r.id into v_id from board_reports r
+     where r.message_id = p_message and r.reporter_id = v_uid and r.status = 'open';
+    return jsonb_build_object('ok', true, 'id', v_id, 'already', true);
+  end if;
+  return jsonb_build_object('ok', true, 'id', v_id, 'already', false);
+end $$;
+
+-- 6. The Alpha icon ------------------------------------------------------------------------------
+alter table public.profiles drop constraint if exists profiles_avatar_check;
+alter table public.profiles add constraint profiles_avatar_check check (avatar in ('O', 'C', 'P', 'L', 'A'));
+comment on column public.profiles.avatar is
+  'The player''s icon: null = default image, O/C/P/L = Order/Conclave/Primal/Legion icon, A = Alpha (alpha testers and site admins only, is_alpha). Set by the player.';
+
+-- is_alpha(user): made before 2026-11-14 00:00 Europe/Rome (auth.users.created_at), not a guest, or a site admin;
+-- never a deleted account.
+create or replace function public.is_alpha(p_user uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select p_user is not null
+     and not exists (select 1 from profiles p where p.id = p_user and p.deleted_at is not null)
+     and (exists (select 1 from auth.users u
+                   where u.id = p_user and u.created_at < timestamptz '2026-11-13 23:00:00+00'
+                     and not coalesce(u.is_anonymous, false))
+          or exists (select 1 from site_admins s where s.user_id = p_user));
+$$;
+
+-- From the site, 'A' only for an alpha account (checked when it is set; an icon already set stays).
+create or replace function public.profile_avatar_alpha()
+returns trigger language plpgsql set search_path = public, pg_temp as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and new.avatar is not distinct from old.avatar then
+    return new;
+  end if;
+  if current_user = 'anon' or not is_alpha(new.id) then
+    raise exception 'The Alpha icon is only for the alpha testers and the site admins'
+      using errcode = '42501', hint = 'not_alpha';
+  end if;
+  return new;
+end $$;
+drop trigger if exists profile_avatar_alpha on public.profiles;
+create trigger profile_avatar_alpha before insert or update of avatar on public.profiles
+  for each row when (new.avatar = 'A') execute function public.profile_avatar_alpha();
+
+-- 7. Grants -----------------------------------------------------------------------------------
+revoke all on function public.message_edit_brake(uuid)        from public, anon, authenticated;
+revoke all on function public.profile_avatar_alpha()          from public, anon, authenticated;
+revoke all on function public.edit_board_message(uuid, text)  from public, anon;
+revoke all on function public.edit_notice(uuid, text)         from public, anon;
+revoke all on function public.is_alpha(uuid)                  from public, anon;
+grant execute on function public.edit_board_message(uuid, text) to authenticated;
+grant execute on function public.edit_notice(uuid, text)        to authenticated;
+grant execute on function public.is_alpha(uuid)                 to authenticated;
+
