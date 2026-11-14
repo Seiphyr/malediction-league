@@ -729,11 +729,13 @@ body.tv-busy .tv-side,body.tv-busy .bracket .slot{pointer-events:none;opacity:.5
 .pic svg{width:24px;height:24px;flex:0 0 auto;display:block}
 .pic b,.pic i{font-family:Oswald,sans-serif;font-size:13px;font-weight:600;font-style:normal;line-height:1}
 .pic i{opacity:.75}
-.pic:hover{border-color:var(--bone-dim);color:var(--bone-dim)}
+.pic:hover:not(:disabled){border-color:var(--bone-dim);color:var(--bone-dim)}
 .pic.p-owned.on{color:#5a9e6f;border-color:rgba(90,158,111,.6);background:rgba(90,158,111,.1)}
 .pic.p-standee.on{color:#6aa0d8;border-color:rgba(91,142,196,.6);background:rgba(91,142,196,.1)}
 .pic.p-printed.on{color:#d2cbbd;border-color:rgba(210,203,189,.45);background:rgba(210,203,189,.07)}
 .pic.p-painted.on{color:var(--brass);border-color:rgba(200,165,104,.6);background:rgba(200,165,104,.1)}
+.pic.p-like.on{color:var(--brass);border-color:rgba(200,165,104,.6);background:rgba(200,165,104,.1)}
+.pic.p-like:disabled{cursor:default}.pic.p-like:disabled svg{opacity:.5}
 .col-row.own-y{border-color:rgba(90,158,111,.72)}
 .col-row.own-n{border-color:rgba(214,72,84,.5)}
 .cg-card.own{border-color:#5a9e6f;box-shadow:0 0 0 1px #5a9e6f,2px 4px 10px rgba(0,0,0,.6)}
@@ -6276,6 +6278,11 @@ function abWhere(L){
    own old messages, to delete them. The database decides all of it; this
    only hides what it would refuse. */
 const CB_SEL="id,league_id,author_id,body,created_at,author:profiles(display_name)",CB_MAX=1e3;
+/* 2026-11-14: the heart a board message wears (migration 2026-12-01). Its own drawing, as the themed emoji are: a
+   sprite or a literal glyph would show an empty box where the paths are not reachable. CB_LKQ holds the ids with a
+   like in flight, so a second tap on the same heart is dropped instead of spending a request the row cannot use; it
+   is taken after the first repaint, so a repaint that throws cannot leave that heart locked for the whole visit. */
+const CB_HEART=`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${BD_SV.heart}</svg>`,CB_LKQ=new Set;
 /* 2026-11-13: the messages come with edited_at once the database has it (2026-11-30); before, they are read as before
    (window._noEd), and nothing offers Edit */
 function cbSel(){return window._noEd?CB_SEL:CB_SEL.replace(",created_at,",",created_at,edited_at,")}
@@ -6307,8 +6314,59 @@ function cbMsg(m,L,w){
     del=!!w.u&&(m.author_id===w.u||w.org||w.sa);
   return`<article class="cb-msg${w.u&&m.author_id===w.u?" cb-mine":""}" data-id="${esc(m.id)}">
     <div class="cb-top">${m.author_id&&nm?`<button class="link cb-who" onclick="go('profile',{profileId:${jsq(m.author_id)}})" title="Open their profile">${esc(nm)}</button>`:`<span class="cb-who">${esc(nm||"A Seeker")}</span>`}${role?`<span class="ab-role">${role}</span>`:""}${w.mod&&m.author_id&&cache.cb&&cache.cb.st&&(cache.cb.st.blocks||[]).some(b=>b.user_id===m.author_id)?'<span class="ab-role cb-blkchip">Blocked</span>':""}<span class="nb-when" title="${esc(cbFull(m.created_at))}">${cbAgo(m.created_at)}</span>${m.edited_at?nbEdTag(m.edited_at):""}${bdMenuItems(m,L,w).length?`<button class="nb-x cb-kb" title="More actions" aria-label="${w.u&&m.author_id===w.u?"More actions for your message":`More actions for ${esc(nm||"A Seeker")}'s message`}" aria-haspopup="menu" aria-expanded="false" onclick="bdMenu(this,${jsq(m.id)})">&#8942;</button>`:""}${del?`<button class="nb-x" title="Delete this message" aria-label="${w.u&&m.author_id===w.u?"Delete your message":`Delete ${esc(nm||"A Seeker")}'s message`}" onclick="cbDel(${jsq(m.id)})">&#215;</button>`:""}</div>
-    ${cbEdOn(m,w)?cbEdBox(m):`<p class="nb-body">${bdFmt(m.body)}</p>`}
+    ${cbEdOn(m,w)?cbEdBox(m):`<p class="nb-body">${bdFmt(m.body)}</p>`}${cbLikeRow(m,w,nm)}
   </article>`}
+/* ===== One like per player per message (2026-11-14, migration 2026-12-01) =====
+   A heart in its own row under the body: how many players liked the message, and whether one of them is you, so you
+   can take it back. Who liked never reaches this page and the site cannot read board_likes at all — board_state
+   answers with {n, mine} and nothing else, because in a community of twenty a list of who liked is a list of who did
+   not. Nothing is drawn unless that answer carried a likes object, so the page is safe deployed before the SQL and
+   needs no flag of its own. Your own message shows the count and nothing to tap: the database refuses a self-like
+   (hint 'own'), and this board never offers a tap the database would send back — the same read-only chip a blocked
+   player gets, and nothing at all when such a row has no likes yet. The number the server answers replaces the local
+   guess: there is no realtime here, so two players liking at the same moment would each keep their own count. The
+   answer covers the same newest 100 messages this page lists, muted authors left out of both (2026-11-14 review), so
+   a message the map does not mention has no likes rather than unknown ones. */
+function cbLkOf(id){const st=cache.cb&&cache.cb.st,K=st&&st.likes;if(!K||"object"!=typeof K)return null;const k=K[id];return{n:+(k&&k.n)||0,mine:!!(k&&k.mine)}}
+function cbLkN(n){return 1===n?"1 like":n+" likes"}
+function cbLkOwn(m){return!!me&&!!m&&m.author_id===me.id}
+function cbLikeRow(m,w,nm){
+  const k=cbLkOf(m.id);if(!k)return"";
+  const own=cbLkOwn(m),who=own?"your message":`${nm||"A Seeker"}'s message`;
+  /* Read-only wherever the database would refuse the write anyway: your own message, a blocked player, an archived
+     community, an organizer or the site admin reading a board they are not a member of. (A player who left is not in
+     that list: cbLoad asks for no board_state at all, so cbLkOf answers nothing and their old messages wear no heart,
+     liked or not.) */
+  if(own||!w.write)return k.n?`<div class="pics"><button type="button" class="pic p-like${k.mine?" on":""}" disabled aria-pressed="${k.mine}" title="${cbLkN(k.n)}" aria-label="${esc(cbLkN(k.n)+" on "+who)}">${CB_HEART}<b>${k.n}</b></button></div>`:"";
+  const lbl=`${k.mine?"Liked":"Like"} ${who}${k.n?", "+cbLkN(k.n):""}`;
+  return`<div class="pics"><button type="button" id="cb-lk-${esc(m.id)}" class="pic p-like${k.mine?" on":""}" aria-pressed="${k.mine}" title="${esc(lbl)}" aria-label="${esc(lbl)}" onclick="cbLike(${jsq(m.id)},${k.mine?"false":"true"})">${CB_HEART}${k.n?`<b>${k.n}</b>`:""}</button></div>`}
+function cbLkErr(e){const h=e&&e.hint;
+  return"own"===h?"You can't like your own message.":"gone"===h?"This message is no longer there.":"like_limited"===h?"That is a lot of likes in a moment. Wait and try again.":cbErr(e)}
+/* cbPaint throws the whole board away, so whatever was holding the focus is found again after it — the heart by its
+   own id, or the box the player had moved on to meanwhile. bdFocusKeep/bdFocusBack is the board's own tool for this
+   (bdMute repaints the same way), and it is asked at each repaint: the server's answer can land a second after the
+   tap, with the player already typing, and a focus decided before the request would pull the caret out of the box. */
+function cbLkPaint(){const k=bdFocusKeep();cbPaint();bdFocusBack(k)}
+async function cbLike(id,on){
+  const L=cache.league,c=cache.cb,st=c&&c.st;
+  /* cbLkOwn again, not only in the markup: a forced call must not send a request the database is going to refuse. */
+  if(!me||!L||!c||c.id!==L.id||!st||!st.likes||CB_LKQ.has(id)||cbLkOwn(bdMsg(id)))return;
+  const K=st.likes,prev=K[id]?{...K[id]}:null;
+  K[id]={n:Math.max(0,(+(prev&&prev.n)||0)+(on?1:-1)),mine:!!on};cbLkPaint();CB_LKQ.add(id);
+  let r;try{r=await sb.rpc("board_like",{p_message:id,p_on:!!on})}catch(x){r={error:x}}
+  CB_LKQ.delete(id);
+  if(cache.cb!==c||!c.st||c.st.likes!==K)return;
+  if(!r||r.error||!r.data){const h=r&&r.error&&r.error.hint;toast(cbLkErr(r&&r.error));
+    prev?K[id]=prev:delete K[id];
+    if("gone"===h){c.msgs=(c.msgs||[]).filter(q=>q.id!==id);return void cbPaint()}
+    if("blocked"===h)return void bdStLoad().then(()=>cbPaint());
+    if("not_member"===h||"archived"===h)return void renderLeague();
+    return void cbLkPaint()}
+  /* The map carries only the rows that have a like, so an unlike back to zero takes its entry away with it,
+     and the repaint is spared when the server agrees with the guess. */
+  const d=r.data,sn=+d.n||0,sm=!!d.mine,same=sn===K[id].n&&sm===K[id].mine;
+  sn||sm?K[id]={n:sn,mine:sm}:delete K[id];
+  if(!same)cbLkPaint()}
 /* ===== Editing your own message (2026-11-13, migration 2026-11-30) =====
    Edit in a message's ⋮ menu (only its author, while they can write on the board, once the database has edited_at):
    the text turns into the board's editor (bdEdBox: toolbar, emoji, counter, 1000 characters) holding it, with Save and

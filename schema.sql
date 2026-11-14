@@ -17809,3 +17809,265 @@ grant execute on function public.edit_board_message(uuid, text) to authenticated
 grant execute on function public.edit_notice(uuid, text)        to authenticated;
 grant execute on function public.is_alpha(uuid)                 to authenticated;
 
+-- ============================================================
+--  BOARD LIKES (2026-12-01)
+-- ============================================================
+-- Run as migration-2026-12-01-board-likes.sql (after 11-27 and 11-30).
+-- What changes:
+--   * board_likes (new): one row per player per message, the row itself never
+--     readable from the site. The board is told the NUMBER of likes and whether
+--     the reader is one of them, never who the others are: in a community of
+--     twenty people a list of who liked is a list of who did not.
+--   * board_state(p_league): as in BOARD MODERATION (2026-11-27), plus likes --
+--     {"<message id>": {"n": 3, "mine": true}} for the messages of that community
+--     that have at least one like, and only for a reader of that board. No ids,
+--     no names. The window is the same newest 100 the board itself lists, the
+--     authors the reader muted left out of both, so no count is missing from a
+--     message on the page and no count is given for a message off it.
+--   * board_like(p_message, p_on) (new, security definer): the only way to like
+--     or unlike. Its author's community only, a member (or the creator), not
+--     archived, not blocked from that board, not a message the caller muted
+--     away, and not your own message (hint own, as board_report refuses
+--     reporting your own). Liking twice changes nothing. Answers {ok, id, n, mine}.
+--   * Not your own message: a player may not like what they wrote. The site
+--     draws your own message's count as the plain chip it already draws for a
+--     blocked player (the number, no tap), so the page never offers a tap this
+--     refuses; a message of yours nobody liked draws nothing at all.
+--   * A brake of its own (not the posting one, not the edit one): 60 likes a
+--     minute and 600 an hour per account, counted in board_like_writes (new,
+--     service role only, kept an hour), with its own advisory lock name so a
+--     like never eats the 5-messages-a-minute posting allowance.
+--   * board_profile_gone(): as before, plus a deleted account's likes and its
+--     like brake log, so a tombstoned profile stops counting and leaves no
+--     timestamps behind (erase_user_data does not delete the profiles row, so no
+--     foreign key would have fired).
+--   * Notices get no likes: a like points at community_messages, and a notice
+--     is a row in announcements.
+--   * No notification: nothing is enqueued when a message is liked.
+
+-- 1. The table ---------------------------------------------------------------------------------
+-- One row per (message, player): liking twice is the same row, so no count can
+-- run away. The message cascade matters: a board message is a hard delete from
+-- the site (no undo window), and its likes go with it. This is the opposite of
+-- board_reports, which deliberately has no key on message_id so a report
+-- outlives the message; a like has nothing to keep.
+create table if not exists public.board_likes (
+  message_id uuid not null references public.community_messages(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  league_id  uuid not null references public.leagues(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (message_id, user_id)
+);
+-- The board reads the counts of one community: (league_id, message_id) serves it.
+create index if not exists idx_board_likes_league on public.board_likes(league_id, message_id);
+-- One player's likes: for the account-deletion cleanup below.
+create index if not exists idx_board_likes_user on public.board_likes(user_id);
+alter table public.board_likes enable row level security;
+-- No policy on purpose, and nothing granted to the site: the rows are reached
+-- only by the security-definer functions below (and the service role, which
+-- bypasses RLS). With no policy even a grant by mistake would return no rows.
+revoke all on public.board_likes from public, anon, authenticated;
+grant select, insert, update, delete on public.board_likes to service_role;
+comment on table public.board_likes is
+  'One like per player per board message (2026-12-01). The site can never read these rows: board_state gives the number and whether it is the reader''s own, never who liked.';
+
+-- 2. The like brake ----------------------------------------------------------------------------
+-- The log: one row per like or unlike sent from the site, kept for an hour. An
+-- unlike deletes the like, so without this log a toggle loop would leave no trace.
+create table if not exists public.board_like_writes (
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  at      timestamptz not null default now()
+);
+create index if not exists idx_board_like_writes_user on public.board_like_writes(user_id, at);
+alter table public.board_like_writes enable row level security;
+revoke all on public.board_like_writes from public, anon, authenticated;
+grant all on public.board_like_writes to service_role;
+
+-- board_like_brake(uid): one like at a time per account, 60 a minute, 600 an
+-- hour. Its own lock name, so a like storm never serializes against that
+-- player's own posting brake (check_board_write locks hashtext('community_board')).
+create or replace function public.board_like_brake(p_uid uuid)
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('board_like'), hashtext(p_uid::text));
+  delete from board_like_writes w where w.user_id = p_uid and w.at <= now() - interval '1 hour';
+  if (select count(*) from board_like_writes w where w.user_id = p_uid and w.at > now() - interval '1 minute') >= 60 then
+    raise exception 'That is a lot of likes in a minute. Wait a moment and try again.'
+      using errcode = 'P0001', hint = 'like_limited';
+  end if;
+  if (select count(*) from board_like_writes w where w.user_id = p_uid and w.at > now() - interval '1 hour') >= 600 then
+    raise exception 'That is a lot of likes in an hour. Try again later.'
+      using errcode = 'P0001', hint = 'like_limited';
+  end if;
+  insert into board_like_writes(user_id, at) values (p_uid, now());
+end $$;
+
+-- 3. board_like --------------------------------------------------------------------------------
+-- The gates in the order check_board_write uses them, so the page's messages
+-- are the ones it already knows, and the refusals that mean the page is stale
+-- (not_member, archived, blocked) come before the two that only inform (own,
+-- like_limited). check_board_write itself is NOT reused: called from a trigger
+-- it writes community_message_writes, which would make a like eat the
+-- 5-messages-a-minute posting allowance.
+create or replace function public.board_like(p_message uuid, p_on boolean)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  m     community_messages%rowtype;
+  v_n   int;
+  v_me  boolean;
+begin
+  -- for key share: the lock the foreign key below needs and nothing more, so a
+  -- message deleted in the same instant ends as the refusal the page knows (gone)
+  -- instead of a raw foreign key violation it has no branch for. Two players liking
+  -- the same message do not wait for each other (edit_board_message takes the
+  -- heavier for update because it rewrites the row).
+  select * into m from community_messages x where x.id = p_message for key share;
+  if not found then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  -- A message the caller muted away is not there for them (as board_report).
+  if board_muted(m.league_id, m.author_id) then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if not (is_active_member(m.league_id) or is_league_owner(m.league_id)) then
+    raise exception 'Only the members of this community can like its messages'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = m.league_id and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if exists (select 1 from board_blocks b where b.league_id = m.league_id and b.user_id = v_uid)
+     and not board_is_org(m.league_id, v_uid) then
+    raise exception 'You can''t write on this board right now'
+      using errcode = '42501', hint = 'blocked';
+  end if;
+  -- Your own message: refused here, and the site draws its count as the plain
+  -- chip it draws for a blocked player, so the page never offers a tap that
+  -- ends up here. Last of the gates: a refused like is not counted by the brake.
+  if m.author_id = v_uid then
+    raise exception 'You cannot like your own message' using errcode = '22023', hint = 'own';
+  end if;
+  perform board_like_brake(v_uid);
+  if coalesce(p_on, true) then
+    insert into board_likes(message_id, user_id, league_id)
+         values (p_message, v_uid, m.league_id)
+      on conflict (message_id, user_id) do nothing;
+  else
+    delete from board_likes b where b.message_id = p_message and b.user_id = v_uid;
+  end if;
+  -- The answer the page trusts over its own arithmetic: there is no realtime on
+  -- the board, so two players liking at once would otherwise each keep their own
+  -- number.
+  select count(*), bool_or(b.user_id = v_uid) into v_n, v_me
+    from board_likes b where b.message_id = p_message;
+  return jsonb_build_object('ok', true, 'id', p_message,
+                            'n', coalesce(v_n, 0), 'mine', coalesce(v_me, false));
+end $$;
+
+-- 4. board_state -------------------------------------------------------------------------------
+-- As in BOARD MODERATION (2026-11-27), plus likes: counts only, and only for
+-- somebody who may read that board (a member, an organizer, the site admin), so
+-- it says nothing about a private community's activity to an outsider.
+create or replace function public.board_state(p_league uuid)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+  v_mod boolean := false;
+  b     board_blocks%rowtype;
+  v_n   int := 0;
+  v_bl  jsonb := '[]'::jsonb;
+  v_lk  jsonb := '{}'::jsonb;
+  v_flt boolean := false;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+     or not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    return jsonb_build_object('mod', false, 'blocked', false, 'block_reason', null, 'blocked_at', null,
+                              'open_reports', 0, 'blocks', '[]'::jsonb, 'likes', '{}'::jsonb);
+  end if;
+  v_mod := is_league_admin(p_league) or is_site_admin();
+  if not board_is_org(p_league, v_uid) then
+    select * into b from board_blocks x where x.league_id = p_league and x.user_id = v_uid;
+  end if;
+  if v_mod then
+    select count(distinct r.message_id) into v_n from board_reports r
+     where r.league_id = p_league and r.status = 'open' and r.author_id is distinct from v_uid;
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'user_id', x.user_id, 'name', p.display_name, 'avatar', p.avatar, 'reason', x.reason,
+             'at', x.created_at, 'by_name', q.display_name) order by x.created_at desc), '[]'::jsonb)
+      into v_bl
+      from (select * from board_blocks y
+             where y.league_id = p_league and not board_is_org(p_league, y.user_id)
+             order by y.created_at desc limit 200) x
+      join profiles p on p.id = x.user_id
+      left join profiles q on q.id = x.blocked_by;
+  end if;
+  if v_mod or is_active_member(p_league) then
+    -- The same 100 messages the board itself lists: the page reads
+    -- community_messages under "board members read", which ends in
+    -- not board_muted(league_id, author_id), so without that clause here the
+    -- answer both skipped counts the reader should see (a liked message pushed
+    -- past the raw 100 by messages they do not see) and carried the id and
+    -- popularity of messages they are not allowed to read at all. It is the
+    -- policy's own predicate, asked only of a reader it can be true for: with no
+    -- mute row of their own it is false for every message, and for a moderator it
+    -- is false by construction (board_muted ends in "not is_league_admin and not
+    -- is_site_admin"), so those readers pay one index probe instead of a hundred
+    -- function calls on every board load.
+    v_flt := not v_mod and exists (select 1 from board_mutes mt where mt.user_id = v_uid);
+    with w as (select c.id from community_messages c
+                where c.league_id = p_league
+                  and (not v_flt or not board_muted(c.league_id, c.author_id))
+                order by c.created_at desc limit 100)
+    select coalesce(jsonb_object_agg(x.id::text,
+             jsonb_build_object('n', x.n, 'mine', x.mine)), '{}'::jsonb)
+      into v_lk
+      from (select w.id, count(*) as n, bool_or(k.user_id = v_uid) as mine
+              from w join board_likes k
+                on k.message_id = w.id and k.league_id = p_league
+             group by w.id) x;
+  end if;
+  return jsonb_build_object('mod', v_mod, 'blocked', b.user_id is not null,
+                            'block_reason', b.reason, 'blocked_at', b.created_at,
+                            'open_reports', v_n, 'blocks', v_bl, 'likes', v_lk);
+end $$;
+
+-- 5. A deleted account -------------------------------------------------------------------------
+-- erase_user_data tombstones the profiles row (display_name 'Deleted player',
+-- deleted_at set) and never deletes it, so the foreign key above never fires.
+-- As with the mutes, reports and blocks, the likes go here. The account's own
+-- messages are deleted by erase_user_data, and their likes cascade with them.
+create or replace function public.board_profile_gone()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  begin
+    delete from board_mutes   where user_id = new.id or muted_id = new.id;
+    delete from board_reports where reporter_id = new.id or author_id = new.id;
+    delete from board_blocks  where user_id = new.id;
+    delete from board_likes   where user_id = new.id;
+    -- and its like brake log: the foreign key never fires (the profiles row is
+    -- tombstoned, not deleted), purge_old_rows does not know this table, and its
+    -- own hourly pruning only runs when that account likes again -- which it
+    -- never can. erase_user_data clears community_message_writes the same way.
+    delete from board_like_writes where user_id = new.id;
+    update board_blocks  set blocked_by  = null where blocked_by  = new.id;
+    update board_reports set resolved_by = null where resolved_by = new.id;
+  exception when others then
+    raise warning 'board_profile_gone: %', sqlerrm;
+  end;
+  return null;
+end $$;
+-- The same trigger as in BOARD MODERATION (2026-11-27), re-asserted so this
+-- section stands on its own: without it the likes cleanup would never run.
+drop trigger if exists board_profile_gone on public.profiles;
+create trigger board_profile_gone after update of deleted_at on public.profiles
+  for each row when (old.deleted_at is null and new.deleted_at is not null)
+  execute function public.board_profile_gone();
+
+-- 6. Grants ------------------------------------------------------------------------------------
+revoke all on function public.board_like_brake(uuid)        from public, anon, authenticated;
+revoke all on function public.board_profile_gone()          from public, anon, authenticated;
+revoke all on function public.board_like(uuid, boolean)     from public, anon;
+revoke all on function public.board_state(uuid)             from public, anon;
+grant execute on function public.board_like(uuid, boolean)  to authenticated;
+grant execute on function public.board_state(uuid)          to authenticated;
