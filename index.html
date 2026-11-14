@@ -6607,13 +6607,17 @@ function lgsMarkShared(){
   lgsSet("sh."+lg.id,"1");
   setTimeout(lgsRepaint,0);
 }
+/* 2026-11-14: a rejected share used to be swallowed whole, so on a device
+   where the share sheet never opens the organizer got no sheet, no link, no
+   word of it. Only a cancel is a no-op now; a real failure falls back to the
+   same copy the Copy invite link button uses, which also marks it shared. */
 function lgsShare(k){
   const lg=cache.league;if(!lg||!lg.join_code)return toast("This community has no join code yet");
   if("code"===k)return copyCode(lg.join_code);
   if("link"===k)return copyInvite();
   const u=inviteLink(lg.join_code);
   navigator.share({title:"Join "+(lg.name||"my community"),text:"Join "+(lg.name||"my community")+" on Seekers League. Code: "+lg.join_code,url:u})
-    .then(lgsMarkShared,()=>{});
+    .then(lgsMarkShared,err=>{err&&"AbortError"===err.name||copyInvite()});
 }
 function lgsCity(){
   const c=$("lg-city");if(!c)return;
