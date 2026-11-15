@@ -18221,3 +18221,744 @@ end $$;
 -- here changes. They are re-asserted so this section stands on its own.
 revoke all on function public.edit_board_message(uuid, text)  from public, anon;
 grant execute on function public.edit_board_message(uuid, text) to authenticated;
+
+-- ============================================================
+--  WRITE GATE (2026-12-03)
+-- ============================================================
+-- Run as migration-2026-12-03-write-gate.sql (after 12-02).
+-- What changes:
+--   * write_gate(user, need_link, need_age) (new, security definer): the one place
+--     the two numbers live -- how old an account must be, and the date before
+--     which an account is not asked for any of this. Answers {why, at}: why is
+--     null when the account may write, else no_mail, too_new or no_pn, and at is
+--     when a too_new account may write. It reads auth.users.created_at and
+--     auth.users.email_confirmed_at, which only the login service writes, and
+--     is_anonymous for a guest. It raises when that row cannot be read, so a read
+--     that comes back empty stops a write and never opens the gate. Not callable
+--     from the site: it answers about any account, and the two wrappers below are
+--     the only way in.
+--   * board_gate(league) (new): write_gate for one board. A private community's
+--     board, and the organizers and the creator of any community, are not asked
+--     for an account age or a profile link; a confirmed email address is asked for
+--     everywhere. It asks for all three for a league it cannot find, and for a
+--     private board it asks the same as a public one unless the caller is a member
+--     or an organizer of it.
+--   * write_gate_me() (new): the same answer for the caller, asked for all three.
+--     This is what the trigger on a new community and the page both call.
+--   * check_board_write(league): as in BOARD LIKES (2026-12-01), plus board_gate,
+--     after the refusals that mean the page is stale and before the brake, so a
+--     refused message is not counted.
+--   * edit_board_message(id, body): as in MESSAGE LENGTH (2026-12-02), plus the
+--     same board_gate block in the same position. Editing a message is writing on
+--     that board.
+--   * guard_league_insert(): plus write_gate_me(), before the 20-community quota.
+--     It keeps invoker rights: a trigger function that ran as its owner would
+--     return at its own first line and skip the quota as well.
+--   * board_state(league): plus gate -- {"why": "no_pn", "at": null}, or null when
+--     the account may write, so the board draws the note with no second request.
+--   * pn_link_at (new table): when the profile link on an account was last set,
+--     written only by profile_link_stamp() (new trigger on profiles). Not readable
+--     from the site. Rows only from the next save onwards; there is no record of
+--     when an older link was set, so there is nothing to fill in.
+--   * pn_claims (new): one row per account asking for a profile link. The account
+--     asking can never read the row; the site admin reads every row.
+--   * pn_claim(url, note) (new, security definer): the only way to ask. A confirmed
+--     email address and an account a few hours old, not a linked profile. 3 a day
+--     and 10 a month per account, one open request per account per profile id.
+--     Answers {ok, already} and nothing else, the same answer whoever holds the
+--     link and whether or not anybody holds it; already is about the caller's own
+--     open request.
+--   * pn_claim_mine() (new): tells the caller only whether a request of theirs is
+--     waiting, and when they sent it.
+--   * pn_claims_list(status, limit) (new): the site admin's list. It carries the
+--     account asking, the profile id asked for, and what is known about the link
+--     today; it never carries the id of the account holding it.
+--   * pn_claim_resolve(claim, action, note) (new): the site admin grants, releases
+--     or declines. A grant clears the link from the account holding it and sets it
+--     on the account asking, in that order and in one transaction, so there is no
+--     instant in which the id is free for a third account to take. It then clears
+--     the Play Network data fetched under that profile id in tournaments that are
+--     in registration or running, and locks that entrant there, so the entrant and
+--     its deck wait for the organizer instead of moving with the id. Tournaments
+--     that are closed are not touched at all, and the marks kept on a profile id
+--     (a player asking to be forgotten, an organizer's unlink) are never deleted.
+--   * pn_claims_gone(): a deleted account's requests go, as its mutes, reports,
+--     blocks and likes do.
+--   * Notifications: none are enqueued by this SQL. One can still follow from it.
+--     A release turns an account entrant back into a Play Network player, and the
+--     organizer of a running tournament is then told by the existing hourly
+--     notification that games need results entered by hand.
+
+-- 1. When the profile link was set -------------------------------------------------------------
+-- pn_link_at: the one fact about a link that is not in the link itself. Its own
+-- table, with no policy and no grant, written only by the trigger below -- for
+-- every writer, the SQL editor and the functions of this section included.
+-- Nothing on the site reads it; pn_claims_list reads it as its owner.
+create table if not exists public.pn_link_at (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  at      timestamptz not null
+);
+alter table public.pn_link_at enable row level security;
+revoke all on public.pn_link_at from public, anon, authenticated;
+grant select, insert, update, delete on public.pn_link_at to service_role;
+comment on table public.pn_link_at is
+  'When the malediction.gg profile link on an account was last set (2026-12-03). A row only from the next save onwards. No policy and no grant: only profile_link_stamp() writes it and only the pn_claim* functions read it.';
+
+create or replace function public.profile_link_stamp()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  begin
+    if tg_op = 'UPDATE' and new.malediction_url is not distinct from old.malediction_url then
+      return null;
+    end if;
+    if new.malediction_url is null then
+      delete from pn_link_at where user_id = new.id;
+    else
+      insert into pn_link_at(user_id, at) values (new.id, now())
+      on conflict (user_id) do update set at = now();
+    end if;
+  exception when others then
+    raise warning 'profile_link_stamp: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists profile_link_stamp on public.profiles;
+create trigger profile_link_stamp after insert or update of malediction_url on public.profiles
+  for each row execute function public.profile_link_stamp();
+
+-- 2. The gate ----------------------------------------------------------------------------------
+-- write_gate(user, need_link, need_age): the three things an account needs, and
+-- the two numbers, in one place. why is null when the account may write; else the
+-- first thing missing, in this order: no_mail, too_new, no_pn. at is when a
+-- too_new account may write, and null otherwise.
+-- It reads auth.users, which only the login service writes: created_at for the
+-- age and for the date below, email_confirmed_at for the address, is_anonymous
+-- for a guest. profiles.created_at is not read.
+-- No row for the account is a refusal (no_account), never an answer of null: a
+-- read that comes back empty must stop a write, not allow every write.
+drop function if exists public.write_gate(uuid, boolean);
+create or replace function public.write_gate(p_user uuid, p_need_link boolean default true,
+                                             p_need_age boolean default true)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_age   interval    := interval '4 hours';                     -- how old an account must be before it can write
+  v_cut   timestamptz := timestamptz '2026-11-14 21:00:00+01';   -- accounts made before this are not asked for any of this
+  v_made  timestamptz;
+  v_mail  timestamptz;
+  v_guest boolean;
+  v_pid   text;
+begin
+  if p_user is null then
+    return jsonb_build_object('why', 'no_account', 'at', null);
+  end if;
+  select u.created_at, u.email_confirmed_at, coalesce(u.is_anonymous, false)
+    into v_made, v_mail, v_guest
+    from auth.users u where u.id = p_user;
+  if not found then
+    raise exception 'The account could not be read' using errcode = '42501', hint = 'no_account';
+  end if;
+  if v_guest then
+    return jsonb_build_object('why', 'no_mail', 'at', null);
+  end if;
+  if v_made < v_cut then
+    return jsonb_build_object('why', null, 'at', null);
+  end if;
+  if v_mail is null then
+    return jsonb_build_object('why', 'no_mail', 'at', null);
+  end if;
+  if p_need_age and v_made + v_age > now() then
+    return jsonb_build_object('why', 'too_new', 'at', v_made + v_age);
+  end if;
+  if p_need_link then
+    select p.mg_public_id into v_pid from profiles p
+     where p.id = p_user and p.deleted_at is null;
+    if v_pid is null then
+      return jsonb_build_object('why', 'no_pn', 'at', null);
+    end if;
+  end if;
+  return jsonb_build_object('why', null, 'at', null);
+end $$;
+
+-- 3. The gate for one board --------------------------------------------------------------------
+-- board_gate(league): write_gate for that board. A private community's board, and
+-- the organizers and the creator of any community, are not asked for an account
+-- age or a profile link; a confirmed email address is asked for everywhere. One
+-- line decides it: v_public_only false asks every board for all three.
+-- A league this function cannot find, and a private league the caller is not in,
+-- are asked for all three: the answer must not depend on a row the caller cannot
+-- read.
+-- A missing account answers rather than raising, so reading the state of a board
+-- is never a hard error; writing on it still stops, because check_board_write asks
+-- write_gate again through this function and acts on the answer.
+create or replace function public.board_gate(p_league uuid)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_public_only boolean := true;   -- true = only a public community's board asks for an account age and a profile link
+  v_uid uuid := auth.uid();
+  v_pub boolean;
+  v_in  boolean;
+  v_org boolean;
+  v_all boolean;
+begin
+  select l.is_public into v_pub from leagues l where l.id = p_league;
+  v_org := board_is_org(p_league, v_uid);
+  v_in  := v_org or is_active_member(p_league);
+  v_all := (not v_public_only or coalesce(v_pub, true) or not v_in) and not v_org;
+  begin
+    return write_gate(v_uid, v_all, v_all);
+  exception when others then
+    return jsonb_build_object('why', 'no_account', 'at', null);
+  end;
+end $$;
+
+-- 4. The three places the gate is asked --------------------------------------------------------
+-- check_board_write(league): as in BOARD LIKES (2026-12-01), with one block added
+-- after the refusals that mean the page is stale and before the brake, so a
+-- refused message is not counted against the writer's allowance. The message of
+-- the raise is plain on purpose: the page turns the hint into the sentence the
+-- player reads.
+create or replace function public.check_board_write(p_league uuid)
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+  v_g   jsonb;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then
+    raise exception 'Sign in with an account to write on the board'
+      using errcode = '42501', hint = 'sign_in';
+  end if;
+  if not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    raise exception 'This account was deleted' using errcode = '42501', hint = 'deleted';
+  end if;
+  if not (is_active_member(p_league) or is_league_owner(p_league)) then
+    raise exception 'Only the members of this community can write on its board'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = p_league and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if exists (select 1 from board_blocks b where b.league_id = p_league and b.user_id = v_uid)
+     and not board_is_org(p_league, v_uid) then
+    raise exception 'You can''t write on this board right now'
+      using errcode = '42501', hint = 'blocked';
+  end if;
+  -- Writing on a public community's board needs a confirmed email address, an
+  -- account a few hours old and a linked Malediction Play Network profile.
+  v_g := board_gate(p_league);
+  if v_g->>'why' is not null then
+    raise exception 'This account cannot write on this board yet'
+      using errcode = '42501', hint = v_g->>'why';
+  end if;
+  -- One writer at a time per author, so two quick sends cannot both slip
+  -- under the brake.
+  perform pg_advisory_xact_lock(hashtext('community_board'), hashtext(v_uid::text));
+  delete from community_message_writes w
+   where w.author_id = v_uid and w.at <= now() - interval '1 hour';
+  if (select count(*) from community_message_writes w
+       where w.author_id = v_uid and w.at > now() - interval '1 minute') >= 5 then
+    raise exception 'You wrote 5 messages in the last minute. Wait a moment and try again.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if (select count(*) from community_message_writes w
+       where w.author_id = v_uid and w.at > now() - interval '1 hour') >= 60 then
+    raise exception 'You wrote 60 messages in the last hour. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  if pg_trigger_depth() > 0 then
+    insert into community_message_writes(author_id, at) values (v_uid, now());
+  end if;
+end $$;
+
+-- edit_board_message(id, body): as in MESSAGE LENGTH (2026-12-02), with the same
+-- block in the same position. Editing a message is writing on that board.
+create or replace function public.edit_board_message(p_id uuid, p_body text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  m     community_messages%rowtype;
+  v     text := trim_blank(coalesce(p_body, ''));
+  v_at  timestamptz;
+  v_g   jsonb;
+begin
+  select * into m from community_messages x where x.id = p_id for update;
+  if not found then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if m.author_id is distinct from v_uid then
+    raise exception 'Only its author can edit a message' using errcode = '42501', hint = 'not_author';
+  end if;
+  if not (is_active_member(m.league_id) or is_league_owner(m.league_id)) then
+    raise exception 'Only the members of this community can write on its board'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = m.league_id and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if exists (select 1 from board_blocks b where b.league_id = m.league_id and b.user_id = v_uid)
+     and not board_is_org(m.league_id, v_uid) then
+    raise exception 'You can''t write on this board right now' using errcode = '42501', hint = 'blocked';
+  end if;
+  -- Editing a message is writing on that board, and needs the same things.
+  v_g := board_gate(m.league_id);
+  if v_g->>'why' is not null then
+    raise exception 'This account cannot write on this board yet'
+      using errcode = '42501', hint = v_g->>'why';
+  end if;
+  if char_length(v) < 1 then
+    raise exception 'A message needs some text' using errcode = '23514', hint = 'bad_body';
+  end if;
+  if char_length(v) > 500 then
+    raise exception 'A board message is at most 500 characters and this one is %. Shorten it and save again.',
+      char_length(v)
+      using errcode = '23514', hint = 'bad_body';
+  end if;
+  if v = m.body then
+    return jsonb_build_object('ok', true, 'id', m.id, 'body', m.body, 'edited_at', m.edited_at, 'same', true);
+  end if;
+  perform message_edit_brake(v_uid);
+  update community_messages c set body = v, edited_at = now() where c.id = p_id returning c.edited_at into v_at;
+  return jsonb_build_object('ok', true, 'id', p_id, 'body', v, 'edited_at', v_at, 'same', false);
+end $$;
+
+-- guard_league_insert(): as it was, with the gate asked before the twenty-
+-- community quota. It keeps invoker rights: as its owner it would return at its
+-- own first line and skip the quota as well, so it asks write_gate_me(), the
+-- wrapper a signed-in account may call.
+create or replace function guard_league_insert()
+returns trigger language plpgsql set search_path = public as $$
+declare
+  v_g jsonb;
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  -- A new community needs a confirmed email address, an account a few hours old
+  -- and a linked Malediction Play Network profile.
+  v_g := write_gate_me();
+  if v_g->>'why' is not null then
+    raise exception 'This account cannot create a community yet'
+      using errcode = '42501', hint = v_g->>'why';
+  end if;
+  new.created_at := now();
+  new.archived_at := null;  -- a league starts open, so it counts towards the 20
+  perform check_league_quota();
+  return new;
+end $$;
+
+-- 5. Telling the page --------------------------------------------------------------------------
+-- board_state(league): as in BOARD LIKES (2026-12-01), plus gate -- the answer of
+-- board_gate for that board, or null when the account may write. The board draws
+-- its note from this, with no second request. A signed-out, guest or deleted
+-- reader is told nothing.
+create or replace function public.board_state(p_league uuid)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := auth.uid();
+  v_mod boolean := false;
+  b     board_blocks%rowtype;
+  v_n   int := 0;
+  v_bl  jsonb := '[]'::jsonb;
+  v_lk  jsonb := '{}'::jsonb;
+  v_flt boolean := false;
+  v_g   jsonb := null;
+begin
+  if v_uid is null or coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+     or not exists (select 1 from profiles p where p.id = v_uid and p.deleted_at is null) then
+    return jsonb_build_object('mod', false, 'blocked', false, 'block_reason', null, 'blocked_at', null,
+                              'open_reports', 0, 'blocks', '[]'::jsonb, 'likes', '{}'::jsonb,
+                              'gate', null);
+  end if;
+  v_mod := is_league_admin(p_league) or is_site_admin();
+  if not board_is_org(p_league, v_uid) then
+    select * into b from board_blocks x where x.league_id = p_league and x.user_id = v_uid;
+  end if;
+  if v_mod then
+    select count(distinct r.message_id) into v_n from board_reports r
+     where r.league_id = p_league and r.status = 'open' and r.author_id is distinct from v_uid;
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'user_id', x.user_id, 'name', p.display_name, 'avatar', p.avatar, 'reason', x.reason,
+             'at', x.created_at, 'by_name', q.display_name) order by x.created_at desc), '[]'::jsonb)
+      into v_bl
+      from (select * from board_blocks y
+             where y.league_id = p_league and not board_is_org(p_league, y.user_id)
+             order by y.created_at desc limit 200) x
+      join profiles p on p.id = x.user_id
+      left join profiles q on q.id = x.blocked_by;
+  end if;
+  if v_mod or is_active_member(p_league) then
+    -- The same 100 messages the board itself lists: the page reads
+    -- community_messages under "board members read", which ends in
+    -- not board_muted(league_id, author_id), so without that clause here the
+    -- answer both skipped counts the reader should see (a liked message pushed
+    -- past the raw 100 by messages they do not see) and carried the id and
+    -- popularity of messages they are not allowed to read at all. It is the
+    -- policy's own predicate, asked only of a reader it can be true for: with no
+    -- mute row of their own it is false for every message, and for a moderator it
+    -- is false by construction (board_muted ends in "not is_league_admin and not
+    -- is_site_admin"), so those readers pay one index probe instead of a hundred
+    -- function calls on every board load.
+    v_flt := not v_mod and exists (select 1 from board_mutes mt where mt.user_id = v_uid);
+    with w as (select c.id from community_messages c
+                where c.league_id = p_league
+                  and (not v_flt or not board_muted(c.league_id, c.author_id))
+                order by c.created_at desc limit 100)
+    select coalesce(jsonb_object_agg(x.id::text,
+             jsonb_build_object('n', x.n, 'mine', x.mine)), '{}'::jsonb)
+      into v_lk
+      from (select w.id, count(*) as n, bool_or(k.user_id = v_uid) as mine
+              from w join board_likes k
+                on k.message_id = w.id and k.league_id = p_league
+             group by w.id) x;
+  end if;
+  v_g := board_gate(p_league);
+  if v_g->>'why' is null then
+    v_g := null;
+  end if;
+  return jsonb_build_object('mod', v_mod, 'blocked', b.user_id is not null,
+                            'block_reason', b.reason, 'blocked_at', b.created_at,
+                            'open_reports', v_n, 'blocks', v_bl, 'likes', v_lk, 'gate', v_g);
+end $$;
+
+-- write_gate_me(): the caller's own answer, asked for all three. The screen where
+-- a community is created reads it, and the trigger on a new community asks it
+-- again. A null why means the account may write.
+create or replace function public.write_gate_me()
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+begin
+  return write_gate(board_me(), true, true);
+end $$;
+
+-- 6. Asking for a profile link another account holds -------------------------------------------
+-- One account per malediction.gg profile id (first come). The organizer can
+-- unlink a wrong match, and the real owner asks for it here; the site admin can
+-- then release it.
+-- One row per account asking. The account asking can never read the row: it is
+-- told only that a request of theirs is waiting (pn_claim_mine). The site admin
+-- reads every row. mg_public_id is the id asked for; url is that id's address in
+-- the one canonical form.
+create table if not exists public.pn_claims (
+  id            uuid primary key default gen_random_uuid(),
+  mg_public_id  text not null,
+  url           text not null,
+  claimer_id    uuid not null references public.profiles(id) on delete cascade,
+  note          text,
+  status        text not null default 'open',
+  released_from uuid references public.profiles(id) on delete set null,
+  admin_note    text,
+  resolved_by   uuid references public.profiles(id) on delete set null,
+  resolved_at   timestamptz,
+  created_at    timestamptz not null default now()
+);
+alter table public.pn_claims drop constraint if exists pn_claims_pid;
+alter table public.pn_claims add constraint pn_claims_pid
+  check (mg_public_id ~ '^[A-Za-z0-9]{6,32}$');
+alter table public.pn_claims drop constraint if exists pn_claims_url;
+alter table public.pn_claims add constraint pn_claims_url
+  check (public.mg_public_id(url) = mg_public_id);
+alter table public.pn_claims drop constraint if exists pn_claims_note;
+alter table public.pn_claims add constraint pn_claims_note
+  check (note is null or char_length(note) between 1 and 200);
+alter table public.pn_claims drop constraint if exists pn_claims_admin_note;
+alter table public.pn_claims add constraint pn_claims_admin_note
+  check (admin_note is null or char_length(admin_note) between 1 and 200);
+alter table public.pn_claims drop constraint if exists pn_claims_status;
+alter table public.pn_claims add constraint pn_claims_status
+  check (status in ('open', 'granted', 'released', 'declined', 'closed'));
+-- open and resolved cannot disagree, as board_reports has it.
+alter table public.pn_claims drop constraint if exists pn_claims_closed;
+alter table public.pn_claims add constraint pn_claims_closed
+  check ((status = 'open') = (resolved_at is null));
+
+-- One open request per account per profile id: asking twice is the same row.
+create unique index if not exists uq_pn_claims_open on public.pn_claims(mg_public_id, claimer_id)
+  where status = 'open';
+create index if not exists idx_pn_claims_open on public.pn_claims(created_at desc) where status = 'open';
+create index if not exists idx_pn_claims_pid on public.pn_claims(mg_public_id, created_at desc);
+create index if not exists idx_pn_claims_claimer on public.pn_claims(claimer_id, created_at desc);
+
+alter table public.pn_claims enable row level security;
+drop policy if exists "claims site admin read" on public.pn_claims;
+-- A row carries the site admin's note and the account the link was released from,
+-- so only the site admin reads it.
+create policy "claims site admin read" on public.pn_claims
+  for select to authenticated using (is_site_admin());
+revoke all on public.pn_claims from public, anon, authenticated;
+grant select on public.pn_claims to authenticated;
+grant select, insert, update, delete on public.pn_claims to service_role;
+comment on table public.pn_claims is
+  'One row per account asking for a malediction.gg profile link (2026-12-03). Site admins read; every write is a security-definer function.';
+
+-- pn_claim(url, note): the only way to ask. A confirmed email address and an
+-- account a few hours old, not a linked profile -- the account asking has no link,
+-- which is what it is asking for.
+-- The answer is {ok, already} and nothing else, the same whoever holds the link
+-- and whether or not anybody holds it. A row is written for every profile id that
+-- is a profile id at all, so the answer never depends on what any other account
+-- has, and every request that is not already waiting is counted against the two
+-- numbers below. already is about the caller's own open request, so it says
+-- nothing about anybody else's.
+create or replace function public.pn_claim(p_url text, p_note text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid  uuid := board_me();
+  v_note text := board_clean(p_note);
+  v_g    jsonb;
+  v_pid  text := mg_public_id(p_url);
+  v_mine text;
+  v_id   uuid;
+begin
+  v_g := write_gate(v_uid, false, true);
+  if v_g->>'why' is not null then
+    raise exception 'This account cannot send this request yet'
+      using errcode = '42501', hint = v_g->>'why';
+  end if;
+  if v_pid is null then
+    raise exception 'Paste the address of a malediction.gg profile'
+      using errcode = '22023', hint = 'bad_url';
+  end if;
+  if char_length(coalesce(v_note, '')) > 200 then
+    raise exception 'Keep the note to 200 characters' using errcode = '22023', hint = 'bad_note';
+  end if;
+  select p.mg_public_id into v_mine from profiles p where p.id = v_uid;
+  if v_mine = v_pid then
+    raise exception 'This profile link is already on your account'
+      using errcode = '22023', hint = 'own';
+  end if;
+  if v_mine is not null then
+    raise exception 'Your account already has a profile link. Clear the address on your account and save, then paste this one again.'
+      using errcode = '22023', hint = 'has_link';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('pn_claim'), hashtext(v_uid::text));
+  select c.id into v_id from pn_claims c
+   where c.mg_public_id = v_pid and c.claimer_id = v_uid and c.status = 'open';
+  if v_id is not null then
+    return jsonb_build_object('ok', true, 'already', true);
+  end if;
+  if (select count(*) from pn_claims c
+       where c.claimer_id = v_uid and c.created_at > now() - interval '24 hours') >= 3
+     or (select count(*) from pn_claims c
+          where c.claimer_id = v_uid and c.created_at > now() - interval '30 days') >= 10 then
+    raise exception 'You sent a lot of requests. Try again later.'
+      using errcode = 'P0001', hint = 'rate_limited';
+  end if;
+  insert into pn_claims(mg_public_id, url, claimer_id, note)
+  values (v_pid, 'https://malediction.gg/app/profile/' || v_pid || '/', v_uid, v_note)
+  on conflict (mg_public_id, claimer_id) where status = 'open' do nothing;
+  return jsonb_build_object('ok', true, 'already', false);
+end $$;
+
+-- pn_claim_mine(): whether a request of the caller's is waiting, and when they
+-- sent it. Nothing about the link, the account holding it, or what the site admin
+-- decided.
+create or replace function public.pn_claim_mine()
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  v_at  timestamptz;
+begin
+  select max(c.created_at) into v_at from pn_claims c
+   where c.claimer_id = v_uid and c.status = 'open';
+  return jsonb_build_object('open', v_at is not null, 'at', v_at);
+end $$;
+
+-- pn_claims_list(status, limit): the site admin's list, newest first. Open, or
+-- what was closed in the last 30 days. Per row: the account asking and what is
+-- known about it, the profile id asked for, and what is known about the link
+-- today -- how long it has been on an account, how old that account is, how many
+-- tournaments play under that id. It never carries the id of the account holding
+-- the link: the list is read on a screen, and the id is not needed to decide.
+-- pn_claim_resolve looks the holder up itself, under its own lock.
+create or replace function public.pn_claims_list(p_status text default 'open', p_limit int default 100)
+returns jsonb language plpgsql stable security definer set search_path = public, pg_temp as $$
+declare
+  v_lim int  := least(greatest(coalesce(p_limit, 100), 0), 100);
+  v_st  text := case when p_status = 'closed' then 'closed' else 'open' end;
+  v_n   int;
+  v_it  jsonb;
+begin
+  if not is_site_admin() then
+    raise exception 'Only the site admin can read these requests'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  select count(*) into v_n from pn_claims c where c.status = 'open';
+  select coalesce(jsonb_agg(x.j order by x.created_at desc), '[]'::jsonb) into v_it from (
+    select c.created_at, jsonb_build_object(
+             'id', c.id, 'mg_public_id', c.mg_public_id, 'url', c.url,
+             'note', c.note, 'status', c.status, 'at', c.created_at, 'resolved_at', c.resolved_at,
+             'claimer_id', c.claimer_id,
+             'claimer_name', cp.display_name,
+             'claimer_discord', cp.discord,
+             'claimer_made', (select u.created_at from auth.users u where u.id = c.claimer_id),
+             'claimer_mail', (select u.email_confirmed_at is not null from auth.users u where u.id = c.claimer_id),
+             'claimer_claims', (select count(*) from pn_claims q where q.claimer_id = c.claimer_id),
+             'held', hp.id is not null,
+             'held_since', (select k.at from pn_link_at k where k.user_id = hp.id),
+             'held_made', (select u.created_at from auth.users u where u.id = hp.id),
+             'held_name', hp.display_name,
+             'held_discord', hp.discord,
+             'held_events', (select count(*) from tournaments t
+                              where t.status is not null
+                                and t.payload->'entrants' @> jsonb_build_array(
+                                      jsonb_build_object('pid', c.mg_public_id)))
+           ) as j
+      from pn_claims c
+      join profiles cp on cp.id = c.claimer_id
+      left join profiles hp on hp.mg_public_id = c.mg_public_id and hp.deleted_at is null
+     where (v_st = 'open' and c.status = 'open')
+        or (v_st = 'closed' and c.status <> 'open' and c.resolved_at > now() - interval '30 days')
+     order by c.created_at desc
+     limit v_lim) x;
+  return jsonb_build_object('open', v_n, 'items', v_it);
+end $$;
+
+-- pn_claim_resolve(claim, action, note): the site admin grants, releases or
+-- declines. grant clears the link from the account holding it and sets it on the
+-- account asking, in that order, as two statements in one transaction: the unique
+-- index is checked per statement, so the other order fails and a single statement
+-- moving the value fails too. Nothing happens in between, so the id is never free
+-- for a third account.
+-- After a move, in every tournament that is in registration or running: the Play
+-- Network data fetched under that profile id goes (a Discord name, a deck, a deck
+-- lock), and the entrant under it is locked, as an organizer's unlink does, so the
+-- entrant and its registered deck wait for the organizer instead of moving with
+-- the id. A seat the organizer chose by hand is left exactly as it is.
+-- Tournaments that are closed are not touched: those are results that happened.
+-- The marks kept on a profile id are never deleted: one of them is a player's
+-- request not to be listed again, which is not this request's to undo, and the
+-- other is an organizer's decision that a refresh must not link that id to an
+-- account, which is the very thing that must keep holding.
+create or replace function public.pn_claim_resolve(p_claim uuid, p_action text, p_note text default null)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  c     pn_claims%rowtype;
+  v_old uuid;
+  v_st  text;
+  v_t   record;
+  v_p   jsonb;
+  v_e   jsonb;
+  v_o   int;
+begin
+  if not is_site_admin() then
+    raise exception 'Only the site admin can close these requests'
+      using errcode = '42501', hint = 'not_mod';
+  end if;
+  if p_action is null or p_action not in ('grant', 'release', 'decline') then
+    raise exception 'Unknown action' using errcode = '22023', hint = 'bad_action';
+  end if;
+  select * into c from pn_claims x where x.id = p_claim for update;
+  if not found or c.status <> 'open' then
+    raise exception 'This request is no longer open' using errcode = 'P0002', hint = 'gone';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('pn_claim_pid'), hashtext(c.mg_public_id));
+  if p_action in ('grant', 'release') then
+    select p.id into v_old from profiles p
+     where p.mg_public_id = c.mg_public_id and p.deleted_at is null for update;
+    if p_action = 'grant' then
+      perform 1 from profiles p where p.id = c.claimer_id and p.deleted_at is null for update;
+      if not found then
+        raise exception 'That account is no longer here' using errcode = 'P0002', hint = 'gone';
+      end if;
+      if exists (select 1 from profiles p where p.id = c.claimer_id and p.mg_public_id is not null) then
+        raise exception 'That account already has a profile link'
+          using errcode = '22023', hint = 'has_link';
+      end if;
+    end if;
+    if v_old is not null then
+      update profiles set malediction_url = null where id = v_old;          -- clear first
+      -- Only where the organizer can still act: in registration or running. A
+      -- closed tournament keeps everything it has, the deck registered under this
+      -- profile id included.
+      delete from tournament_pn n
+       where n.pid = c.mg_public_id
+         and exists (select 1 from tournaments t
+                      where t.id = n.tournament_id and t.status in ('draft', 'running'));
+      -- The entrant waits for the organizer: lock it, as an unlink does, and clear
+      -- the seat and the deck on it. A seat the organizer chose by hand (org) is
+      -- left alone: it is already theirs, and t_link_all never moves it either.
+      for v_t in select t.id, t.payload from tournaments t
+                  where t.status in ('draft', 'running')
+                    and t.payload->'entrants' @> jsonb_build_array(
+                          jsonb_build_object('pid', c.mg_public_id))
+                  order by t.created_at for update
+      loop
+        v_p := v_t.payload;
+        for v_e, v_o in select q.x, q.o - 1
+                          from jsonb_array_elements(coalesce(v_p->'entrants', '[]'::jsonb))
+                               with ordinality q(x, o)
+        loop
+          if v_e->>'pid' = c.mg_public_id and (v_e->>'org') is distinct from 'true' then
+            v_p := jsonb_set(v_p, array['entrants', v_o::text],
+                     (v_p->'entrants'->v_o)
+                     || jsonb_build_object('lock', true, 'seeker', '', 'terrain', '',
+                                           'deck', '', 'deckId', ''));
+          end if;
+        end loop;
+        if v_p is distinct from v_t.payload then
+          update tournaments set payload = v_p, rev = rev + 1 where id = v_t.id;
+        end if;
+      end loop;
+    end if;
+    if p_action = 'grant' then
+      update profiles set malediction_url = c.url where id = c.claimer_id;  -- then set
+    end if;
+  end if;
+  v_st := case p_action when 'grant'   then 'granted'
+                        when 'release' then 'released'
+                        else 'declined' end;
+  update pn_claims set status = v_st, resolved_by = v_uid, resolved_at = now(),
+         admin_note = board_clean(p_note), released_from = v_old
+   where id = p_claim;
+  -- Every other request for the same id is closed too, as board_resolve closes
+  -- every open report of a message.
+  update pn_claims set status = 'closed', resolved_by = v_uid, resolved_at = now()
+   where mg_public_id = c.mg_public_id and status = 'open' and id <> p_claim;
+  return jsonb_build_object('ok', true, 'action', p_action, 'moved', p_action = 'grant');
+end $$;
+
+-- 7. A deleted account -------------------------------------------------------------------------
+-- pn_claims_gone(): as board_profile_gone does for mutes, reports, blocks and
+-- likes. erase_user_data nulls malediction_url, so the link is already free and
+-- profile_link_stamp has already removed the pn_link_at row.
+create or replace function public.pn_claims_gone()
+returns trigger language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  begin
+    delete from pn_claims where claimer_id = new.id;
+    delete from pn_link_at where user_id = new.id;
+    update pn_claims set resolved_by   = null where resolved_by   = new.id;
+    update pn_claims set released_from = null where released_from = new.id;
+  exception when others then
+    raise warning 'pn_claims_gone: %', sqlerrm;
+  end;
+  return null;
+end $$;
+drop trigger if exists pn_claims_gone on public.profiles;
+create trigger pn_claims_gone after update of deleted_at on public.profiles
+  for each row when (old.deleted_at is null and new.deleted_at is not null)
+  execute function public.pn_claims_gone();
+
+-- 8. Grants ------------------------------------------------------------------------------------
+-- write_gate and board_gate are not granted: the page reads the gate through
+-- board_state and write_gate_me(), and guard_league_insert() calls
+-- write_gate_me(). check_league_quota() already holds its own grant.
+revoke all on function public.profile_link_stamp()                   from public, anon, authenticated;
+revoke all on function public.pn_claims_gone()                       from public, anon, authenticated;
+revoke all on function public.write_gate(uuid, boolean, boolean)     from public, anon, authenticated;
+revoke all on function public.board_gate(uuid)                       from public, anon, authenticated;
+revoke all on function public.write_gate_me()                        from public, anon;
+revoke all on function public.check_board_write(uuid)                from public, anon;
+revoke all on function public.edit_board_message(uuid, text)         from public, anon;
+revoke all on function public.board_state(uuid)                      from public, anon;
+revoke all on function public.pn_claim(text, text)                   from public, anon;
+revoke all on function public.pn_claim_mine()                        from public, anon;
+revoke all on function public.pn_claims_list(text, int)              from public, anon;
+revoke all on function public.pn_claim_resolve(uuid, text, text)     from public, anon;
+grant execute on function public.write_gate_me()                     to authenticated;
+grant execute on function public.check_board_write(uuid)             to authenticated;
+grant execute on function public.edit_board_message(uuid, text)      to authenticated;
+grant execute on function public.board_state(uuid)                   to authenticated;
+grant execute on function public.pn_claim(text, text)                to authenticated;
+grant execute on function public.pn_claim_mine()                     to authenticated;
+grant execute on function public.pn_claims_list(text, int)           to authenticated;
+grant execute on function public.pn_claim_resolve(uuid, text, text)  to authenticated;
