@@ -2184,19 +2184,28 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .top-adm svg{flex:0 0 auto}
 .top-adm .adm-badge{margin-left:2px}
 @media(max-width:620px){.top-adm{width:40px;height:40px;padding:0!important}.top-adm-l{display:none}.top-adm .adm-badge{position:absolute;top:-7px;right:-7px;margin:0;border:2px solid var(--coal,#181818)}}
-/* Clash test (2026-11-15). The arena: two sides facing, side by side at every width. */
-/* 2026-11-15: the arena. The two units face each other and both fit on a phone, the
-   modifier sits on the statistic itself and the answer is one card under the button.
-   Two columns at every width, down to 320: that is the whole point of the layout. */
-.clt-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.clt-side{min-width:0}
-.clt-h{font-family:Oswald,sans-serif;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-faint);margin-bottom:5px}
-.clt-art-w{position:relative}
+/* Clash test (2026-11-15). The arena: two sides facing, side by side at every width,
+   with CLASH! standing between them. The two columns are one grid -- each side is
+   display:contents -- so the labels, the cards, the pickers and the steppers line up
+   row by row and the button can sit in the middle of the card row, over both. */
+/* On a desktop the panel is as wide as the page; the cards would be 560px each and
+   the title would sit alone to the left of a centred arena. One column, centred, caps
+   both. */
+.clt-p{max-width:700px;margin-left:auto;margin-right:auto}
+.clt-pair{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;position:relative;max-width:500px;margin:0 auto}
+.clt-side{display:contents}
+.clt-side.a>*{grid-column:1}
+.clt-side.d>*{grid-column:2}
+.clt-h{grid-row:1;font-family:Oswald,sans-serif;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-faint);margin-bottom:5px}
+.clt-art-w{grid-row:2;position:relative;min-width:0}
 .clt-art{display:block;width:100%;border:1px solid var(--line)}
 .clt-noart{display:flex;align-items:center;justify-content:center;text-align:center;aspect-ratio:5/7;border:1px dashed var(--line);background:var(--coal-2);padding:10px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.06em;color:var(--bone-faint);overflow-wrap:anywhere}
-/* The badge hangs in the gap between the two cards, so it sits where they meet
-   whatever the screen is: half of it over the attacker, half over the gap. */
-.clt-vs{position:absolute;top:50%;right:-5px;transform:translate(50%,-50%);z-index:2;width:36px;height:36px;border-radius:50%;background:var(--coal);border:1px solid var(--brass-dim);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.08em;color:var(--brass)}
+.clt-pk{grid-row:3;min-width:0}
+.clt-sts{grid-row:4;min-width:0}
+/* CLASH! stands between the two cards, over both of them: the middle of the card row,
+   whatever the screen. It is the loudest thing on the page, which is the point. */
+.clt-go{grid-row:2;grid-column:1/-1;justify-self:center;align-self:center;z-index:3;min-height:46px;padding:9px 20px;font-size:15px;letter-spacing:.12em;box-shadow:0 0 0 4px var(--coal),0 6px 18px rgba(0,0,0,.55)}
+.clt-go:disabled{background:var(--surface-2);color:var(--bone-faint)}
 .clt-sel{width:100%;min-height:40px;box-sizing:border-box;margin-top:-1px}
 /* The label sits above its own control, not beside it: at 320 a column is 139px and
    "HEALTH" plus a two-digit number plus two 40px buttons do not fit on one line -- they
@@ -2209,10 +2218,11 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-m:last-child{border-left:1px solid var(--line)}
 .clt-m:disabled{color:var(--line-2);cursor:default}
 .clt-n{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;font-family:Oswald,sans-serif;font-size:17px;color:var(--bone);white-space:nowrap;overflow:hidden}
+.clt-n i{font-style:normal;color:var(--bone-faint);font-size:14px}
 .clt-d{font-size:11px;color:var(--brass-dim-txt);vertical-align:super}
-.clt-rg{margin:6px 0 0;font-size:12px;color:var(--bone-faint)}
-.clt-sh{margin:12px 0 0}
-.clt-go{display:block;width:100%;min-height:48px;margin:14px 0 0;font-size:14px}
+.clt-p h2.clt-ttl{font-family:Oswald,sans-serif;font-size:31px;font-weight:700;letter-spacing:.02em;line-height:1.02;text-transform:uppercase;color:var(--bone);margin:0 0 15px}
+.clt-p h2.clt-ttl em{font-style:normal;color:var(--crimson)}
+.clt-sh{margin:14px 0 0}
 .clt-ans{margin:15px 0 0;border:1px solid var(--line);border-left:3px solid var(--brass);background:var(--coal-2);padding:13px 14px}
 .clt-lead{margin:0 0 12px;font-size:15px;color:var(--bone)}
 .clt-lead b{font-weight:600}
@@ -2221,18 +2231,20 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-b small{display:block;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone-faint)}
 .clt-b b{display:block;font-family:Oswald,sans-serif;font-size:25px;font-weight:600;line-height:1.15;color:var(--bone)}
 .clt-b i{display:block;font-style:normal;font-size:11px;color:var(--bone-dim);margin-top:2px}
-.clt-roll{display:flex;align-items:center;gap:9px;min-width:0;margin:13px 0 0;padding-top:11px;border-top:1px solid var(--line)}
+.clt-roll{display:flex;align-items:center;gap:10px;min-width:0;margin:13px 0 0;padding-top:11px;border-top:1px solid var(--line)}
 .clt-rt{font-size:13px;color:var(--bone-dim);min-width:0}
-.clt-die{display:inline-flex;align-items:center;justify-content:center;flex:0 0 36px;width:36px;height:36px;border:1px solid var(--line);font-family:Oswald,sans-serif;font-size:16px;color:var(--bone)}
-.clt-die.crit{border-color:var(--win);color:var(--win)}
-.clt-die.fum{border-color:var(--crimson);color:var(--crimson-txt)}
-.clt-die.roll{animation:cltroll .62s linear}
-@keyframes cltroll{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(1.16)}100%{transform:rotate(360deg) scale(1)}}
-/* The two cards lean into each other for the length of the roll. */
-.clt-p.clash .clt-side.a .clt-art-w{animation:cltlunge .7s ease}
-.clt-p.clash .clt-side.d .clt-art-w{animation:cltlunge-d .7s ease}
-@keyframes cltlunge{0%,100%{transform:none}40%{transform:translateX(7px)}}
-@keyframes cltlunge-d{0%,100%{transform:none}40%{transform:translateX(-7px)}}
+/* A twenty-sided die, as close as a clip path gets to one: the silhouette of the
+   hexagon you look at from above, with the face it landed on in the middle. */
+.clt-die{display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;background:var(--surface-2);color:var(--bone);font-family:Oswald,sans-serif;font-size:16px;font-weight:600;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
+.clt-die.crit{background:var(--brass);color:#1b1407}
+.clt-die.fum{background:var(--crimson-dark);color:#fff}
+.clt-die.roll{animation:cltroll .66s ease-out}
+@keyframes cltroll{0%{transform:rotate(0) scale(.9)}35%{transform:rotate(190deg) scale(1.18)}70%{transform:rotate(320deg) scale(1.05)}100%{transform:rotate(360deg) scale(1)}}
+/* The two cards lean into each other and tip, the way they would if they met. */
+.clt-p.clash .clt-side.a .clt-art-w{animation:cltlunge .72s cubic-bezier(.34,1.3,.5,1)}
+.clt-p.clash .clt-side.d .clt-art-w{animation:cltlunge-d .72s cubic-bezier(.34,1.3,.5,1)}
+@keyframes cltlunge{0%,100%{transform:none}18%{transform:translateX(-5px) rotate(-3.2deg)}45%{transform:translateX(9px) rotate(2.6deg)}72%{transform:translateX(-2px) rotate(-1deg)}}
+@keyframes cltlunge-d{0%,100%{transform:none}18%{transform:translateX(5px) rotate(3.2deg)}45%{transform:translateX(-9px) rotate(-2.6deg)}72%{transform:translateX(2px) rotate(1deg)}}
 @media(prefers-reduced-motion:reduce){.clt-die.roll,.clt-p.clash .clt-side.a .clt-art-w,.clt-p.clash .clt-side.d .clt-art-w{animation:none}}
 .clt-det{margin:12px 0 0}
 .clt-det>summary{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone-dim);cursor:pointer;min-height:34px;display:flex;align-items:center}
@@ -9559,40 +9571,52 @@ function cltDelta(v){return ` <small class="clt-d"${v?"":" hidden"}>${v>0?"+":""
    never below 1, the way cltOdds clamps them, so a number on the screen is never one
    the maths would refuse. */
 function cltVal(C,s,mod){const v=cltStat(C,s)+(mod|0);return"hp"===s?Math.max(1,v):"ph"===s||"pg"===s?Math.max(0,v):v}
+/* The rows of controls, one per statistic. Power is one row for both halves: a card
+   prints them together (4 / 2) and an aura or a relic that lifts one lifts the other,
+   so one - and one + move both. The maths underneath still holds them apart -- a hit
+   and a graze deal different damage -- and a critical, which sums the printed pair
+   before anything is added, does not move at all. */
+function cltRows(side){
+  return"a"===side?[{k:"ac",lb:"Acc",full:"Accuracy",ids:["ac"]},{k:"pw",lb:"Power",full:"Power",ids:["ph","pg"]}]
+                  :[{k:"df",lb:"Def",full:"Defense",ids:["df"]},{k:"hp",lb:"Health",full:"Max Health",ids:["hp"]}];
+}
+/* The modifier of a row: Power keeps its two halves on the same number, so either one
+   answers for the row. */
+function cltRowMod(r){return cltState().m[r.ids[0]]|0}
 /* 2026-11-15: the modifier sits on the statistic itself, - value +, instead of a row of
    sliders under a row of chips that said the same numbers twice. The owner picked this
    layout out of four; nothing of the maths changed with it. A step cannot be taken out
    from under a finger the way a slider could, and the control and the number are now
    one thing, so they cannot disagree. */
 function cltSteps(side,C,o){
-  const m=cltState().m,
-    L="a"===side?[["ac","Acc","Accuracy"],["ph","Hit","Power hit"],["pg","Graze","Power graze"]]
-                :[["df","Def","Defense"],["hp","Health","Max Health"]];
-  return L.map(([s,k,full])=>`<div class="clt-st" role="group" aria-label="${full}">
-      <span class="clt-k">${k}</span>
+  return cltRows(side).map(r=>{const m=cltRowMod(r),
+    v=r.ids.map(s=>`<b id="clt-v-${s}">${o?o[s]:cltVal(C,s,cltState().m[s])}</b>`).join('<i>/</i>');
+    return`<div class="clt-st" role="group" aria-label="${r.full}">
+      <span class="clt-k">${r.lb}</span>
       <span class="clt-c">
-        <button type="button" class="clt-m" onclick="cltStep('${s}',-1)" aria-label="${full}, one less"${-5===(m[s]|0)?" disabled":""}>&minus;</button>
-        <span class="clt-n"><b id="clt-v-${s}">${o?o[s]:cltVal(C,s,m[s])}</b>${cltDelta(m[s])}</span>
-        <button type="button" class="clt-m" onclick="cltStep('${s}',1)" aria-label="${full}, one more"${5===(m[s]|0)?" disabled":""}>+</button>
+        <button type="button" class="clt-m" onclick="cltStep('${r.k}',-1)" aria-label="${r.full}, one less"${-5===m?" disabled":""}>&minus;</button>
+        <span class="clt-n">${v}${cltDelta(m)}</span>
+        <button type="button" class="clt-m" onclick="cltStep('${r.k}',1)" aria-label="${r.full}, one more"${5===m?" disabled":""}>+</button>
       </span>
-    </div>`).join("");
+    </div>`}).join("");
 }
 function cltArt(C){return C&&CARD_IMGS_ON?`<img class="clt-art" src="${cardImg(C.n)}" alt="" loading="lazy">`:""}
-/* One side of the arena: the card, the picker that is its own name, the statistics.
-   Where there is no card to show -- nothing picked yet, or a deployment without the
-   images -- a box of the same shape holds the place, so the two columns never jump. */
-function cltSide(side,label,S,C,o,both){
+/* One side of the arena, as four pieces of the one grid the pair is (the side itself is
+   display:contents): the label, the card, the picker that is its own name, and the
+   statistics. Where there is no card to show -- nothing picked yet, or a deployment
+   without the images -- a box of the same shape holds the place, so the two columns
+   never jump. */
+function cltSide(side,label,S,C,o){
   const U=cltUnits("a"===side),cur=S[side]||"",art=cltArt(C);
   return`<div class="clt-side ${side}">
     <div class="clt-h">${label}</div>
-    <div class="clt-art-w">${art||`<div class="clt-noart">${C?esc(C.n):"Nobody yet"}</div>`}${"a"===side&&both?'<span class="clt-vs" aria-hidden="true">VS</span>':""}</div>
-    <label class="field"><span class="sr-only">${label}</span>
+    <div class="clt-art-w">${art||`<div class="clt-noart">${C?esc(C.n):"Nobody yet"}</div>`}</div>
+    <label class="field clt-pk"><span class="sr-only">${label}</span>
       <select class="clt-sel" onchange="cltPick('${side}',this.value)">
         <option value=""${cur?"":" selected"}>Pick a unit…</option>
         ${U.map(c=>`<option value="${esc(c.n)}"${c.n===cur?" selected":""}>${esc(c.n)}</option>`).join("")}
       </select></label>
-    ${C?cltSteps(side,C,o):""}
-    ${C&&"a"===side?`<p class="clt-rg">Range ${esc(String(cltStat(C,"rg")||"melee"))}</p>`:""}
+    <div class="clt-sts">${C?cltSteps(side,C,o):""}</div>
   </div>`;
 }
 /* The answer, in the order a reader wants it: what the attacker needs, the three
@@ -9604,7 +9628,7 @@ function cltOddsHtml(o){
     lead=need<=1?`Any roll but a natural 1 lands a hit.`
         :need>20?`Only a natural 20 can land: ${need} is past the die.`
         :`The attacker needs <b>${need} or more</b> on the die &mdash; Defense ${o.df} less Accuracy ${o.ac}.`;
-  return`<p class="clt-lead">${lead} It takes <b>${o.hp}</b> damage to bring the defender down. Two attacks a round, and no answer from the defender.</p>
+  return`<p class="clt-lead">${lead} It takes <b>${o.hp}</b> damage to bring the defender down.</p>
     <div class="clt-big">
       <div class="clt-b"><small>Lands a hit</small><b>${cltPct(o.pHit)}</b></div>
       <div class="clt-b"><small>Damage a round</small><b>${cltNum(o.round)}</b><i>${cltNum(o.per)} an attack, two attacks</i></div>
@@ -9615,7 +9639,7 @@ function cltOddsHtml(o){
       <table class="clt-t"><thead><tr><th>Roll</th><th>Chance</th><th>Damage</th></tr></thead><tbody>
         ${o.rows.map(([n,p,d])=>`<tr><td>${n}</td><td>${cltPct(p)}</td><td>${d}</td></tr>`).join("")}
       </tbody></table>
-      <p class="hint clt-f">A critical sums the printed Power, ${o.crit}, before anything the &minus; and + add.</p>
+      <p class="hint clt-f">The attacker stands engaged and attacks twice a round; the defender does not answer. A critical sums the printed Power, ${o.crit}, before anything the &minus; and + add. <button class="link" onclick="go('rules')">The rules behind it</button></p>
     </details>`;
 }
 function cltRollHtml(r){
@@ -9625,35 +9649,41 @@ function cltRollHtml(r){
 }
 function cltPick(side,v){const S=cltState();S[side]=v||"";S.roll=null;renderClashTest()}
 /* A step redraws the numbers and the answer, never the page: the button under the
-   finger stays where it is and keeps the focus. */
-function cltStep(s,d){
-  const S=cltState(),v=Math.max(-5,Math.min(5,(S.m[s]|0)+(d|0)));
-  if(v===(S.m[s]|0))return;
-  S.m[s]=v;S.roll=null;cltPaint();
+   finger stays where it is and keeps the focus. Power moves both of its halves. */
+function cltStep(k,d){
+  const S=cltState(),ids="pw"===k?["ph","pg"]:[k],v=Math.max(-5,Math.min(5,(S.m[ids[0]]|0)+(d|0)));
+  if(v===(S.m[ids[0]]|0))return;
+  ids.forEach(s=>S.m[s]=v);S.roll=null;cltPaint();
 }
 function cltPaint(){
   const S=cltState(),A=cltCard(S.a),D=cltCard(S.d),o=A&&D?cltOdds(A,D,S.m):null,
     od=$("clt-odds"),rb=$("clt-roll");
   if(od)od.innerHTML=o?cltOddsHtml(o):'<p class="empty">Pick an attacker and a defender.</p>';
-  [["a",A,["ac","ph","pg"]],["d",D,["df","hp"]]].forEach(([,C,ks])=>{if(!C)return;ks.forEach(k=>{
-    const e=$("clt-v-"+k);if(!e)return;
-    e.textContent=o?o[k]:cltVal(C,k,S.m[k]);
-    const dl=e.nextElementSibling;dl&&dl.classList.contains("clt-d")&&(dl.textContent=(S.m[k]>0?"+":"")+S.m[k],dl.hidden=!S.m[k]);
-    const st=e.closest(".clt-st"),bs=st?st.querySelectorAll(".clt-m"):[];
-    bs[0]&&(bs[0].disabled=-5===(S.m[k]|0));bs[1]&&(bs[1].disabled=5===(S.m[k]|0));
+  [["a",A],["d",D]].forEach(([sd,C])=>{if(!C)return;cltRows(sd).forEach(r=>{
+    const m=cltRowMod(r);let last=null;
+    r.ids.forEach(s=>{const e=$("clt-v-"+s);if(!e)return;last=e;e.textContent=o?o[s]:cltVal(C,s,S.m[s])});
+    if(!last)return;
+    const dl=last.parentNode.querySelector(".clt-d");
+    dl&&(dl.textContent=(m>0?"+":"")+m,dl.hidden=!m);
+    const st=last.closest(".clt-st"),bs=st?st.querySelectorAll(".clt-m"):[];
+    bs[0]&&(bs[0].disabled=-5===m);bs[1]&&(bs[1].disabled=5===m);
   })});
   if(rb)rb.innerHTML=CLT_HINT;
 }
+/* The die tumbles through faces while it rolls, then lands on the one that counts. */
 function cltRoll(){
   const S=cltState(),A=cltCard(S.a),D=cltCard(S.d);if(!A||!D)return;
   const o=cltOdds(A,D,S.m),f=1+Math.floor(20*Math.random()),
     kind=20===f?"crit":1===f?"fumble":f+o.ac>=o.df?"hit":"graze",
     r=S.roll={f,kind,ac:o.ac,df:o.df,total:f+o.ac,dmg:"crit"===kind?o.crit:"fumble"===kind?1:"hit"===kind?o.ph:o.pg};
   const box=$("clt-roll"),st=document.querySelector("#clashtest-body .clt-p");
-  st&&(st.classList.remove("clash"),void st.offsetWidth,st.classList.add("clash"),setTimeout(()=>st.classList.remove("clash"),700));
+  st&&(st.classList.remove("clash"),void st.offsetWidth,st.classList.add("clash"),setTimeout(()=>st.classList.remove("clash"),760));
   if(!box)return;
-  box.innerHTML='<span class="clt-die roll" aria-hidden="true">?</span><span class="clt-rt">Rolling…</span>';
-  setTimeout(()=>{const b=$("clt-roll");b&&cltState().roll===r&&(b.innerHTML=cltRollHtml(r))},620);
+  box.innerHTML='<span class="clt-die roll" aria-hidden="true">'+(1+Math.floor(20*Math.random()))+'</span><span class="clt-rt">Rolling…</span>';
+  const tick=setInterval(()=>{const d=box.querySelector(".clt-die");
+    if(!d||cltState().roll!==r)return clearInterval(tick);
+    d.textContent=1+Math.floor(20*Math.random())},70);
+  setTimeout(()=>{clearInterval(tick);const b=$("clt-roll");b&&cltState().roll===r&&(b.innerHTML=cltRollHtml(r))},660);
 }
 async function renderClashTest(){
   const b=$("clashtest-body");if(!b)return;
@@ -9663,11 +9693,10 @@ async function renderClashTest(){
   if(null===CARD_IMGS_ON){await detectCardImgs();if("clashtest"!==route.view)return}
   const S=cltState(),A=cltCard(S.a),D=cltCard(S.d),o=A&&D?cltOdds(A,D,S.m):null,both=!!(A&&D);
   b.innerHTML=`<div class="panel plain clt-p">
-    <h2 style="margin:0 0 6px">Clash test</h2>
-    <p class="hint" style="margin:0 0 14px">The real card statistics, and the twenty faces of the die counted one by one. <button class="link" onclick="go('rules')">The rules behind it</button></p>
-    <div class="clt-pair">${cltSide("a","Attacker",S,A,o,both)}${cltSide("d","Defender",S,D,o,both)}</div>
+    <h2 class="clt-ttl">Clash test<em>!</em></h2>
+    <div class="clt-pair">${cltSide("a","Attacker",S,A,o)}${cltSide("d","Defender",S,D,o)}
+      <button class="act clt-go" onclick="cltRoll()"${both?"":" disabled"}>Clash!</button></div>
     <p class="hint clt-sh">The &minus; and + stand in for auras, relics, attachments and the card's own rules: nothing here reads a keyword, so a unit whose text changes a fight is yours to dial in.</p>
-    <button class="act clt-go" onclick="cltRoll()"${both?"":" disabled"}>CLASH!</button>
     <div class="clt-ans">
       <div id="clt-odds">${o?cltOddsHtml(o):'<p class="empty">Pick an attacker and a defender.</p>'}</div>
       <div class="clt-roll" id="clt-roll" aria-live="polite">${S.roll?cltRollHtml(S.roll):CLT_HINT}</div>
