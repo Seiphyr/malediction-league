@@ -19037,3 +19037,188 @@ begin
 end $$;
 
 commit;
+
+-- ============================================================
+--  META: THE SLOT OF A TRACKED MATCH (2026-12-05)
+-- ============================================================
+-- Run as migration-2026-12-05-meta-slot.sql, which is this same SQL with a
+-- snapshot of both functions and thirteen checks around it.
+--
+-- The same game can reach a reader twice: once out of a tournament payload and
+-- once as the tracked match it was played with. As a game ends t_record_duel
+-- writes the match id into the payload slot (gm[].du) and the page drops the
+-- payload copy for it -- but t_record_duel gives up on a slot whose entrant has
+-- since been marked drop, and on one already holding another match id, and that
+-- slot names nothing for the page to drop. site_counts() has never had the
+-- problem: it recognises the copy by a second key as well, the same tournament,
+-- the same slot and the same two players. meta_duels() and player_matches() now
+-- hand the reader that key, as much of it as a reader may see: the tournament and
+-- the slot, and only while that slot is still the game between those two players,
+-- which the server checks here so the page does not have to know who they are.
+-- The page carries it as tslot on a tracked match and as tkey on a payload row
+-- (slDuIds / slDropDu), and drops nothing where the database names nothing, so it
+-- behaves as it did until this runs.
+--
+-- Nothing new is published: for a slot that DID get its du the payload already
+-- carries the match id, so the link between a tournament game and its tracked
+-- match is public both ways already. A Swiss in registration or running is the one
+-- case where a payload hides its entrants (t_deck_hide), and neither function has
+-- ever returned its games.
+-- t_slot_pair: is this slot the game between these two players?
+-- The same two reads t_record_duel does, and nothing else: 'g:<i>' is the i-th
+-- entry of gm, whose players are a and b; 'b:<r>:<i>' is the i-th game of round r
+-- of bracket, whose players are a.id and b.id. A ref of any other shape, a slot
+-- that is not there, a payload that is not an object: false. It never looks at the
+-- result of the game, because the question is only which game it is.
+-- Immutable: the answer depends on the four arguments alone.
+create or replace function public.t_slot_pair(p jsonb, p_ref text, p_host uuid, p_guest uuid)
+returns boolean language plpgsql immutable security definer set search_path = public, pg_temp as $$
+declare
+  v_m  jsonb;
+  v_mm text[];
+  v_a  text;
+  v_b  text;
+  v_h  text := p_host::text;
+  v_g  text := p_guest::text;
+begin
+  if p is null or p_ref is null or v_h is null or v_g is null then
+    return false;
+  end if;
+  if p_ref ~ '^g:[0-9]{1,4}$' then
+    v_m := p->'gm'->(substr(p_ref, 3)::int);
+    v_a := v_m->>'a';
+    v_b := v_m->>'b';
+  elsif p_ref ~ '^b:[0-9]{1,2}:[0-9]{1,4}$' then
+    v_mm := regexp_match(p_ref, '^b:([0-9]{1,2}):([0-9]{1,4})$');
+    v_m := p->'bracket'->(v_mm[1]::int)->(v_mm[2]::int);
+    v_a := v_m #>> '{a,id}';
+    v_b := v_m #>> '{b,id}';
+  else
+    return false;
+  end if;
+  if jsonb_typeof(v_m) is distinct from 'object' then
+    return false;
+  end if;
+  return coalesce((v_a = v_h and v_b = v_g) or (v_a = v_g and v_b = v_h), false);
+end $$;
+revoke all on function public.t_slot_pair(jsonb, text, uuid, uuid) from public, anon, authenticated;
+comment on function public.t_slot_pair(jsonb, text, uuid, uuid) is
+  'True when slot p_ref ("g:<i>" in gm, "b:<r>:<i>" in bracket) of tournament payload p is the game between p_host and p_guest, either way round. Reads the payload the way t_record_duel does. For other functions only: not callable from the API.';
+
+-- meta_duels: the slot of a tracked match, when the slot is still that game
+-- As in "ADMIN: DEMO ACCOUNTS" (2026-12-04), plus the last two columns. The
+-- columns change, so the function is dropped first.
+drop function if exists public.meta_duels(timestamptz);
+create or replace function public.meta_duels(p_since timestamptz default null)
+returns table (id uuid, played_at timestamptz,
+               winner_seeker text, loser_seeker text,
+               winner_terrain text, loser_terrain text,
+               winner_deck_id uuid, loser_deck_id uuid,
+               in_tournament boolean, is_draw boolean,
+               tournament_id uuid, t_ref text)
+language sql stable security definer set search_path = public, pg_temp as $$
+  select d.id,
+         date_trunc('day', d.ended_at),
+         case when x.wh then d.host_seeker  else d.guest_seeker  end,
+         case when x.wh then d.guest_seeker  else d.host_seeker  end,
+         case when x.wh then d.host_terrain else d.guest_terrain end,
+         case when x.wh then d.guest_terrain else d.host_terrain end,
+         case when wk.is_public and wp.matches_visibility = 'public' then wk.id end,
+         case when lk.is_public and lp.matches_visibility = 'public' then lk.id end,
+         d.tournament_id is not null,
+         d.is_draw,
+         -- The slot, for the reader to drop the payload's copy of this game with.
+         -- Both columns or neither, and only when the slot still names these two
+         -- players: a game the payload has since given to somebody else is a
+         -- different game, and dropping its copy would lose it.
+         case when s.ok then d.tournament_id end,
+         case when s.ok then d.t_ref end
+    from duels d
+    cross join lateral (select d.is_draw or d.winner_id = d.host_id as wh) x
+    join profiles wp on wp.id = case when x.wh then d.host_id else d.guest_id end
+    join profiles lp on lp.id = case when x.wh then d.guest_id else d.host_id end
+    left join decks wk on wk.id = case when x.wh then d.host_deck_id else d.guest_deck_id end
+    left join decks lk on lk.id = case when x.wh then d.guest_deck_id else d.host_deck_id end
+    left join tournaments t on t.id = d.tournament_id
+    cross join lateral (select t_slot_pair(t.payload, d.t_ref, d.host_id, d.guest_id) as ok) s
+   where d.status = 'done'
+     and (p_since is null or d.ended_at >= p_since)
+     and not coalesce(t.status in ('draft','running') and t.payload->>'fmt' = 'swiss', false)
+     and not exists (select 1 from admin_accounts a where a.demo and a.user_id in (d.host_id, d.guest_id))
+   order by d.ended_at desc;
+$$;
+revoke all on function public.meta_duels(timestamptz) from public;
+grant execute on function public.meta_duels(timestamptz) to anon, authenticated;
+comment on function public.meta_duels(timestamptz) is
+  'The Meta''s matches: every finished tracked match with no player id, the day only, a public deck id only where its owner shows their matches, plus the tournament slot it was played in (tournament_id, t_ref -- both or neither) so the reader can drop the payload copy of that game. Leaves out a demo account''s games and, until it closes, a Swiss tournament''s. Callable by anyone.';
+
+-- player_matches: the same slot, under the same gate
+-- A profile's own list of matches has the same two sources as the Meta, so it had
+-- the same double count. It already names the tournament of a match; now it names
+-- the game as well, so the page can drop the payload copy there too. As in
+-- "TOURNAMENT AUTOMATION" (2026-11-15), plus t_ref at the end and pg_temp last.
+-- t_ref follows tournament_id exactly: a reader who may not see which tournament a
+-- match belongs to does not see which game of it either -- and cannot read that
+-- tournament's payload in the first place, so there is no copy there to drop.
+drop function if exists public.player_matches(uuid);
+create or replace function public.player_matches(p_user uuid)
+returns table (id uuid, played_at timestamptz, opponent_id uuid, opponent_name text,
+               my_seeker text, my_terrain text, opp_seeker text, opp_terrain text,
+               won boolean, my_score int, opp_score int,
+               tournament_id uuid, tournament_name text, is_draw boolean,
+               t_ref text)
+language sql stable security definer set search_path = public, pg_temp as $$
+  with v as (
+    select auth.uid() as viewer,
+           auth.uid() is not null
+             and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
+             and exists (select 1 from profiles vp where vp.id = auth.uid() and vp.deleted_at is null) as signed_in,
+           (select p.matches_visibility from profiles p where p.id = p_user) as vis
+  )
+  select d.id,
+         d.ended_at,
+         case when s.shown then op.id end,
+         case when s.shown then op.display_name
+              when op.deleted_at is not null then 'Deleted player'
+              else 'Private player' end,
+         case when d.host_id = p_user then d.host_seeker  else d.guest_seeker  end,
+         case when d.host_id = p_user then d.host_terrain else d.guest_terrain end,
+         case when s.shown then case when d.host_id = p_user then d.guest_seeker  else d.host_seeker  end end,
+         case when s.shown then case when d.host_id = p_user then d.guest_terrain else d.host_terrain end end,
+         case when d.is_draw then null else d.winner_id = p_user end,
+         case when d.winner_id = p_user then d.winner_score else d.loser_score end,
+         case when d.winner_id = p_user then d.loser_score else d.winner_score end,
+         case when l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false)
+              then t.id end,
+         case when l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false)
+              then coalesce(nullif(btrim(t.payload #>> '{pn,title}'), ''),
+                            nullif(btrim(t.payload->>'name'), ''),
+                            l.name || ' ' || t.month) end,
+         d.is_draw,
+         case when (l.is_public or is_league_member(l.id) or coalesce(v.viewer in (d.host_id, d.guest_id), false))
+                   and q.ok
+              then d.t_ref end
+    from duels d
+    cross join v
+    join profiles op on op.id = case when d.host_id = p_user then d.guest_id else d.host_id end
+    cross join lateral (
+      select coalesce(v.viewer in (d.host_id, d.guest_id), false)
+             or op.matches_visibility = 'public'
+             or (op.matches_visibility = 'players' and v.signed_in) as shown
+    ) s
+    left join tournaments t on t.id = d.tournament_id
+    left join leagues l on l.id = t.league_id
+    cross join lateral (select t_slot_pair(t.payload, d.t_ref, d.host_id, d.guest_id) as ok) q
+   where d.status = 'done'
+     and p_user in (d.host_id, d.guest_id)
+     and (v.viewer = p_user
+          or v.viewer = d.host_id or v.viewer = d.guest_id
+          or v.vis = 'public'
+          or (v.vis = 'players' and v.signed_in))
+     and not coalesce(t.status in ('draft','running') and t.payload->>'fmt' = 'swiss'
+                      and not coalesce(v.viewer in (d.host_id, d.guest_id), false)
+                      and not coalesce(t_is_org(t), false), false)
+   order by d.ended_at desc;
+$$;
+revoke all on function public.player_matches(uuid) from public;
+grant execute on function public.player_matches(uuid) to anon, authenticated;

@@ -2297,6 +2297,16 @@ function showCardInfo(e){
      sheet asks once and a later redraw cannot start a second one. */
   box.dataset.ci=e;
   if(me&&!cache.collection&&!box.dataset.cf)cdColLoad().then(()=>ciColLand(e));
+  /* 2026-11-15: and the decks, the same way. "In your decks" was drawn only where
+     something else had already read them -- Home, the Meta, the Collection, the deck
+     builder, Play, a tournament -- so it was missing from a deck page, from the set
+     preview, and from a card link opened before Home had finished its own read, with
+     nothing said about why. The two reads are independent: either can land first and
+     each redraws on its own. A read that fails answers with an empty list, as
+     fetchMyDecks does everywhere in the page, so the section then reads "Not in any
+     saved deck": cosmetic, and the same answer every other reader of cache.myDecks
+     already shows. */
+  if(me&&!cache.myDecks&&!box.dataset.df){box.dataset.df=1;fetchMyDecks().then(d=>{cache.myDecks=d||[];ciDkLand(e)})}
   box.innerHTML=`<div class="info-pop cardpop" onclick="event.stopPropagation()">
     <button class="cp-x" onclick="document.getElementById('card-info').remove()" aria-label="Close">&times;</button>
     <div class="cp-grid">
@@ -2352,6 +2362,17 @@ function showCardInfo(e){
 function ciColLand(e){
   const b=$("card-info");if(!b||+b.dataset.ci!==e||b.querySelector(".rulepop"))return;
   if(!cache.collection){b.dataset.cf=1;toast("Could not load your collection. Check your connection and try again.")}
+  ciRedraw(e)
+}
+/* The decks landed: the same redraw, and not a word about the collection, which is a
+   read of its own and may still be in flight (cdColLoad hands back the one promise, so
+   the redraw cannot start a second read of it). */
+function ciDkLand(e){
+  const b=$("card-info");if(!b||+b.dataset.ci!==e||b.querySelector(".rulepop"))return;
+  ciRedraw(e)
+}
+function ciRedraw(e){
+  const b=$("card-info");if(!b)return;
   const p=b.querySelector(".info-pop"),a=p&&p.querySelector(".cp-cols"),y=p?p.scrollTop:0,t=a?a.offsetTop:0,
     ae=document.activeElement,fc=p&&ae&&p.contains(ae)?ae.className:"",
     fi=fc?[...p.querySelectorAll("button")].filter(x=>x.className===fc).indexOf(ae):-1;
@@ -2902,24 +2923,28 @@ function slNoDemo(rows,D){return D&&D.size?(rows||[]).filter(m=>!(m&&(D.has(m.wi
    tracked match: it holds what was really played in that game, where the payload holds
    what the entrant registered for the whole tournament. A reader that loads no tracked
    matches drops nothing, which is right -- it has nothing to put in their place.
-   Two things this does not reach. Both were measured, neither is new:
-   - A payload slot that never got its du names nothing, so nothing can drop it, and that
-     game is still counted twice. t_record_duel gives up on a slot whose entrant is marked
-     drop, and on one already holding another duel's id. site_counts() catches those with a
-     second key -- the tournament, the slot and the two players -- which cannot be built
-     here: meta_duels returns neither t_ref nor a player id. Widening it is a database
-     change of its own.
+   A slot that never got its du is answered for all the same, by the slot itself: a tracked
+   match carries the tournament and the game it was played in (tslot), a payload row carries
+   its own (tkey), and the same string drops the copy. t_record_duel leaves a slot without
+   its du when an entrant has since been marked drop, and when the slot already holds
+   another match's id, and that game used to count twice. This is the second key
+   site_counts() has always used on the server -- the tournament, the slot and the two
+   players -- minus the players, which the server checks itself before it names the slot at
+   all: it names it only while that game is still between those two. Where it names
+   nothing, nothing is dropped, so before the database answers those columns this is the
+   du alone, exactly as it was.
+   One thing this does not reach. It was measured, it is not new:
    - metaDupCount, the warning about an organizer who also logs the tournament's games by
      hand, matches on the player ids, and a tracked match carries none. It could already
      not see them for a Play Network tournament; now it cannot for any. The warning
      undercounts, it never invents. */
-function slDuIds(rows){const s=new Set;(rows||[]).forEach(r=>{const k=r&&null!=r.id?String(r.id):"";k&&s.add(0===k.indexOf("du:")?k.slice(3):k)});return s}
-function slDropDu(rows,ids){return ids&&ids.size?(rows||[]).filter(r=>!(r&&r.duid&&ids.has(String(r.duid)))):rows||[]}
+function slDuIds(rows){const s=new Set;(rows||[]).forEach(r=>{const k=r&&null!=r.id?String(r.id):"";k&&s.add(0===k.indexOf("du:")?k.slice(3):k);const t=r&&(r.tslot||(r.tournament_id&&r.t_ref?r.tournament_id+"|"+r.t_ref:""));t&&s.add(t)});return s}
+function slDropDu(rows,ids){return ids&&ids.size?(rows||[]).filter(r=>!(r&&(r.duid&&ids.has(String(r.duid))||r.tkey&&ids.has(r.tkey)))):rows||[]}
 async function fetchGames(du){const[m,t,s,d]=await Promise.all([fetchAllMatches(),fetchAllTourneys(),fetchTourneySes(),du?fetchMetaDuels():[]]);return metaTag(m.concat(slDropDu(tvAllSynth(t),slDuIds(d)),d),s)}/* Matches played with the match tracker (Play › Match), as meta_duels() gives
    them: no player ids, the day only. They count as standard matches. Before
    that function exists the Meta simply goes without them. A draw is a win
    for nobody, so the Meta leaves it out. */
-async function fetchMetaDuels(){if(!sb)return[];const{data:d}=await slPaged(()=>sb.rpc("meta_duels").order("played_at",{ascending:!1}).order("id"));return(d||[]).filter(r=>r&&r.id&&!r.is_draw).map(r=>({id:"du:"+r.id,created_at:r.played_at,winner_seeker:r.winner_seeker,loser_seeker:r.loser_seeker,winner_terrain:r.winner_terrain,loser_terrain:r.loser_terrain,winner_deck_id:r.winner_deck_id||null,loser_deck_id:r.loser_deck_id||null,duel:!0,tourney:!!r.in_tournament}))}function mbDrop(id){const m=(cache.members||[]).find(x=>x.id===id);dropPlayer(id,m?m.display_name:"this player")}
+async function fetchMetaDuels(){if(!sb)return[];const{data:d}=await slPaged(()=>sb.rpc("meta_duels").order("played_at",{ascending:!1}).order("id"));return(d||[]).filter(r=>r&&r.id&&!r.is_draw).map(r=>({id:"du:"+r.id,created_at:r.played_at,winner_seeker:r.winner_seeker,loser_seeker:r.loser_seeker,winner_terrain:r.winner_terrain,loser_terrain:r.loser_terrain,winner_deck_id:r.winner_deck_id||null,loser_deck_id:r.loser_deck_id||null,duel:!0,tourney:!!r.in_tournament,tslot:r.tournament_id&&r.t_ref?r.tournament_id+"|"+r.t_ref:null}))}function mbDrop(id){const m=(cache.members||[]).find(x=>x.id===id);dropPlayer(id,m?m.display_name:"this player")}
 function mbRestore(id){const m=(cache.members||[]).find(x=>x.id===id);restorePlayer(id,m?m.display_name:"this player")}
 function isOwnerOf(l){return !!(me&&l&&l.owner_id===me.id)}/* The creator deleted their account: the organizers take over the creator-only actions the database allows them (archive, reopen, organizers), as before communities had a creator role. */function lgCreatorGone(l){return !!(l&&(cache.members||[]).some(x=>x.id===l.owner_id&&x.deleted_at))}function canCreatorAct(l){return isOwnerOf(l)||!!(l&&showAsAdmin(l)&&lgCreatorGone(l))}
 function lgArchived(l){return !!(l&&l.archived_at)}
@@ -8130,7 +8155,7 @@ window.addEventListener("pagehide",anBeacon);
    from the cache, an empty bracket) is a signal, not noise, and so is the
    unreachable arm of a dispatch over the card types. */
 const AN_FORM=new Set(["Email and password required","Password must be at least 8 characters","Use a password of at least 8 characters","Use at least 8 characters","The two passwords do not match","Tick the box to confirm you are 16 or older and accept the Terms","Enter your email first, then tap reset","That does not look like an email","That is already your email","Pick a name",
-  "The community needs a name","The community needs a venue","Name and location are required","Pick a region","Pick the community's time zone","Type a city or a postcode","Tap the map to drop a pin first","Pick today or a later date","Give a reason the admin can act on (at least 20 characters)","Keep the note under 2000 characters","Keep it to 40 characters",
+  "The community needs a name","The community needs a venue","Name and location are required","Pick a region","Pick the community's time zone","Type a city or a postcode","Tap the map to drop a pin first","Pick today or a later date","Give a reason the admin can act on (at least 20 characters)","Keep the note under 2000 characters","Keep it to 40 characters","Write something first",
   "Give the deck a name","Link must be a valid http(s) URL","No cards recognized — paste one card per line","Terrain and Legacy are not side deck cards","Side deck is full — 7 cards max (official rule)","That Legacy is bound to another Seeker",
   "A Discord name needs at least 2 characters","Type the player's nickname (up to 40 characters)","Paste the address of a malediction.gg profile, like https://malediction.gg/app/profile/AbC123xYz0/"]);
 {const t=window.toast;"function"==typeof t&&(window.toast=function(m,ok){try{ok?anToastOk++:(anToastErr++,AN_FORM.has(String(m))||anErr("toast: "+anScrub(m)))}catch(e){}return t.apply(this,arguments)})}
@@ -11494,8 +11519,13 @@ function tvSynthMatches(t){
   const ent={};(p.entrants||[]).forEach(e=>{ent[e.id]=e});
   const sid="tv:"+t.id,out=[],uid=k=>v3&&!t3IdOk(k)?null:k,skip=m=>v3&&!!(m.du||"drop"===m.src||"bye"===m.src||"draw"===m.w||null==m.b),
     /* duid, not du: a row of the profile's own list uses du as a flag meaning "this is
-       a tracked match", and these two must never be read for each other. */
-    row=(w,l,duid)=>{const W=ent[w]||{},L=ent[l]||{};
+       a tracked match", and these two must never be read for each other. tkey is the
+       other way to say which game this is, for a slot whose du was never written:
+       "<tournament id>|<ref>", the ref as the database writes it (g:<i> in gm,
+       b:<round>:<i> in bracket). A tracked match says the same thing in tslot -- a
+       different name on purpose, so that a list holding both kinds can never drop the
+       tracked match instead of the copy. */
+    row=(w,l,duid,ref)=>{const W=ent[w]||{},L=ent[l]||{};
       /* 2026-11-15: while a Swiss is in registration or running, t_deck_hide has emptied
          every entrant's seeker and terrain -- t_deck_pub writes them back at close -- so a
          game of one is a row nothing can read: it added to "N games" and to the denominator
@@ -11504,15 +11534,15 @@ function tvSynthMatches(t){
          (site_counts). At close the games appear, with the Seekers that played them. A game
          where only one side registered a deck still counts, for the side that did. */
       if(!W.seeker&&!L.seeker)return;
-      out.push({duid:duid||null,id:sid+":"+out.length,session_id:sid,league_id:t.league_id,created_at:t.created_at,
+      out.push({duid:duid||null,tkey:ref?t.id+"|"+ref:null,id:sid+":"+out.length,session_id:sid,league_id:t.league_id,created_at:t.created_at,
         winner_id:uid(w),loser_id:uid(l),winner_key:w,loser_key:l,
         winner_seeker:W.seeker||null,loser_seeker:L.seeker||null,
         winner_terrain:W.terrain||null,loser_terrain:L.terrain||null,
         winner_decklist:null,loser_decklist:null,
         winner_deck_id:W.deckId||null,loser_deck_id:L.deckId||null,
         reported_by:t.created_by||null,confirmed:!0,tourney:!0})};
-  (p.gm||[]).forEach(m=>{if(!m.w||m.w!==m.a&&m.w!==m.b||skip(m))return;row(m.w,m.w===m.a?m.b:m.a,m.du)});
-  (p.bracket||[]).forEach(r=>r.forEach(m=>{const a=m.a&&m.a.id,b=m.b&&m.b.id;if(!m.winner||!a||!b||skip(m))return;const w="a"===m.winner?a:b;row(w,w===a?b:a,m.du)}));
+  (p.gm||[]).forEach((m,i)=>{if(!m.w||m.w!==m.a&&m.w!==m.b||skip(m))return;row(m.w,m.w===m.a?m.b:m.a,m.du,"g:"+i)});
+  (p.bracket||[]).forEach((rd,ri)=>rd.forEach((m,k)=>{const a=m.a&&m.a.id,b=m.b&&m.b.id;if(!m.winner||!a||!b||skip(m))return;const w="a"===m.winner?a:b;row(w,w===a?b:a,m.du,"b:"+ri+":"+k)}));
   return out;
 }
 function tvAllSynth(e){return(e||[]).reduce((e,n)=>e.concat(tvSynthMatches(n)),[])}
