@@ -18071,3 +18071,153 @@ revoke all on function public.board_like(uuid, boolean)     from public, anon;
 revoke all on function public.board_state(uuid)             from public, anon;
 grant execute on function public.board_like(uuid, boolean)  to authenticated;
 grant execute on function public.board_state(uuid)          to authenticated;
+
+-- ============================================================
+--  MESSAGE LENGTH (2026-12-02)
+-- ============================================================
+-- Run as migration-2026-12-02-message-length.sql (after 11-30).
+-- What changes:
+--   * A board message is at most 500 characters, not 1000. A quick word to the
+--     community is short, and 1000 characters is a wall of text on a phone.
+--     community_messages_body_len (replaced): 1 to 500 characters once every kind
+--     of blank is trimmed (public.trim_blank, as before). Plain and fully
+--     validated, not NOT VALID: every row, old and new, is held to the rule.
+--   * A notice is still at most 1000 characters, and nothing here touches it: an
+--     organizer's announcement carries the times, the rules and an address, so it
+--     needs the room. announcements' own body check (1 to 1000) and edit_notice()
+--     are left exactly as they are; the check block below asserts both, so a later
+--     edit that drags the notice limit along with the message one fails.
+--   * The rows already stored are counted BEFORE anything is tightened, in this
+--     same transaction. If one message is longer than the new limit the migration
+--     stops with a sentence saying how many there are AND naming the longest ten by
+--     id, length and community, and nothing is applied -- instead of the raw
+--     constraint error Postgres would raise, which names the constraint and not
+--     what to do about it. Nothing anybody wrote is ever shortened or deleted, and
+--     nothing here could do it for you either: a message is its author's to edit
+--     (edit_board_message refuses anybody else, including the organizer), so the
+--     way out of an over-long message is its author or the delete, and the sentence
+--     says so. How many messages are stored is printed twice, as a notice and as a
+--     row of the output after the commit, because the SQL Editor shows result rows
+--     and errors and need not show a notice.
+--   * The number itself is not one constant: 500 is written in v_max in section 1,
+--     in section 2's constraint, in section 3's gate and in its sentence, and again
+--     in the check block, and all of them have to agree. So this migration does not
+--     offer to raise it -- changing the limit is one change to the page and to this
+--     file together, not a number to edit in a hurry while a migration is refusing.
+--   * edit_board_message(id, body) (replaced, as in MESSAGE EDIT + ALPHA ICON
+--     (2026-11-30) in every other respect): the length gate is 500, and a text over
+--     it is refused with a sentence a player can act on -- it names the limit and
+--     the length of what they wrote and says to shorten it. The hint (bad_body) and
+--     the errcode (23514) do not change, so the page's own wording still answers
+--     for it. An empty text gets its own sentence, as it is its own mistake.
+--   * board_reports.body (1 to 2000, the copy a report keeps of the text as it was
+--     reported) is NOT tightened: a report written before today holds the text as
+--     it was then, and shortening history is not the migration's business.
+--   * No table, policy, trigger or notification changes, and no grant changes:
+--     create or replace function keeps the ACL edit_board_message already has.
+--     The grants are re-asserted below only so this section stands on its own.
+
+-- 1. The rows already stored, counted before anything is tightened -----------------------------
+-- ALTER TABLE ... ADD CONSTRAINT scans the table, and Postgres refuses the
+-- constraint if one stored message is longer than the new limit. The error it
+-- raises then names the constraint and the row, not what to do about it, so this
+-- block asks the question first, inside the same transaction, and stops with a
+-- sentence. It never shortens or deletes anything anybody wrote: a message that
+-- is too long is the owner's to settle with its author, or to delete: this file
+-- cannot shorten it for him, and edit_board_message is the author's own RPC. How
+-- many messages are stored is said twice, in the notice here and in a row of the
+-- output after the commit, so a run on an empty board is told apart from a run
+-- that found nothing to fix.
+do $$
+declare
+  v_max  constant int := 500;
+  v_all  bigint;
+  v_over bigint;
+  v_list text;
+begin
+  select count(*), count(*) filter (where char_length(public.trim_blank(body)) > v_max)
+    into v_all, v_over
+    from public.community_messages;
+  raise notice 'community_messages: % message(s) stored, % longer than % characters', v_all, v_over, v_max;
+  if v_over > 0 then
+    -- the longest ten, in the exception's own sentence: an error is the one thing every SQL client
+    -- shows, and a count with no ids leaves the owner writing his own query at the worst moment.
+    select string_agg(format('%s (%s characters, community %s)', x.id, x.n, coalesce(x.league_id::text, 'none')),
+                      ', ' order by x.n desc)
+      into v_list
+      from (select id, league_id, char_length(public.trim_blank(body)) as n
+              from public.community_messages
+             where char_length(public.trim_blank(body)) > v_max
+             order by n desc
+             limit 10) x;
+    raise exception '% of the % board message(s) stored are longer than % characters, so the limit cannot be tightened. Nothing was changed. A message is its author''s to edit, so shorten these with their authors or delete them, then run this again. The longest first, up to ten: %',
+      v_over, v_all, v_max, v_list
+      using errcode = '23514', hint = 'too_long';
+  end if;
+end $$;
+
+-- 2. The message length ------------------------------------------------------------------------
+-- 1 to 500 characters once every kind of blank is trimmed, the formatting marks
+-- (**bold**, [text](link), :d20:) counted as the page counts them. Plain, not
+-- NOT VALID: block 1 has just proved no stored row breaks it, so the scan costs
+-- nothing and the table carries the guarantee for every row instead of only for
+-- the ones written from now on.
+alter table public.community_messages drop constraint if exists community_messages_body_len;
+alter table public.community_messages add constraint community_messages_body_len
+  check (char_length(public.trim_blank(body)) between 1 and 500);
+
+-- 3. edit_board_message ------------------------------------------------------------------------
+-- As in MESSAGE EDIT + ALPHA ICON (2026-11-30) in every other respect -- its
+-- author only, still able to write on that board, the same brake, the same
+-- answer -- with the length gate at 500 and a sentence a player can act on: it
+-- names the limit, names the length of what they wrote and says what to do.
+-- An empty text is a different mistake and gets its own sentence. Both keep
+-- hint bad_body and errcode 23514, so the page's own wording still answers for
+-- them and nothing on the page has to change to read this.
+create or replace function public.edit_board_message(p_id uuid, p_body text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_uid uuid := board_me();
+  m     community_messages%rowtype;
+  v     text := trim_blank(coalesce(p_body, ''));
+  v_at  timestamptz;
+begin
+  select * into m from community_messages x where x.id = p_id for update;
+  if not found then
+    raise exception 'This message is no longer there' using errcode = 'P0002', hint = 'gone';
+  end if;
+  if m.author_id is distinct from v_uid then
+    raise exception 'Only its author can edit a message' using errcode = '42501', hint = 'not_author';
+  end if;
+  if not (is_active_member(m.league_id) or is_league_owner(m.league_id)) then
+    raise exception 'Only the members of this community can write on its board'
+      using errcode = '42501', hint = 'not_member';
+  end if;
+  if exists (select 1 from leagues l where l.id = m.league_id and l.archived_at is not null) then
+    raise exception 'This community is archived' using errcode = '42501', hint = 'archived';
+  end if;
+  if exists (select 1 from board_blocks b where b.league_id = m.league_id and b.user_id = v_uid)
+     and not board_is_org(m.league_id, v_uid) then
+    raise exception 'You can''t write on this board right now' using errcode = '42501', hint = 'blocked';
+  end if;
+  if char_length(v) < 1 then
+    raise exception 'A message needs some text' using errcode = '23514', hint = 'bad_body';
+  end if;
+  if char_length(v) > 500 then
+    raise exception 'A board message is at most 500 characters and this one is %. Shorten it and save again.',
+      char_length(v)
+      using errcode = '23514', hint = 'bad_body';
+  end if;
+  if v = m.body then
+    return jsonb_build_object('ok', true, 'id', m.id, 'body', m.body, 'edited_at', m.edited_at, 'same', true);
+  end if;
+  perform message_edit_brake(v_uid);
+  update community_messages c set body = v, edited_at = now() where c.id = p_id returning c.edited_at into v_at;
+  return jsonb_build_object('ok', true, 'id', p_id, 'body', v, 'edited_at', v_at, 'same', false);
+end $$;
+
+-- 4. Grants ------------------------------------------------------------------------------------
+-- create or replace function keeps the ACL the function already had, so nothing
+-- here changes. They are re-asserted so this section stands on its own.
+revoke all on function public.edit_board_message(uuid, text)  from public, anon;
+grant execute on function public.edit_board_message(uuid, text) to authenticated;

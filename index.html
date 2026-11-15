@@ -826,8 +826,6 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 /* Pinned notices and the changelog */
 .nb-card.nb-pinned{border-color:var(--brass-dim);box-shadow:inset 0 0 0 1px rgba(200,165,104,.18)}
 .nb-pintag{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);white-space:nowrap}
-.nb-pinb{font-size:14px;filter:grayscale(1);opacity:.55}
-.nb-pinb.on,.nb-pinb:hover{filter:none;opacity:1}
 .nb-cl{text-align:center;margin:-2px 0 10px}
 .nb-cl .link{font-size:12px;color:var(--bone-dim);padding:6px 8px}
 .nb-cl .link:hover{color:var(--brass)}
@@ -1143,24 +1141,40 @@ a.ab-where:hover .ab-gm{color:var(--bone)}
 .nb-cmod{width:min(94vw,440px);padding:20px 16px}@media(max-width:360px){.nb-cmod{padding:18px 12px}.nb-cmod .bd-tb{gap:2px}}.nb-cmod .nb-cfld{margin-bottom:0}.nb-cmod .nb-crow{margin-bottom:12px}
 /* 2026-11-13: its X is 40px (it is the only way out of Edit notice on a phone), the title clear of it */.nb-cmod .tkx{width:40px;height:40px;top:8px;right:8px}.nb-cmod h3{padding-right:44px}
 /* 2026-11-13: a toast never takes a tap meant for what is under it (the edit's Cancel and Save at 320); its Undo still does */.toast{pointer-events:none}.toast-undo{pointer-events:auto}
-/* 2026-11-13: under 360px a notice header with the "edited" marker or the author's pencil takes two lines: the scope and
-   the buttons (pencil, pin, x) on the first, Pinned, New, the time and edited on the second, so the scope stays readable
-   and nothing overflows (Home and community cards); the scope gives way to the buttons, never pushing them down */@media(max-width:439px){.nb-top:has(.nb-ed,.nb-edb):has(.nb-scope,.nb-x){flex-wrap:wrap;row-gap:0;column-gap:6px}.nb-top:has(.nb-ed,.nb-edb):has(.nb-scope,.nb-x)>*{order:3}.nb-top:has(.nb-ed,.nb-edb):has(.nb-scope,.nb-x)>.nb-scope{order:0;flex:1 1 0;max-width:max-content}.nb-top:has(.nb-ed,.nb-edb):has(.nb-scope,.nb-x)>.nb-x{order:1}.nb-top:has(.nb-ed,.nb-edb):has(.nb-scope,.nb-x)>.nb-x:not(.nb-x~.nb-x){margin-left:auto}.nb-top:has(.nb-ed,.nb-edb):has(.nb-scope,.nb-x)::after{content:"";order:2;flex:0 0 100%;height:8px}}
-.cb-top{position:relative}
+/* 2026-12-02 (was 2026-11-13): under 440px a notice header carrying the "edited" stamp takes two lines: the scope
+   and the More actions button on the first, Pinned, New, the time and that stamp on the second, so the scope stays
+   readable and nothing overflows; the scope gives way to the button, never pushing it down. Everything else keeps
+   one line. Two reasons it is the stamp alone, and the scope chip alone, that bring the wrap on: the stamp is the
+   only element wide enough to need it now, because one 40px dots button is narrower than the pencil, pin and x it
+   replaced; and the rule only ever reorders .nb-scope and .nb-x, so with no scope chip (cbNote drops it on a
+   community board) it had nothing to protect and simply stranded that one button on a line of its own. Measured at
+   320, 375 and 393, pinned and not, with a 38-character community name and the stamp: no overflow, the scope never
+   squeezed, nothing outside the card, the button 40px and flush right, and no horizontal page scroll. */@media(max-width:439px){.nb-top:has(.nb-ed):has(.nb-scope){flex-wrap:wrap;row-gap:0;column-gap:6px}.nb-top:has(.nb-ed):has(.nb-scope)>*{order:3}.nb-top:has(.nb-ed):has(.nb-scope)>.nb-scope{order:0;flex:1 1 0;max-width:max-content}.nb-top:has(.nb-ed):has(.nb-scope)>.nb-x{order:1}.nb-top:has(.nb-ed):has(.nb-scope)>.nb-x:not(.nb-x~.nb-x){margin-left:auto}.nb-top:has(.nb-ed):has(.nb-scope)::after{content:"";order:2;flex:0 0 100%;height:8px}}
+.cb-top,.nb-top{position:relative}
 .cb-msg .cb-kb{font-size:20px;min-width:40px;min-height:40px;margin:-10px -6px -10px 0}
+/* 2026-12-02: a notice's More actions button, the same size and weight as a message's */
+.nb-top .nb-kb{display:inline-flex;align-items:center;justify-content:center;font-size:20px;min-width:40px;min-height:40px;margin:-10px 0;padding:0}
+/* 2026-12-02: the community board's panel must not clip. @media(max-width:620px) gives every #league-body
+   panel overflow-x:auto, and a box that is not visible on one axis is not visible on the other either, so on
+   every phone this panel became a scroll box and cut off the open menu of its last card -- at 393px the last
+   item, Delete, was 27px outside the panel and a finger on it reached the panel instead of the item, which
+   closed the menu and did nothing. This panel holds cards of text, never a wide table, and its scrollWidth
+   has never exceeded its clientWidth (measured at 320, 375 and 393, both tabs, with a 400-character unbroken
+   word in every body: the bodies wrap anywhere), so it has nothing to scroll and nothing to gain from being
+   a scroll box. Card geometry is unchanged by this: identical card tops and heights before and after. */
+#league-body .panel.cb-panel{overflow:visible}
 .cb-menu{position:absolute;top:calc(100% + 2px);right:0;z-index:40;min-width:200px;max-width:min(280px,calc(100vw - 48px));background:var(--surface);border:1px solid var(--line-2);border-radius:11px;padding:6px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
 .cb-mi{display:block;width:100%;min-height:40px;text-align:left;background:0 0;border:0;cursor:pointer;color:var(--bone);font-family:Barlow,sans-serif;font-size:14px;padding:8px 11px;border-radius:8px;overflow-wrap:anywhere}
 .cb-mi:hover,.cb-mi:focus-visible{background:rgba(255,255,255,.06)}
 .cb-mi.danger{color:var(--crimson-txt)}
 /* 2026-11-13: editing your own message in place (cb-edit: the board's editor, Save and Cancel), the "edited" marker after
-   a message's or a notice's time, the notice's Edit pencil, a report's current text when edited after the report. */
+   a message's or a notice's time, a report's current text when edited after the report. */
 .nb-ed{flex:0 0 auto;font-size:11px;color:var(--bone-faint);white-space:nowrap}
 .cb-edit{margin-top:2px}
 .cb-edit .cb-crow{flex-wrap:wrap}
 .cb-ebtn{display:flex;gap:8px;margin-left:auto}
 .cb-ebtn .ghost{min-height:42px;padding-left:16px;padding-right:16px}
 .cb-ebtn .act{min-width:100px;min-height:42px}
-.nb-edb svg{display:block;width:16px;height:16px}
 .bd-cur{margin:0 0 6px}
 .bd-cur summary{padding:10px 0;line-height:20px;font-size:13px;color:var(--brass);cursor:pointer}
 .bd-cur .bd-q{margin:2px 0 8px}
@@ -2349,6 +2363,9 @@ const SET_PREVIEW={name:"Fury and Dread",sub:"New Seeker Decks",dir:"preview/fur
    The notable improvements, newest first. Add a line here whenever something
    players would notice ships. */
 const CHANGELOG=[
+  ["2026-12-02",[
+    "A board message is now 500 characters: a quick word to your community, not a wall of text. An organizer's notice keeps its full 1000 — an announcement carries the times, the rules and an address, and needs the room.",
+    "Every command on a message or a notice is now behind the ⋮: edit, pin, delete, block, report. The time, the “Pinned” mark and the “edited” stamp stay in the header where everyone can read them."]],
   ["2026-11-13",[
     "Edit what you wrote: Edit is in the ⋮ menu of your own board messages, and the pencil on your own notices (organizers, and the site admin's message to everyone). The same toolbar, emoji and 1000 characters; Save or Cancel (Escape). An edited text says “edited” next to its time, nobody gets a new notification, and a report keeps the text as it was reported. Only the author can edit; organizers still delete and block.",
     "Alpha testers get their own icon: everyone who signed up before 14 November 2026 can pick the Alpha emblem in Settings › Profile › Icon. Nobody's icon changes until they pick it."]],
@@ -3635,7 +3652,6 @@ function nbCanDel(e){return!!e&&(nbCanEdit(e)||!!me&&isSiteAdmin())}
 function nbCanText(e){if(!me||!e||!("edited_at"in e)||e.author_id!==me.id||!nbCanEdit(e))return!1;const n=e.league_id&&(cache.myLeagues||[]).find(n=>n.id===e.league_id);return!(n&&lgArchived(n))}
 /* the "edited" marker after a message's or a notice's time: when, in its title and for screen readers */
 function nbEdTag(t){const f=cbFull(t);return`<span class="nb-ed" title="Edited ${esc(f)}"><span aria-hidden="true">· </span>edited<span class="sr-only"> ${esc(f)}</span></span>`}
-const NB_PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>';
 function nbCanEdit(e){
   if(!me)return!1;
   if(!e.league_id)return isSiteAdmin();
@@ -3644,7 +3660,8 @@ function nbCanEdit(e){
 }
 /* ===== Board formatting, links and themed emoji (2026-11-13) =====
    2026-11-13: the notices (home and community) use it too: one renderer for messages, notices and the preview.
-   Messages are stored as plain text with a light markup, at most 1000 characters as stored (the marks count):
+   Messages are stored as plain text with a light markup, at most CB_MAX characters as stored, a notice NB_MAX (the
+   marks count):
      **bold**, *italic* or _italic_, __underline__ (two underscores; one is italic, three are both),
      # Title (a line that starts with "# ", shown in the display font), [text](link), the shortcodes of BD_EMO
      (:d20:, :swords:, :order:...), and a backslash before a mark shows it as typed (\* \_ \[ \] \# \: \\; the shrug's
@@ -3892,7 +3909,8 @@ function bdLinkDlg(T){
    each with bdFmt itself). A style edge the markup can't hold (inside a word: bdFmt leaves **a**b as typed, so that
    snake_case and 2*3*4 stay text) is spread over the whole word in the box at once (bdQfit). Spaces show as the
    reader sees them (one between words) and addresses become links, as the post shows them, once the cursor leaves
-   them. The counter counts the stored text, as the database does (1000 characters, the marks included). */
+   them. The counter counts the stored text, as the database does (CB_MAX for a message, NB_MAX for a notice; the
+   marks included). */
 const BD_ST={b:1,i:2,u:4,t:0},BD_W=/[\p{L}\p{N}]/u,
   BD_GIF="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   /* left out of the box: zero-width and direction marks, the object character, carriage returns; 2026-11-14 (review):
@@ -4212,7 +4230,7 @@ function bdEdGet(ed){const L=bdQcl(bdEdS(ed).m);L.forEach(l=>bdQnorm(l,[],1));bd
   return L.map(l=>{const r=bdQser(l,1)||(bdQfit(l),bdQser(l,1))||bdQfit(l);return r?r.v:""}).join("\n")}
 /* its length as the database counts it (characters, not UTF-16 units) */
 function bdEdLen(v){return[...String(v||"")].length}
-function bdTooLong(n){toast(`Keep it to 1000 characters: this is ${n} (styles, links and emoji take a few each)`)}
+function bdTooLong(n,m){toast(`Keep it to ${m} characters: this is ${n} (styles, links and emoji take a few each)`)}
 /* before posting: the box shows exactly what bdEdGet sends (every address a link, the spaces as the reader sees them,
    the ends trimmed; the cursor kept in step) */
 function bdEdFlush(ed){const S=bdEdS(ed);S.comp=0;clearTimeout(S.t);S.dirty&&bdEdSettle(ed);const L=bdQcl(S.m),pa=bdQlc(L,S.sa),pf=bdQlc(L,S.sf);
@@ -4276,18 +4294,39 @@ function bdMsg(id){const c=cache.cb;return c&&(c.msgs||[]).find(x=>x.id===id)||n
 /* The More actions menu of a message (three dots): built when opened; Esc or a click outside closes it and focus goes back to its button. */
 function bdMenuItems(m,L,w){
   const st=cache.cb&&cache.cb.st,mb=(cache.members||[]).find(x=>x.id===m.author_id),
-    org=m.author_id===L.owner_id||!!(mb&&mb.is_admin&&!mb.dropped_at);
+    org=m.author_id===L.owner_id||!!(mb&&mb.is_admin&&!mb.dropped_at),mine=!!w.u&&m.author_id===w.u,
+    /* 2026-12-02: Delete is the last item of every menu it belongs to, and a danger one. Whoever could tap the x
+       that stood beside the dots until today (a message's author, an organizer, the site admin) finds it here now:
+       the condition is the one that drew that button, so nobody gained or lost the command itself. */
+    dl=!!w.u&&(mine||w.org||w.sa)?[["Delete message",`cbDel(${jsq(m.id)})`,"danger"]]:[];
   /* 2026-11-13: on your own message: Edit (cbCanEd), nothing else */
-  if(w.u&&m.author_id===w.u)return cbCanEd(m,w)?[["Edit message",`cbEdit(${jsq(m.id)})`]]:[];
-  if(!st||!w.u||!m.author_id||m.author_id===w.u||org||!m.author)return[];
+  if(mine)return(cbCanEd(m,w)?[["Edit message",`cbEdit(${jsq(m.id)})`]]:[]).concat(dl);
+  if(!st||!w.u||!m.author_id||org||!m.author)return dl;
   const nm=esc(bdName(m)),q=jsq(m.id);
-  if(w.mod)return(st.blocks||[]).some(b=>b.user_id===m.author_id)?[[`Let ${nm} write again`,`bdUnblock(${jsq(m.author_id)},${q})`]]:[[`Block ${nm} from writing`,`bdBlock(${q})`,"danger"]];
-  return w.plain?[[`Mute ${nm}`,`bdMute(${q})`],["Report message",`bdReport(${q})`,"danger"]]:[]}
+  if(w.mod)return((st.blocks||[]).some(b=>b.user_id===m.author_id)?[[`Let ${nm} write again`,`bdUnblock(${jsq(m.author_id)},${q})`]]:[[`Block ${nm} from writing`,`bdBlock(${q})`,"danger"]]).concat(dl);
+  return(w.plain?[[`Mute ${nm}`,`bdMute(${q})`],["Report message",`bdReport(${q})`,"danger"]]:[]).concat(dl)}
+/* 2026-12-02: one menu, two kinds of item. bdMenuAt(btn,I,lab) owns the opening, the keyboard and the closing;
+   its callers only say which items and what to call the menu. A notice is drawn on Home as well as on a community
+   board, where cache.league is null and bdMsg() finds nothing, so nothing in here may reach for a community. */
 function bdMenu(btn,id){
+  const m=bdMsg(id),L=cache.league;
+  bdMenuAt(btn,m&&L?bdMenuItems(m,L,cbWho(L)):[],"Message actions")}
+/* A notice's items: Edit (nbCanText), Pin or Unpin (nbCanEdit), Delete (nbCanDel), each under the very condition
+   that drew the pencil, the pin and the x until today. Status stays in the header for everybody to read: the time,
+   the "Pinned" chip and the "edited" stamp are not commands and none of them moved in here. */
+function nbMenuItems(e){
+  if(!e)return[];
+  const q=jsq(e.id),I=[];
+  nbCanText(e)&&I.push(["Edit this notice",`nbEdit(${q})`]);
+  nbCanEdit(e)&&I.push([e.pinned?"Unpin":"Pin to the top",`nbPin(${q},${e.pinned?"false":"true"})`]);
+  nbCanDel(e)&&I.push(["Delete this notice",`nbDelete(${q})`,"danger"]);
+  return I}
+function nbMenu(btn,id){
+  bdMenuAt(btn,nbMenuItems((cache.board||[]).find(x=>x.id===id)),"Notice actions")}
+function bdMenuAt(btn,I,lab){
   const top=btn.parentNode,old=top.querySelector(".cb-menu");bdMenuClose();if(old)return;
-  const m=bdMsg(id),L=cache.league;if(!m||!L)return;
-  const I=bdMenuItems(m,L,cbWho(L));if(!I.length)return;
-  const d=document.createElement("div");d.className="cb-menu";d.setAttribute("role","menu");d.setAttribute("aria-label","Message actions");
+  if(!I||!I.length)return;
+  const d=document.createElement("div");d.className="cb-menu";d.setAttribute("role","menu");d.setAttribute("aria-label",lab);
   d.innerHTML=I.map(([l,f,x])=>`<button type="button" role="menuitem" tabindex="-1" class="cb-mi${x?" "+x:""}" onclick="bdMenuClose(1);${f}">${l}</button>`).join("");
   d.onkeydown=ev=>{const B=[...d.querySelectorAll(".cb-mi")],i=B.indexOf(document.activeElement),k=ev.key;
     if("Escape"===k||"Tab"===k){"Escape"===k&&(ev.preventDefault(),ev.stopPropagation());bdMenuClose();btn.focus();return}
@@ -4468,13 +4507,18 @@ async function bdUnmute(uid){
   const L=cache.league;"league"===route.view&&L&&cache.cb&&cache.cb.id===L.id&&cbLoad(L).then(()=>{cache.league===L&&cbPaint()}).catch(()=>{})}
 
 function nbCard(e){
-  const n=(cache.profNames||{})[e.author_id]||"";
+  const n=(cache.profNames||{})[e.author_id]||"",sc=nbScope(e),
+    /* 2026-12-02: sc names the notice only when it resolved to a real one. nbScope answers "Your community"
+       for a community that is in neither list -- a site admin reading a notice of a community he is not in --
+       and "More actions for the Your community notice" is not a sentence. The author's name comes first where
+       it is loaded (on Home it usually is not), the scope next, and "this notice" when neither will do. */
+    sk=!e.league_id||sc!=="Your community";
   return`<article class="nb-card${e.league_id?"":" nb-global"}${e.pinned?" nb-pinned":""}">
     <div class="nb-top">
-      <span class="nb-scope">${esc(nbScope(e))}</span>
+      <span class="nb-scope">${esc(sc)}</span>
       ${e.pinned?'<span class="nb-pintag">📌 Pinned</span>':""}
       <span class="nb-when">${timeAgo(e.created_at)}</span>${e.edited_at?nbEdTag(e.edited_at):""}
-      ${nbCanText(e)?`<button class="nb-x nb-edb" data-nid="${esc(e.id)}" title="Edit this notice" aria-label="Edit this notice" onclick="nbEdit(${jsq(e.id)})">${NB_PEN}</button>`:""}${nbCanEdit(e)?`<button class="nb-x nb-pinb${e.pinned?" on":""}" title="${e.pinned?"Unpin":"Pin to the top"}" aria-label="${e.pinned?"Unpin this message":"Pin this message to the top"}" aria-pressed="${!!e.pinned}" onclick="nbPin(${jsq(e.id)},${e.pinned?"false":"true"})">📌</button>`:""}${nbCanDel(e)?`<button class="nb-x" title="Delete this message" aria-label="Delete this message" onclick="nbDelete(${jsq(e.id)})">&#215;</button>`:""}
+      ${nbMenuItems(e).length?`<button class="nb-x nb-kb" data-nid="${esc(e.id)}" title="More actions" aria-label="${n?`More actions for ${esc(n)}'s notice`:sk?`More actions for the ${esc(sc)} notice`:"More actions for this notice"}" aria-haspopup="menu" aria-expanded="false" onclick="nbMenu(this,${jsq(e.id)})">&#8942;</button>`:""}
     </div>
     <p class="nb-body">${bdFmt(e.body)}</p>
     ${n?`<div class="nb-by">\u2014 ${esc(n)}</div>`:""}
@@ -4568,11 +4612,12 @@ function nbCompose(ed){
   ed=ed&&ed.id?ed:null;
   let n=$("nb-modal");
   if(!n){n=document.createElement("div");n.id="nb-modal";n.className="tkov";n.onclick=e=>{e.target===n&&n.remove()};document.body.appendChild(n)}
-  /* 2026-11-13: every way out (X, backdrop, Escape, Save) gives the focus back to what opened it: the notice's pencil */
-  const op=document.activeElement;n._slOp=op&&op!==document.body&&!n.contains(op)?op:null;n._slOpSel=ed?`.nb-edb[data-nid="${CSS.escape(ed.id)}"]`:null;
+  /* 2026-11-13: every way out (X, backdrop, Escape, Save) gives the focus back to what opened it: the notice's dots
+     (2026-12-02: its More actions button, where Edit this notice now lives) */
+  const op=document.activeElement;n._slOp=op&&op!==document.body&&!n.contains(op)?op:null;n._slOpSel=ed?`.nb-kb[data-nid="${CSS.escape(ed.id)}"]`:null;
   n.dataset.eid=ed?ed.id:"";
   const v=ed?ed.body:"",c=bdEdLen(v);let ex="";try{ex=ed&&ed.expires_at?new Date(ed.expires_at).toLocaleDateString([],{dateStyle:"medium"}):""}catch(x){}
-  /* 2026-11-13: the notice for everyone gets the board's toolbar, emoji and counter (1000 characters, as the
+  /* 2026-11-13: the notice for everyone gets the board's toolbar, emoji and counter (NB_MAX characters, as the
      database allows), the toolbar under the box. 2026-11-14: the box is the visual editor (bdEdBox), no Preview. */
   n.innerHTML=`<div class="tkmodal nb-cmod" onclick="event.stopPropagation()">
     <button class="tkx" onclick="document.getElementById('nb-modal').remove()" aria-label="Close">&#10005;</button>
@@ -4582,7 +4627,7 @@ function nbCompose(ed){
     ${bdEdBox("nb-body","Write your message",v,"nbInput")}
     ${bdTb("nb-body")}
     ${bdPal("nb-body")}
-    <div class="cb-crow nb-crow"><span class="cb-n${c>900?" near":""}" id="nb-n">${c} / 1000</span></div>
+    <div class="cb-crow nb-crow"><span class="cb-n${CB_NEAR(c,NB_MAX)?" near":""}" id="nb-n">${c} / ${NB_MAX}</span></div>
     ${ed?ex?`<p class="hint" style="margin:0 0 4px">It still comes down after ${esc(ex)}.</p>`:"":`<label class="field"><span>Take it down after <span class="opt">optional</span></span>
       <input type="date" id="nb-until" min="${todayStr()}"></label>`}
     <button class="act" id="nb-post" style="width:100%;margin-top:10px" onclick="nbPost()">${ed?"Save":"Post it"}</button>
@@ -4591,12 +4636,12 @@ function nbCompose(ed){
 }
 /* 2026-11-14: the counter counts what is stored (bdEdGet: the marks the editor writes count too), in characters as the
    database does. */
-function nbInput(){const t=$("nb-body"),c=$("nb-n");if(!t)return;const n=bdEdLen(bdEdGet(t));c&&(c.textContent=n+" / 1000",c.classList.toggle("near",n>900))}
+function nbInput(){const t=$("nb-body"),c=$("nb-n");if(!t)return;const n=bdEdLen(bdEdGet(t));c&&(c.textContent=n+" / "+NB_MAX,c.classList.toggle("near",CB_NEAR(n,NB_MAX)))}
 async function nbPost(){
   const e=$("nb-modal"),x=$("nb-body");if(!e||!me||!x)return;
   bdEdFlush(x);const t=bdEdGet(x),n=bdEdLen(t);
   if(!t){toast("Write something first");return void bdEdBack(x)}
-  if(n>1e3)return bdTooLong(n);
+  if(n>NB_MAX)return bdTooLong(n,NB_MAX);
   if(e.dataset.eid)return nbEdSave(e.dataset.eid,t);
   const a=($("nb-until").value||"").trim(),s=$("nb-post");
   if(s){s.disabled=!0;s.textContent="Posting\u2026"}bdEdLock(x,1);
@@ -4606,13 +4651,13 @@ async function nbPost(){
   e.remove(),cache.board=null,toast("Posted",!0);
   await loadBoard(),"browse"===route.view&&paintHomeBoard();
 }
-/* 2026-11-13: a notice's Edit (the pencil on its card): the modal holding its text; the new text through edit_notice()
+/* 2026-11-13: a notice's Edit (2026-12-02: Edit this notice, in the ⋮ menu of its card): the modal holding its text; the new text through edit_notice()
    (migration 2026-11-30): no notification, created_at kept (no New mark again). A failed Save keeps the box open with
    what was typed. */
 function nbEdit(id){const e=(cache.board||[]).find(x=>x.id===id);e&&nbCanText(e)&&nbCompose(e)}
 function nbRepaint(){"browse"===route.view?paintHomeBoard():"league"===route.view&&cache.league&&$("cb-board")&&cbPaint()}
 function nbEdErr(e){const h=e&&e.hint;
-  return"gone"===h?"This notice is no longer there.":"not_author"===h?"Only whoever wrote a notice can edit it.":"not_mod"===h?"Only the organizers can edit their notices here.":"archived"===h?"This community is archived: its notices can't change.":"edit_limited"===h?"Slow down: you can edit 10 times a minute and 60 an hour.":"bad_body"===h||e&&"23514"===e.code?"A notice needs some text, up to 1000 characters.":"deleted"===h?"This account was deleted.":"sign_in"===h?"Sign in with your account first.":slNoCol(e)?"Editing needs a site update that is not live yet.":e&&e.message||"Could not save the notice"}
+  return"gone"===h?"This notice is no longer there.":"not_author"===h?"Only whoever wrote a notice can edit it.":"not_mod"===h?"Only the organizers can edit their notices here.":"archived"===h?"This community is archived: its notices can't change.":"edit_limited"===h?"Slow down: you can edit 10 times a minute and 60 an hour.":"bad_body"===h||e&&"23514"===e.code?"A notice needs some text, up to "+NB_MAX+" characters.":"deleted"===h?"This account was deleted.":"sign_in"===h?"Sign in with your account first.":slNoCol(e)?"Editing needs a site update that is not live yet.":e&&e.message||"Could not save the notice"}
 async function nbEdSave(id,v){
   const s=$("nb-post"),x=$("nb-body"),o=(cache.board||[]).find(r=>r.id===id),md=$("nb-modal");
   if(o&&o.body===v)return void(md&&md.remove());
@@ -4624,7 +4669,7 @@ async function nbEdSave(id,v){
     return void(x2&&bdEdBack(x2))}
   const d=r.data;(cache.board||[]).forEach(q=>{q.id===id&&(q.body=null!=d.body?d.body:v,q.edited_at=d.edited_at||q.edited_at||new Date().toISOString())});
   m2&&m2.remove();nbRepaint();toast("Saved",!0);
-  setTimeout(()=>{const b=document.querySelector(`.nb-edb[data-nid="${id}"]`);b&&b.focus({preventScroll:!0})},80)}
+  setTimeout(()=>{const b=document.querySelector(`.nb-kb[data-nid="${id}"]`);b&&b.focus({preventScroll:!0})},80)}
 /* Pinning goes through set_notice_pinned() (migration-2026-11-07-pins.sql):
    notices have no update rule, so nothing else about them can change. */
 async function nbPin(id,on){
@@ -4633,11 +4678,17 @@ async function nbPin(id,on){
   const n=(cache.board||[]).find(x=>x.id===id);n&&(n.pinned=!!on);
   cache.board&&cache.board.sort((x,y)=>(y.pinned?1:0)-(x.pinned?1:0)||+new Date(y.created_at)-+new Date(x.created_at));
   toast(on?"Pinned to the top":"Unpinned",!0);
-  "browse"===route.view?paintHomeBoard():renderLeague();
+  /* 2026-12-02: pinning is taken from the menu now, so the repaint hands the focus back to the dots it came from.
+     nbRepaint is the notice edit's own repaint: it draws the board that is showing and nothing else, where
+     renderLeague() rebuilt the whole community page and came back after the focus had been given. */
+  nbRepaint();
+  setTimeout(()=>{const b=document.querySelector(`.nb-kb[data-nid="${id}"]`);b&&b.focus({preventScroll:!0})},80);
 }
+/* 2026-12-02: a notice is a notice in all three sentences. The menu item that opens this says "Delete this
+   notice", and until today the dialog answered "Delete this message?" and the toast "Message deleted". */
 async function nbDelete(e){
-  if(!await slConfirm({title:"Delete this message?",ok:"Delete",danger:!0}))return;
-  await slDeferDelete({kind:"notice",id:e,table:"announcements",msg:"Message deleted",none:"Could not delete the message: it is already gone, or you can no longer manage it."});
+  if(!await slConfirm({title:"Delete this notice?",ok:"Delete",danger:!0}))return;
+  await slDeferDelete({kind:"notice",id:e,table:"announcements",msg:"Notice deleted",none:"Could not delete the notice: it is already gone, or you can no longer manage it."});
 }function paintHomeHead(){paintHomePn();const e=$("home-head");if(!e)return;if(!me)return void(e.innerHTML=`<div class="hero hero-centered">\n      <img class="hero-logo" src="${ASSETS.brandLogo}" alt="Seekers League">\n      <p class="hero-p">A free, unofficial companion to the official Malediction Play Network. Organize on the Play Network, play and keep score here:\n      run Swiss tournaments, play matches synced on two phones, see which Seekers actually win — and build your decks!</p>\n      <div class="home-ctas">\n        <button class="act" onclick="goSignup()">Create account</button>\n        <button class="ghost" onclick="goFind('c')">Find a community</button>\n      </div>\n      <div class="how-lab">How a community works</div>\n      <ol class="how-steps">\n        <li><span class="how-n">1</span><span><b>Join or start a community</b> at your local store or club.</span></li>\n        <li><span class="how-n">2</span><span><b>Play at its events</b>, listed from the official Play Network.</span></li>\n        <li><span class="how-n">3</span><span><b>Battle in tournaments</b> or a match on two phones, and watch the Meta show what wins.</span></li>\n      </ol>\n      <div class="hero-links">\n        <a href="https://malediction.gg/" target="_blank" rel="noopener noreferrer">Official site ↗</a>\n        <a href="https://play.malediction.gg/" target="_blank" rel="noopener noreferrer">Find official events ↗</a>\n      </div>\n    </div>`);const n=myLeaguesSafe().length>0;e.innerHTML=`<div class="home-greet">\n    <h1>Welcome back, ${esc(me.display_name)}</h1>\n    ${n?"":"<p>You are not in a community yet.</p>"}\n    ${wtsBtnHtml()}\n  </div>`,wtsSoon()}
 /* ===== Next up =====
    One list for every community you play in (archived ones left out): your
@@ -6277,7 +6328,10 @@ function abWhere(L){
    creator) while the community is open. A player who left sees only their
    own old messages, to delete them. The database decides all of it; this
    only hides what it would refuse. */
-const CB_SEL="id,league_id,author_id,body,created_at,author:profiles(display_name)",CB_MAX=1e3;
+/* 2026-12-02: the two lengths, one number each. CB_MAX is a board message: a quick word to the community, so it is
+   short. NB_MAX is a notice: an organizer's announcement carries the times, the rules and an address, so it keeps
+   the room it had. CB_NEAR marks the counter over the last tenth of whichever of the two is in force. */
+const CB_SEL="id,league_id,author_id,body,created_at,author:profiles(display_name)",CB_MAX=500,NB_MAX=1e3,CB_NEAR=(n,m)=>n>m*.9;
 /* 2026-11-14: the heart a board message wears (migration 2026-12-01). Its own drawing, as the themed emoji are: a
    sprite or a literal glyph would show an empty box where the paths are not reachable. CB_LKQ holds the ids with a
    like in flight, so a second tap on the same heart is dropped instead of spending a request the row cannot use; it
@@ -6310,10 +6364,9 @@ function cbFull(t){try{return new Date(t).toLocaleString([],{dateStyle:"medium",
 function cbNote(e){return nbCard(e).replace(/<span class="nb-scope">[^<]*<\/span>\s*/,"").replace(/<span class="nb-when">[^<]*<\/span>/,`<span class="nb-when" title="${esc(cbFull(e.created_at))}">${cbAgo(e.created_at)}</span>`)}
 function cbMsg(m,L,w){
   const nm=m.author&&m.author.display_name,mb=(cache.members||[]).find(x=>x.id===m.author_id),
-    role=m.author_id&&m.author_id===L.owner_id?"Creator":mb&&mb.is_admin&&!mb.dropped_at?"Organizer":"",
-    del=!!w.u&&(m.author_id===w.u||w.org||w.sa);
+    role=m.author_id&&m.author_id===L.owner_id?"Creator":mb&&mb.is_admin&&!mb.dropped_at?"Organizer":"";
   return`<article class="cb-msg${w.u&&m.author_id===w.u?" cb-mine":""}" data-id="${esc(m.id)}">
-    <div class="cb-top">${m.author_id&&nm?`<button class="link cb-who" onclick="go('profile',{profileId:${jsq(m.author_id)}})" title="Open their profile">${esc(nm)}</button>`:`<span class="cb-who">${esc(nm||"A Seeker")}</span>`}${role?`<span class="ab-role">${role}</span>`:""}${w.mod&&m.author_id&&cache.cb&&cache.cb.st&&(cache.cb.st.blocks||[]).some(b=>b.user_id===m.author_id)?'<span class="ab-role cb-blkchip">Blocked</span>':""}<span class="nb-when" title="${esc(cbFull(m.created_at))}">${cbAgo(m.created_at)}</span>${m.edited_at?nbEdTag(m.edited_at):""}${bdMenuItems(m,L,w).length?`<button class="nb-x cb-kb" title="More actions" aria-label="${w.u&&m.author_id===w.u?"More actions for your message":`More actions for ${esc(nm||"A Seeker")}'s message`}" aria-haspopup="menu" aria-expanded="false" onclick="bdMenu(this,${jsq(m.id)})">&#8942;</button>`:""}${del?`<button class="nb-x" title="Delete this message" aria-label="${w.u&&m.author_id===w.u?"Delete your message":`Delete ${esc(nm||"A Seeker")}'s message`}" onclick="cbDel(${jsq(m.id)})">&#215;</button>`:""}</div>
+    <div class="cb-top">${m.author_id&&nm?`<button class="link cb-who" onclick="go('profile',{profileId:${jsq(m.author_id)}})" title="Open their profile">${esc(nm)}</button>`:`<span class="cb-who">${esc(nm||"A Seeker")}</span>`}${role?`<span class="ab-role">${role}</span>`:""}${w.mod&&m.author_id&&cache.cb&&cache.cb.st&&(cache.cb.st.blocks||[]).some(b=>b.user_id===m.author_id)?'<span class="ab-role cb-blkchip">Blocked</span>':""}<span class="nb-when" title="${esc(cbFull(m.created_at))}">${cbAgo(m.created_at)}</span>${m.edited_at?nbEdTag(m.edited_at):""}${bdMenuItems(m,L,w).length?`<button class="nb-x cb-kb" title="More actions" aria-label="${w.u&&m.author_id===w.u?"More actions for your message":`More actions for ${esc(nm||"A Seeker")}'s message`}" aria-haspopup="menu" aria-expanded="false" onclick="bdMenu(this,${jsq(m.id)})">&#8942;</button>`:""}</div>
     ${cbEdOn(m,w)?cbEdBox(m):`<p class="nb-body">${bdFmt(m.body)}</p>`}${cbLikeRow(m,w,nm)}
   </article>`}
 /* ===== One like per player per message (2026-11-14, migration 2026-12-01) =====
@@ -6369,7 +6422,7 @@ async function cbLike(id,on){
   if(!same)cbLkPaint()}
 /* ===== Editing your own message (2026-11-13, migration 2026-11-30) =====
    Edit in a message's ⋮ menu (only its author, while they can write on the board, once the database has edited_at):
-   the text turns into the board's editor (bdEdBox: toolbar, emoji, counter, 1000 characters) holding it, with Save and
+   the text turns into the board's editor (bdEdBox: toolbar, emoji, counter, CB_MAX characters) holding it, with Save and
    Cancel; Escape or Cancel gives the text back, a failed Save keeps the box and what was typed. cache.cbEdit {id, lid,
    v: the text when the edit began, d: the box's draft, n: its length, busy} brings the box back after a repaint. The new
    text goes through edit_board_message(): no notification, and the New marks (from created_at) are not raised again. */
@@ -6382,20 +6435,20 @@ function cbEdBox(m){const E=cache.cbEdit,n=null!=E.n?E.n:bdEdLen(E.v);
       ${((x)=>E.busy?x.replace(' contenteditable="true"',' contenteditable="false" aria-disabled="true"'):x)(bdEdBox("cb-etext","Write your message…",E.v,"cbEInput",E.d))}
       ${bdTb("cb-etext")}
       ${bdPal("cb-etext")}
-      <div class="cb-crow"><span class="cb-n${n>900?" near":""}" id="cb-en">${n} / ${CB_MAX}</span><span class="cb-ebtn"><button type="button" class="ghost" id="cb-ecancel" onclick="cbEditX()"${E.busy?" disabled":""}>Cancel</button><button type="button" class="act" id="cb-esave" onclick="cbEditSave()"${E.busy?" disabled":""}>${E.busy?"Saving…":"Save"}</button></span></div>
+      <div class="cb-crow"><span class="cb-n${CB_NEAR(n,CB_MAX)?" near":""}" id="cb-en">${n} / ${CB_MAX}</span><span class="cb-ebtn"><button type="button" class="ghost" id="cb-ecancel" onclick="cbEditX()"${E.busy?" disabled":""}>Cancel</button><button type="button" class="act" id="cb-esave" onclick="cbEditSave()"${E.busy?" disabled":""}>${E.busy?"Saving…":"Save"}</button></span></div>
     </div>`}
 function cbEdit(id){const m=bdMsg(id),L=cache.league;if(!m||!L||!cbCanEd(m,cbWho(L)))return;
   cache.cbEdit={id,lid:L.id,v:m.body,d:null,n:null,busy:0};cbPaint();
   const t=$("cb-etext");if(!t)return;const a=t.closest(".cb-msg");a&&a.scrollIntoView({block:"nearest"});bdEdBack(t)}
-function cbEInput(t){const E=cache.cbEdit;if(!E||!t)return;E.d=bdEdDraft(t);E.n=bdEdLen(bdEdGet(t));const n=$("cb-en");n&&(n.textContent=E.n+" / "+CB_MAX,n.classList.toggle("near",E.n>900))}
+function cbEInput(t){const E=cache.cbEdit;if(!E||!t)return;E.d=bdEdDraft(t);E.n=bdEdLen(bdEdGet(t));const n=$("cb-en");n&&(n.textContent=E.n+" / "+CB_MAX,n.classList.toggle("near",CB_NEAR(E.n,CB_MAX)))}
 function cbEditX(){const E=cache.cbEdit;if(!E||E.busy)return;cache.cbEdit=null;cbPaint();bdKbFocus(E.id)}
 function cbEdErr(e){const h=e&&e.hint;
-  return"not_author"===h?"Only whoever wrote a message can edit it.":"gone"===h?"This message is no longer there.":"edit_limited"===h?"Slow down: you can edit 10 times a minute and 60 an hour.":"bad_body"===h?"A message needs some text, up to 1000 characters.":slNoCol(e)?"Editing needs a site update that is not live yet.":cbErr(e)}
+  return"not_author"===h?"Only whoever wrote a message can edit it.":"gone"===h?"This message is no longer there.":"edit_limited"===h?"Slow down: you can edit 10 times a minute and 60 an hour.":"bad_body"===h?"A message needs some text, up to "+CB_MAX+" characters.":slNoCol(e)?"Editing needs a site update that is not live yet.":cbErr(e)}
 async function cbEditSave(){
   const E=cache.cbEdit,t=$("cb-etext"),L=cache.league;if(!E||!t||!L||E.busy)return;
   bdEdFlush(t);const v=bdEdGet(t),n=bdEdLen(v),m=bdMsg(E.id);
   if(!v){toast("Write something first");return void bdEdBack(t)}
-  if(n>CB_MAX)return void bdTooLong(n);
+  if(n>CB_MAX)return void bdTooLong(n,CB_MAX);
   if(m&&v===m.body)return void cbEditX();
   E.busy=1;E.d=bdEdDraft(t);E.n=n;const b=$("cb-esave"),x=$("cb-ecancel");b&&(b.disabled=!0,b.textContent="Saving…");x&&(x.disabled=!0);bdEdLock(t,1);
   let r;try{r=await sb.rpc("edit_board_message",{p_id:E.id,p_body:v})}catch(e){r={error:e}}
@@ -6432,17 +6485,17 @@ function cbNCompose(L,w){
     ${bdTb("cb-ntext")}
     ${bdPal("cb-ntext")}
     <label class="cb-until"><span>Take it down after <span class="opt">optional</span></span><input type="date" id="cb-nuntil" min="${todayStr()}" value="${esc(d.u)}" onchange="cbNInput()"></label>
-    <div class="cb-crow"><span class="cb-n${n>900?" near":""}" id="cb-nn">${n} / ${CB_MAX}</span><button class="act" id="cb-npost" onclick="cbNPost()">Post</button></div>
+    <div class="cb-crow"><span class="cb-n${CB_NEAR(n,NB_MAX)?" near":""}" id="cb-nn">${n} / ${NB_MAX}</span><button class="act" id="cb-npost" onclick="cbNPost()">Post</button></div>
     <p class="hint cb-nh">Every member sees it here and on their home page.</p>
   </div>`}
-function cbNInput(){const L=cache.league,t=$("cb-ntext"),u=$("cb-nuntil");if(!L||!t)return;const v=bdEdGet(t),c=bdEdLen(v);cache.cbNDraft=Object.assign({id:L.id,v,u:u?u.value:""},bdEdDraft(t));const n=$("cb-nn");n&&(n.textContent=c+" / "+CB_MAX,n.classList.toggle("near",c>900))}
+function cbNInput(){const L=cache.league,t=$("cb-ntext"),u=$("cb-nuntil");if(!L||!t)return;const v=bdEdGet(t),c=bdEdLen(v);cache.cbNDraft=Object.assign({id:L.id,v,u:u?u.value:""},bdEdDraft(t));const n=$("cb-nn");n&&(n.textContent=c+" / "+NB_MAX,n.classList.toggle("near",CB_NEAR(c,NB_MAX)))}
 function cbNErr(e,o){const h=e&&e.hint,c=e&&e.code;
-  return"rate_limited"===h?"This community posted 10 notices in the last 24 hours. Try again tomorrow.":"archived"===h?"This community is archived: no new notices.":"deleted"===h?"This account was deleted, so it cannot post here.":"23514"===c?"A notice needs some text, up to 1000 characters.":"not_member"===h||"42501"===c?"Only the organizers can post notices here.":e&&e.message||"Could not post the notice"}
+  return"rate_limited"===h?"This community posted 10 notices in the last 24 hours. Try again tomorrow.":"archived"===h?"This community is archived: no new notices.":"deleted"===h?"This account was deleted, so it cannot post here.":"23514"===c?"A notice needs some text, up to "+NB_MAX+" characters.":"not_member"===h||"42501"===c?"Only the organizers can post notices here.":e&&e.message||"Could not post the notice"}
 async function cbNPost(){
   const L=cache.league,t=$("cb-ntext"),b=$("cb-npost");if(!L||!t||!me||b&&b.disabled)return;
   bdEdFlush(t);const v=bdEdGet(t),n=bdEdLen(v),u=(($("cb-nuntil")||{}).value||"").trim();
   if(!v){toast("Write something first");return void bdEdBack(t)}
-  if(n>CB_MAX)return void bdTooLong(n);
+  if(n>NB_MAX)return void bdTooLong(n,NB_MAX);
   if(u&&u<todayStr())return void toast("Pick today or a later date");
   b&&(b.disabled=!0,b.textContent="Posting…");bdEdLock(t,1);
   let r;try{r=await sb.from("announcements").insert({league_id:L.id,author_id:me.id,body:v,expires_at:u?u+"T23:59:59":null})}catch(x){r={error:x}}
@@ -6465,7 +6518,7 @@ function cbCompose(L,w){
     ${bdEdBox("cb-text","Write to the community\u2026",d,"cbInput",D)}
     ${bdTb("cb-text")}
     ${bdPal("cb-text")}
-    <div class="cb-crow"><span class="cb-n${n>900?" near":""}" id="cb-n">${n} / ${CB_MAX}</span><button class="act" id="cb-send" onclick="cbPost()">Post</button></div>
+    <div class="cb-crow"><span class="cb-n${CB_NEAR(n,CB_MAX)?" near":""}" id="cb-n">${n} / ${CB_MAX}</span><button class="act" id="cb-send" onclick="cbPost()">Post</button></div>
   </div>`}
 function cbBoard(L){
   if(!me||!L||!L.id||isDemo(L.id))return"";
@@ -6498,14 +6551,14 @@ function cbTab(k){const L=cache.league,s=L&&nbSt("lg:"+L.id),f=nbInBar("#cb-boar
 function cbPaint(){const b=$("cb-board"),L=cache.league;b&&bdEdSave(b);b&&L&&(b.outerHTML=cbBoard(L));const t=document.querySelector("#cb-board .nb-tabs");t&&nbOv(t)}
 /* 2026-11-14 (review): the draft keeps the box's own lines and cursor too (bdEdDraft), so a repaint gives back a blank
    at the cursor or an address still being typed, not only the stored text */
-function cbInput(t){const L=cache.league,v=bdEdGet(t),c=bdEdLen(v);L&&(cache.cbDraft=Object.assign({id:L.id,v},bdEdDraft(t)));const n=$("cb-n");n&&(n.textContent=c+" / "+CB_MAX,n.classList.toggle("near",c>900))}
+function cbInput(t){const L=cache.league,v=bdEdGet(t),c=bdEdLen(v);L&&(cache.cbDraft=Object.assign({id:L.id,v},bdEdDraft(t)));const n=$("cb-n");n&&(n.textContent=c+" / "+CB_MAX,n.classList.toggle("near",CB_NEAR(c,CB_MAX)))}
 function cbErr(e){const h=e&&e.hint,c=e&&e.code;
-  return"blocked"===h?"You can't write on this board right now.":"rate_limited"===h?"Slow down: you can post 5 messages a minute and 60 an hour.":"not_member"===h?"Only the members of this community can write on its board.":"archived"===h?"This community is archived: its board is read-only.":"sign_in"===h?"Sign in with your account to write on the board.":"deleted"===h?"This account was deleted, so it cannot write here.":"23514"===c?"A message needs some text, up to 1000 characters.":"42501"===c?"You cannot write on this board. Reload the page and try again.":slNoCol(e)?"The community board needs a site update that is not live yet.":e||"Could not post the message"}
+  return"blocked"===h?"You can't write on this board right now.":"rate_limited"===h?"Slow down: you can post 5 messages a minute and 60 an hour.":"not_member"===h?"Only the members of this community can write on its board.":"archived"===h?"This community is archived: its board is read-only.":"sign_in"===h?"Sign in with your account to write on the board.":"deleted"===h?"This account was deleted, so it cannot write here.":"23514"===c?"A message needs some text, up to "+CB_MAX+" characters.":"42501"===c?"You cannot write on this board. Reload the page and try again.":slNoCol(e)?"The community board needs a site update that is not live yet.":e||"Could not post the message"}
 async function cbPost(){
   const L=cache.league,t=$("cb-text"),b=$("cb-send");if(!L||!t||!me||b&&b.disabled)return;
   bdEdFlush(t);const v=bdEdGet(t),n=bdEdLen(v);
   if(!v){toast("Write something first");return void bdEdBack(t)}
-  if(n>CB_MAX)return void bdTooLong(n);
+  if(n>CB_MAX)return void bdTooLong(n,CB_MAX);
   b&&(b.disabled=!0,b.textContent="Posting…");bdEdLock(t,1);
   let r;try{r=await sb.from("community_messages").insert({league_id:L.id,body:v}).select(cbSel()).single()}catch(x){r={error:x}}
   b&&(b.disabled=!1,b.textContent="Post");t.isConnected&&bdEdLock(t,0);
