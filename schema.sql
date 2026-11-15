@@ -18979,3 +18979,61 @@ grant execute on function public.pn_claim_resolve(uuid, text, text)  to authenti
 -- commit it was missing goes here, at the end, where it closes the same
 -- transaction. Nothing above this line changes.
 commit;
+
+-- ============================================================
+--  SEARCH PATH: pg_temp LAST (2026-12-04)
+-- ============================================================
+-- Run as migration-2026-12-04-search-path.sql, which is this same do block with
+-- a snapshot and eight checks around it. No page change goes with it, and no
+-- function's behaviour changes: only the setting.
+--
+-- Every function in public pins "search_path = public, pg_temp". When search_path
+-- does not name pg_temp, Postgres searches the session's temporary schema FIRST
+-- for relation names, before public, so a function that reads an unqualified
+-- table can be made to read a temp table of the caller's instead. Naming pg_temp
+-- last puts it after public, and the real table always wins. Most of these
+-- functions are security definer; the trigger functions that enforce the gate and
+-- the quotas run with invoker rights but decide whether a write happens at all.
+-- Defence in depth, not a hole being closed: creating a temp object needs DDL,
+-- and the REST API runs none. It is also what the Supabase linter asks for.
+--
+-- Three functions are left alone, and the migration's check 2 asserts it:
+-- notice_plain() pins pg_catalog, which is tighter still; trim_blank(text) and
+-- mg_public_id(text) are pure text functions that name no table and are frozen
+-- into stored expressions (profiles.mg_public_id is a generated column,
+-- community_messages_body_len a check constraint), where a setting that cannot
+-- make them safer is not worth putting in front of stored data.
+--
+-- Keep it true: a create or replace writes the whole setting again, so every new
+-- or replaced function in public must carry its own "set search_path = public,
+-- pg_temp". Running the migration again after such a change repairs it.
+--
+-- This section runs in a transaction of its own. The transaction the file opens
+-- at line 1807 is closed by the commit; of the section above this one, so a
+-- section appended after it either opens its own or runs statement by statement.
+begin;
+
+do $$
+declare
+  r record;
+  n int := 0;
+begin
+  for r in
+    select p.oid::regprocedure as f
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind = 'f'
+      and p.proname not in ('notice_plain', 'trim_blank', 'mg_public_id')
+      and (p.proconfig is null
+           or not exists (select 1 from unnest(p.proconfig) c
+                           where c like 'search\_path=%pg\_temp%'))
+    order by 1
+  loop
+    execute format('alter function %s set search_path = public, pg_temp', r.f);
+    n := n + 1;
+  end loop;
+  raise notice 'search_path hardened on % function(s)', n;
+end $$;
+
+commit;
