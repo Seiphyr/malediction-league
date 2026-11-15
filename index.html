@@ -2370,6 +2370,10 @@ const SET_PREVIEW={name:"Fury and Dread",sub:"New Seeker Decks",dir:"preview/fur
    The notable improvements, newest first. Add a line here whenever something
    players would notice ships. */
 const CHANGELOG=[
+  ["2026-12-04",[
+    "A game played with the match tracker is counted once, wherever it is counted. A tournament game played on two phones used to be counted twice — the tournament's own record of it and the tracked match itself — in the Meta, on a profile and in the sort by most played. Seeker and terrain win rates, a deck's record and the games on a profile can all move a little: they are closer now to what was really played.",
+    "Public decks sorted by most played count the matches played with the tracker too, not only the ones logged by hand and the tournament games.",
+    "Deleting a notice says what it costs before you confirm it: it goes for everyone, and only the Undo that follows brings it back."]],
   ["2026-12-03",[
     "Writing on a public community's board, and starting a community, now ask three things of an account: a confirmed email address, a few hours since it was made, and a linked Malediction Play Network profile. A private community's board asks for the confirmed address only, and so does the board of a community you organize. Reading is never asked for anything: every message is still there, and the like heart, Report and Mute still work. Accounts that already existed are not asked for any of this.",
     "A malediction.gg profile link that is already on another Seekers League account can now be asked for instead of simply refused. Paste the address, add a line about yourself if it helps, and the site admin looks at it. If the link is given to you it appears on your account; in any tournament that is in registration or running, the entrant it was on is cleared and waits for its organizer.",
@@ -2841,7 +2845,27 @@ async function fetchTourneySes(){const u=me&&me.id||"";if(cache._tSesIds&&cache.
    accounts. */
 async function slDemoIds(){if(cache.demoIds)return cache.demoIds;let s=null;try{const{data:d,error:x}=await sb.rpc("demo_keys");!x&&Array.isArray(d)&&(s=new Set(d.filter(v=>/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|(pn|h):[A-Za-z0-9]{1,40})$/i.test(v||""))))}catch(e){}return s?cache.demoIds=s:new Set}
 function slNoDemo(rows,D){return D&&D.size?(rows||[]).filter(m=>!(m&&(D.has(m.winner_id)||D.has(m.loser_id)||D.has(m.winner_key)||D.has(m.loser_key)))):rows||[]}
-async function fetchGames(du){const[m,t,s,d]=await Promise.all([fetchAllMatches(),fetchAllTourneys(),fetchTourneySes(),du?fetchMetaDuels():[]]);return metaTag(m.concat(tvAllSynth(t),d),s)}/* Matches played with the match tracker (Play › Match), as meta_duels() gives
+/* The same game can arrive twice: out of a tournament's payload, and as the tracked
+   match it was played with. slDuIds reads the ids of the tracked matches a reader has
+   actually loaded (meta_duels hands them over as "du:<id>", player_matches as the id
+   itself) and slDropDu throws away the payload copies those answer for, keeping the
+   tracked match: it holds what was really played in that game, where the payload holds
+   what the entrant registered for the whole tournament. A reader that loads no tracked
+   matches drops nothing, which is right -- it has nothing to put in their place.
+   Two things this does not reach. Both were measured, neither is new:
+   - A payload slot that never got its du names nothing, so nothing can drop it, and that
+     game is still counted twice. t_record_duel gives up on a slot whose entrant is marked
+     drop, and on one already holding another duel's id. site_counts() catches those with a
+     second key -- the tournament, the slot and the two players -- which cannot be built
+     here: meta_duels returns neither t_ref nor a player id. Widening it is a database
+     change of its own.
+   - metaDupCount, the warning about an organizer who also logs the tournament's games by
+     hand, matches on the player ids, and a tracked match carries none. It could already
+     not see them for a Play Network tournament; now it cannot for any. The warning
+     undercounts, it never invents. */
+function slDuIds(rows){const s=new Set;(rows||[]).forEach(r=>{const k=r&&null!=r.id?String(r.id):"";k&&s.add(0===k.indexOf("du:")?k.slice(3):k)});return s}
+function slDropDu(rows,ids){return ids&&ids.size?(rows||[]).filter(r=>!(r&&r.duid&&ids.has(String(r.duid)))):rows||[]}
+async function fetchGames(du){const[m,t,s,d]=await Promise.all([fetchAllMatches(),fetchAllTourneys(),fetchTourneySes(),du?fetchMetaDuels():[]]);return metaTag(m.concat(slDropDu(tvAllSynth(t),slDuIds(d)),d),s)}/* Matches played with the match tracker (Play › Match), as meta_duels() gives
    them: no player ids, the day only. They count as standard matches. Before
    that function exists the Meta simply goes without them. A draw is a win
    for nobody, so the Meta leaves it out. */
@@ -9793,7 +9817,9 @@ async function renderProfile(){
   slSetTitle(own?"Your profile":(u.display_name||"A Seeker")+" · Profile");
   el.dataset.who=key;
   const s=[];
-  all.filter(m=>m.winner_id===u.id||m.loser_id===u.id).forEach(m=>{const w=m.winner_id===u.id;
+  /* dus are this player's tracked matches, with the scores and the opponent's name; the
+     payload copy of the same game would double every one of them. */
+  slDropDu(all,slDuIds(dus)).filter(m=>m.winner_id===u.id||m.loser_id===u.id).forEach(m=>{const w=m.winner_id===u.id;
     s.push({win:w,src:m.kind||"standard",when:m.created_at||"",league:m.league_id,mySk:w?m.winner_seeker:m.loser_seeker,oppSk:w?m.loser_seeker:m.winner_seeker,myTer:w?m.winner_terrain:m.loser_terrain,oppId:w?m.loser_id:m.winner_id})});
   fbs.forEach(f=>{s.push({id:f.id,win:"win"===f.result,src:"fb",when:f.played_on||f.created_at||"",mySk:f.my_seeker,oppSk:f.opp_seeker,myTer:f.my_terrain,oppTer:f.opp_terrain,oppName:f.opponent_name})});
   dus.forEach(d=>{s.push({id:d.id,du:1,win:!d.is_draw&&!!d.won,draw:!!d.is_draw,src:d.tournament_id?"tournament":"standard",when:d.played_at||"",mySk:d.my_seeker,oppSk:d.opp_seeker,myTer:d.my_terrain,oppTer:d.opp_terrain,oppId:d.opponent_id||null,oppName:d.opponent_name,tnName:d.tournament_name||"",tnId:d.tournament_id||""})});
@@ -11255,21 +11281,31 @@ function tvSynthMatches(t){
   /* A Play Network tournament (v3): a draft has no games; a game linked to a
      tracked match counts once, through the match (meta_duels, player_matches);
      forfeits and byes were never played, and a draw is a win for nobody; a
-     player with no account has no id. */
+     player with no account has no id.
+     2026-11-15: none of that was ever true of a v2 tournament, which keeps its payload
+     game, so every game of one played on two phones was counted twice -- the payload copy
+     here and the tracked match in meta_duels or player_matches. The row carries its duel's
+     id now (duid) and a reader holding the tracked match drops the payload copy itself
+     (slDropDu), the way site_counts() does on the server. Nothing new is synthesized: a
+     game this skip drops stays dropped, so a Swiss still running counts exactly what it
+     counted before -- which is also why the rows of a running Swiss are left alone here,
+     Seeker-less as they are (t_deck_hide empties every entrant from draft to close). */
   const v3=3===p.v;
   if(v3&&"draft"===t.status)return[];
   const ent={};(p.entrants||[]).forEach(e=>{ent[e.id]=e});
   const sid="tv:"+t.id,out=[],uid=k=>v3&&!t3IdOk(k)?null:k,skip=m=>v3&&!!(m.du||"drop"===m.src||"bye"===m.src||"draw"===m.w||null==m.b),
-    row=(w,l)=>{const W=ent[w]||{},L=ent[l]||{};
-      out.push({id:sid+":"+out.length,session_id:sid,league_id:t.league_id,created_at:t.created_at,
+    /* duid, not du: a row of the profile's own list uses du as a flag meaning "this is
+       a tracked match", and these two must never be read for each other. */
+    row=(w,l,duid)=>{const W=ent[w]||{},L=ent[l]||{};
+      out.push({duid:duid||null,id:sid+":"+out.length,session_id:sid,league_id:t.league_id,created_at:t.created_at,
         winner_id:uid(w),loser_id:uid(l),winner_key:w,loser_key:l,
         winner_seeker:W.seeker||null,loser_seeker:L.seeker||null,
         winner_terrain:W.terrain||null,loser_terrain:L.terrain||null,
         winner_decklist:null,loser_decklist:null,
         winner_deck_id:W.deckId||null,loser_deck_id:L.deckId||null,
         reported_by:t.created_by||null,confirmed:!0,tourney:!0})};
-  (p.gm||[]).forEach(m=>{if(!m.w||m.w!==m.a&&m.w!==m.b||skip(m))return;row(m.w,m.w===m.a?m.b:m.a)});
-  (p.bracket||[]).forEach(r=>r.forEach(m=>{const a=m.a&&m.a.id,b=m.b&&m.b.id;if(!m.winner||!a||!b||skip(m))return;const w="a"===m.winner?a:b;row(w,w===a?b:a)}));
+  (p.gm||[]).forEach(m=>{if(!m.w||m.w!==m.a&&m.w!==m.b||skip(m))return;row(m.w,m.w===m.a?m.b:m.a,m.du)});
+  (p.bracket||[]).forEach(r=>r.forEach(m=>{const a=m.a&&m.a.id,b=m.b&&m.b.id;if(!m.winner||!a||!b||skip(m))return;const w="a"===m.winner?a:b;row(w,w===a?b:a,m.du)}));
   return out;
 }
 function tvAllSynth(e){return(e||[]).reduce((e,n)=>e.concat(tvSynthMatches(n)),[])}
@@ -11378,7 +11414,7 @@ function cdCmp(){const so=window._cdSort||"new",nw=(e,n)=>(n.created_at||"").loc
   return"name"===so?(e,n)=>(e.name||"").localeCompare(n.name||"",void 0,{sensitivity:"base"})||nw(e,n):"pop"===so?(e,n)=>cdPop(n)-cdPop(e)||nw(e,n):(e,n)=>isPrecon(e)!==isPrecon(n)?isPrecon(e)?-1:1:nw(e,n)}
 function cdPopNote(d){if("pop"!==window._cdSort||!cache.cdPlays)return"";const g=cache.cdPlays[d.id]||0,c=cdCopies()[d.id]||0;return g||c?` · ${g?g+" "+(1===g?"game":"games"):""}${g&&c?", ":""}${c?c+" "+(1===c?"copy":"copies"):""}`:""}
 async function cdSortSet(v){window._cdSort=v;paintCDecks();"pop"!==v||cache.cdPlays||(await cdPlaysLoad(),"cdecks"===route.view&&cdPaintList())}
-async function cdPlaysLoad(){if(cache.cdPlays)return;const[m,t,D,du]=await Promise.all([slPaged(()=>sb.from("matches").select("winner_deck_id,loser_deck_id,confirmed,tournament_id,winner_id,loser_id").or("winner_deck_id.not.is.null,loser_deck_id.not.is.null").order("id")).then(r=>({...r,data:(r.data||[]).filter(m=>slCounts(m)&&!m.tournament_id)})),fetchAllTourneys(),slDemoIds(),fetchMetaDuels()]),p={},add=x=>{x.winner_deck_id&&(p[x.winner_deck_id]=(p[x.winner_deck_id]||0)+1);x.loser_deck_id&&x.loser_deck_id!==x.winner_deck_id&&(p[x.loser_deck_id]=(p[x.loser_deck_id]||0)+1)};slNoDemo(m.error?[]:m.data||[],D).forEach(add);slNoDemo(tvAllSynth(t),D).forEach(add);/* 2026-12-04: a match played with the match tracker counts as well, from meta_duels, as it does in the Meta and in a deck's own record; it was the one game a public deck could be played in without the sort seeing it. Only the ones outside a tournament: a tournament's games come from its payload, counted above, and meta_duels hands over the tracked ones too. The server leaves demo accounts out of this answer itself, which is as well, since it carries no player ids for slNoDemo to read. */du.filter(x=>!x.tourney).forEach(add);cache.cdPlays=p}
+async function cdPlaysLoad(){if(cache.cdPlays)return;const[m,t,D,du]=await Promise.all([slPaged(()=>sb.from("matches").select("winner_deck_id,loser_deck_id,confirmed,tournament_id,winner_id,loser_id").or("winner_deck_id.not.is.null,loser_deck_id.not.is.null").order("id")).then(r=>({...r,data:(r.data||[]).filter(m=>slCounts(m)&&!m.tournament_id)})),fetchAllTourneys(),slDemoIds(),fetchMetaDuels()]),p={},add=x=>{x.winner_deck_id&&(p[x.winner_deck_id]=(p[x.winner_deck_id]||0)+1);x.loser_deck_id&&x.loser_deck_id!==x.winner_deck_id&&(p[x.loser_deck_id]=(p[x.loser_deck_id]||0)+1)};slNoDemo(m.error?[]:m.data||[],D).forEach(add);slNoDemo(slDropDu(tvAllSynth(t),slDuIds(du)),D).forEach(add);/* 2026-11-15: a match played with the match tracker counts as well, from meta_duels, as it does in the Meta and in a deck's own record; it was the one game a public deck could be played in without the sort seeing it. The ones played in a tournament count through the tracked match and their payload copy is dropped, so each game is one game. The server leaves demo accounts out of this answer itself, which is as well, since it carries no player ids for slNoDemo to read: a tracked game it withholds keeps its payload copy, and slNoDemo is what drops that. */du.forEach(add);cache.cdPlays=p}
 /* 2026-11-14: the card sheet asks for the collection per card the player taps,
    so every open before the first answer landed used to fire its own full-table
    read; a second ask now waits on the first. The rows are dropped if the player
