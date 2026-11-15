@@ -825,7 +825,7 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 
 /* Pinned notices and the changelog */
 .nb-card.nb-pinned{border-color:var(--brass-dim);box-shadow:inset 0 0 0 1px rgba(200,165,104,.18)}
-.nb-pintag{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);white-space:nowrap}
+.nb-pintag{font-size:12px;line-height:1;white-space:nowrap}
 .nb-cl{text-align:center;margin:-2px 0 10px}
 .nb-cl .link{font-size:12px;color:var(--bone-dim);padding:6px 8px}
 .nb-cl .link:hover{color:var(--brass)}
@@ -847,6 +847,12 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .nu-main small .nb-new{display:inline-block;margin-right:7px;vertical-align:2px}
 .nb-top .nb-new+.nb-when,.cb-top .nb-new+.nb-when{margin-left:0}
 .nb-top .nb-new,.cb-top .nb-new{margin-left:auto;align-self:center}
+/* 2026-12-03: a notice's status is one group flush right against the ⋮ - the pin, then the time, then the
+   "edited" stamp - so a phone reads it all in one place instead of a mark at one end and a time at the other.
+   The pin takes the auto margin when it is there and the two behind it give theirs up: two auto margins in one
+   flex row share the free space between them, which would strand the pin in the middle of the header. */
+.nb-top .nb-pintag{margin-left:auto;align-self:center}
+.nb-top .nb-pintag~.nb-new,.nb-top .nb-pintag~.nb-when{margin-left:0}
 .tkmodal.cl-box{width:min(94vw,560px);max-height:86vh;overflow-y:auto}
 .cl-day{margin:0 0 14px}
 .cl-date{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0 0 6px}
@@ -1141,15 +1147,14 @@ a.ab-where:hover .ab-gm{color:var(--bone)}
 .nb-cmod{width:min(94vw,440px);padding:20px 16px}@media(max-width:360px){.nb-cmod{padding:18px 12px}.nb-cmod .bd-tb{gap:2px}}.nb-cmod .nb-cfld{margin-bottom:0}.nb-cmod .nb-crow{margin-bottom:12px}
 /* 2026-11-13: its X is 40px (it is the only way out of Edit notice on a phone), the title clear of it */.nb-cmod .tkx{width:40px;height:40px;top:8px;right:8px}.nb-cmod h3{padding-right:44px}
 /* 2026-11-13: a toast never takes a tap meant for what is under it (the edit's Cancel and Save at 320); its Undo still does */.toast{pointer-events:none}.toast-undo{pointer-events:auto}
-/* 2026-12-02 (was 2026-11-13): under 440px a notice header carrying the "edited" stamp takes two lines: the scope
-   and the More actions button on the first, Pinned, New, the time and that stamp on the second, so the scope stays
-   readable and nothing overflows; the scope gives way to the button, never pushing it down. Everything else keeps
-   one line. Two reasons it is the stamp alone, and the scope chip alone, that bring the wrap on: the stamp is the
-   only element wide enough to need it now, because one 40px dots button is narrower than the pencil, pin and x it
-   replaced; and the rule only ever reorders .nb-scope and .nb-x, so with no scope chip (cbNote drops it on a
-   community board) it had nothing to protect and simply stranded that one button on a line of its own. Measured at
-   320, 375 and 393, pinned and not, with a 38-character community name and the stamp: no overflow, the scope never
-   squeezed, nothing outside the card, the button 40px and flush right, and no horizontal page scroll. */@media(max-width:439px){.nb-top:has(.nb-ed):has(.nb-scope){flex-wrap:wrap;row-gap:0;column-gap:6px}.nb-top:has(.nb-ed):has(.nb-scope)>*{order:3}.nb-top:has(.nb-ed):has(.nb-scope)>.nb-scope{order:0;flex:1 1 0;max-width:max-content}.nb-top:has(.nb-ed):has(.nb-scope)>.nb-x{order:1}.nb-top:has(.nb-ed):has(.nb-scope)>.nb-x:not(.nb-x~.nb-x){margin-left:auto}.nb-top:has(.nb-ed):has(.nb-scope)::after{content:"";order:2;flex:0 0 100%;height:8px}}
+/* 2026-12-03 (was 2026-12-02): the notice header is one line on every phone again. The rule that sent it to
+   two lines went with the scatter it was there to fix: the pin, the time and the "edited" stamp now travel as one
+   group hard right against the dots, so what has to fit beside the scope is a single block and not three items
+   spread across the row. The scope pays for it in one way only, and only under 440px: a 7px gap instead of 10,
+   which leaves its name 12px more before the ellipsis (82px instead of 70 at 320). Measured at 320, 375 and 393,
+   every notice pinned AND edited, with community names of 14, 38 and 52 characters: one line every time, the
+   header 25px instead of 50, nothing outside the card, the dots 40px and flush right, no horizontal page scroll. */
+@media(max-width:439px){.nb-top{column-gap:7px}}
 .cb-top,.nb-top{position:relative}
 .cb-msg .cb-kb{font-size:20px;min-width:40px;min-height:40px;margin:-10px -6px -10px 0}
 /* 2026-12-02: a notice's More actions button, the same size and weight as a message's */
@@ -2363,6 +2368,8 @@ const SET_PREVIEW={name:"Fury and Dread",sub:"New Seeker Decks",dir:"preview/fur
    The notable improvements, newest first. Add a line here whenever something
    players would notice ships. */
 const CHANGELOG=[
+  ["2026-12-03",[
+    "On a phone a notice now says everything about itself in one place: the pin, the time and the “edited” stamp sit together on the right, beside the ⋮. The word “Pinned” is gone — the pin on its own says it — and that is what buys the room to keep the whole header on one line."]],
   ["2026-12-02",[
     "A board message is now 500 characters: a quick word to your community, not a wall of text. An organizer's notice keeps its full 1000 — an announcement carries the times, the rules and an address, and needs the room.",
     "Every command on a message or a notice is now behind the ⋮: edit, pin, delete, block, report. The time, the “Pinned” mark and the “edited” stamp stay in the header where everyone can read them."]],
@@ -4516,7 +4523,7 @@ function nbCard(e){
   return`<article class="nb-card${e.league_id?"":" nb-global"}${e.pinned?" nb-pinned":""}">
     <div class="nb-top">
       <span class="nb-scope">${esc(sc)}</span>
-      ${e.pinned?'<span class="nb-pintag">📌 Pinned</span>':""}
+      ${e.pinned?'<span class="nb-pintag" role="img" title="Pinned to the top" aria-label="Pinned to the top">📌</span>':""}
       <span class="nb-when">${timeAgo(e.created_at)}</span>${e.edited_at?nbEdTag(e.edited_at):""}
       ${nbMenuItems(e).length?`<button class="nb-x nb-kb" data-nid="${esc(e.id)}" title="More actions" aria-label="${n?`More actions for ${esc(n)}'s notice`:sk?`More actions for the ${esc(sc)} notice`:"More actions for this notice"}" aria-haspopup="menu" aria-expanded="false" onclick="nbMenu(this,${jsq(e.id)})">&#8942;</button>`:""}
     </div>
