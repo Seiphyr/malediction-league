@@ -18962,3 +18962,20 @@ grant execute on function public.pn_claim(text, text)                to authenti
 grant execute on function public.pn_claim_mine()                     to authenticated;
 grant execute on function public.pn_claims_list(text, int)           to authenticated;
 grant execute on function public.pn_claim_resolve(uuid, text, text)  to authenticated;
+
+-- ============================================================
+--  CLOSING THE TRANSACTION THAT LINE 1807 OPENS (2026-11-15)
+-- ============================================================
+-- Line 1807 is a bare begin; and nothing ever closed it, so every statement
+-- after it -- about seventeen thousand lines, this file's whole second half --
+-- belonged to a transaction the client was left to finish on its own.
+-- Measured: psql throws it away. On an empty database a file holding only
+--   begin;
+--   create table t_probe(x int);
+-- prints BEGIN and CREATE TABLE, and a second session then finds 0 rows for
+-- t_probe in pg_tables. The Supabase SQL Editor commits instead, which is why
+-- this file has only ever worked there.
+-- This file is append-only, so the begin; at 1807 stays where it is and the
+-- commit it was missing goes here, at the end, where it closes the same
+-- transaction. Nothing above this line changes.
+commit;
