@@ -8172,7 +8172,14 @@ function anErr(name,detail){
 }
 function anErrors(n){return anErrOrder.slice(-(n||5))}
 function anStack(er){try{return er&&er.stack?anScrub(String(er.stack).replace(/https?:\/\/[^\s)]*\//g,""),500,!0):void 0}catch(e){}}
-function anOnErr(e){try{const f=String(e&&e.filename||"");if(!e||!e.message||/^[a-z-]+-extension:/.test(f))return;anErr("js: "+anScrub(e.message),{src:f.split(/[?#]/)[0].split("/").pop().slice(0,60),line:e.lineno|0,col:e.colno|0,stack:anStack(e.error)})}catch(x){}}
+/* 2026-11-16: everything this page runs is served from this origin, so an error that
+   really comes from it always carries a file and a stack. One with neither cannot be
+   placed in our code at all: a script injected into the page, or an attribute rewritten
+   inside it, by an extension, a translator, or whatever sits in between. Those used to
+   be filed as Crash (js) and ranked beside the real ones, and an error log that cannot
+   tell them apart buries what matters. They are still kept, under a kind of their own.
+   An extension that names its own file is dropped earlier, as before. */
+function anOnErr(e){try{const f=String(e&&e.filename||"");if(!e||!e.message||/^[a-z-]+-extension:/.test(f))return;const st=anStack(e.error);anErr((f||st?"js: ":"outside: ")+anScrub(e.message),{src:f.split(/[?#]/)[0].split("/").pop().slice(0,60),line:e.lineno|0,col:e.colno|0,stack:st})}catch(x){}}
 window.addEventListener("error",anOnErr);
 function anOnRej(e){try{const r=e&&e.reason;anErr("promise: "+anScrub(r&&r.message||r||"rejected"),{stack:anStack(r)})}catch(x){}}
 window.addEventListener("unhandledrejection",anOnRej);
@@ -8724,13 +8731,13 @@ function admErrNew(e){const m=admErrMem(),t=Date.now(),b=t>=m.at&&t-m.at<ADM_VIS
 /* For the tab badge: not handled and newer than the last time the tab was opened. */
 function admErrUnseen(){const s=adm.stats[adm.days],E=s&&Array.isArray(s.errors)?s.errors:[],b=admErrMem().seen;return E.filter(e=>"yes"!==admErrHand(e)&&Date.parse(e.last_seen)>b).length}
 const ADM_BR={chrome:"Chrome",safari:"Safari",firefox:"Firefox",edge:"Edge",samsung:"Samsung Internet",opera:"Opera",other:"Other browser"};
-const ADM_SRC={js:"Crash",promise:"Failed request",toast:"Error message"};
+const ADM_SRC={js:"Crash",promise:"Failed request",toast:"Error message",outside:"Not from the app"};
 /* The readable part of an error row: the message without the "js: Uncaught
    TypeError:" prefix, its type, and the first named function in the stack
    (Chrome "at fn (:line:col)" or Safari/Firefox "fn@:line:col"). */
 function admErrParse(e){
   const raw=String(e&&e.name||""),d=e&&e.sample_detail&&"object"==typeof e.sample_detail?e.sample_detail:{},
-    m0=/^(js|promise|toast):\s*/.exec(raw),src=m0?m0[1]:"",
+    m0=/^(js|promise|toast|outside):\s*/.exec(raw),src=m0?m0[1]:"",
     m1=raw.slice(m0?m0[0].length:0).replace(/^Uncaught\s+(\(in promise\)\s*)?/i,""),
     tm=/^([A-Z][A-Za-z]*(?:Error|Exception)):\s*/.exec(m1),
     st=String(d.stack||""),
