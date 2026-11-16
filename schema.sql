@@ -19222,3 +19222,32 @@ language sql stable security definer set search_path = public, pg_temp as $$
 $$;
 revoke all on function public.player_matches(uuid) from public;
 grant execute on function public.player_matches(uuid) to anon, authenticated;
+
+-- ============================================================
+--  ALPHA FOR EVERY ACCOUNT (2026-12-06)
+-- ============================================================
+-- Run as migration-2026-12-06-alpha-for-all.sql, which is this same SQL with a
+-- snapshot and six checks around it.
+--
+-- The Alpha emblem (profiles.avatar = 'A') was for the accounts made before the alpha
+-- closed, and for site admins. The owner opened it to everyone: is_alpha() keeps only
+-- the tests that say an account is really an account -- it exists, it is not deleted,
+-- it is not a guest -- or that it belongs to a site admin. Nothing else moves: the
+-- trigger profile_avatar_alpha is still what refuses the icon on write, the check
+-- constraint on the column is unchanged, and no icon changes by itself, because an
+-- emblem is only ever set by its owner.
+-- is_alpha(): any account that is really an account
+-- As in "ADMIN: THE ALPHA ICON" (2026-11-13), without the created_at test. The shape
+-- does not change, so the function is not dropped.
+create or replace function public.is_alpha(p_user uuid)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select p_user is not null
+     and not exists (select 1 from profiles p where p.id = p_user and p.deleted_at is not null)
+     and (exists (select 1 from auth.users u
+                   where u.id = p_user and not coalesce(u.is_anonymous, false))
+          or exists (select 1 from site_admins s where s.user_id = p_user));
+$$;
+revoke all on function public.is_alpha(uuid) from public, anon;
+grant execute on function public.is_alpha(uuid) to authenticated;
+comment on function public.is_alpha(uuid) is
+  'True for any account that still exists and is not a guest, and for a site admin. The Alpha emblem (profiles.avatar = ''A'') is allowed only where this is true; the trigger profile_avatar_alpha enforces it on write. Until 2026-12-06 it also required the account to predate the end of the alpha.';
