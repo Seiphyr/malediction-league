@@ -2185,12 +2185,11 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .top-adm .adm-badge{margin-left:2px}
 @media(max-width:620px){.top-adm{width:40px;height:40px;padding:0!important}.top-adm-l{display:none}.top-adm .adm-badge{position:absolute;top:-7px;right:-7px;margin:0;border:2px solid var(--coal,#181818)}}
 /* Clash test (2026-11-15). The arena: two sides facing, side by side at every width,
-   with CLASH! standing between them. The two columns are one grid -- each side is
-   display:contents -- so the labels, the cards, the pickers and the steppers line up
-   row by row and the button can sit in the middle of the card row, over both. */
-/* On a desktop the panel is as wide as the page; the cards would be 560px each and
-   the title would sit alone to the left of a centred arena. One column, centred, caps
-   both. */
+   with CLASH! standing between them and the die rolling under it. The two columns are
+   one grid -- each side is display:contents -- so the labels, the cards, the pickers,
+   the statistics and the lines that span both line up row by row.
+   Rows: 1 label, 2 card, 3 picker, 4 the Tweak stats button, 5 the statistics,
+   6 what the minus and plus stand for. */
 .clt-p{max-width:700px;margin-left:auto;margin-right:auto}
 .clt-pair{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;position:relative;max-width:500px;margin:0 auto}
 .clt-side{display:contents}
@@ -2201,16 +2200,31 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-art{display:block;width:100%;border:1px solid var(--line)}
 .clt-noart{display:flex;align-items:center;justify-content:center;text-align:center;aspect-ratio:5/7;border:1px dashed var(--line);background:var(--coal-2);padding:10px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.06em;color:var(--bone-faint);overflow-wrap:anywhere}
 .clt-pk{grid-row:3;min-width:0}
-.clt-sts{grid-row:4;min-width:0}
-/* CLASH! stands between the two cards, over both of them: the middle of the card row,
-   whatever the screen. It is the loudest thing on the page, which is the point. */
-.clt-go{grid-row:2;grid-column:1/-1;justify-self:center;align-self:center;z-index:3;min-height:46px;padding:9px 20px;font-size:15px;letter-spacing:.12em;box-shadow:0 0 0 4px var(--coal),0 6px 18px rgba(0,0,0,.55)}
+.clt-sts{grid-row:5;min-width:0}
+/* CLASH! stands between the two cards, over both of them, with the die under it: the
+   button, the throw and what it did, all in the middle where the fight is. */
+.clt-mid{grid-row:2;grid-column:1/-1;justify-self:center;align-self:center;z-index:3;display:flex;flex-direction:column;align-items:center;gap:9px;max-width:100%;min-width:0}
+.clt-go{min-height:46px;padding:9px 20px;font-size:15px;letter-spacing:.12em;box-shadow:0 0 0 4px var(--coal),0 6px 18px rgba(0,0,0,.55)}
 .clt-go:disabled{background:var(--surface-2);color:var(--bone-faint)}
+.clt-roll{display:flex;align-items:center;gap:9px;max-width:100%;min-width:0;padding:6px 11px 6px 7px;background:rgba(17,17,17,.95);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.clt-roll:empty{display:none}
+.clt-roll:has(.clt-die.idle){background:0 0;border:0;box-shadow:none;padding:0}
+.clt-rt{min-width:0;line-height:1.25}
+.clt-rt b{display:block;font-family:Oswald,sans-serif;font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--bone)}
+.clt-rt i{display:block;font-style:normal;font-size:12px;color:var(--bone-dim)}
+.clt-rt i b{display:inline;font-size:12px;letter-spacing:0;text-transform:none;color:var(--bone)}
 .clt-sel{width:100%;min-height:40px;box-sizing:border-box;margin-top:-1px}
+/* Tweak stats: the statistics and what the minus and plus stand for are folded away
+   until they are wanted. The chevron looks down to open and up to close. */
+.clt-tw{grid-row:4;grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:42px;margin-top:11px;padding:0 12px;background:0 0;border:1px solid var(--line);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;cursor:pointer}
+.clt-tw:disabled{color:var(--line-2);cursor:default}
+.clt-tw em{font-style:normal;color:var(--brass-dim-txt);letter-spacing:.04em}
+.clt-chev{display:block;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-3px) rotate(45deg);transition:transform .16s}
+.clt-tw.open .clt-chev{transform:translateY(1px) rotate(225deg)}
+.clt-st{margin-top:8px}
 /* The label sits above its own control, not beside it: at 320 a column is 139px and
    "HEALTH" plus a two-digit number plus two 40px buttons do not fit on one line -- they
    used to run into each other. One layout at every width, and nothing to collide. */
-.clt-st{margin-top:8px}
 .clt-k{display:block;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone-faint);margin:0 0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .clt-c{display:flex;align-items:stretch;border:1px solid var(--line);background:var(--coal-2)}
 .clt-m{flex:0 0 40px;min-height:40px;padding:0;background:0 0;border:0;color:var(--bone-dim);font-family:Barlow,sans-serif;font-size:18px;line-height:1;cursor:pointer}
@@ -2220,10 +2234,8 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-n{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;font-family:Oswald,sans-serif;font-size:17px;color:var(--bone);white-space:nowrap;overflow:hidden}
 .clt-n i{font-style:normal;color:var(--bone-faint);font-size:14px}
 .clt-d{font-size:11px;color:var(--brass-dim-txt);vertical-align:super}
-.clt-p h2.clt-ttl{font-family:Oswald,sans-serif;font-size:31px;font-weight:700;letter-spacing:.02em;line-height:1.02;text-transform:uppercase;color:var(--bone);margin:0 0 15px}
-.clt-p h2.clt-ttl em{font-style:normal;color:var(--crimson)}
-.clt-sh{margin:14px 0 0}
-.clt-ans{margin:15px 0 0;border:1px solid var(--line);border-left:3px solid var(--brass);background:var(--coal-2);padding:13px 14px}
+.clt-sh{grid-row:6;grid-column:1/-1;margin:11px 0 0}
+.clt-ans{margin:16px 0 0;border:1px solid var(--line);border-left:3px solid var(--brass);background:var(--coal-2);padding:13px 14px}
 .clt-lead{margin:0 0 12px;font-size:15px;color:var(--bone)}
 .clt-lead b{font-weight:600}
 .clt-big{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
@@ -2231,11 +2243,10 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-b small{display:block;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone-faint)}
 .clt-b b{display:block;font-family:Oswald,sans-serif;font-size:25px;font-weight:600;line-height:1.15;color:var(--bone)}
 .clt-b i{display:block;font-style:normal;font-size:11px;color:var(--bone-dim);margin-top:2px}
-.clt-roll{display:flex;align-items:center;gap:10px;min-width:0;margin:13px 0 0;padding-top:11px;border-top:1px solid var(--line)}
-.clt-rt{font-size:13px;color:var(--bone-dim);min-width:0}
 /* A twenty-sided die, as close as a clip path gets to one: the silhouette of the
    hexagon you look at from above, with the face it landed on in the middle. */
 .clt-die{display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;background:var(--surface-2);color:var(--bone);font-family:Oswald,sans-serif;font-size:16px;font-weight:600;clip-path:polygon(50% 0,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
+.clt-die.idle{background:#232323;color:var(--bone-faint)}
 .clt-die.crit{background:var(--brass);color:#1b1407}
 .clt-die.fum{background:var(--crimson-dark);color:#fff}
 .clt-die.roll{animation:cltroll .66s ease-out}
@@ -2246,11 +2257,10 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 @keyframes cltlunge{0%,100%{transform:none}18%{transform:translateX(-5px) rotate(-3.2deg)}45%{transform:translateX(9px) rotate(2.6deg)}72%{transform:translateX(-2px) rotate(-1deg)}}
 @keyframes cltlunge-d{0%,100%{transform:none}18%{transform:translateX(5px) rotate(3.2deg)}45%{transform:translateX(-9px) rotate(-2.6deg)}72%{transform:translateX(2px) rotate(1deg)}}
 @media(prefers-reduced-motion:reduce){.clt-die.roll,.clt-p.clash .clt-side.a .clt-art-w,.clt-p.clash .clt-side.d .clt-art-w{animation:none}}
-.clt-det{margin:12px 0 0}
-.clt-det>summary{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--bone-dim);cursor:pointer;min-height:34px;display:flex;align-items:center}
-.clt-t{width:100%;border-collapse:collapse;margin:2px 0 0;font-size:13px}
-.clt-t th{text-align:left;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-faint);font-weight:600;padding:0 8px 4px 0}
-.clt-t td{padding:4px 8px 4px 0;border-top:1px solid var(--line);color:var(--bone-dim)}
+.clt-t{width:100%;border-collapse:collapse;margin:14px 0 0;font-size:13px}
+.clt-t th{text-align:left;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-faint);font-weight:600;padding:0 8px 5px 0}
+.clt-t th:nth-child(n+2),.clt-t td:nth-child(n+2){text-align:right;padding-right:0;width:5.2em}
+.clt-t td{padding:5px 8px 5px 0;border-top:1px solid var(--line);color:var(--bone-dim)}
 .clt-t td:first-child{color:var(--bone)}
 .clt-f{margin:9px 0 0}
 </style></head><body><header class="top" id="topbar"><h1 class="sr-only">Seekers League — Malediction community hub</h1><div class="brand" onclick='go("browse")'><img class="logo" id="brand-logo" alt="Seekers League"></div><button type="button" class="beta-chip" onclick="fdOpen()" title="Seekers League is in public beta: tell us what breaks" aria-label="Beta: send feedback">Beta</button><div class="top-right" id="top-right"></div></header><div class="shell"><aside class="side" id="sidebar"></aside><main class="maincol"><div class="wrap"><section class="view" id="browse"><div id="home-stats"></div><div id="home-pn"></div><div id="home-head"></div><div id="home-event"></div><div id="home-board"></div><div id="home-cta"></div><div id="home-sup"></div></section><section class="view" id="leagues"><div id="home-mine"></div><div id="mine-find"></div></section><section class="view" id="tournaments"><div id="tnp-body"></div></section><section class="view" id="league"><div id="league-header"></div><nav class="tabs" id="league-tabs" style="margin-top:0"></nav><div id="league-sub"></div><div id="league-body"></div></section><section class="view" id="setpreview"><div id="setpreview-body"></div></section><section class="view" id="clashtest"><div id="clashtest-body"></div></section><section class="view" id="rules"><div id="rules-body"></div></section><section class="view" id="privacy"><div id="privacy-body"></div></section><section class="view" id="terms"><div id="terms-body"></div></section><section class="view" id="about"><div id="about-body"></div></section><section class="view" id="tracker"><div id="tracker-body"></div></section><section class="view" id="basic-tracker"><div id="basic-tracker-body"></div></section><section class="view" id="meta"><div class="panel plain"><div class="flex-between" style="margin-bottom:6px"><div><h2>Meta breakdown</h2></div></div><div id="meta-body"></div></div></section><section class="view" id="profile"><div id="profile-body"></div></section><section class="view" id="cdecks"><div id="cdecks-body"></div></section><section class="view" id="deck"><div id="deck-body"></div></section><section class="view" id="decks"><div id="decks-body"></div></section><section class="view" id="builder"><div id="builder-body"></div></section><section class="view" id="collection"><div id="collection-body"></div></section><section class="view" id="admin"><div id="admin-body"></div></section><section class="view" id="auth"><div class="gate"><div class="panel"><h2 id="auth-title">Sign in</h2><p class="hint" id="auth-sub">Welcome back to the tracker.</p><div class="oauth-row"><button type="button" class="oauth-btn" id="oa-google" onclick="oauthSignIn('google')"><svg class="oa-ic" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"></path><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"></path><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"></path><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"></path></svg>Continue with Google</button> <button type="button" class="oauth-btn" id="oa-discord" onclick="oauthSignIn('discord')"><svg class="oa-ic" viewBox="0 0 24 24" aria-hidden="true"><path fill="#5865F2" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.198.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"></path></svg>Continue with Discord</button></div><p class="oa-terms">By continuing you accept the <button type="button" class="link lg-ln" onclick="termsOpen()">Terms</button> and <button type="button" class="link lg-ln" onclick="privacyOpen()">Privacy policy</button>.</p><div class="oauth-sep"><span>or with email</span></div><div id="signup-only" style="display:none"><label class="field"><span>Name</span> <input id="au-name"></label> </div><label class="field"><span>Email</span> <input type="email" id="au-email" placeholder="Email address"></label> <label class="field"><span>Password</span> <input type="password" id="au-pass" placeholder="••••••••"></label> <label class="rem-row"><input type="checkbox" id="au-remember" checked> <span>Keep me signed in</span></label> <label class="rem-row au-terms" id="au-terms-row" style="display:none"><input type="checkbox" id="au-terms"> <span>I am 16 or older and accept the <button type="button" class="link lg-ln" onclick="termsOpen()">Terms</button> and <button type="button" class="link lg-ln" onclick="privacyOpen()">Privacy policy</button></span></label> <button class="act" id="au-submit" style="width:100%">Sign in</button><p style="text-align:center;margin:14px 0 0;font-size:14px;color:var(--bone-dim)"><span id="au-switch-text">No account yet?</span> <button class="link" id="au-switch">Create one</button></p><p id="au-forgot-row" style="text-align:center;margin:8px 0 0;font-size:13px"><button class="link" id="au-forgot" style="color:var(--bone-dim)">Forgot your password?</button></p></div></div></section><footer class="sl-foot" id="sl-foot"><nav class="sl-fl" aria-label="About this site"><button type="button" class="sl-fb" aria-haspopup="dialog" onclick="slDiscOpen(this)">Disclaimer</button><span aria-hidden="true">·</span><button type="button" class="sl-fb" onclick="go('about')">About</button><span aria-hidden="true">·</span><button type="button" class="sl-fb" onclick="go('privacy')">Privacy</button><span aria-hidden="true">·</span><button type="button" class="sl-fb" onclick="go('terms')">Terms</button></nav></footer></div></main></div><nav class="bbar" id="bbar"></nav><div class="sheet" id="sheet" hidden><div class="sheet-bg" onclick="closeSheet()"></div><div class="sheet-card" id="sheet-card"></div></div><div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div><script src="vendor/supabase-js-2.118.0.min.js"></script><script>/* Errors raised while the app boots, before error reporting is set up further down, wait here and are reported once it is. */const SL_EARLY=[],slEarlyErr=e=>{SL_EARLY.length<20&&SL_EARLY.push([0,e])},slEarlyRej=e=>{SL_EARLY.length<20&&SL_EARLY.push([1,e])};window.addEventListener("error",slEarlyErr),window.addEventListener("unhandledrejection",slEarlyRej);
@@ -9527,7 +9537,7 @@ CARDS.forEach(c=>{const v=CARD_EX[c.n];if(!v)return;const p=v.split("|");
    The − and + are the model: auras, relics, attachments and whatever a card's own
    keywords do are the player's to dial in, which is why nothing here reads a keyword
    and no card is treated as a special case. */
-const CLT_MAX_ROUNDS=200,CLT_HINT='<span class="clt-die" aria-hidden="true">20</span><span class="clt-rt">One roll of the die, beside the averages.</span>';
+const CLT_MAX_ROUNDS=200,CLT_HINT='<span class="clt-die idle" aria-hidden="true">20</span>';
 /* A "-" statistic means the unit cannot use it, which the rules count as 0. */
 function cltStat(c,k){return c&&null!=c[k]?+c[k]:0}
 function cltCard(n){const i=CARD_IDX[n||""];return null==i?null:CARDS[i]}
@@ -9583,6 +9593,9 @@ function cltRows(side){
 /* The modifier of a row: Power keeps its two halves on the same number, so either one
    answers for the row. */
 function cltRowMod(r){return cltState().m[r.ids[0]]|0}
+/* How many of the four have been moved: the folded button says so, because a number in
+   the answer must never come from a control nobody can see. */
+function cltTwN(){return cltRows("a").concat(cltRows("d")).filter(r=>cltRowMod(r)).length}
 /* 2026-11-15: the modifier sits on the statistic itself, - value +, instead of a row of
    sliders under a row of chips that said the same numbers twice. The owner picked this
    layout out of four; nothing of the maths changed with it. A step cannot be taken out
@@ -9616,15 +9629,14 @@ function cltSide(side,label,S,C,o){
         <option value=""${cur?"":" selected"}>Pick a unit…</option>
         ${U.map(c=>`<option value="${esc(c.n)}"${c.n===cur?" selected":""}>${esc(c.n)}</option>`).join("")}
       </select></label>
-    <div class="clt-sts">${C?cltSteps(side,C,o):""}</div>
+    <div class="clt-sts" id="clt-sts-${side}"${cltState().tw?"":" hidden"}>${C?cltSteps(side,C,o):""}</div>
   </div>`;
 }
-/* The answer, in the order a reader wants it: what the attacker needs, the three
-   numbers, and the twenty faces for whoever does not take them on trust. The die the
-   roll lands on is outside this block (clt-roll), because a live region has to be in
-   the page before it changes for a screen reader to read it out. */
+/* The answer: what the attacker needs, the three numbers, and what each face of the die
+   does -- the twenty faces in four lines, which is the whole of it. The die the roll
+   lands on is not here but up in the arena, under the button that throws it. */
 function cltOddsHtml(o){
-  const S=cltState(),need=o.df-o.ac,
+  const need=o.df-o.ac,
     lead=need<=1?`Any roll but a natural 1 lands a hit.`
         :need>20?`Only a natural 20 can land: ${need} is past the die.`
         :`The attacker needs <b>${need} or more</b> on the die &mdash; Defense ${o.df} less Accuracy ${o.ac}.`;
@@ -9634,18 +9646,16 @@ function cltOddsHtml(o){
       <div class="clt-b"><small>Damage a round</small><b>${cltNum(o.round)}</b><i>${cltNum(o.per)} an attack, two attacks</i></div>
       <div class="clt-b"><small>Rounds to 0</small><b>${o.rd.cap?"over "+CLT_MAX_ROUNDS:cltNum(o.rd.avg)}</b><i>${o.rd.cap?"it may never get there":"9 times in 10 by round "+o.rd.p90}</i></div>
     </div>
-    <details class="clt-det"${S.det?" open":""} ontoggle="cltState().det=this.open">
-      <summary>Face by face</summary>
-      <table class="clt-t"><thead><tr><th>Roll</th><th>Chance</th><th>Damage</th></tr></thead><tbody>
-        ${o.rows.map(([n,p,d])=>`<tr><td>${n}</td><td>${cltPct(p)}</td><td>${d}</td></tr>`).join("")}
-      </tbody></table>
-      <p class="hint clt-f">The attacker stands engaged and attacks twice a round; the defender does not answer. A critical sums the printed Power, ${o.crit}, before anything the &minus; and + add. <button class="link" onclick="go('rules')">The rules behind it</button></p>
-    </details>`;
+    <table class="clt-t"><thead><tr><th>Roll</th><th>Chance</th><th>Damage</th></tr></thead><tbody>
+      ${o.rows.map(([n,p,d])=>`<tr><td>${n}</td><td>${cltPct(p)}</td><td>${d}</td></tr>`).join("")}
+    </tbody></table>
+    <p class="hint clt-f">The attacker stands engaged and attacks twice a round; the defender does not answer. A critical sums the printed Power, ${o.crit}, before anything the &minus; and + add. <button class="link" onclick="go('rules')">The rules behind it</button></p>`;
 }
+/* The throw, under the button: the face, what it was, and what it cost. */
 function cltRollHtml(r){
   const w="crit"===r.kind?"Critical hit":"fumble"===r.kind?"Fumble":"hit"===r.kind?"Hit":"Graze";
   return`<span class="clt-die ${"crit"===r.kind?"crit":"fumble"===r.kind?"fum":""}" aria-hidden="true">${r.f}</span>
-    <span class="clt-rt"><b>${w}</b> &middot; ${r.f} + ${r.ac} = ${r.total} against Defense ${r.df} &middot; <b>${r.dmg}</b> damage</span>`;
+    <span class="clt-rt"><b>${w}</b><i>${r.f} + ${r.ac} against Defense ${r.df} &middot; <b>${r.dmg}</b> damage</i></span>`;
 }
 function cltPick(side,v){const S=cltState();S[side]=v||"";S.roll=null;renderClashTest()}
 /* A step redraws the numbers and the answer, never the page: the button under the
@@ -9654,6 +9664,17 @@ function cltStep(k,d){
   const S=cltState(),ids="pw"===k?["ph","pg"]:[k],v=Math.max(-5,Math.min(5,(S.m[ids[0]]|0)+(d|0)));
   if(v===(S.m[ids[0]]|0))return;
   ids.forEach(s=>S.m[s]=v);S.roll=null;cltPaint();
+}
+/* Tweak stats: open, and the statistics and the line about what the - and + stand for
+   come down with it; closed, the button says how many of the four have been moved, so
+   a number in the answer never comes from a control that cannot be seen. */
+function cltTweak(){const S=cltState();S.tw=!S.tw;cltTwPaint();if(S.tw){const f=document.querySelector("#clashtest-body .clt-sts .clt-m");f&&f.focus({preventScroll:!0})}}
+function cltTwPaint(){
+  const S=cltState(),b=$("clt-tw");if(!b)return;
+  b.classList.toggle("open",!!S.tw);
+  b.setAttribute("aria-expanded",S.tw?"true":"false");
+  const n=$("clt-tw-n");if(n){const c=cltTwN();n.textContent=c?" · "+c+" changed":"";n.hidden=!c}
+  document.querySelectorAll("#clashtest-body .clt-sts,#clashtest-body .clt-sh").forEach(e=>e.hidden=!S.tw);
 }
 function cltPaint(){
   const S=cltState(),A=cltCard(S.a),D=cltCard(S.d),o=A&&D?cltOdds(A,D,S.m):null,
@@ -9668,6 +9689,7 @@ function cltPaint(){
     const st=last.closest(".clt-st"),bs=st?st.querySelectorAll(".clt-m"):[];
     bs[0]&&(bs[0].disabled=-5===m);bs[1]&&(bs[1].disabled=5===m);
   })});
+  cltTwPaint();
   if(rb)rb.innerHTML=CLT_HINT;
 }
 /* The die tumbles through faces while it rolls, then lands on the one that counts. */
@@ -9679,7 +9701,7 @@ function cltRoll(){
   const box=$("clt-roll"),st=document.querySelector("#clashtest-body .clt-p");
   st&&(st.classList.remove("clash"),void st.offsetWidth,st.classList.add("clash"),setTimeout(()=>st.classList.remove("clash"),760));
   if(!box)return;
-  box.innerHTML='<span class="clt-die roll" aria-hidden="true">'+(1+Math.floor(20*Math.random()))+'</span><span class="clt-rt">Rolling…</span>';
+  box.innerHTML='<span class="clt-die roll" aria-hidden="true">'+(1+Math.floor(20*Math.random()))+'</span><span class="clt-rt"><b>Rolling…</b></span>';
   const tick=setInterval(()=>{const d=box.querySelector(".clt-die");
     if(!d||cltState().roll!==r)return clearInterval(tick);
     d.textContent=1+Math.floor(20*Math.random())},70);
@@ -9691,16 +9713,21 @@ async function renderClashTest(){
      drawn: a second paint arriving later would move the controls under a finger and
      put the numbers back to the printed ones. */
   if(null===CARD_IMGS_ON){await detectCardImgs();if("clashtest"!==route.view)return}
-  const S=cltState(),A=cltCard(S.a),D=cltCard(S.d),o=A&&D?cltOdds(A,D,S.m):null,both=!!(A&&D);
+  const S=cltState(),A=cltCard(S.a),D=cltCard(S.d),o=A&&D?cltOdds(A,D,S.m):null,both=!!(A&&D),n=cltTwN();
   b.innerHTML=`<div class="panel plain clt-p">
-    <h2 class="clt-ttl">Clash test<em>!</em></h2>
+    <h2 class="sr-only">Clash test</h2>
     <div class="clt-pair">${cltSide("a","Attacker",S,A,o)}${cltSide("d","Defender",S,D,o)}
-      <button class="act clt-go" onclick="cltRoll()"${both?"":" disabled"}>Clash!</button></div>
-    <p class="hint clt-sh">The &minus; and + stand in for auras, relics, attachments and the card's own rules: nothing here reads a keyword, so a unit whose text changes a fight is yours to dial in.</p>
-    <div class="clt-ans">
-      <div id="clt-odds">${o?cltOddsHtml(o):'<p class="empty">Pick an attacker and a defender.</p>'}</div>
-      <div class="clt-roll" id="clt-roll" aria-live="polite">${S.roll?cltRollHtml(S.roll):CLT_HINT}</div>
+      <div class="clt-mid">
+        <button class="act clt-go" onclick="cltRoll()"${both?"":" disabled"}>Clash!</button>
+        <div class="clt-roll" id="clt-roll" aria-live="polite">${S.roll?cltRollHtml(S.roll):CLT_HINT}</div>
+      </div>
+      <button type="button" class="clt-tw${S.tw?" open":""}" id="clt-tw" onclick="cltTweak()"
+        aria-expanded="${S.tw?"true":"false"}" aria-controls="clt-sts-a clt-sts-d clt-sh"${both?"":" disabled"}>
+        <span>Tweak stats<em id="clt-tw-n"${n?"":" hidden"}>${n?" · "+n+" changed":""}</em></span>
+        <span class="clt-chev" aria-hidden="true"></span></button>
+      <p class="hint clt-sh"${S.tw?"":" hidden"}>The &minus; and + stand in for auras, relics, attachments and the card's own rules: nothing here reads a keyword, so a unit whose text changes a fight is yours to dial in.</p>
     </div>
+    <div class="clt-ans" id="clt-odds">${o?cltOddsHtml(o):'<p class="empty">Pick an attacker and a defender.</p>'}</div>
   </div>`;
 }
 const CN_ORDER=(()=>{const g={ORD:0,LEG:1,PRI:2,CON:3,ITEM:4,REL:5,TER:6};return c=>{if(!c.cn)return 1e9;const m=c.cn.split("-");return (g[m[0]]??9)*1e4+(+m[1]||0)}})();
