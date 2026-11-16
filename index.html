@@ -2272,8 +2272,14 @@ function avName(k){return"A"===k?"Alpha":k?SHORTF[k]:"Default"}
 /* 2026-11-13: A = the Alpha emblem (img/avatar-alpha-96/192.webp, round like the default one, no faction ring).
    2026-11-16: the owner opened it to every signed-in account, not only the accounts made before the alpha closed;
    a guest still cannot wear it, and is_alpha() in the database says the same thing -- its trigger is what really
-   decides. Optional: nobody's icon changes until they pick it. */
-function avAlphaOk(){const u=session&&session.user;return!!me&&("A"===avKey(me)||isSiteAdmin()||!!u&&!u.is_anonymous)}
+   decides. Optional: nobody's icon changes until they pick it.
+   A database that still refuses it (the SQL not run yet, or a rule narrowed again later) used to be answered with
+   a sentence about alpha testers. There is no sentence now: the refusal quietly takes the option off the picker
+   for the rest of the session (window._noAlpha), so nobody is offered something that will not be taken, and
+   nobody is told off for trying. Whoever already wears the emblem keeps the option whatever the database says,
+   which is also what the owner wants when the testing ends: show it only to the accounts that have it, and this
+   function already does that on its own once is_alpha() narrows. */
+function avAlphaOk(){const u=session&&session.user;return!!me&&("A"===avKey(me)||isSiteAdmin()||!window._noAlpha&&!!u&&!u.is_anonymous)}
 function avHtml(u,big,lab){const k=avKey(u),f=!!k&&"A"!==k;return`<span class="sl-av${f?" f":""}"${f?` style="--ac:${FAC_HEX[k]}"`:""}${lab?` role="img" aria-label="${esc(lab)}"`:' aria-hidden="true"'}><img src="${f?LICON[k]:"A"===k?big?"img/avatar-alpha-192.webp":"img/avatar-alpha-96.webp":big?"img/avatar-default-192.webp":"img/avatar-default-96.webp"}" alt="" decoding="async" onerror="this.parentNode.remove()"></span>`}
 function fBadges(e){return e?1===e.length?`<img class="ficn" src="${LICON[e]}" title="${FNAME[e]}" alt="${FNAME[e]}">`:dualIcon(e):'<span class="fbadge fN" title="Neutral">N</span>'}const TNAME={U:"Unit",G:"Legacy",S:"Spell",A:"Attachment",T:"Terrain"};function colView(){try{return localStorage.getItem("sl.colview")||"list"}catch(e){return"list"}}function colFields(e){return"U"===e.t||"T"===e.t?["owned","standee","printed","painted"]:["owned"]}const RNAME={B:"Basic",E:"Elite",U:"Unique",L:"Legendary"};function wrTone(e){return e>.55?"#4ecb80":e>=.45?"#e8ae40":"#ff5568"}function wrToneBar(e){return e>.55?"#3fb96e":e>=.45?"#d9a134":"#ef3d55"}function fColor(e){return{O:"var(--f-throne)",P:"var(--f-primal)",C:"var(--f-conclave)",L:"var(--f-fallen)"}[(e||"")[0]]||"var(--line-2)"}function wrBar(e,n){return`<span class="wrbar"><span class="wrfill" style="width:${Math.round(100*(e||0))}%;background:${wrColor(e,n)}"></span></span>`}const RORDER={L:0,U:1,E:2,B:3};
 /* Ordering. The collection number is the default: it is how the cards are
@@ -10031,7 +10037,7 @@ async function pfSaveProfile(){
   /* 2026-11-09: the icon, written on its own and only when it changed, like who sees your matches. */
   let avErr=null;const avo=document.querySelector('#pf-av [aria-checked="true"]'),av=avo?avo.dataset.v||null:void 0;
   if(!i&&void 0!==av&&av!==(avKey(me)||null)){let y=null;try{y=(await sb.from('profiles').update({avatar:av}).eq('id',me.id)).error}catch(x){y=x}
-    y?(avErr=slNoCol(y)?'Your details were saved. Choosing an icon needs a site update that is not live yet.':"not_alpha"===y.hint?'Your details were saved. The Alpha icon is only for the alpha testers and the admin.':"A"===av&&"23514"===y.code?'Your details were saved. The Alpha icon needs a site update that is not live yet.':y.message||'Could not save your icon'):(me.avatar=av)}
+    y?(avErr=slNoCol(y)?'Your details were saved. Choosing an icon needs a site update that is not live yet.':"not_alpha"===y.hint?(window._noAlpha=1,null):"A"===av&&"23514"===y.code?'Your details were saved. The Alpha icon needs a site update that is not live yet.':y.message||'Could not save your icon'):(me.avatar=av)}
   /* 2026-11-11: Makers, written on its own and only when it changed, like the icon; no box ticked clears the note. */
   let mkErr=null;const mk=pfMkVal();
   if(!i&&mk&&(mk.m!==(me.makes||null)||mk.n!==(me.makes_note||null))){let y=null;try{y=(await sb.from('profiles').update({makes:mk.m,makes_note:mk.n}).eq('id',me.id)).error}catch(x){y=x}
