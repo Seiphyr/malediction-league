@@ -2213,10 +2213,10 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-rt b{display:block;font-family:Oswald,sans-serif;font-size:15px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--bone)}
 .clt-rt i{display:block;font-style:normal;font-size:12px;color:var(--bone-dim)}
 .clt-rt i b{display:inline;font-size:12px;letter-spacing:0;text-transform:none;color:var(--bone)}
-.clt-sel{width:100%;min-height:40px;box-sizing:border-box;margin-top:-1px}
+.clt-sel{width:100%;min-height:40px;box-sizing:border-box;margin-top:7px}
 /* Tweak stats: the statistics and what the minus and plus stand for are folded away
    until they are wanted. The chevron looks down to open and up to close. */
-.clt-tw{grid-row:4;grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:42px;margin-top:11px;padding:0 12px;background:0 0;border:1px solid var(--line);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;cursor:pointer}
+.clt-tw{grid-row:4;grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:42px;margin-top:11px;padding:0 12px;background:0 0;border:1px solid var(--line);color:var(--crimson-txt);font-family:Oswald,sans-serif;font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;cursor:pointer}
 .clt-tw:disabled{color:var(--line-2);cursor:default}
 .clt-tw em{font-style:normal;color:var(--brass-dim-txt);letter-spacing:.04em}
 .clt-chev{display:block;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-3px) rotate(45deg);transition:transform .16s}
@@ -9623,7 +9623,7 @@ function cltSide(side,label,S,C,o){
   const U=cltUnits("a"===side),cur=S[side]||"",art=cltArt(C);
   return`<div class="clt-side ${side}">
     <div class="clt-h">${label}</div>
-    <div class="clt-art-w">${art||`<div class="clt-noart">${C?esc(C.n):"Nobody yet"}</div>`}</div>
+    <div class="clt-art-w">${art||`<div class="clt-noart">${C?esc(C.n):"Choose a unit below"}</div>`}</div>
     <label class="field clt-pk"><span class="sr-only">${label}</span>
       <select class="clt-sel" onchange="cltPick('${side}',this.value)">
         <option value=""${cur?"":" selected"}>Pick a unit…</option>
@@ -9723,7 +9723,7 @@ async function renderClashTest(){
       </div>
       <button type="button" class="clt-tw${S.tw?" open":""}" id="clt-tw" onclick="cltTweak()"
         aria-expanded="${S.tw?"true":"false"}" aria-controls="clt-sts-a clt-sts-d clt-sh"${both?"":" disabled"}>
-        <span>Tweak stats<em id="clt-tw-n"${n?"":" hidden"}>${n?" · "+n+" changed":""}</em></span>
+        <span>Add bonuses<em id="clt-tw-n"${n?"":" hidden"}>${n?" · "+n+" changed":""}</em></span>
         <span class="clt-chev" aria-hidden="true"></span></button>
       <p class="hint clt-sh"${S.tw?"":" hidden"}>The &minus; and + stand in for auras, relics, attachments and the card's own rules: nothing here reads a keyword, so a unit whose text changes a fight is yours to dial in.</p>
     </div>
