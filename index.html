@@ -2100,7 +2100,7 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .top-adm .adm-badge{margin-left:2px}
 @media(max-width:620px){.top-adm{width:40px;height:40px;padding:0!important}.top-adm-l{display:none}.top-adm .adm-badge{position:absolute;top:-7px;right:-7px;margin:0;border:2px solid var(--coal,#181818)}}
 
-.sl-gq{float:right;margin:-2px 0 4px 10px;width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--coal-2);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:17px;font-weight:600;line-height:1;letter-spacing:0;text-transform:none;cursor:pointer}
+.sl-gq{position:absolute;top:12px;right:12px;z-index:4;width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--coal-2);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:17px;font-weight:600;line-height:1;letter-spacing:0;text-transform:none;cursor:pointer}
 .sl-gq:hover{color:var(--bone);border-color:var(--line-2)}
 .slg{max-width:460px}
 .slg h3{margin:0 0 4px}
@@ -2151,6 +2151,8 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .clt-n{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:3px;font-family:Oswald,sans-serif;font-size:17px;color:var(--bone);white-space:nowrap;overflow:hidden}
 .clt-n i{font-style:normal;color:var(--bone-faint);font-size:14px}
 .clt-d{font-size:11px;color:var(--brass-dim-txt);vertical-align:super}
+.clt-p h2.clt-ttl{font-family:Oswald,sans-serif;font-size:31px;font-weight:700;letter-spacing:.02em;line-height:1.02;text-transform:uppercase;color:var(--bone);margin:0 0 15px;padding-right:46px}
+.clt-p h2.clt-ttl em{font-style:normal;color:var(--crimson)}
 .clt-sh{grid-row:6;grid-column:1/-1;margin:11px 0 0}
 .clt-ans{margin:16px 0 0;border:1px solid var(--line);border-left:3px solid var(--brass);background:var(--coal-2);padding:13px 14px}
 .clt-lead{margin:0 0 12px;font-size:15px;color:var(--bone)}
@@ -8663,7 +8665,7 @@ async function renderClashTest(){
   if(null===CARD_IMGS_ON){await detectCardImgs();if("clashtest"!==route.view)return}
   const S=cltState(),A=cltCard(S.a),D=cltCard(S.d),o=A&&D?cltOdds(A,D,S.m):null,both=!!(A&&D),n=cltTwN();
   b.innerHTML=`<div class="panel plain clt-p">
-    <h2 class="sr-only">Clash test</h2>
+    <h2 class="clt-ttl">Clash test<em>!</em></h2>
     <div class="clt-pair">${cltSide("a","Attacker",S,A,o)}${cltSide("d","Defender",S,D,o)}
       <div class="clt-mid">
         <button class="act clt-go" onclick="cltRoll()"${both?"":" disabled"}>Clash!</button>
@@ -8741,6 +8743,8 @@ function slGuideSync(){
   if(v.querySelector(".sl-gq"))return void slGuideFirst(k);
   
   const host=v.querySelector(".panel")||v.firstElementChild;
+  
+  if(host&&"static"===getComputedStyle(host).position)host.style.position="relative";
   if(!host)return;
   const b=document.createElement("button");
   b.type="button";b.className="sl-gq";b.textContent="?";
