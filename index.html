@@ -322,6 +322,12 @@ body:has(#wts-modal) #toast{z-index:1700}
 .nb-post{display:block;margin:12px auto 0}
 .nb-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
 
+
+.nb-h{display:inline-flex;align-items:center;gap:9px;margin:0;padding:2px 4px;background:0 0;border:0;border-radius:8px;color:inherit;font:inherit;letter-spacing:inherit;text-transform:inherit;white-space:nowrap;cursor:pointer}
+.nb-h:hover,.nb-h:focus-visible{color:var(--bone)}
+.nb-h .nb-chev{flex:0 0 10px;width:10px;height:10px;opacity:.7;transition:transform .18s ease}
+.nb-h[aria-expanded="true"] .nb-chev{transform:rotate(180deg)}
+@media(prefers-reduced-motion:reduce){.nb-h .nb-chev{transition:none}}
 .nb-panel .nb-wrap{position:relative}
 .nb-panel .nb-list{max-height:440px;overflow-y:auto;overscroll-behavior:contain;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--brass-dim) transparent}
 .nb-panel .nb-list::-webkit-scrollbar{width:6px}
@@ -4345,6 +4351,9 @@ function nbHome(t,nu){
     R.length&&null==nbSeenRd("home.nu")&&nbNuDone("home.nu",R);
     
     "all"===on?(nbDone("home.all",t),nbNuDone("home.nua",R),tb.length||T.forEach(dn)):cur&&dn(cur)}}}
+
+let nbPostOpen=!1;
+function nbPostTg(b){const x=$("nb-new");if(!x)return;nbPostOpen=x.hidden;x.hidden=!nbPostOpen;b&&b.setAttribute("aria-expanded",nbPostOpen?"true":"false");if(nbPostOpen)try{x.scrollIntoView({block:"nearest"})}catch(e){}}
 function nbTab(k){const s=nbSt("home"),f=nbInBar("#home-board");s&&(s.tab=k,s.o.add(k));paintHomeBoard();f&&nbFocus("#home-board")}
 function paintHomeBoard(){
   const e=$("home-board");if(!e)return;
@@ -4352,13 +4361,13 @@ function paintHomeBoard(){
     t=(cache.board||[]).filter(e=>!e.league_id||n.has(e.league_id));
   const nu=me&&window._nuHtml||"";
   if(!t.length&&!nu&&!isSiteAdmin())return void(e.innerHTML="",typeof admHomeNote=="function"&&admHomeNote());
-  const B=nbHome(t,nu),bx=e.querySelector(".nb-tabs"),bl=bx?bx.scrollLeft:0,lx=e.querySelector(".nb-list"),lt=lx?lx.scrollTop:0;
+  const B=nbHome(t,nu),adm=isSiteAdmin(),bx=e.querySelector(".nb-tabs"),bl=bx?bx.scrollLeft:0,lx=e.querySelector(".nb-list"),lt=lx?lx.scrollTop:0;
   e.innerHTML=`<div class="panel plain nb-panel">
-    <div class="nb-title"><h2>\u2726 Notice board \u2726</h2></div>
+    <div class="nb-title">${adm?`<h2><button type="button" class="nb-h" aria-expanded="${nbPostOpen?"true":"false"}" aria-controls="nb-new" onclick="nbPostTg(this)">\u2726 Notice board \u2726<svg class="nb-chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m1 1.5 4 3 4-3"/></svg></button></h2>`:`<h2>\u2726 Notice board \u2726</h2>`}</div>
     <div class="nb-cl"><button type="button" class="link" onclick="slChangelog()">Changelog \u2014 what\u2019s new</button></div>
     ${B.bar}
     ${B.body}
-    ${isSiteAdmin()?`<button class="ghost nb-post" onclick="nbCompose(null)">Post to everyone</button>`:""}
+    ${adm?`<div id="nb-new"${nbPostOpen?"":" hidden"}><button class="ghost nb-post" onclick="nbCompose(null)">Post to everyone</button></div>`:""}
   </div>`;
   {const b2=e.querySelector(".nb-tabs");b2&&bl&&(b2.scrollLeft=bl);const on=b2&&b2.querySelector(".seg-b.on");if(b2&&on){const r=b2.getBoundingClientRect(),q=on.getBoundingClientRect();q.left<r.left?b2.scrollLeft-=r.left-q.left+16:q.right>r.right&&(b2.scrollLeft+=q.right-r.right+16)}}
   {const b3=e.querySelector(".nb-tabs");b3&&nbOv(b3)}
