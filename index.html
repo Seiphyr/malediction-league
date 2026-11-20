@@ -2126,8 +2126,11 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 @keyframes slBootIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){#sl-boot img{animation:none;opacity:1;transform:none}#sl-boot{transition:none}}
 
-.sl-gq{position:absolute;top:12px;right:12px;z-index:4;width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--coal-2);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:17px;font-weight:600;line-height:1;letter-spacing:0;text-transform:none;cursor:pointer}
-.sl-gq:hover{color:var(--bone);border-color:var(--line-2)}
+
+.sl-gq{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--coal-2);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:17px;font-weight:600;line-height:1;letter-spacing:0;text-transform:none;cursor:pointer}
+
+
+@media(max-width:400px){#topbar{gap:8px;padding-left:8px;padding-right:8px}#topbar .top-right{gap:6px}#topbar .top-right>.ghost{padding-left:10px;padding-right:10px}}
 .slg{max-width:460px}
 .slg h3{margin:0 0 4px}
 .slg-l{margin:0 0 12px;font-size:14px;color:var(--bone-dim)}
@@ -4070,6 +4073,8 @@ function bdMenuAt(btn,I,lab){
   d.onkeydown=ev=>{const B=[...d.querySelectorAll(".cb-mi")],i=B.indexOf(document.activeElement),k=ev.key;
     if("Escape"===k||"Tab"===k){"Escape"===k&&(ev.preventDefault(),ev.stopPropagation());bdMenuClose();btn.focus();return}
     const j="ArrowDown"===k?(i+1)%B.length:"ArrowUp"===k?(i-1+B.length)%B.length:"Home"===k?0:"End"===k?B.length-1:-1;j<0||(ev.preventDefault(),B[j].focus())};
+  
+  if(top&&top.style&&"static"===getComputedStyle(top).position)top.style.position="relative";
   top.appendChild(d);bdMenuFit(d,btn);btn.setAttribute("aria-expanded","true");window._bdMenu={d,btn};
   d.querySelector(".cb-mi").focus({preventScroll:!0});
   setTimeout(()=>document.addEventListener("click",bdMenuOut,!0),0)}
@@ -8785,20 +8790,15 @@ function slGuideSeen(k){try{return!!localStorage.getItem(slGuideKey(k))}catch(e)
 function slGuideMark(k){try{localStorage.setItem(slGuideKey(k),"1")}catch(e){}}
 
 function slGuideSync(){
-  const k=route&&route.view,g=SL_GUIDES[k],v=k&&$(k);
-  document.querySelectorAll(".sl-gq").forEach(b=>{if(!g||!v||!v.contains(b))b.remove()});
-  if(!g||!v||!v.classList.contains("active"))return;
-  if(v.querySelector(".sl-gq"))return void slGuideFirst(k);
-  
-  const host=v.querySelector(".panel")||v.firstElementChild;
-  
-  if(host&&"static"===getComputedStyle(host).position)host.style.position="relative";
-  if(!host)return;
+  const k=route&&route.view,g=SL_GUIDES[k],v=k&&$(k),hd=$("topbar");
+  document.querySelectorAll(".sl-gq").forEach(b=>b.remove());
+  if(!g||!v||!v.classList.contains("active")||!hd)return;
   const b=document.createElement("button");
   b.type="button";b.className="sl-gq";b.textContent="?";
   b.setAttribute("aria-label","How this page works");b.title="How this page works";
   b.onclick=()=>slGuideOpen(k);
-  host.insertBefore(b,host.firstChild);
+  
+  hd.insertBefore(b,hd.querySelector(".top-right"));
   slGuideFirst(k);
 }
 function slGuideFirst(k){if(slGuideSeen(k))return;slGuideMark(k);slGuideOpen(k)}
