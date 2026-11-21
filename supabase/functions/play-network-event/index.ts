@@ -5,6 +5,8 @@
 // fetch_ok = true.
 //
 //   POST { "league_id": "<uuid>", "url": "<event link>" }  add or refresh
+//   POST { "league_id": null,     "url": "<event link>" }  the same, for a listing that
+//                                                          belongs to no community at all
 //   POST { "id": "<pn_events id>" }                        refresh a listing
 //   POST { "tournament_id": "<uuid>",                      import the players
 //          "known"?: { "<card base id>": "<name>" } }      of a tournament
@@ -1249,19 +1251,25 @@ Deno.serve(async (req: Request) => {
     if (body.tournament_id !== undefined && body.tournament_id !== null) {
       return await importRegistrants(caller, body.tournament_id, body.known, started, cors);
     }
-    let leagueId: string;
+    // A listing may have no community at all (migration-2026-12-08): the authority for
+    // one of those is its own creator, since there is no community to be an organizer of.
+    let leagueId: string | null;
     let ref: PnRef | null;
     if (body.id !== undefined && body.id !== null) {
       if (typeof body.id !== "string" || !UUID.test(body.id)) return fail("not_allowed", cors);
       // Read as the caller: a listing they cannot see does not exist for them.
-      const { data, error } = await caller.from("pn_events").select("id, league_id, url").eq("id", body.id).maybeSingle();
+      const { data, error } = await caller.from("pn_events").select("id, league_id, url, created_by").eq("id", body.id).maybeSingle();
       if (error) {
         console.error("play-network-event: read listing failed", error.code ?? "");
         return fail("upstream_error", cors, "Something went wrong. Try again later.");
       }
       if (!data) return fail("not_allowed", cors);
-      leagueId = String(data.league_id);
+      leagueId = data.league_id === null || data.league_id === undefined ? null : String(data.league_id);
+      if (leagueId === null && String(data.created_by ?? "") !== user.id) return fail("not_allowed", cors);
       ref = parsePnUrl(data.url);
+    } else if (body.league_id === null || body.league_id === undefined) {
+      leagueId = null;
+      ref = parsePnUrl(body.url);
     } else {
       if (typeof body.league_id !== "string" || !UUID.test(body.league_id)) return fail("not_allowed", cors);
       leagueId = body.league_id;
@@ -1270,16 +1278,21 @@ Deno.serve(async (req: Request) => {
     if (!ref) return fail("bad_url", cors);
 
     // 3. An organizer of a community that is not archived, asked as the
-    //    caller, before anything leaves for malediction.gg.
-    const admin = await caller.rpc("is_league_admin", { p_league: leagueId });
-    if (admin.error) {
-      console.error("play-network-event: is_league_admin failed", admin.error.code ?? "");
-      return fail("upstream_error", cors, "Something went wrong. Try again later.");
+    //    caller, before anything leaves for malediction.gg. With no community there is
+    //    nothing to be an organizer of and nothing to be archived; the account was
+    //    already matched against the listing's creator above, and the brake below is
+    //    what holds the rate down.
+    if (leagueId !== null) {
+      const admin = await caller.rpc("is_league_admin", { p_league: leagueId });
+      if (admin.error) {
+        console.error("play-network-event: is_league_admin failed", admin.error.code ?? "");
+        return fail("upstream_error", cors, "Something went wrong. Try again later.");
+      }
+      if (admin.data !== true) return fail("not_allowed", cors);
+      const lg = await caller.from("leagues").select("archived_at").eq("id", leagueId).maybeSingle();
+      if (lg.error || !lg.data) return fail("not_allowed", cors);
+      if (lg.data.archived_at) return fail("archived", cors);
     }
-    if (admin.data !== true) return fail("not_allowed", cors);
-    const lg = await caller.from("leagues").select("archived_at").eq("id", leagueId).maybeSingle();
-    if (lg.error || !lg.data) return fail("not_allowed", cors);
-    if (lg.data.archived_at) return fail("archived", cors);
 
     // 4. The brake: logs this look-up, or refuses it.
     const allow = await caller.rpc("pn_fetch_allow", { p_league: leagueId });
@@ -1330,8 +1343,16 @@ Deno.serve(async (req: Request) => {
 });
 
 // Updates the listing of this event in this community, or creates it.
-async function saveListing(leagueId: string, pnId: number, fields: Json, userId: string) {
-  const existing = await service.from("pn_events").select("id").eq("league_id", leagueId).eq("pn_id", pnId).maybeSingle();
+// With no community the listing belongs to the account instead, and it has to be looked
+// up that way: .eq("league_id", null) matches NOTHING in Postgres, so looking for it the
+// old way would find no row every time and mint a fresh duplicate on every refresh --
+// which is what the pn_events_one_personal index exists to stop, and this read is what
+// has to agree with it.
+async function saveListing(leagueId: string | null, pnId: number, fields: Json, userId: string) {
+  const q = service.from("pn_events").select("id").eq("pn_id", pnId);
+  const existing = leagueId === null
+    ? await q.is("league_id", null).eq("created_by", userId).maybeSingle()
+    : await q.eq("league_id", leagueId).maybeSingle();
   if (existing.error) return { data: null, error: existing.error };
   if (existing.data) {
     return await service.from("pn_events").update(fields).eq("id", existing.data.id).select("*").single();
