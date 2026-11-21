@@ -2427,7 +2427,9 @@ const CHANGELOG=[
 const SL_DISC=`<p><b>Seekers League is an unofficial community tool for Malediction, a game by Loot Studios.</b> Not created, endorsed or sponsored by Loot Studios.</p><p>Malediction and all related names, logos, characters, factions, Seekers, terrain and imagery are trademarks and/or registered trademarks of Loot Studios. All rights reserved by their respective owners. This tool is a free, non-commercial utility made by and for the player community, and claims no ownership over any Malediction intellectual property.</p>`;
 
 const SL_TWA=(()=>{try{const a=/^android-app:\/\/com\.seekersleague\.app(\/|$)/.test(document.referrer||"")||/[?&]src=twa(&|$)/.test(location.search);a&&(sessionStorage.setItem("sl.twa","1"),localStorage.setItem("sl.twa","1"));return a||"1"===sessionStorage.getItem("sl.twa")||!matchMedia("(display-mode: browser)").matches&&/Android/i.test(navigator.userAgent)&&"1"===localStorage.getItem("sl.twa")}catch(e){return!1}})();
-function slPpBtn(c,l){return SL_TWA?"":`<a class="pp-btn${c?" "+c:""}" target="_blank" rel="noopener noreferrer" href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=aeon%40aol.it&item_name=A%20paint%20pot%20for%20the%20Seekers%20League%20developer&currency_code=EUR">☕ ${l||"Buy the developer a coffee"}</a>`}
+
+const SL_PP_EUR="2.00";
+function slPpBtn(c,l){return SL_TWA?"":`<a class="pp-btn${c?" "+c:""}" target="_blank" rel="noopener noreferrer" href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=aeon%40aol.it&item_name=A%20paint%20pot%20for%20the%20Seekers%20League%20developer&amount=${SL_PP_EUR}&currency_code=EUR">☕ ${l||"Buy the developer a coffee"}</a>`}
 function slHomeSup(){const e=$("home-sup");e&&!e.firstChild&&(e.innerHTML=`<div class="home-sup"><button type="button" class="hs-t" onclick="fdOpen()">Send feedback</button>${slPpBtn("hs-b","Buy me a coffee")}</div>`)}
 function renderAbout(){const e=$("about-body");e&&(e.innerHTML=`<div class="panel plain docs-edge lg-doc ab-doc">
     <h2 class="lg-title">About Seekers League</h2>
@@ -9447,7 +9449,8 @@ async function tnpNew(){
   const m=document.createElement("div");m.id="tnp-pick";m.className="tkov";
   m.onclick=e=>{e.target===m&&!St.busy&&m.remove()};
   document.body.appendChild(m);
-  let rows=[];
+  
+  let rows=null;
   const load=async()=>{
     const L=myLeaguesSafe().filter(l=>!l.archived_at),
       ln=id=>null==id?"No community":((L.find(l=>l.id===id)||{}).name||"");
@@ -9461,15 +9464,15 @@ async function tnpNew(){
     return r.map(x=>Object.assign({},x,{_ln:ln(x.league_id)}))};
   const paint=()=>{
     m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="tnp-pick-h"><h3 id="tnp-pick-h">New tournament</h3>
-      ${rows.length?`<p class="tk-ask-t">Which event do you want to run as a tournament?</p>
+      ${null===rows?'<div class="empty"><span class="spinner"></span> Loading\u2026</div>':rows.length?`<p class="tk-ask-t">Which event do you want to run as a tournament?</p>
       <div class="nu-list">${rows.map(x=>`<button type="button" class="nu-row tnp-row" data-id="${esc(x.id)}"${St.busy?" disabled":""}><span class="tnp-l"><small>${esc(x._ln)}</small><span class="tnp-t">${esc(x.title||"Event")}</span><span>${esc(pnShort(x))}</span></span><i class="nu-chev" aria-hidden="true">›</i></button>`).join("")}</div>`
-      :`<p class="tk-ask-t">None of your Play Network events is waiting to be run. Link one in your community's Events tab, or paste an event's link below to run it on its own.</p>`}
-      <div class="tm-label" style="margin-top:14px">Or paste a Play Network event</div>
+      :`<p class="tk-ask-t">No Play Network event of yours is waiting to be run.${myLeaguesSafe().some(l=>!l.archived_at)?" You can link one in a community&#8217;s Events tab.":""}</p>`}
+      <div class="tm-label" style="margin-top:14px">${rows&&rows.length?"Or paste":"Paste"} a Play Network event</div>
       <p class="hint" style="margin:0 0 8px">An event added here belongs to no community, so its tournament is open to anyone.</p>
       <input id="tnp-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Play Network event link" placeholder="https://malediction.gg/play-network/events/single/…" value="${esc(St.url)}"${St.busy?" disabled":""}>
       ${St.msg?`<div class="banner" style="margin:8px 0 0">${esc(St.msg)}</div>`:""}
       <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close${St.busy?" disabled":""}>Close</button><button class="act" data-add${St.busy?" disabled":""}>${St.busy?"Reading\u2026":"Add event"}</button></div></div>`;
-    m.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{const x=rows.find(y=>y.id===b.dataset.id);m.remove();x&&t3Create(x.id,x)});
+    m.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{const x=(rows||[]).find(y=>y.id===b.dataset.id);m.remove();x&&t3Create(x.id,x)});
     m.querySelector("[data-close]").onclick=()=>{St.busy||m.remove()};
     m.querySelector("[data-add]").onclick=add;
     const i=$("tnp-url");i&&(i.oninput=()=>{St.url=i.value});
@@ -9598,6 +9601,8 @@ async function t3Rpc(name,args,why){
     const r=d&&d.reason||"";t3Rpc.last=r||"error";
     if("stale"===r){t3Busy=!1;await t3Reload();toast("The tournament changed on another device. It has been reloaded; check it and tap again.");return null}
     
+    if("gate"===r){cache.gate=void 0;await gateAsk(await gateLoad()||{why:d&&d.why||null,at:d&&d.at||null});return null}
+    
     toast(why&&why[r]||(/^(status|bad_input|finals_drawn|rematch|round_open|rounds_done|busy)$/.test(r)&&d&&d.message)||T3_WHY[r]||d&&d.message||"That did not work. Reload the page and try again.");
     /^(status|finals_drawn|rematch|round_open|rounds_done)$/.test(r)&&(t3Busy=!1,t3Reload());
     return null;
@@ -9652,13 +9657,16 @@ async function t3Create(id,x){
   x=x||(cache.listings||[]).find(y=>y&&y.id===id);if(!x||t3Busy)return;
   const old=$("t3-new");old&&old.remove();
   
+  
+  const gte=await gateLoad();
   const pick=await new Promise(res=>{let md="clash",who=x.league_id?"community":"open",conv=!1;
     const m=document.createElement("div");m.id="t3-new";m.className="tkov";
     const scope=()=>"community"===who?"community":conv?"convention":"open",
       fin=v=>{m.remove();res(v)},
       seg=()=>[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join(""),
-      wseg=()=>[["community","Community"],["open","Open to everyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k?" disabled":""}>${l}</button>`).join(""),
-      whoHint=()=>!x.league_id?"This event has no community, so its tournament is open to everyone."
+      wseg=()=>[["community","Community"],["open","Open to everyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
+      whoHint=()=>gte?gateTxt(gte).b+(x.league_id?" Your community's own tournament is not affected.":"")
+        :!x.league_id?"This event has no community, so its tournament is open to everyone."
         :"community"===who?"Your community's own tournament. It stays off the public list."
         :conv?"Anyone can turn up. It is listed under All and under Conventions."
         :"Anyone can turn up. It is listed under All on the tournaments page.";
@@ -9674,7 +9682,7 @@ async function t3Create(id,x){
       <div class="seg t3-who" role="radiogroup" aria-label="Who can come">${wseg()}</div>
       <label class="t3-conv${"community"===who?" off":""}"><input type="checkbox" data-conv${conv?" checked":""}> At a convention or a fair</label>
       <p class="hint t3-whoh">${esc(whoHint())}</p>
-      <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close>Cancel</button><button class="act" data-ok${"2x2"===x.game_mode?" disabled":""}>Create tournament</button></div></div>`;
+      <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close>Cancel</button><button class="act" data-ok${"2x2"===x.game_mode||gte&&!x.league_id?" disabled":""}>Create tournament</button></div></div>`;
     const re=()=>{m.querySelector(".t3-mode").innerHTML=seg();m.querySelector(".t3-who").innerHTML=wseg();
       const l=m.querySelector(".t3-conv");l&&l.classList.toggle("off","community"===who);
       const h=m.querySelector(".t3-whoh");h&&(h.textContent=whoHint());wire()},
