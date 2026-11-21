@@ -1,0 +1,28 @@
+# Supabase CLI configuration.
+#
+# This file exists for ONE reason, and it is worth knowing before anybody trims it:
+# `supabase functions deploy` sets each function's "Verify JWT" from here, and when a
+# function is not listed the default is ON. All four of these check the caller
+# themselves and must have it OFF -- so deploying one from the command line without
+# this file would quietly turn JWT verification back on and the function would answer
+# 401 to everything. Each function's own DEPLOY.md says the same in prose.
+#
+# Nothing secret belongs here. project_id is the project reference, which is already
+# in the public page as part of the API URL.
+
+project_id = "mrcciuwekqijitngvojc"
+
+[functions.play-network-event]
+verify_jwt = false
+
+[functions.admin-accounts]
+verify_jwt = false
+
+[functions.tournament-auto]
+verify_jwt = false
+
+# push-send is kicked by the database (pg_cron -> pg_net) with its own shared secret in
+# the header, not with a user's token: with Verify JWT on, every kick gets 401 and no
+# notification is ever delivered.
+[functions.push-send]
+verify_jwt = false
