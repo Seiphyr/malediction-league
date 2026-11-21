@@ -852,6 +852,7 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 #tnp-url{width:100%;box-sizing:border-box;margin:0}
 #tnp-sec{margin-top:12px}
 .tn-km{color:var(--bone-dim);white-space:nowrap}
+.tn-dm{color:var(--bone);white-space:nowrap}
 .tn-cta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
 .tn-cta p{flex:1 1 180px;min-width:0}
 .tnp-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 0;background:0 0;border:0;border-top:1px solid var(--line);color:var(--bone);font-family:inherit;font-size:13.5px;text-align:left;cursor:pointer}
@@ -9507,7 +9508,7 @@ async function paintTnShelf(kind){
     row=r=>{const k=km(r),w=pnWhere(r),np=r.players|0;
       return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(r.id)}})">
       <span class="tnp-l"><small>${esc(tnWhose(r))}${w?" · "+esc(w):""}</small><span class="tnp-t">${esc(r.title||"Tournament")}</span>
-      <span><b>${esc(t3StateLabel(r.status))}</b> · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
+      <span><b>${esc(t3StateLabel(r.status))}</b>${"demo"===r.mode?' · <span class="tn-dm">'+esc(t3ModeLabel(r.mode))+"</span>":""} · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   
   e.innerHTML=`<p class="hint" style="margin:0 0 10px">Available events:${pins.length?` ${pins.length} on the map — tap one to open it.`:""}</p>
