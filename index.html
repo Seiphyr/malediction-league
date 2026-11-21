@@ -9414,11 +9414,12 @@ async function paintTnAll(){
       <span class="tnp-l"><small>${esc(r.league_name||"Community")}${w?" · "+esc(w):""}</small><span class="tnp-t">${esc(r.title||"Tournament")}</span>
       <span><b>${esc(t3StateLabel(r.status))}</b> · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
-  e.innerHTML=`<p class="hint" style="margin:0 0 10px">Every tournament anyone can turn up to: open for registration or under way, in a public community. ${pins.length?`${pins.length} ${1===pins.length?"has":"have"} a pin on the map — tap one to open it.`:"None has a pin on the map yet."}</p>
-    <div style="margin:0 0 12px">${mapHtml("tn-map",{})}</div>
+  
+  e.innerHTML=`<p class="hint" style="margin:0 0 10px">Every tournament anyone can turn up to: open for registration or under way, in a public community.${pins.length?` ${pins.length} ${1===pins.length?"has":"have"} a pin on the map — tap one to open it.`:""}</p>
+    ${pins.length?`<div style="margin:0 0 12px">${mapHtml("tn-map",{})}</div>`:""}
     ${rows.length?`<div class="nu-list">${rows.map(row).join("")}</div>`:'<div class="empty">No tournament is open to everyone right now. An organizer starts one from an event in their community\u2019s Events tab.</div>'}
     ${me?"":`<div class="tn-cta"><p class="hint" style="margin:0">Sign in to see the tournaments you are registered for or organize.</p><button class="act" onclick="go('auth')">Sign in</button></div>`}`;
-  mapMount("tn-map",{points:pins.map(r=>({lon:+r.lon,lat:+r.lat,cls:"",label:`${r.title||"Tournament"} — ${[r.city,r.country].filter(Boolean).join(", ")||r.league_name||""}`,onPick:()=>go("tournaments",{tournamentId:r.id})})),fit:!0});
+  pins.length&&mapMount("tn-map",{points:pins.map(r=>({lon:+r.lon,lat:+r.lat,cls:"",label:`${r.title||"Tournament"} — ${[r.city,r.country].filter(Boolean).join(", ")||r.league_name||""}`,onPick:()=>go("tournaments",{tournamentId:r.id})})),fit:!0});
 }
 function tnpOpen(lid,id,r){r?(window._tRun=id):(window._tPast=id);window._tScroll=id;go("league",{leagueId:lid,tab:"tournament"})}
 
