@@ -9466,7 +9466,7 @@ async function paintTnMine(){
     ln=id=>(L.find(l=>l.id===id)||{}).name||"",run=T.filter(t=>!fin(t)),past=T.filter(fin),
     row=t=>{const p=t.payload||{},np=tvPlayers(p),r=!fin(t),dt=tvWhen(t),c=ln(t.league_id),pl=`${np} player${1===np?"":"s"}`;
       if(null!=t.status){const ti=String(p.pn&&p.pn.title||"").trim()||"Tournament";return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(t.id)}})">
-      <span class="tnp-l"><small>${esc(c||"Play Network event")}</small><span class="tnp-t">${esc(ti)}</span><span><b>${esc(t3StateLabel(t.status))}</b> · ${pl}</span></span>
+      <span class="tnp-l"><small>${esc(c||"Play Network event")}</small><span class="tnp-t">${esc(ti)}</span><span><b>${esc(t3StateLabel(t.status,t.mode))}</b> · ${pl}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`}
       return`<button type="button" class="nu-row tnp-row" onclick="tnpOpen(${jsq(t.league_id)},${jsq(t.id)},${r?1:0})">
       <span class="tnp-l"><small>${esc(c||"Community")}</small><span><b>${r?"Running":"&#9819; Finished"}</b>${dt?" · "+esc(dt):""} · ${pl}</span></span>
@@ -9508,7 +9508,7 @@ async function paintTnShelf(kind){
     row=r=>{const k=km(r),w=pnWhere(r),np=r.players|0;
       return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(r.id)}})">
       <span class="tnp-l"><small>${esc(tnWhose(r))}${w?" · "+esc(w):""}</small><span class="tnp-t">${esc(r.title||"Tournament")}</span>
-      <span><b>${esc(t3StateLabel(r.status))}</b>${"demo"===r.mode?' · <span class="tn-dm">'+esc(t3ModeLabel(r.mode))+"</span>":""} · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
+      <span><b>${esc(t3StateLabel(r.status,r.mode))}</b>${"demo"===r.mode?' · <span class="tn-dm">'+esc(t3ModeLabel(r.mode))+"</span>":""} · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   
   e.innerHTML=`<p class="hint" style="margin:0 0 10px">Available events:${pins.length?` ${pins.length} on the map — tap one to open it.`:""}</p>
@@ -9576,7 +9576,8 @@ function t3IdOk(x){return/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 
 function mgPid(u){const m=/^https?:\/\/(?:www\.)?malediction\.gg\/app\/profile\/([A-Za-z0-9]{6,32})\/?(?:[?#].*)?$/i.exec(String(u??"").trim());return m?m[1]:null}
 function t3St(t){return t&&t.status||"draft"}
-function t3StateLabel(s){return"running"===s?"Running":"closed"===s?"Finished":"Registration open"}
+
+function t3StateLabel(s,m){return"running"===s?"Running":"closed"===s?"Finished":"demo"===m?"Turn up and play":"Registration open"}
 
 function t3IsOrg(t){return!!(me&&t&&(t.organizer_id===me.id&&t3AdminMe(t,!0)||isSiteAdmin()))}
 
@@ -9788,6 +9789,10 @@ async function t3Create(id,x){
       fin=v=>{m.remove();res(v)},
       seg=()=>[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join(""),
       wseg=()=>[["community","Community"],["open","Open to everyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
+      fmtHint=()=>"2x2"===x.game_mode?"Team (2v2) events cannot be run as a tournament here yet."
+        :"demo"===md?"A Demo event has no rounds: players turn up, play a game with a 25-card deck and leave, and you add whoever walks in. Close it when it is over."
+        :/^league$/i.test(x.format||"")?"The Play Network lists this event as League; here it runs as Swiss rounds, the official tournament format. You start it on the day and the rounds are paired here."
+        :"It runs as Swiss rounds, the official Play Network format. You start it on the day and the rounds are paired here.",
       whoHint=()=>gte?gateTxt(gte).b+(x.league_id?" Your community's own tournament is not affected.":"")
         :!x.league_id?"This event has no community, so its tournament is open to everyone."
         :"community"===who?"Your community's own tournament. It stays off the public list."
@@ -9797,8 +9802,8 @@ async function t3Create(id,x){
     m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="t3-new-h">
       <h3 id="t3-new-h">Run this event as a tournament?</h3>
       <p class="tk-ask-t"><b>${esc(x.title||"Event")}</b>${x.starts_at?"<br>"+esc(pnWhen(x)):""}</p>
-      <p class="tk-ask-t">You will be its organizer. The registered players are copied from the Play Network page with their profile pictures, Discord handles and the decks they linked there (never their first and last names); the decks show up once you start the event on the Play Network. You can drop players, start the tournament and close it. Matches played with the match tracker between paired players are recorded automatically.</p>
-      <p class="tk-ask-t">${"2x2"===x.game_mode?"Team (2v2) events cannot be run as a tournament here yet.":/^league$/i.test(x.format||"")?"The Play Network lists this event as League; here it runs as Swiss rounds, the official tournament format.":"It runs as Swiss rounds, the official Play Network format."}</p>
+      <p class="tk-ask-t">You will be its organizer. The registered players are copied from the Play Network page with their profile pictures, Discord handles and the decks they linked there (never their first and last names); the decks show up once you start the event on the Play Network. You can add and drop players, and close it when it is over. Matches played with the match tracker between paired players are recorded automatically.</p>
+      <p class="tk-ask-t t3-fmth">${fmtHint()}</p>
       <div class="tm-label">Game mode</div>
       <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${seg()}</div>
       <div class="tm-label" style="margin-top:12px">Who can come</div>
@@ -9808,7 +9813,8 @@ async function t3Create(id,x){
       <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close>Cancel</button><button class="act" data-ok${"2x2"===x.game_mode||gte&&!x.league_id?" disabled":""}>Create tournament</button></div></div>`;
     const re=()=>{m.querySelector(".t3-mode").innerHTML=seg();m.querySelector(".t3-who").innerHTML=wseg();
       const l=m.querySelector(".t3-conv");l&&l.classList.toggle("off","community"===who);
-      const h=m.querySelector(".t3-whoh");h&&(h.textContent=whoHint());wire()},
+      const h=m.querySelector(".t3-whoh");h&&(h.textContent=whoHint());
+      const f=m.querySelector(".t3-fmth");f&&(f.textContent=fmtHint());wire()},
       wire=()=>{m.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{md=b.dataset.m;re()});
         m.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{who=b.dataset.w;re()});
         const c=m.querySelector("[data-conv]");c&&(c.onchange=()=>{conv=!!c.checked;re()})};
@@ -9839,11 +9845,23 @@ async function t3SetScope(s){
 function t3CardLink(x){
   if(!x)return"";
   const t=(cache.tourneys||[]).find(r=>r&&null!=r.status&&r.pn_event_id===x.id);
-  if(t)return`<a class="pnl-tn" href="#/tournaments/${esc(t.id)}">Tournament &middot; ${esc(t3StateLabel(t.status))} &rsaquo;</a>`;
+  if(t)return`<a class="pnl-tn" href="#/tournaments/${esc(t.id)}">Tournament &middot; ${esc(t3StateLabel(t.status,t.mode))} &rsaquo;</a>`;
   return me&&x.created_by===me.id&&x.fetch_ok&&!lgArchived(cache.league)?`<button class="act pnl-run" onclick="t3Create(${jsq(x.id)})">Run as a tournament</button>`:"";
 }
-function t3ModeSel(t){const s=window._t3Mode;return s&&s.tid===t.id?s.m:"demo"===t.mode?"demo":"clash"}
-function t3SetMode(m){const t=cache.tourney;t&&(window._t3Mode={tid:t.id,m:"demo"===m?"demo":"clash"},t3Paint(t))}
+
+function t3IsDemo(t){return"demo"===(t&&t.mode)}
+function t3ModeSel(t){return"demo"===(t&&t.mode)?"demo":"clash"}
+async function t3SetMode(m){
+  const t=cache.tourney;if(!t)return;
+  m="demo"===m?"demo":"clash";
+  if(t3ModeSel(t)===m)return;
+  const d=await t3Rpc("t_mode",{p_tid:t.id,p_rev:t.rev|0,p_mode:m});
+  if(!d)return;
+  
+  window._tnRows=null;
+  await t3Reload();
+  toast("demo"===m?"A Demo event now: no rounds":"A Clash tournament now: Swiss rounds",!0);
+}
 function t3Active(p){return(p.entrants||[]).filter(e=>e&&"drop"!==e.st).map(e=>e.id)}
 function t3LinkHint(t){
   if(!me)return"";if(pnOrgOk(t))return pnOrgCard(t,1);
@@ -10068,6 +10086,20 @@ function swRoundsSel(t,n){const s=window._swRnds,v=s&&s.tid===t.id?s.n:swRoundsD
 function swSetRounds(v){const t=cache.tourney;t&&(window._swRnds={tid:t.id,n:Math.max(1,Math.min(15,v|0||1))},t3Paint(t))}
 function swGuide(n){const r=swRoundsFor(n);return n<4?`With ${n} players, ${r} rounds give everyone one bye (a Seekers League suggestion).`:n>32?`Above 32 players, Seekers League suggests ${r} rounds.`:`The Malediction Tournament Guide suggests ${r} rounds for ${n<5?"4":n<9?"5–8":n<17?"9–16":"17–32"} players.`}
 function swPlan(n,r,min){const g=Math.floor(n/2);return`${n} players · ${r} round${1===r?"":"s"}${min?` of ${min} minutes`:""} · ${g} game${1===g?"":"s"}${n%2?" and a bye":""} each round`}
+
+function t3DemoHtml(t){
+  const mode=t3ModeSel(t);
+  return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Open</h2>
+    <p class="hint" style="margin:0 0 10px">No rounds: players turn up, play a game with a 25-card deck and leave, and you add whoever walks in to the list below. Their matches are tracked from Play &rsaquo; Match like any other. Close the event when it is over.</p>
+    <div class="tm-label">Game mode</div>
+    <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${[["clash","Clash · 40"],["demo","Demo · 25"]].map(([k,l])=>`<button type="button" class="seg-b${mode===k?" on":""}" role="radio" aria-checked="${mode===k}" onclick="t3SetMode(${jsq(k)})">${l}</button>`).join("")}</div>
+    <p class="hint t3-whoh">Set it to Clash to run Swiss rounds instead.</p>
+    <div class="tm-label" style="margin-top:12px">Who can come</div>
+    <div class="seg t3-who" role="radiogroup" aria-label="Who can come">${[["community","Community"],["open","Open"],["convention","Convention"]].map(([k,l])=>`<button type="button" class="seg-b${t3ScopeOf(t)===k?" on":""}" role="radio" aria-checked="${t3ScopeOf(t)===k}" onclick="t3SetScope(${jsq(k)})"${!t.league_id&&"community"===k?" disabled":""}>${l}</button>`).join("")}</div>
+    <p class="hint t3-whoh">${"community"===t3ScopeOf(t)?"Your community's own event. It stays off the public list.":"Anyone can turn up. It is on the tournaments page for everyone, signed out included."}</p>
+    <div class="t-fin"><button class="act gold" onclick="t3Close()">Close the event</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button></div>
+  </div>`;
+}
 function swSetupHtml(t){
   const p=t.payload||{},n=t3Active(p).length,mode=t3ModeSel(t),ok=n>=TV_MIN,r=ok?swRoundsSel(t,n):0,pr=Number((p.pn||{}).rounds),
     pnr=Number.isInteger(pr)&&pr>=1&&pr<=100&&ok&&pr!==swRoundsFor(n),min=Number((p.pn||{}).minutes)|0||60;
@@ -10411,7 +10443,7 @@ function t3Paint(t){
   slSetTitle(title);
   let h=`<div id="t3-root"><div class="t3-back"><button type="button" class="t3-lnk" onclick="go('tournaments')">&#8249; All tournaments</button></div>
   <div class="panel plain t3-hd">
-    <div class="ev-kicker">${run?'<span class="tc-live"></span>':""}<span>${t3StateLabel(st)}</span></div>
+    <div class="ev-kicker">${run?'<span class="tc-live"></span>':""}<span>${t3StateLabel(st,t.mode)}</span></div>
     <h2 class="t3-title">${esc(title)}</h2>
     ${ev&&ev.starts_at?`<p class="hint t3-when">${esc(pnWhen(ev))}${(x=>x?" &middot; "+esc(x):"")(pnWhere(ev))}</p>`:""}
     <p class="hint t3-meta">${meta.map(x=>`<span>${x}</span>`).join("")}</p>
@@ -10421,8 +10453,11 @@ function t3Paint(t){
     ${draft?"":t3LinkHint(t)}
   </div>`;
   if(draft){
-    h+=ed?swSetupHtml(t):`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
-    h+=t3DeckBlock(t)+t3Players(t,ed);
+    h+=t3IsDemo(t)
+      ?ed?t3DemoHtml(t):`<div class="panel plain"><p class="t3-lead">Turn up on the day and play a game with a 25-card deck. There are no rounds and no standings: the organizer keeps the list of who came.</p>${t3LinkHint(t)}</div>`
+      :ed?swSetupHtml(t):`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
+    
+    h+=(t3IsDemo(t)?"":t3DeckBlock(t))+t3Players(t,ed);
   }else if(swIsSwiss(p))h+=swBody(t,ed);
   else{
     const wait=run&&tvGroupsDone(p)&&!t3Drawn(p),act=ed&&run;
@@ -10506,6 +10541,15 @@ async function t3Fill(t,force){
 function t3FillNow(){const t=cache.tourney;t&&t3Fill(t,!0)}
 async function t3Close(){
   const t=cache.tourney;if(!t||!t3Ed(t))return;
+  
+  if(t3IsDemo(t)){
+    if(!await slConfirm({title:"Close this Demo event?",body:"It comes off the public list and nobody else can be added. The games already played are untouched, and you can open it again later.",ok:"Close"}))return;
+    const dd=await t3Rpc("t_close",{p_tid:t.id,p_rev:t.rev|0});
+    if(!dd)return;
+    window._tnRows=null;
+    toast("Event closed",!0);
+    return void await t3Reload();
+  }
   if(swIsSwiss(t.payload)){
     
     const p=t.payload,rows=swCloseRows(p),c=swChampion(rows),cur=swCur(p),R=p.rounds|0,
@@ -10524,7 +10568,7 @@ async function t3Reopen(){
   const t=cache.tourney;if(!t||!t3Ed(t))return;
   if(!await slConfirm({title:"Reopen this tournament?",body:swIsSwiss(t.payload)?(c=>c<(t.payload.rounds|0)?`Results can be changed again. Round ${c+1} is not paired automatically, and the tournament does not close by itself again: pair the round, then close it when you are done.`:"Results can be changed again. It will not close by itself again; close it when you are done.")(swCur(t.payload)):"Results can be changed again until you close it.",ok:"Reopen"}))return;
   const d=await t3Rpc("t_reopen",{p_tid:t.id,p_rev:t.rev|0});
-  d&&(toast("Tournament reopened",!0),await t3Reload());
+  d&&(window._tnRows=null,toast(t3IsDemo(t)?"Event open again":"Tournament reopened",!0),await t3Reload());
 }
 async function t3Unstart(){
   const t=cache.tourney;if(!t||!t3Ed(t))return;
