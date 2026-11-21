@@ -9850,18 +9850,8 @@ function t3CardLink(x){
 }
 
 function t3IsDemo(t){return"demo"===(t&&t.mode)}
+
 function t3ModeSel(t){return"demo"===(t&&t.mode)?"demo":"clash"}
-async function t3SetMode(m){
-  const t=cache.tourney;if(!t)return;
-  m="demo"===m?"demo":"clash";
-  if(t3ModeSel(t)===m)return;
-  const d=await t3Rpc("t_mode",{p_tid:t.id,p_rev:t.rev|0,p_mode:m});
-  if(!d)return;
-  
-  window._tnRows=null;
-  await t3Reload();
-  toast("demo"===m?"A Demo event now: no rounds":"A Clash tournament now: Swiss rounds",!0);
-}
 function t3Active(p){return(p.entrants||[]).filter(e=>e&&"drop"!==e.st).map(e=>e.id)}
 function t3LinkHint(t){
   if(!me)return"";if(pnOrgOk(t))return pnOrgCard(t,1);
@@ -10091,9 +10081,6 @@ function t3DemoHtml(t){
   const mode=t3ModeSel(t);
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Open</h2>
     <p class="hint" style="margin:0 0 10px">No rounds: players turn up, play a game with a 25-card deck and leave, and you add whoever walks in to the list below. Their matches are tracked from Play &rsaquo; Match like any other. Close the event when it is over.</p>
-    <div class="tm-label">Game mode</div>
-    <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${[["clash","Clash · 40"],["demo","Demo · 25"]].map(([k,l])=>`<button type="button" class="seg-b${mode===k?" on":""}" role="radio" aria-checked="${mode===k}" onclick="t3SetMode(${jsq(k)})">${l}</button>`).join("")}</div>
-    <p class="hint t3-whoh">Set it to Clash to run Swiss rounds instead.</p>
     <div class="tm-label" style="margin-top:12px">Who can come</div>
     <div class="seg t3-who" role="radiogroup" aria-label="Who can come">${[["community","Community"],["open","Open"],["convention","Convention"]].map(([k,l])=>`<button type="button" class="seg-b${t3ScopeOf(t)===k?" on":""}" role="radio" aria-checked="${t3ScopeOf(t)===k}" onclick="t3SetScope(${jsq(k)})"${!t.league_id&&"community"===k?" disabled":""}>${l}</button>`).join("")}</div>
     <p class="hint t3-whoh">${"community"===t3ScopeOf(t)?"Your community's own event. It stays off the public list.":"Anyone can turn up. It is on the tournaments page for everyone, signed out included."}</p>
@@ -10105,9 +10092,7 @@ function swSetupHtml(t){
     pnr=Number.isInteger(pr)&&pr>=1&&pr<=100&&ok&&pr!==swRoundsFor(n),min=Number((p.pn||{}).minutes)|0||60;
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
     <p class="hint" style="margin:0 0 10px">On the day of the event, check the players below and drop anyone who did not come, then start. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. Standings: tournament points, then mastery differential (Malediction Tournament Guide).</p>
-    ${t3DkSetup(t)}<div class="tm-label">Game mode</div>
-    <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${[["clash","Clash · 40"],["demo","Demo · 25"]].map(([k,l])=>`<button type="button" class="seg-b${mode===k?" on":""}" role="radio" aria-checked="${mode===k}" onclick="t3SetMode(${jsq(k)})">${l}</button>`).join("")}</div>
-    <div class="tm-label" style="margin-top:12px">Who can come</div>
+    ${t3DkSetup(t)}<div class="tm-label" style="margin-top:12px">Who can come</div>
     <div class="seg t3-who" role="radiogroup" aria-label="Who can come">${[["community","Community"],["open","Open"],["convention","Convention"]].map(([k,l])=>`<button type="button" class="seg-b${t3ScopeOf(t)===k?" on":""}" role="radio" aria-checked="${t3ScopeOf(t)===k}" onclick="t3SetScope(${jsq(k)})"${!t.league_id&&"community"===k?" disabled":""}>${l}</button>`).join("")}</div>
     <p class="hint t3-whoh">${"community"===t3ScopeOf(t)?"Your community's own tournament. It stays off the public list.":"Anyone can turn up. It is on the tournaments page for everyone, signed out included."}</p>
     ${ok?`<label class="tv-tables"><span>Rounds</span><input type="number" inputmode="numeric" min="1" max="${swMaxRounds(n)}" value="${r}" aria-label="Rounds" onchange="swSetRounds(this.value)"><small>${pnr?`The Play Network event lists ${pr} round${1===pr?"":"s"}. `:""}${esc(swGuide(n))}</small></label>`:""}
