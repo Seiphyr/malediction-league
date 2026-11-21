@@ -844,6 +844,12 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .fd-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px}
 .fd-head h2{margin:0}
 .fbp-head{align-items:center;gap:12px}
+
+.tn-tabs{margin:10px 0 0}
+#tnp-sec{margin-top:12px}
+.tn-km{color:var(--bone-dim);white-space:nowrap}
+.tn-cta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+.tn-cta p{flex:1 1 180px;min-width:0}
 .tnp-row{width:100%;display:flex;align-items:center;gap:10px;padding:10px 0;background:0 0;border:0;border-top:1px solid var(--line);color:var(--bone);font-family:inherit;font-size:13.5px;text-align:left;cursor:pointer}
 .nu-list .tnp-row:first-child{border-top:0}
 .tnp-l{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -3226,12 +3232,13 @@ function mapPickOpen(e,n){
   if(!me)return go("auth");
   let t=$("pick-modal");
   if(!t){t=document.createElement("div");t.id="pick-modal";t.className="tkov";t.onclick=e=>{e.target===t&&t.remove()};document.body.appendChild(t)}
-  const a="league"===e,s=a?cache.league||{}:me;
+  
+  const a="league"===e,pv="pnev"===e,s=pv?(cache.listings||[]).find(x=>x&&x.id===n)||{}:a?cache.league||{}:me;
   window._pick={kind:e,lon:null!=s.lon?+s.lon:null,lat:null!=s.lat?+s.lat:null,id:n||null};
   t.innerHTML=`<div class="tkmodal pick-box" onclick="event.stopPropagation()">
     <button class="tkx" onclick="document.getElementById('pick-modal').remove()" aria-label="Close">&#10005;</button>
-    <h3>${a?"Put the community on the map":"Put yourself on the map"}</h3>
-    <p class="hint" style="margin:0 0 12px">${a?"Search the town, or tap the map. Players browsing the community map will see this pin.":"Search your town or postcode, use your location, or tap the map \u2014 whichever is easiest. Anyone can see where you end up, and it is stored to about a kilometre, so it says which town you play in and no more."}</p>
+    <h3>${pv?"Put this event on the map":a?"Put the community on the map":"Put yourself on the map"}</h3>
+    <p class="hint" style="margin:0 0 12px">${pv?"Search the town, or tap the map. Play Network tells us the name of an event's town and never where it is, so this pin is the only thing that can put it on the tournaments map.":a?"Search the town, or tap the map. Players browsing the community map will see this pin.":"Search your town or postcode, use your location, or tap the map \u2014 whichever is easiest. Anyone can see where you end up, and it is stored to about a kilometre, so it says which town you play in and no more."}</p>
     <div class="geo-bar">
       <input id="pick-q" type="search" placeholder="City or postcode" autocomplete="off"
         onkeydown="if(event.key==='Enter'){event.preventDefault();geoSearch()}">
@@ -3239,8 +3246,8 @@ function mapPickOpen(e,n){
     </div>
     <div id="geo-hits"></div>
     ${mapHtml("pick-map",{pick:!0})}
-    <label class="field" style="margin-top:12px"><span>What to call this place</span>
-      <input id="pick-place" maxlength="60" value="${esc(a?s.city||"":s.place||"")}" placeholder="City, country"></label>
+    ${pv?"":`<label class="field" style="margin-top:12px"><span>What to call this place</span>
+      <input id="pick-place" maxlength="60" value="${esc(a?s.city||"":s.place||"")}" placeholder="City, country"></label>`}
     <div id="pick-where" class="hint" style="margin:6px 0 0">${null!=window._pick.lat?`Pin at ${window._pick.lat.toFixed(2)}, ${window._pick.lon.toFixed(2)}`:"No pin yet — tap the map."}</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       <button class="act" id="pick-save" onclick="mapPickSave()">Save pin</button>
@@ -3314,10 +3321,14 @@ function mapPickGps(){
 async function mapPickSave(){
   const e=window._pick;if(!e)return;
   if(null==e.lat)return toast("Tap the map to drop a pin first");
-  const n=($("pick-place").value||"").trim().slice(0,60)||null,t=$("pick-save");
+  const n=(($("pick-place")||{}).value||"").trim().slice(0,60)||null,t=$("pick-save");
   if(t){t.disabled=!0;t.textContent="Saving…"}
   let a;
-  if("league"===e.kind){
+  
+  if("pnev"===e.kind){
+    a=(await sb.from("pn_events").update({lat:e.lat,lon:e.lon}).eq("id",e.id)).error;
+    if(!a){const x=(cache.listings||[]).find(y=>y&&y.id===e.id);x&&(x.lat=e.lat,x.lon=e.lon)}
+  }else if("league"===e.kind){
     a=(await sb.from("leagues").update({lat:e.lat,lon:e.lon}).eq("id",e.id)).error;
     if(!a){if(cache.league){cache.league.lat=e.lat;cache.league.lon=e.lon}cache.leagues=[];cache.myLeagues=[]}
   }else{
@@ -3327,13 +3338,16 @@ async function mapPickSave(){
   if(t){t.disabled=!1;t.textContent="Save pin"}
   if(a)return toast(a.message);
   const s=$("pick-modal");if(s)s.remove();
-  toast("Pin saved",!0);"league"===e.kind?renderLeague():renderProfile();
+  toast("Pin saved",!0);"pnev"===e.kind?pnPaint():"league"===e.kind?renderLeague():renderProfile();
   if("league"!==e.kind&&$("pf-modal"))pfAccount();
 }
 async function mapPickClear(){
   const e=window._pick;if(!e)return;
   let n;
-  if("league"===e.kind){
+  if("pnev"===e.kind){
+    n=(await sb.from("pn_events").update({lat:null,lon:null}).eq("id",e.id)).error;
+    if(!n){const x=(cache.listings||[]).find(y=>y&&y.id===e.id);x&&(x.lat=null,x.lon=null)}
+  }else if("league"===e.kind){
     n=(await sb.from("leagues").update({lat:null,lon:null}).eq("id",e.id)).error;
     if(!n){if(cache.league){cache.league.lat=null;cache.league.lon=null}cache.leagues=[]}
   }else{
@@ -3342,7 +3356,7 @@ async function mapPickClear(){
   }
   if(n)return toast(n.message);
   const t=$("pick-modal");if(t)t.remove();
-  toast("Pin removed",!0);"league"===e.kind?renderLeague():renderProfile();
+  toast("Pin removed",!0);"pnev"===e.kind?pnPaint():"league"===e.kind?renderLeague():renderProfile();
   if("league"!==e.kind&&$("pf-modal"))pfAccount();
 }
 
@@ -5843,7 +5857,7 @@ function pnCard(x,adm){
     ${w?`<div class="pnl-where">${esc(w)}</div>`:""}
     ${ch||null!==n?`<div class="pnl-tags">${ch}${null!==n?`<span class="pnl-reg"><b>${n}</b>${mx?" / "+mx:""} registered${asOf?` <small>as of ${esc(asOf)}</small>`:""}</span>`:""}</div>`:""}
     ${adm&&!x.fetch_ok?'<div class="pnl-hand">Details typed in by an organizer</div>':""}
-    <div class="pnl-acts">${u?`<a class="pnl-open" href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">Open on the Play Network ↗</a>`:""}${t3CardLink(x)}${adm?`<span class="pnl-own">${x.fetch_ok?"":`<button class="ghost" onclick="pnEdit(${id})"${S.busy?" disabled":""}>Edit</button>`}<button class="ghost" onclick="pnRefresh(${id})"${S.busy?" disabled":""} title="Read the details again from the Play Network">${rf?"Refreshing…":x.fetch_ok?"Refresh":"Fill in automatically"}</button><button class="ghost pnl-del" onclick="pnRemove(${id})"${S.busy?" disabled":""}>Remove</button></span>`:""}</div>
+    <div class="pnl-acts">${u?`<a class="pnl-open" href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">Open on the Play Network ↗</a>`:""}${t3CardLink(x)}${adm?`<span class="pnl-own">${x.fetch_ok?"":`<button class="ghost" onclick="pnEdit(${id})"${S.busy?" disabled":""}>Edit</button>`}<button class="ghost" onclick="pnRefresh(${id})"${S.busy?" disabled":""} title="Read the details again from the Play Network">${rf?"Refreshing…":x.fetch_ok?"Refresh":"Fill in automatically"}</button>${"Online"===x.location_type?"":`<button class="ghost" onclick="mapPickOpen('pnev',${id})"${S.busy?" disabled":""} title="Where this event sits on the tournaments map">${null!=x.lat?"Move map pin":"Add map pin"}</button>`}<button class="ghost pnl-del" onclick="pnRemove(${id})"${S.busy?" disabled":""}>Remove</button></span>`:""}</div>
     ${ed?pnForm(S.hand||pnVals(x),x.id):""}
   </article>`;
 }
@@ -8753,7 +8767,8 @@ const SL_GUIDES={
        ["Save deck","registers the deck you will play. It locks when the tournament starts."],
        ["Start the match","opens your paired game in the tracker; the result files itself."],
        ["Start the tournament","the organizer's button: it pairs the first round."],
-       ["Enter result","the organizer's too. The official standings still go on the Play Network."]],
+       ["Enter result","the organizer's too. The official standings still go on the Play Network."],
+       ["All tournaments","the other tab on this page: every event anyone can turn up to, on a map."]],
     n:"<b>Copy for the Play Network</b> copies a round for you to paste there: it sends nothing by itself."},
   builder:{t:"Deck builder",l:"Pick the Seeker first &mdash; the pool then follows the deck rules by itself.",
     s:[["Deck name","a deck with no name cannot be saved."],
@@ -9316,29 +9331,55 @@ function pfLink(e){return location.origin+location.pathname+"#/profile/"+e}
 function pfShare(e){const n=pfLink(e);if(navigator.share)return void navigator.share({url:n}).catch(err=>{err&&"AbortError"===err.name||copyText(n,()=>toast("Link copied",!0))});copyText(n,()=>toast("Link copied",!0))}
 async function fbDel(e){if(!await slConfirm({title:"Delete this game?",body:"You logged it by hand. Your stats will update.",ok:"Delete",danger:!0}))return;await slDeferDelete({kind:"fb",id:e,table:"free_battles",msg:"Game deleted",hide:()=>{cache.freeBattles=slHide("fb",cache.freeBattles)},done:()=>{cache.freeBattles=(cache.freeBattles||[]).filter(x=>x.id!==e)}})}
 
+
+function tnTabKey(t){return me&&"all"!==t?"mine":"all"}
+
+function tnStill(t){return"tournaments"===route.view&&!route.tournamentId&&window._tnTab===t&&!!$("tnp-sec")}
+function tnTab(t){
+  t=tnTabKey(t);if(t===window._tnTab&&$("tnp-sec"))return;
+  window._tnTab=t;
+  document.querySelectorAll("#tnp-root .seg-b").forEach(b=>{const on=b.dataset.tn===t;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on))});
+  const s=$("tnp-sec");s&&(s.innerHTML='<div class="empty"><span class="spinner"></span> Loading\u2026</div>');
+  "all"===t?paintTnAll():paintTnMine();
+}
 async function renderTournamentsPage(){
   const e=$("tnp-body");if(!e)return;
   if(route.tournamentId)return t3Open(route.tournamentId);
   t3Timer&&(clearInterval(t3Timer),t3Timer=null);
-  if(!me)return void(e.innerHTML=`<div class="panel plain home-cta"><div><h2 style="margin:0 0 3px">Tournaments</h2>
-    <p class="hint" style="margin:0">Organize on the Play Network, play and keep score here. Tournaments run from Play Network events, and each round is listed ready to enter in the Play Network&#8217;s match form. Sign in to see the tournaments you are registered for or organize.</p></div>
-    <button class="act" onclick="go('auth')">Sign in</button></div>`);
+  const t=tnTabKey(window._tnTab);window._tnTab=t;
   e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading tournaments\u2026</div></div>';
-  if(!cache.myLeagues||!cache.myLeagues.length)cache.myLeagues=await fetchMyLeagues();
-  const L=myLeaguesSafe(),ids=L.map(l=>l.id).filter(t3IdOk);
-  let T=[];
-  if(ids.length){const{data,error:er}=await sb.from("tournaments").select("*").in("league_id",ids).order("created_at",{ascending:!1}).limit(60);
-    if(er)return void(e.innerHTML=`<div class="banner">${esc(er.message)}</div>`);T=data||[]}
   
-  try{const{data:x,error:xe}=await sb.rpc("t_mine");!xe&&Array.isArray(x)&&x.forEach(r=>{r&&r.id&&!T.some(y=>y.id===r.id)&&T.push(r)})}catch(x){}
+  if(me&&(!cache.myLeagues||!cache.myLeagues.length))cache.myLeagues=await fetchMyLeagues();
   if("tournaments"!==route.view||route.tournamentId)return;
+  e.innerHTML=`<div class="panel plain" id="tnp-root">${tnpHead(t)}<div id="tnp-sec"><div class="empty"><span class="spinner"></span> Loading\u2026</div></div></div>`;
+  "all"===t?paintTnAll():paintTnMine();
+}
+function tnpHead(t){
+  const org=me?myLeaguesSafe().filter(l=>!l.archived_at&&(isOwnerOf(l)||isAdminOf(l))):[],
+    tab=k=>`<button type="button" class="seg-b${k[0]===t?" on":""}" data-tn="${k[0]}" aria-pressed="${k[0]===t}" onclick="tnTab(${jsq(k[0])})">${k[1]}</button>`;
+  return`<div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Tournaments</h2>
+    <p class="hint" style="margin:0">Organize on the Play Network, play and keep score here. Events run as Swiss rounds and tracked matches are recorded automatically; each round is listed ready to enter in the Play Network&#8217;s match form.</p></div>
+    ${org.length?`<button class="act" onclick="tnpNew()">+ New tournament</button>`:""}</div>
+    ${me?`<div class="seg tn-tabs" role="group" aria-label="Which tournaments to show">${[["mine","Yours"],["all","All tournaments"]].map(tab).join("")}</div>`:""}`;
+}
+
+async function paintTnMine(){
+  const e=$("tnp-sec");if(!e||!me)return;
+  const L=myLeaguesSafe(),ids=L.map(l=>l.id).filter(t3IdOk);
+  let T=[],bad=null;
+  if(ids.length){const{data,error:er}=await sb.from("tournaments").select("*").in("league_id",ids).order("created_at",{ascending:!1}).limit(60);
+    if(er)bad=er.message||"The tournaments could not be loaded.";else T=data||[]}
+  
+  if(!bad)try{const{data:x,error:xe}=await sb.rpc("t_mine");!xe&&Array.isArray(x)&&x.forEach(r=>{r&&r.id&&!T.some(y=>y.id===r.id)&&T.push(r)})}catch(x){}
+  
+  if(!tnStill("mine"))return;
+  if(bad)return void(e.innerHTML=`<div class="banner">${esc(bad)}</div>`);
   
   const mine=t=>t.organizer_id===me.id||t.created_by===me.id||JSON.stringify(t.payload).includes(me.id);
   T=T.filter(t=>t&&t.payload&&mine(t)).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
   
   const fin=t=>null!=t.status?"closed"===t.status:!!t.payload.finalized,
     ln=id=>(L.find(l=>l.id===id)||{}).name||"",run=T.filter(t=>!fin(t)),past=T.filter(fin),
-    org=L.filter(l=>!l.archived_at&&(isOwnerOf(l)||isAdminOf(l))),
     row=t=>{const p=t.payload||{},np=tvPlayers(p),r=!fin(t),dt=tvWhen(t),c=ln(t.league_id),pl=`${np} player${1===np?"":"s"}`;
       if(null!=t.status){const ti=String(p.pn&&p.pn.title||"").trim()||"Tournament";return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(t.id)}})">
       <span class="tnp-l"><small>${esc(c||"Play Network event")}</small><span class="tnp-t">${esc(ti)}</span><span><b>${esc(t3StateLabel(t.status))}</b> · ${pl}</span></span>
@@ -9346,14 +9387,38 @@ async function renderTournamentsPage(){
       return`<button type="button" class="nu-row tnp-row" onclick="tnpOpen(${jsq(t.league_id)},${jsq(t.id)},${r?1:0})">
       <span class="tnp-l"><small>${esc(c||"Community")}</small><span><b>${r?"Running":"&#9819; Finished"}</b>${dt?" · "+esc(dt):""} · ${pl}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
-  e.innerHTML=`<div class="panel plain">
-    <div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Tournaments</h2>
-      <p class="hint" style="margin:0">The tournaments you organize or are registered for. Organize on the Play Network, play and keep score here. Events run as Swiss rounds and tracked matches are recorded automatically; each round is listed ready to enter in the Play Network&#8217;s match form.</p></div>
-      ${org.length?`<button class="act" onclick="tnpNew()">+ New tournament</button>`:""}</div>
-    ${T.length?`${run.length?`<div class="ip-sec">Current</div><div class="nu-list">${run.map(row).join("")}</div>`:""}
-      ${past.length?`<div class="ip-sec">Finished</div><div class="nu-list">${past.map(row).join("")}</div>`:""}`
-      :`<div class="empty" style="margin-top:12px">You are not in any tournament yet. Tournaments you organize or are registered for show up here. Organizers start one from an event in their community's Events tab.</div>`}
-  </div>`;
+  e.innerHTML=T.length?`${run.length?`<div class="ip-sec">Current</div><div class="nu-list">${run.map(row).join("")}</div>`:""}${past.length?`<div class="ip-sec">Finished</div><div class="nu-list">${past.map(row).join("")}</div>`:""}`
+    :`<div class="empty">You are not in any tournament yet. The ones you organize or are registered for show up here, and <b>All tournaments</b> has every event anyone can turn up to.</div>`;
+}
+
+async function paintTnAll(){
+  const e=$("tnp-sec");if(!e)return;
+  let rows=[],gone=!1,bad=null,off=!1;
+  try{const{data,error:er}=await sb.rpc("t_browse");
+    if(er){const s=(er.code||"")+" "+(er.message||"");
+      if(/PGRST202|could not find the function/i.test(s))gone=!0;
+      else bad=er.message||"The list could not be loaded."}
+    Array.isArray(data)&&(rows=data.filter(Boolean))}
+  catch(x){off=!0}
+  
+  if(!tnStill("all"))return;
+  if(off)return void(e.innerHTML='<div class="empty">Not loaded \u2014 check your connection and try again.</div>');
+  if(bad)return void(e.innerHTML=`<div class="banner">${esc(bad)}</div>`);
+  if(gone)return void(e.innerHTML=`<div class="empty">The public list is not here yet \u2014 the database needs its latest update.${me?" Everything else on this page works.":""}</div>`);
+  const o=findOrigin(),km=r=>o&&null!=r.lat&&null!=r.lon?findKm(o,{lat:+r.lat,lon:+r.lon}):null;
+  o&&rows.sort((a,b)=>{const x=km(a),y=km(b);return null==x&&null==y?0:null==x?1:null==y?-1:x-y});
+  
+  const pins=rows.filter(r=>null!=r.lat&&null!=r.lon&&"Online"!==r.location_type),
+    row=r=>{const k=km(r),w=pnWhere(r),np=r.players|0;
+      return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(r.id)}})">
+      <span class="tnp-l"><small>${esc(r.league_name||"Community")}${w?" · "+esc(w):""}</small><span class="tnp-t">${esc(r.title||"Tournament")}</span>
+      <span><b>${esc(t3StateLabel(r.status))}</b> · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
+      <i class="nu-chev" aria-hidden="true">›</i></button>`};
+  e.innerHTML=`<p class="hint" style="margin:0 0 10px">Every tournament anyone can turn up to: open for registration or under way, in a public community. ${pins.length?`${pins.length} ${1===pins.length?"has":"have"} a pin on the map — tap one to open it.`:"None has a pin on the map yet."}</p>
+    <div style="margin:0 0 12px">${mapHtml("tn-map",{})}</div>
+    ${rows.length?`<div class="nu-list">${rows.map(row).join("")}</div>`:'<div class="empty">No tournament is open to everyone right now. An organizer starts one from an event in their community\u2019s Events tab.</div>'}
+    ${me?"":`<div class="tn-cta"><p class="hint" style="margin:0">Sign in to see the tournaments you are registered for or organize.</p><button class="act" onclick="go('auth')">Sign in</button></div>`}`;
+  mapMount("tn-map",{points:pins.map(r=>({lon:+r.lon,lat:+r.lat,cls:"",label:`${r.title||"Tournament"} — ${[r.city,r.country].filter(Boolean).join(", ")||r.league_name||""}`,onPick:()=>go("tournaments",{tournamentId:r.id})})),fit:!0});
 }
 function tnpOpen(lid,id,r){r?(window._tRun=id):(window._tPast=id);window._tScroll=id;go("league",{leagueId:lid,tab:"tournament"})}
 
