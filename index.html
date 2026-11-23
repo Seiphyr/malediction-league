@@ -4602,7 +4602,7 @@ function paintHomeNext(){
   n3&&(tm=!0,top.push(duNuRow(n3)));
   V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuRow(`${esc(t3Title(x))} · Round ${by}`,"You have a bye: 3 points",`go('tournaments',{tournamentId:${jsq(x.id)}})`)))});
   
-  T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Demo event`,me&&x.organizer_id===me.id?"Yours: add whoever turns up":"Turn up and play · 25 cards",`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
+  T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Demo event`,"Turn up and play · 25 cards",`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
     const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
@@ -10319,9 +10319,9 @@ function t3Players(t,ed){
   return`<div class="panel plain t3-pl" id="t3-pl">
     <div class="t3-pl-h"><h2 style="margin:0">Players <span class="rel-count">${nIn} in${nDr?` &middot; ${nDr} dropped`:""}</span></h2>${ed&&draft?`<button class="ghost" id="t3-imp" onclick="t3Import()">Update from the Play Network</button>`:""}</div>
     ${draft?`<p class="hint t3-src">${p.pn&&p.pn.at?`Copied from the Play Network ${esc(pnShort({starts_at:p.pn.at}))}${null!=p.pn.n?` &middot; ${p.pn.n|0} registered there`:""}.`:"Not copied from the Play Network yet."}</p>`:closed?"":'<p class="hint t3-src">The list was fixed when the tournament started.</p>'}${t3PnDk(t,ed)}
-    ${ed&&draft?t3IsDemo(t)?'<p class="hint">Players with a linked account have their games recorded automatically. For the others, you enter the results.</p>':'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
+    ${ed&&draft&&!t3IsDemo(t)?'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
     ${ed&&!draft&&!closed&&E.some(x=>x.wait&&!x.lock&&!t3IdOk(x.id))?'<p class="hint t3-wait">An account added a player\'s profile link after the start. Check that it is really them, then tap <b>Link the account</b> on their row.</p>':""}
-    ${t3UnlHtml(t,ed)}<div class="t3-list">${E.map(x=>t3Row(t,x,ed)).join("")||`<div class="empty">No players yet.${ed&&draft?" Update the list from the Play Network, or add players by hand below.":""}</div>`}</div>
+    ${t3UnlHtml(t,ed)}<div class="t3-list">${E.map(x=>t3Row(t,x,ed)).join("")||`<div class="empty">No players yet.</div>`}</div>
     ${ed&&draft?`<div class="t3-add" role="group" aria-label="Add a player">
       <label class="field"><span>Add a player</span><input id="t3-add-n" maxlength="40" autocomplete="off" placeholder="Nickname" value="${esc(A.n)}" oninput="t3AddKeep()"></label>
       <label class="field"><span>malediction.gg profile link <span class="opt">optional</span></span><input id="t3-add-l" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="300" placeholder="https://malediction.gg/app/profile/…/" value="${esc(A.l)}" oninput="t3AddKeep()" onkeydown="'Enter'===event.key&&(event.preventDefault(),t3Add())"></label>
@@ -10694,7 +10694,6 @@ function t3InviteHtml(t){
   if(!u)return`<div class="panel plain"><h2 style="margin:0 0 6px">Invite</h2><p class="hint" style="margin:0">This event has no code yet. Reload the page in a moment.</p></div>`;
   const svg=qrSvg(u,"QR code for joining this event");
   return`<div class="panel plain ev-inv"><h2 style="margin:0 0 6px">Invite</h2>
-    <p class="hint" style="margin:0 0 12px">Anyone who opens this joins the event, signing up first if they have to. Show the code, read it out, or print it for the table.</p>
     ${svg?`<div class="ev-inv-p">${svg}</div>`:""}
     <div class="ev-inv-c">${esc(String(t.join_code||"").toUpperCase())}</div>
     <p class="hint ev-inv-u">${esc(u)}</p>
@@ -10710,7 +10709,7 @@ function t3SettingsHtml(t,ed){
       :run?(t3HasResults(p)?"":`<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`)
       :`<button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`;
   return`<div class="panel plain"><h2 style="margin:0 0 6px">Settings</h2>
-    ${demo?`<p class="hint" style="margin:0 0 10px">A Demo event is open to everyone: there is nothing here to choose about who may come.</p>`:t3ScopeHtml(t,"tournament")}
+    ${demo?"":t3ScopeHtml(t,"tournament")}
     ${t3HidNote(t)}
     ${fin?`<div class="t-fin">${fin}</div>`:""}
   </div>`;
@@ -10753,15 +10752,13 @@ function t3Paint(t){
   const demo=t3IsDemo(t),pane=evTabs(t,ed);
   if(pane){
     if(draft){
-      if(!ed)h+=`<div class="panel plain"><p class="t3-lead">${demo?"Turn up on the day and play a game with a 25-card deck. There are no rounds and no standings: the organizer keeps the list of who came.":"Registration is open. The organizer starts the tournament on the day of the event."}</p>${demo?t3JoinBtn(t):""}${t3LinkHint(t)}</div>`;
+      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
       
-      else if(demo)h+=`<div class="panel plain"><p class="t3-lead">No rounds and no standings: players turn up, play one game with a 25-card deck and leave. Add whoever walks in, and close the event when it is over.</p></div>`;
-      else h+=swSetupHtml(t);
+      else if(!demo)h+=swSetupHtml(t);
       
       if(!demo)h+=t3DeckBlock(t);
     }
     
-    else if(demo)h+=`<div class="panel plain"><p class="t3-lead">This Demo event is closed: it is off the public list and nobody else can be added. The games that were played are untouched.</p></div>`;
     else if(run)h+=t3DeckBlock(t)+t3NextHtml(t);
     h+=pane;
   }else
