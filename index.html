@@ -846,8 +846,7 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .fbp-head{align-items:center;gap:12px}
 
 .tn-tabs{margin:10px 0 0}
-.t3-conv{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:.95rem}
-.t3-conv.off{display:none}
+.t3-whob.off{display:none}
 .t3-whoh{margin:6px 0 0}
 #tnp-url{width:100%;box-sizing:border-box;margin:0}
 #tnp-sec{margin-top:12px}
@@ -873,13 +872,17 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .t3-meta a{color:var(--bone)}
 .t3-note{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0 0;font-size:13.5px;color:var(--bone-dim)}
 .t3-rep{margin:18px 0 2px;text-align:center}
-.t3-share{margin:14px 0 0}
-.ev-qr{max-width:380px;text-align:center}
-.ev-qr-p{background:#fff;border-radius:10px;padding:8px;display:flex;justify-content:center}
-.ev-qr .qr{width:100%;max-width:300px;height:auto;display:block}
-.ev-qr-c{margin:12px 0 2px}
-.ev-qr-u{word-break:break-all;margin:0 0 4px;font-size:11.5px}
-@media print{body>*{display:none!important}body>#ev-qr{display:block!important;position:static;background:none;padding:0}#ev-qr .tkmodal{border:0;box-shadow:none;max-width:none;padding:0;margin:0;background:none}#ev-qr .ev-qr-p{padding:0}#ev-qr .qr{max-width:none;width:14cm}#ev-qr .tk-ask-row,#ev-qr .ev-qr-u{display:none}}
+.ev-inv-p{background:#fff;border-radius:10px;padding:10px;display:flex;justify-content:center;max-width:240px}
+.ev-inv-p .qr{width:100%;max-width:220px;height:auto;display:block}
+.ev-inv-c{font-family:Oswald,sans-serif;font-size:20px;letter-spacing:.24em;color:var(--bone);margin:12px 0 2px}
+.ev-inv-u{word-break:break-all;margin:0 0 12px;font-size:11.5px}
+
+@media print{body *{visibility:hidden!important}
+.ev-inv,.ev-inv *{visibility:visible!important}
+.ev-inv{position:absolute;left:0;top:0;width:100%;background:none;border:0;box-shadow:none;padding:0;margin:0}
+.ev-inv .qr{max-width:none;width:14cm}
+.ev-inv-p{max-width:none;padding:0;justify-content:flex-start}
+.ev-inv h2,.ev-inv .hint,.ev-inv .ev-inv-u,.ev-inv .t3-share-r{display:none!important}}
 .t3-share-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .t3-code{font-family:Oswald,sans-serif;font-size:19px;letter-spacing:.22em;color:var(--bone);background:var(--coal-2);border:1px solid var(--line);border-radius:8px;padding:6px 12px}
 .t3-in{margin:10px 0 0;color:var(--bone-dim)}
@@ -2521,7 +2524,7 @@ function slCommunityWords(t){return String(t).replace(/(?<!Seekers )\b([Ll])eagu
 function slIsNetErr(e){const s=e&&"object"==typeof e?(e.name||"")+" "+(e.message||""):String(e??"");return SL_ERR_MAP[0][0].test(s)}
 function toast(e,n,ms){const t=$("toast"),off=()=>{clearTimeout(t._t),t.className="toast"+(n?" ok":"")};n||(e=slHumanErr(e)),t.textContent=e,t.className="toast show"+(n?" ok":""),t.onclick=off,clearTimeout(t._t),t._t=setTimeout(off,ms||(n?2600:6e3))}function fmtDate(e){return slFmt(SL_DF_DAY,new Date(e+"T00:00:00"),String(e??""))}function timeAgo(e){if(!e)return"never";const n=Math.floor((Date.now()-new Date(e))/864e5);return n<=0?"today":1===n?"yesterday":n<30?n+"d ago":n<365?Math.floor(n/30)+"mo ago":Math.floor(n/365)+"y ago"}function safeUrl(e){if(!e)return null;const n=String(e).trim();if(!n)return null;try{const e=new URL(n);return"http:"===e.protocol||"https:"===e.protocol?e.href:null}catch(e){return null}}
 function joinCodeOk(c){return/^[A-Z0-9]{4,12}$/.test(String(c||""))}
-function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){window._nbSt=null,"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e&&"makers"!==e||(window._mfTab="heralds"===e?"h":"makers"===e?"m":"c","makers"===e&&(window._mkF=""),window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e&&route.tournamentId?"#/tournaments/"+route.tournamentId:"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:"ev"===e[0]&&e[1]?{view:"ev",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
+function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){window._nbSt=null,"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e&&"makers"!==e||(window._mfTab="heralds"===e?"h":"makers"===e?"m":"c","makers"===e&&(window._mkF=""),window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e?"#/events"+(route.tournamentId?"/"+route.tournamentId:""):"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);"events"===e[0]&&(e[0]="tournaments");return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:"ev"===e[0]&&e[1]?{view:"ev",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
 
 const SLM_SEL=".tkov,.card-light,.sheet,.tk-die-ov";
 let slmStack=[],slmIgnore=0,slmSeq=0,slmSyncT=0,slmIgnoreT=0;
@@ -3178,10 +3181,10 @@ function slNavLgKids(){const N=window._navLg;if(!me||!N||N.uid!==me.id)return[];
 function slNavLg(){const K=slNavLgKids(),c={id:"league",label:"Communities",icon:"⚑"};return K.length?(c.group=K.concat([{id:"lg-find",label:"Explore",go:"closeSheet();go('leagues')"}]),c):(c.go="closeSheet();go('leagues')",c)}
 
 function slNavLgAct(){const K=slNavLgKids();if(!K.length)return"league";const k="league"===route.view&&K.find(k=>k.lg===route.leagueId);return k?k.id:"lg-find"}
-function navModel(){const e=[{id:"home",label:"Home",icon:"⌂",go:"go('browse')"}];return e.push({id:"play",label:"Play",icon:"⚔",group:[{id:"pl-match",label:"Match",go:"closeSheet();go('tracker')"},{id:"pl-tourn",label:"Tournaments",go:"closeSheet();go('tournaments')"}]},slNavLg()),me&&e.push({id:"collection",label:"Collection",icon:"▤",group:[{id:"col-cards",label:"Collection",go:"closeSheet();go('collection')"},{id:"col-decks",label:"My decks",go:"closeSheet();go('decks')"}]}),e.push({id:"utilities",label:"Utilities",icon:"✦",group:[{id:"ut-perf",label:"Meta breakdown",go:"closeSheet();window._metaSeeker=null;go('meta')"},{id:"ut-rules",label:"Rules",go:"closeSheet();go('rules')"},{id:"ut-clt",label:"Clash test",go:"closeSheet();go('clashtest')"},{id:"ut-tracker",label:"Basic tracker",go:"closeSheet();go('basic-tracker')"},{id:"ut-cdecks",label:"Public decks",go:"closeSheet();go('cdecks')"},{id:"ut-preview",label:SET_PREVIEW.out?"New set":"Set preview",go:"closeSheet();go('setpreview')"}]}),e}function activeNavItem(){const v=route.view;return"browse"===v?"home":"leagues"===v||"league"===v?slNavLgAct():"tracker"===v?"pl-match":"basic-tracker"===v?"ut-tracker":"tournaments"===v?"pl-tourn":"meta"===v?"ut-perf":"rules"===v?"ut-rules":"clashtest"===v?"ut-clt":"cdecks"===v?"ut-cdecks":"setpreview"===v?"ut-preview":"decks"===v||"builder"===v?"col-decks":"collection"===v?"col-cards":null}function renderChrome(){const e=$("top-right"),n=$("sidebar"),t=$("bbar");if(!configured)return e&&(e.innerHTML=""),n&&(n.innerHTML=""),void(t&&(t.innerHTML=""));const a=activeNavItem(),s=navModel();if(e){let n="";n+=me?`${"function"==typeof topAdmHtml?topAdmHtml():""}<button class="avatar" onclick="go('profile')" title="${esc(me.display_name)}" aria-label="Profile${pnLinked()?"":", Play Network profile not linked"}">${esc((me.display_name||"?")[0].toUpperCase())}${avHtml(me)}${pnLinked()?"":'<span class="av-dot" aria-hidden="true"></span>'}</button>\n          <button class="ghost top-out" onclick="signOut()">Sign out</button>`:'<button class="ghost" onclick="go(\'auth\')">Sign in</button>',e.innerHTML=n}if(n){const e=new Set(JSON.parse(localStorage.getItem("sl-nav-open")||'["league","collection","utilities"]'));window._openGroups=e,n.innerHTML=s.map(n=>{if(!n.group)return`<button class="sn-item top-lvl ${a===n.id?"on":""}" onclick="${n.go}"><i>${n.icon}</i>${n.label}</button>`;const t=e.has(n.id);return`<div class="sn-group ${t?"open":""}">\n        <button class="sn-item top-lvl ${n.group.some(e=>e.id===a||e.cur)&&!t?"on":""}" onclick="toggleNavGroup(${jsq(n.id)})">\n          <i>${n.icon}</i>${n.label}<span class="chev">${t?"▾":"▸"}</span></button>\n        ${t?'<div class="sn-kids">'+n.group.map(e=>e.cap?`<div class="sn-cap">${e.label}</div>`:`<button class="sn-item kid ${a===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join("")+"</div>":""}\n      </div>`}).join("")}t&&(t.innerHTML=s.map(e=>{const n=e.group&&e.group.some(e=>e.id===a||e.cur);return`<button class="bb-tab ${a===e.id||n?"on":""}" onclick="${e.group?`openSheet(${jsq(e.id)})`:e.go}">${BB_IC[e.id]||`<i>${e.icon}</i>`}<span>${e.label}</span></button>`}).join(""))}function toggleNavGroup(e){const n=window._openGroups||new Set;n.has(e)?n.delete(e):n.add(e),localStorage.setItem("sl-nav-open",JSON.stringify([...n])),renderChrome()}function openSheet(e){const n=navModel().find(n=>n.id===e);if(!n||!n.group)return;const t=activeNavItem();$("sheet-card").innerHTML=`<div class="sheet-title">${n.label}</div>`+n.group.map(e=>e.cap?`<div class="sheet-title sheet-cap">${e.label}</div>`:`<button class="sheet-item ${t===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join(""),$("sheet").hidden=!1}function closeSheet(){const e=$("sheet");e&&(e.hidden=!0)}
+function navModel(){const e=[{id:"home",label:"Home",icon:"⌂",go:"go('browse')"}];return e.push({id:"play",label:"Play",icon:"⚔",group:[{id:"pl-match",label:"Match",go:"closeSheet();go('tracker')"},{id:"pl-tourn",label:"Events",go:"closeSheet();go('tournaments')"}]},slNavLg()),me&&e.push({id:"collection",label:"Collection",icon:"▤",group:[{id:"col-cards",label:"Collection",go:"closeSheet();go('collection')"},{id:"col-decks",label:"My decks",go:"closeSheet();go('decks')"}]}),e.push({id:"utilities",label:"Utilities",icon:"✦",group:[{id:"ut-perf",label:"Meta breakdown",go:"closeSheet();window._metaSeeker=null;go('meta')"},{id:"ut-rules",label:"Rules",go:"closeSheet();go('rules')"},{id:"ut-clt",label:"Clash test",go:"closeSheet();go('clashtest')"},{id:"ut-tracker",label:"Basic tracker",go:"closeSheet();go('basic-tracker')"},{id:"ut-cdecks",label:"Public decks",go:"closeSheet();go('cdecks')"},{id:"ut-preview",label:SET_PREVIEW.out?"New set":"Set preview",go:"closeSheet();go('setpreview')"}]}),e}function activeNavItem(){const v=route.view;return"browse"===v?"home":"leagues"===v||"league"===v?slNavLgAct():"tracker"===v?"pl-match":"basic-tracker"===v?"ut-tracker":"tournaments"===v?"pl-tourn":"meta"===v?"ut-perf":"rules"===v?"ut-rules":"clashtest"===v?"ut-clt":"cdecks"===v?"ut-cdecks":"setpreview"===v?"ut-preview":"decks"===v||"builder"===v?"col-decks":"collection"===v?"col-cards":null}function renderChrome(){const e=$("top-right"),n=$("sidebar"),t=$("bbar");if(!configured)return e&&(e.innerHTML=""),n&&(n.innerHTML=""),void(t&&(t.innerHTML=""));const a=activeNavItem(),s=navModel();if(e){let n="";n+=me?`${"function"==typeof topAdmHtml?topAdmHtml():""}<button class="avatar" onclick="go('profile')" title="${esc(me.display_name)}" aria-label="Profile${pnLinked()?"":", Play Network profile not linked"}">${esc((me.display_name||"?")[0].toUpperCase())}${avHtml(me)}${pnLinked()?"":'<span class="av-dot" aria-hidden="true"></span>'}</button>\n          <button class="ghost top-out" onclick="signOut()">Sign out</button>`:'<button class="ghost" onclick="go(\'auth\')">Sign in</button>',e.innerHTML=n}if(n){const e=new Set(JSON.parse(localStorage.getItem("sl-nav-open")||'["league","collection","utilities"]'));window._openGroups=e,n.innerHTML=s.map(n=>{if(!n.group)return`<button class="sn-item top-lvl ${a===n.id?"on":""}" onclick="${n.go}"><i>${n.icon}</i>${n.label}</button>`;const t=e.has(n.id);return`<div class="sn-group ${t?"open":""}">\n        <button class="sn-item top-lvl ${n.group.some(e=>e.id===a||e.cur)&&!t?"on":""}" onclick="toggleNavGroup(${jsq(n.id)})">\n          <i>${n.icon}</i>${n.label}<span class="chev">${t?"▾":"▸"}</span></button>\n        ${t?'<div class="sn-kids">'+n.group.map(e=>e.cap?`<div class="sn-cap">${e.label}</div>`:`<button class="sn-item kid ${a===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join("")+"</div>":""}\n      </div>`}).join("")}t&&(t.innerHTML=s.map(e=>{const n=e.group&&e.group.some(e=>e.id===a||e.cur);return`<button class="bb-tab ${a===e.id||n?"on":""}" onclick="${e.group?`openSheet(${jsq(e.id)})`:e.go}">${BB_IC[e.id]||`<i>${e.icon}</i>`}<span>${e.label}</span></button>`}).join(""))}function toggleNavGroup(e){const n=window._openGroups||new Set;n.has(e)?n.delete(e):n.add(e),localStorage.setItem("sl-nav-open",JSON.stringify([...n])),renderChrome()}function openSheet(e){const n=navModel().find(n=>n.id===e);if(!n||!n.group)return;const t=activeNavItem();$("sheet-card").innerHTML=`<div class="sheet-title">${n.label}</div>`+n.group.map(e=>e.cap?`<div class="sheet-title sheet-cap">${e.label}</div>`:`<button class="sheet-item ${t===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join(""),$("sheet").hidden=!1}function closeSheet(){const e=$("sheet");e&&(e.hidden=!0)}
 
 
-const SL_VIEW_TITLES={setpreview:SET_PREVIEW.out?"New set":"Set preview",tournaments:"Tournaments",leagues:"Explore communities",tracker:"Play a match","basic-tracker":"Basic tracker",meta:"Meta breakdown",rules:"Rules",clashtest:"Clash test",privacy:"Privacy",terms:"Terms of use",about:"About",cdecks:"Public decks",decks:"My decks",builder:"Deck builder",deck:"Deck",collection:"Collection",profile:"Profile",admin:"Admin",auth:"Sign in",join:"Join a community",league:"Community"};
+const SL_VIEW_TITLES={setpreview:SET_PREVIEW.out?"New set":"Set preview",tournaments:"Events",leagues:"Explore communities",tracker:"Play a match","basic-tracker":"Basic tracker",meta:"Meta breakdown",rules:"Rules",clashtest:"Clash test",privacy:"Privacy",terms:"Terms of use",about:"About",cdecks:"Public decks",decks:"My decks",builder:"Deck builder",deck:"Deck",collection:"Collection",profile:"Profile",admin:"Admin",auth:"Sign in",join:"Join a community",league:"Community"};
 function slSetTitle(p){try{document.title=p?p+" · Seekers League":"Seekers League — Malediction community hub"}catch(e){}}
 function slViewTitle(){slSetTitle(SL_VIEW_TITLES[route.view]||"")}
 async function render(){return route.card&&cardFromRoute(),configured?(closeSheet(),duBoot(),setTimeout(duInvNote,0),"mine"===route.view&&(route.view="browse"),"freebattles"===route.view&&(route.view="profile",route.profileId=null),"league"===route.view&&isDemo(route.leagueId)&&(route.view="leagues"),"communities"===route.view&&(window._mfTab="c",route.view="leagues"),"finder"!==route.view&&"heralds"!==route.view&&"makers"!==route.view||(window._mfTab="heralds"===route.view?"h":"makers"===route.view?"m":"c","makers"===route.view&&(window._mkF=""),window._mfScroll=1,route.view="leagues"),slViewTitle(),renderChrome(),setTimeout(slGuideSync,0),setTimeout(slGuideSync,500),document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),($(route.view)||$("browse")).classList.add("active"),"browse"===route.view?(slHomeSup(),renderBrowse()):"rules"===route.view?renderRules():"about"===route.view?renderAbout():"privacy"===route.view||"terms"===route.view?renderLegal(route.view):"setpreview"===route.view?renderSetPreview():"clashtest"===route.view?renderClashTest():"tournaments"===route.view?renderTournamentsPage():"leagues"===route.view?renderLeaguesPage():"tracker"===route.view?renderTracker():"basic-tracker"===route.view?renderBasicTracker():"meta"===route.view?renderMetaView():"profile"===route.view?renderProfile():"collection"===route.view?renderCollection():"builder"===route.view?renderBuilder():"decks"===route.view?renderDecks():"deck"===route.view?renderDeckPage():"cdecks"===route.view?renderCDecks():"admin"===route.view?renderAdmin():"league"===route.view?renderLeague():"join"===route.view?joinFromLink(route.code):"ev"===route.view?evFromLink(route.code):"auth"===route.view?me?(ckHide(),authReturn()):ckMail?showCheckEmail(ckMail):(ckHide(),setAuthMode(authMode)):void 0):(document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),"about"===route.view?($("about").classList.add("active"),renderAbout()):"privacy"===route.view||"terms"===route.view?($(route.view).classList.add("active"),renderLegal(route.view)):($("browse").classList.add("active"),slHomeSup()),void($("home-head").innerHTML=SL_LIBFAIL?slBootFailHtml():'<div class="banner warn">\n      <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and\n      anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.\n      Full steps are in <code>SETUP.md</code>.</div>'))}
@@ -4261,7 +4264,7 @@ function bdAdmPane(){
     
     av=[["reports","Reports",null!=cache.bdOpen],
         ["claims","Profile links"+(cache.clOpen?" \u00b7 "+cache.clOpen:""),null!=cache.clOpen],
-        ["tourn","Tournaments"+(cache.tnOpen?" \u00b7 "+cache.tnOpen:""),null!=cache.tnOpen]].filter(x=>x[2]),
+        ["tourn","Events"+(cache.tnOpen?" \u00b7 "+cache.tnOpen:""),null!=cache.tnOpen]].filter(x=>x[2]),
     q=av.some(x=>x[0]===B.q)?B.q:(av[0]||["reports"])[0],
     opts=av.map(x=>[x[0],x[1]]),
     cur="claims"===q?C:"tourn"===q?T:B;
@@ -4618,7 +4621,7 @@ function paintHomeNext(){
     ${rows.length>NU_MAX?`<button class="link nu-more" onclick="window._nuAll=${all?0:1};paintHomeNext()">${all?"Show fewer":"Show all ("+rows.length+")"}</button>`:""}
   </section>`;
   paintHomeBoard();
-}function paintHomeStats(){const e=$("home-stats");if(!e)return;const n=cache.leagues.filter(e=>!isDemo(e.id)),t=[["number"==typeof cache.communityCount?cache.communityCount:n.length,"Communities created"],[cache.playerCount||0,"Players"],[cache.tourneyCount||0,"Tournaments"],[cache.matchCount||0,"Matches played"]];if(!t.some(([e])=>+e>0))return void(e.innerHTML="");e.innerHTML=`<div class="stats-band">\n    <div class="sb-title">The Malediction is growing…</div>\n    <div class="sb-row">${t.map(([e,n])=>`<div class="sb-stat"><b>${e}</b><small>${n}</small></div>`).join("")}</div>\n  </div>`}
+}function paintHomeStats(){const e=$("home-stats");if(!e)return;const n=cache.leagues.filter(e=>!isDemo(e.id)),t=[["number"==typeof cache.communityCount?cache.communityCount:n.length,"Communities created"],[cache.playerCount||0,"Players"],[cache.tourneyCount||0,"Events"],[cache.matchCount||0,"Matches played"]];if(!t.some(([e])=>+e>0))return void(e.innerHTML="");e.innerHTML=`<div class="stats-band">\n    <div class="sb-title">The Malediction is growing…</div>\n    <div class="sb-row">${t.map(([e,n])=>`<div class="sb-stat"><b>${e}</b><small>${n}</small></div>`).join("")}</div>\n  </div>`}
 function homeLeagues(){const L=me?myLeaguesSafe().filter(l=>l&&!l.archived_at&&!isDemo(l.id)):[],h=getActiveLeagueId();return L.filter(l=>l.id===h).concat(L.filter(l=>l.id!==h))}
 async function homeLoad(){
   const ids=homeLeagues().map(l=>l.id),o={ids};
@@ -4992,7 +4995,7 @@ function t3DuBlock(n){
       ${sw?`<b>${esc(n.title)}</b>
       <span class="du-tn-vs">${esc(n.stage)}${n.table?" · Table "+(n.table|0):""} · vs ${esc(n.oppName)}</span>`:`<b>${esc(n.title)} · ${esc(n.stage)}${n.table?" · Table "+(n.table|0):""}</b>
       <span class="du-tn-vs">vs ${esc(n.oppName)}</span>`}
-      <p>Mode set by the tournament: ${esc(t3ModeLabel(n.mode))}</p>${sw?"<p>Time ran out with equal Mastery? End the match and choose Draw.</p>":""}
+      <p>Mode set by the tournament: ${esc(t3GameLabel(n.mode))}</p>${sw?"<p>Time ran out with equal Mastery? End the match and choose Draw.</p>":""}
       ${t3IdOk(n.opp)?"":`<p>${esc(n.oppName)} has no Seekers League account linked, so the organizer enters this result.</p>`}
       <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${jsq(n.tid)}})">Tournament page</button><button type="button" class="link" onclick="t3DuOff()">Not this game</button></div>
     </div>`;
@@ -5005,7 +5008,7 @@ function t3DuApply(n){
   ch&&duPickSave();
 }
 function t3DuOff(){const n=t3DuNext();n&&(window._duTnOff=n.tid+":"+n.key);duPickPaint()}
-function t3DuLocked(){toast("Your tournament game is played in "+t3ModeLabel((t3DuNext()||{}).mode)+". To play something else, tap Not this game.")}
+function t3DuLocked(){toast("Your tournament game is played in "+t3GameLabel((t3DuNext()||{}).mode)+". To play something else, tap Not this game.")}
 function duSavedTxt(d){
   const t=esc(d.tTitle||"the tournament");
   return"recorded"===d.tState?"✓ Saved to both profiles and recorded in "+t:"kept"===d.tState?"✓ Saved to both profiles. The organizer had already entered this result.":"closed"===d.tState?"✓ Saved to both profiles. The tournament was already closed.":"✓ Saved to both profiles";
@@ -5601,7 +5604,7 @@ function duTnCard(n){
       <span class="du-tn-vs">${esc(n.stage)}${n.table?" · Table "+(n.table|0):""} · vs ${esc(n.oppName)}</span>
       ${iv?`<p class="du-tn-inv">${esc(iv.host_name||n.oppName)} is waiting for you</p>`:""}
       ${"untracked"===s?`<p>${esc(n.oppName)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.</p>`:dl?`<p class="du-tn-dk">${dl}</p>`:""}${t3DcLine(t,n,n.oppName,"du-tn-dc")}
-      <p>Mode: ${esc(t3ModeLabel(n.mode))}, set by the tournament</p><p>Time ran out with equal Mastery? End the match and choose Draw.</p>
+      <p>Mode: ${esc(t3GameLabel(n.mode))}, set by the tournament</p><p>Time ran out with equal Mastery? End the match and choose Draw.</p>
       ${a}
       <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${tj}})">Tournament page</button><button type="button" class="link" onclick="t3DuOff()">Play a casual match instead</button>${iv?`<button type="button" class="link" onclick="duInvDecline(${jsq(iv.id)})">Decline</button>`:""}</div>
     </div>`}
@@ -5615,7 +5618,7 @@ function t3NextSw(t,n,on){
       :iv?"One tap and the match is live, with your registered deck. No PIN."
       :"live"===s?"This game is being played with the match tracker."
       :"nodeck"===s?"Choose your deck when you start: it is locked as soon as you save it."
-      :`One tap starts it in ${esc(t3ModeLabel(t.mode))} with your registered deck, no PIN. The result is recorded here by itself.`;
+      :`One tap starts it in ${esc(t3GameLabel(t.mode))} with your registered deck, no PIN. The result is recorded here by itself.`;
   return`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>${hd}</small><b>${b}</b></div>${a?`<div class="tv-next-act">${a}</div>`:""}
     <p class="t3-next-h">${h}</p>${t3DcLine(t,n,on,"t3-next-h")}</div>`;
 }
@@ -5890,13 +5893,6 @@ async function t3JoinThis(){
 }
 
 function evLinkOf(t){return t&&t.join_code?location.origin+location.pathname+"#/ev/"+String(t.join_code).toUpperCase():""}
-function evShareHtml(t){
-  const u=evLinkOf(t);
-  if(!u)return"";
-  return`<div class="t3-share"><div class="tm-label">Let people join</div>
-    <p class="hint" style="margin:0 0 6px">Anyone who opens this joins the event, signing up first if they have to. Read the code out or send the link.</p>
-    <div class="t3-share-r"><code class="t3-code">${esc(String(t.join_code).toUpperCase())}</code><button type="button" class="ghost" onclick="evCopy()">Copy the link</button><button type="button" class="ghost" onclick="evQr()">Show a QR code</button></div></div>`;
-}
 function evCopy(){const t=cache.tourney,u=evLinkOf(t);u&&copyText(u,()=>toast("Link copied",!0))}
 
 
@@ -6028,28 +6024,6 @@ function qrSvg(s,lab){
     while(x+w<n&&m[y*n+x+w])w++;
     d+="M"+(x+4)+" "+(y+4)+"h"+w+"v1h-"+w+"z";x+=w}
   return`<svg class="qr" viewBox="0 0 ${T} ${T}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(lab||"QR code")}"><path d="M0 0h${T}v${T}H0z" fill="#fff"/><path d="${d}" fill="#000"/></svg>`}
-
-function evQr(){
-  const t=cache.tourney,u=evLinkOf(t);
-  if(!u)return;
-  const g=qrSvg(u,"QR code for joining this event");
-  if(!g)return void toast("That link is too long to put in a QR code.");
-  const d=document.createElement("div");
-  d.className="tkov";d.id="ev-qr";
-  d.innerHTML=`<div class="tkmodal ev-qr" role="dialog" aria-modal="true" aria-labelledby="ev-qr-h">
-    <h3 id="ev-qr-h">Scan to join</h3>
-    <div class="ev-qr-p">${g}</div>
-    <p class="ev-qr-c"><code class="t3-code">${esc(String(t.join_code).toUpperCase())}</code></p>
-    <p class="hint ev-qr-u">${esc(u)}</p>
-    <div class="tk-ask-row"><button class="ghost" data-close data-autofocus>Close</button><button class="ghost" id="ev-qr-pr">Print</button><button class="act" id="ev-qr-cp">Copy the link</button></div>
-  </div>`;
-  const fin=()=>d.remove();
-  d._slClose=fin;
-  d.onclick=e=>{e.target===d&&fin()};
-  d.querySelector("[data-close]").onclick=fin;
-  d.querySelector("#ev-qr-pr").onclick=()=>window.print();
-  d.querySelector("#ev-qr-cp").onclick=()=>copyText(u,()=>toast("Link copied",!0));
-  document.body.appendChild(d)}
 function signInToJoin(id){
   try{sessionStorage.setItem(JOINAFTER,id);localStorage.setItem(PENDJOIN,JSON.stringify({l:id,t:Date.now()}))}catch(e){}
   go("auth");
@@ -6142,7 +6116,7 @@ async function renderLeague(){const e=route.leagueId;let n,t,a,s=[];
   if("meta"===u&&(s=await fetchMatches(e),fetchMatches.err))return void lgLoadFail(e,lgAgain);
   "manage"===u&&(cache.lgHasEv=await lgHasEvents(e));
   await ensurePubDecks();await ensureProfNames();await loadDeckMeta(matchDeckIds(s).concat(tvDeckIds(cache.tourneys)));
-  const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"tournament":"tournaments"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",makers:"Makers",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");bdEdSave(p);"about"===u&&(await cbLoad(n),bdEdSave(p),p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(slNoDemo(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await slDemoIds()),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"makers"===u&&(await mkMdLoad(t),p.innerHTML=paintLgMakers()),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
+  const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"event":"events"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",makers:"Makers",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");bdEdSave(p);"about"===u&&(await cbLoad(n),bdEdSave(p),p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(slNoDemo(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await slDemoIds()),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"makers"===u&&(await mkMdLoad(t),p.innerHTML=paintLgMakers()),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
   if(lgAgain&&Math.abs(window.scrollY-lgY)>2){window.scrollTo(0,lgY);requestAnimationFrame(()=>{Math.abs(window.scrollY-lgY)>2&&window.scrollTo(0,lgY)})}}
 
 async function fetchListings(e){fetchListings.missing=!1;try{const{data:d,error:x}=await sb.from("pn_events").select("*").eq("league_id",e).order("starts_at",{ascending:!0,nullsFirst:!1}).order("id");x&&(fetchListings.missing=pnMissing(x));return x?[]:d||[]}catch(x){return[]}}
@@ -6966,7 +6940,7 @@ async function tvGenerate(){
   payload.bracket=buildBracket(new Array(q).fill(null));
   const fix=window._tEditing||null;
   
-  if(!fix)return toast("New tournaments are made from a Play Network event: see Play › Tournaments");
+  if(!fix)return toast("New events are made from a Play Network event: see Play › Events");
   {
     const{data:fr}=await sb.from("tournaments").select("payload").eq("id",fix).maybeSingle(),fp=fr&&fr.payload;
     if(!fp)return toast("This tournament no longer exists");
@@ -9673,7 +9647,7 @@ function pfShare(e){const n=pfLink(e);if(navigator.share)return void navigator.s
 async function fbDel(e){if(!await slConfirm({title:"Delete this game?",body:"You logged it by hand. Your stats will update.",ok:"Delete",danger:!0}))return;await slDeferDelete({kind:"fb",id:e,table:"free_battles",msg:"Game deleted",hide:()=>{cache.freeBattles=slHide("fb",cache.freeBattles)},done:()=>{cache.freeBattles=(cache.freeBattles||[]).filter(x=>x.id!==e)}})}
 
 
-const TN_TABS=[["all","All"],["conv","Conventions"],["comm","Communities"]];
+const TN_TABS=[["all","All"],["comm","Communities"]];
 function tnTabKey(t){return me?"mine"===t||TN_TABS.some(x=>x[0]===t)?t:"mine":TN_TABS.some(x=>x[0]===t)?t:"all"}
 
 function tnStill(t){return"tournaments"===route.view&&!route.tournamentId&&window._tnTab===t&&!!$("tnp-sec")}
@@ -9699,10 +9673,10 @@ async function renderTournamentsPage(){
 function tnpHead(t){
   const org=me?myLeaguesSafe().filter(l=>!l.archived_at&&(isOwnerOf(l)||isAdminOf(l))):[],
     tab=k=>`<button type="button" class="seg-b${k[0]===t?" on":""}" data-tn="${k[0]}" aria-pressed="${k[0]===t}" onclick="tnTab(${jsq(k[0])})">${k[1]}</button>`;
-  return`<div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Tournaments</h2>
-    <p class="hint" style="margin:0">Organize on the Play Network, play and keep score here. Events run as Swiss rounds and tracked matches are recorded automatically; each round is listed ready to enter in the Play Network&#8217;s match form.</p></div>
-    ${me?`<button class="act" onclick="tnpNew()">+ New tournament</button>`:""}</div>
-    <div class="seg tn-tabs" role="group" aria-label="Which tournaments to show">${(me?[["mine","Yours"]]:[]).concat(TN_TABS).map(tab).join("")}</div>`;
+  return`<div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Events</h2>
+    <p class="hint" style="margin:0">Everything that is run here: tournaments, which are paired in Swiss rounds and keep standings, and Demo events, which have neither. Organize on the Play Network; tracked matches are recorded automatically.</p></div>
+    ${me?`<button class="act" onclick="tnpNew()">+ New event</button>`:""}</div>
+    <div class="seg tn-tabs" role="group" aria-label="Which events to show">${(me?[["mine","Yours"]]:[]).concat(TN_TABS).map(tab).join("")}</div>`;
 }
 
 async function paintTnMine(){
@@ -9733,12 +9707,11 @@ async function paintTnMine(){
     :`<div class="empty">You are not in any tournament yet. The ones you organize or are registered for show up here, and <b>All</b> has every event that is listed.</div>`;
 }
 
-function tnKindOf(r){return"convention"===r.scope?"conv":"open"===r.scope?"open":"comm"}
-function tnFits(r,k){return"all"===k||("conv"===k?"conv"===tnKindOf(r):"comm"===k?"comm"===tnKindOf(r):!0)}
+function tnKindOf(r){return"open"===r.scope?"open":"comm"}
+function tnFits(r,k){return"all"===k||("comm"===k?"comm"===tnKindOf(r):!0)}
 
-function tnWhose(r){return r.league_name||("conv"===tnKindOf(r)?"At a convention":"comm"===tnKindOf(r)?"Community":"Open tournament")}
-function tnEmpty(k){return"conv"===k?"No tournament at a convention or a fair right now."
-  :"comm"===k?"No community has a tournament listed right now."
+function tnWhose(r){return r.league_name||("comm"===tnKindOf(r)?"Community":"Open to everyone")}
+function tnEmpty(k){return"comm"===k?"No community has an event listed right now."
   :"No event is listed right now. An organizer starts one from a Play Network event."}
 function tnShelfKeep(rows){window._tnRows={at:Date.now(),rows:rows}}
 function tnShelfCached(){const c=window._tnRows;return c&&Date.now()-c.at<6e4&&Array.isArray(c.rows)?c.rows:null}
@@ -9766,13 +9739,13 @@ async function paintTnShelf(kind){
     row=r=>{const k=km(r),w=pnWhere(r),np=r.players|0;
       return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(r.id)}})">
       <span class="tnp-l"><small>${esc(tnWhose(r))}${w?" · "+esc(w):""}</small><span class="tnp-t">${esc(r.title||"Tournament")}</span>
-      <span><b>${esc(t3StateLabel(r.status,r.mode))}</b>${"demo"===r.mode?' · <span class="tn-dm">'+esc(t3ModeLabel(r.mode))+"</span>":""} · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
+      <span><b>${esc(t3StateLabel(r.status,r.mode))}</b>${' · <span class="tn-dm">'+esc("demo"===r.mode?t3GameLabel(r.mode):t3Kind(r.mode))+"</span>"} · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   
   e.innerHTML=`<p class="hint" style="margin:0 0 10px">Available events:${pins.length?` ${pins.length} on the map — tap one to open it.`:""}</p>
     ${pins.length?`<div style="margin:0 0 12px">${mapHtml("tn-map",{})}</div>`:""}
     ${rows.length?`<div class="nu-list">${rows.map(row).join("")}</div>`:`<div class="empty">${esc(tnEmpty(kind))}</div>`}
-    ${me?"":`<div class="tn-cta"><p class="hint" style="margin:0">Sign in to see the tournaments you are registered for or organize.</p><button class="act" onclick="go('auth')">Sign in</button></div>`}`;
+    ${me?"":`<div class="tn-cta"><p class="hint" style="margin:0">Sign in to see the events you are registered for or organize.</p><button class="act" onclick="go('auth')">Sign in</button></div>`}`;
   pins.length&&mapMount("tn-map",{points:pins.map(r=>({lon:+r.lon,lat:+r.lat,cls:"",label:`${r.title||"Tournament"} — ${[r.city,r.country].filter(Boolean).join(", ")||r.league_name||""}`,onPick:()=>go("tournaments",{tournamentId:r.id})})),fit:!0});
 }
 function tnpOpen(lid,id,r){r?(window._tRun=id):(window._tPast=id);window._tScroll=id;go("league",{leagueId:lid,tab:"tournament"})}
@@ -9798,12 +9771,12 @@ async function tnpNew(){
     if(r.length){try{const{data:u,error:ue}=await sb.from("tournaments").select("pn_event_id").in("pn_event_id",r.map(x=>x.id));!ue&&(u||[]).forEach(z=>{r=r.filter(x=>x.id!==z.pn_event_id)})}catch(x){}}
     return r.map(x=>Object.assign({},x,{_ln:ln(x.league_id)}))};
   const paint=()=>{
-    m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="tnp-pick-h"><h3 id="tnp-pick-h">New tournament</h3>
+    m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="tnp-pick-h"><h3 id="tnp-pick-h">New event</h3>
       ${null===rows?'<div class="empty"><span class="spinner"></span> Loading\u2026</div>':rows.length?`<p class="tk-ask-t">Which event do you want to run as a tournament?</p>
       <div class="nu-list">${rows.map(x=>`<button type="button" class="nu-row tnp-row" data-id="${esc(x.id)}"${St.busy?" disabled":""}><span class="tnp-l"><small>${esc(x._ln)}</small><span class="tnp-t">${esc(x.title||"Event")}</span><span>${esc(pnShort(x))}</span></span><i class="nu-chev" aria-hidden="true">›</i></button>`).join("")}</div>`
       :`<p class="tk-ask-t">No Play Network event of yours is waiting to be run.${myLeaguesSafe().some(l=>!l.archived_at)?" You can link one in a community&#8217;s Events tab.":""}</p>`}
       <div class="tm-label" style="margin-top:14px">${rows&&rows.length?"Or paste":"Paste"} a Play Network event</div>
-      <p class="hint" style="margin:0 0 8px">An event added here belongs to no community, so its tournament is open to anyone.</p>
+      <p class="hint" style="margin:0 0 8px">An event added here belongs to no community, so it is open to everyone.</p>
       <input id="tnp-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Play Network event link" placeholder="https://malediction.gg/play-network/events/single/…" value="${esc(St.url)}"${St.busy?" disabled":""}>
       ${St.msg?`<div class="banner" style="margin:8px 0 0">${esc(St.msg)}</div>`:""}
       <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close${St.busy?" disabled":""}>Close</button><button class="act" data-add${St.busy?" disabled":""}>${St.busy?"Reading\u2026":"Add event"}</button></div></div>`;
@@ -9845,7 +9818,21 @@ function t3Archived(t){const l=t3Lg(t);return!!(l&&l.archived_at)}
 function t3Ed(t){return t3IsOrg(t)&&!t3Archived(t)}
 function t3Ent0(t,k){return((t&&t.payload||{}).entrants||[]).find(e=>e&&e.id===k)||null}
 function t3Mine(t){return me?t3Ent0(t,me.id):null}
-function t3ModeLabel(m){return"demo"===m?"Demo \u00b7 25":"Clash \u00b7 40"}
+
+const T3_MODES={
+  clash:{game:"Clash",side:"Single",cards:40},
+  demo:{game:"Demo",cards:25},
+  allegiance:{game:"Allegiance",side:"Teams",cards:50},
+  nemesis:{game:"Nemesis",side:"Single",cards:50},
+  dominion:{game:"Dominion",side:"Single",cards:40}};
+
+function t3GameLabel(m){const x=T3_MODES[m]||T3_MODES.clash;return x.game+" \u00b7 "+x.cards}
+
+function t3Kind(m){return"demo"===m?"Demo":"Tournament"}
+function t3ModeLabel(m){
+  const x=T3_MODES[m]||T3_MODES.clash;
+  return"demo"===m?"Demo":["Tournament",x.game,x.side].filter(Boolean).join(" · ");
+}
 
 function t3Real(x){return!!x&&"drop"!==x.src&&"bye"!==x.src}
 function t3HasResults(p){return(p.gm||[]).some(m=>m&&m.w&&t3Real(m))||(p.bracket||[]).some(r=>(r||[]).some(m=>m&&m.winner&&m.a&&m.b&&t3Real(m)))}
@@ -9925,7 +9912,7 @@ async function t3Load(id){
       if(l&&l.owner_id!==t.organizer_id)try{const r=await sb.from("memberships").select("is_admin,dropped_at").eq("league_id",t.league_id).eq("user_id",t.organizer_id).maybeSingle();r.error||(t._orgGone=!(r.data&&r.data.is_admin&&!r.data.dropped_at))}catch(x){}}}
   return{row:t};
 }
-function t3Missing(e){e.innerHTML=`<div class="panel plain"><div class="empty">This tournament was not found, or you cannot see it.</div><div class="t3-mis"><button class="ghost" onclick="go('tournaments')">All tournaments</button></div></div>`}
+function t3Missing(e){e.innerHTML=`<div class="panel plain"><div class="empty">This tournament was not found, or you cannot see it.</div><div class="t3-mis"><button class="ghost" onclick="go('tournaments')">All events</button></div></div>`}
 async function t3Open(id){
   const e=$("tnp-body");if(!e)return;
   if(!t3IdOk(id))return t3Missing(e);
@@ -10009,6 +9996,8 @@ function t3PnDkCounts(k){const p=k.part|0;return`Decks imported: ${k.n|0} · mis
 function t3PnDkToast(k){return!k||"object"!=typeof k?"":k.hidden?" Play Network shows decks once the event has started there.":` ${t3PnDkCounts(k)}.`}
 
 function t3PnDk(t,ed){
+  
+  if(t3IsDemo(t))return"";
   const p=t.payload||{},k=p.pn&&p.pn.dk,st=t3St(t),draft="draft"===st;
   if(!ed||!k||"object"!=typeof k||!t3DkOn(t)||"closed"===st)return"";
   const r=t3Dk(t),U=[];
@@ -10041,41 +10030,45 @@ async function t3Create(id,x){
   
   
   const gte=await gateLoad();
-  const pick=await new Promise(res=>{let md="clash",who=x.league_id?"community":"open",conv=!1;
+  const pick=await new Promise(res=>{let md="clash",who=x.league_id?"community":"open";
     const m=document.createElement("div");m.id="t3-new";m.className="tkov";
-    const scope=()=>"community"===who?"community":conv?"convention":"open",
+    
+    const scope=()=>"demo"===md?"open":"community"===who?"community":"open",
       fin=v=>{m.remove();res(v)},
-      seg=()=>[["clash","Clash \u00b7 40"],["demo","Demo \u00b7 25"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join(""),
-      wseg=()=>[["community","Community"],["open","Open to everyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
+      seg=()=>[["clash","Clash · 40"],["demo","Demo · 25"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join(""),
+      wseg=()=>[["community","My community"],["open","Anyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
+      
       fmtHint=()=>"2x2"===x.game_mode?"Team (2v2) events cannot be run as a tournament here yet."
-        :"demo"===md?"A Demo event has no rounds: players turn up, play a game with a 25-card deck and leave, and you add whoever walks in. Close it when it is over."
-        :/^league$/i.test(x.format||"")?"The Play Network lists this event as League; here it runs as Swiss rounds, the official tournament format. You start it on the day and the rounds are paired here."
-        :"It runs as Swiss rounds, the official Play Network format. You start it on the day and the rounds are paired here.",
+        :"demo"===md?"A Demo event has no rounds and no standings: players turn up, play one game with a 25-card deck and leave, and you add whoever walks in. Their games are tracked from Play › Match like any other. It is open to everyone, so somebody who has never played can find it."
+        :`It runs as a Tournament · Clash · Single${/^league$/i.test(x.format||"")?", although the Play Network lists it as League":""}: Swiss rounds, the official Play Network format, paired here on the day. The decks show up once you start the event on the Play Network, and matches played with the match tracker between paired players are recorded automatically.`,
       whoHint=()=>gte?gateTxt(gte).b+(x.league_id?" Your community's own tournament is not affected.":"")
-        :!x.league_id?"This event has no community, so its tournament is open to everyone."
+        :!x.league_id?"This event has no community, so it is open to everyone."
         :"community"===who?"Your community's own tournament. It stays off the public list."
-        :conv?"Anyone can turn up. It is listed under All and under Conventions."
-        :"Anyone can turn up. It is listed under All on the tournaments page.";
+        :"Anyone can turn up. It is on the events page for everyone, signed out included.";
     m.onclick=e=>{e.target===m&&fin(null)};
     m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="t3-new-h">
-      <h3 id="t3-new-h">Run this event as a tournament?</h3>
+      <h3 id="t3-new-h">${"demo"===md?"Run this as a Demo event?":"Run this event as a tournament?"}</h3>
       <p class="tk-ask-t"><b>${esc(x.title||"Event")}</b>${x.starts_at?"<br>"+esc(pnWhen(x)):""}</p>
-      <p class="tk-ask-t">You will be its organizer. The registered players are copied from the Play Network page with their profile pictures, Discord handles and the decks they linked there (never their first and last names); the decks show up once you start the event on the Play Network. You can add and drop players, and close it when it is over. Matches played with the match tracker between paired players are recorded automatically.</p>
+      <p class="tk-ask-t">You will be its organizer. The registered players are copied from the Play Network page with their profile pictures, Discord handles and the decks they linked there, never their first and last names. You can add and drop players, and close it when it is over.</p>
       <p class="tk-ask-t t3-fmth">${fmtHint()}</p>
       <div class="tm-label">Game mode</div>
       <div class="seg t3-mode" role="radiogroup" aria-label="Game mode">${seg()}</div>
-      <div class="tm-label" style="margin-top:12px">Who can come</div>
-      <div class="seg t3-scope" role="radiogroup" aria-label="Who can come">${wseg()}</div>
-      <label class="t3-conv${"community"===who?" off":""}"><input type="checkbox" data-conv${conv?" checked":""}> At a convention or a fair</label>
-      <p class="hint t3-whoh">${esc(whoHint())}</p>
-      <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close>Cancel</button><button class="act" data-ok${"2x2"===x.game_mode||gte&&!x.league_id?" disabled":""}>Create tournament</button></div></div>`;
+      <div class="t3-whob${"demo"===md?" off":""}">
+        <div class="tm-label" style="margin-top:12px">Who can come</div>
+        <div class="seg t3-scope" role="radiogroup" aria-label="Who can come">${wseg()}</div>
+        <p class="hint t3-whoh">${esc(whoHint())}</p>
+      </div>
+      <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close>Cancel</button><button class="act" data-ok${"2x2"===x.game_mode||gte&&!x.league_id?" disabled":""}>${"demo"===md?"Create the event":"Create the tournament"}</button></div></div>`;
+    
     const re=()=>{m.querySelector(".t3-mode").innerHTML=seg();m.querySelector(".t3-scope").innerHTML=wseg();
-      const l=m.querySelector(".t3-conv");l&&l.classList.toggle("off","community"===who);
+      const w=m.querySelector(".t3-whob");w&&w.classList.toggle("off","demo"===md);
       const h=m.querySelector(".t3-whoh");h&&(h.textContent=whoHint());
-      const f=m.querySelector(".t3-fmth");f&&(f.textContent=fmtHint());wire()},
+      const f=m.querySelector(".t3-fmth");f&&(f.textContent=fmtHint());
+      const t=m.querySelector("#t3-new-h");t&&(t.textContent="demo"===md?"Run this as a Demo event?":"Run this event as a tournament?");
+      const o=m.querySelector("[data-ok]");o&&(o.textContent="demo"===md?"Create the event":"Create the tournament");
+      wire()},
       wire=()=>{m.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>{md=b.dataset.m;re()});
-        m.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{who=b.dataset.w;re()});
-        const c=m.querySelector("[data-conv]");c&&(c.onchange=()=>{conv=!!c.checked;re()})};
+        m.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{who=b.dataset.w;re()})};
     wire();
     m.querySelector("[data-close]").onclick=()=>fin(null);
     m.querySelector("[data-ok]").onclick=()=>fin({m:md,s:scope()});
@@ -10084,7 +10077,7 @@ async function t3Create(id,x){
   const d=await t3Rpc("t_create",{p_pn_event:id,p_mode:pick.m,p_scope:pick.s},{duplicate:"This event already has a tournament."});
   if(!d||!d.id)return;
   window._tnRows=null;
-  toast("Tournament created. Copying the players from the Play Network\u2026",!0);
+  toast(("demo"===pick.m?"Event":"Tournament")+" created. Copying the players from the Play Network\u2026",!0);
   await t3Import({id:d.id});
   cache.allTourneys=null;
   go("tournaments",{tournamentId:d.id});
@@ -10097,20 +10090,21 @@ async function t3SetScope(s){
   if(!d)return;
   window._tnRows=null;
   await t3Reload();
-  toast("community"===s?"Only your community can come to this one.":"convention"===s?"Listed as a convention event.":"Anyone can turn up to this one.");
+  toast("community"===s?"Only your community can come to this one.":"Anyone can turn up to this one.");
 }
 
 function t3ScopeHtml(t,word){
+  if(t3IsDemo(t))return"";
   const s=t3ScopeOf(t);
   return`<div class="tm-label" style="margin-top:12px">Who can come</div>
-    <div class="seg t3-scope" role="radiogroup" aria-label="Who can come">${[["community","Community"],["open","Open"],["convention","Convention"]].map(([k,l])=>`<button type="button" class="seg-b${s===k?" on":""}" role="radio" aria-checked="${s===k}" onclick="t3SetScope(${jsq(k)})"${!t.league_id&&"community"===k?" disabled":""}>${l}</button>`).join("")}</div>
-    <p class="hint t3-whoh">${"community"===s?`Your community's own ${word}. It stays off the public list.`:"convention"===s?"Anyone can turn up. It is listed under All and under Conventions.":"Anyone can turn up. It is on the tournaments page for everyone, signed out included."}</p>`;
+    <div class="seg t3-scope" role="radiogroup" aria-label="Who can come">${[["community","My community"],["open","Anyone"]].map(([k,l])=>`<button type="button" class="seg-b${s===k?" on":""}" role="radio" aria-checked="${s===k}" onclick="t3SetScope(${jsq(k)})"${!t.league_id&&"community"===k?" disabled":""}>${l}</button>`).join("")}</div>
+    <p class="hint t3-whoh">${"community"===s?`Your community's own ${word}. It stays off the public list.`:"Anyone can turn up. It is on the events page for everyone, signed out included."}</p>`;
 }
 
 function t3CardLink(x){
   if(!x)return"";
   const t=(cache.tourneys||[]).find(r=>r&&null!=r.status&&r.pn_event_id===x.id);
-  if(t)return`<a class="pnl-tn" href="#/tournaments/${esc(t.id)}">Tournament &middot; ${esc(t3StateLabel(t.status,t.mode))} &rsaquo;</a>`;
+  if(t)return`<a class="pnl-tn" href="#/tournaments/${esc(t.id)}">${esc(t3Kind(t.mode))} &middot; ${esc(t3StateLabel(t.status,t.mode))} &rsaquo;</a>`;
   return me&&x.created_by===me.id&&x.fetch_ok&&!lgArchived(cache.league)?`<button class="act pnl-run" onclick="t3Create(${jsq(x.id)})">Run as a tournament</button>`:"";
 }
 
@@ -10134,7 +10128,7 @@ function t3NextHtml(t){
   if(swIsSwiss(t.payload))return t3NextSw(t,n,on);
   return`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>Your next game &middot; ${esc(n.stage)}${n.table?" &middot; Table "+(n.table|0):""}</small><b>vs ${esc(on)}</b></div>
     <div class="tv-next-act"><button class="act" onclick="go('tracker')">Start the match</button></div>
-    <p class="t3-next-h">${t3IdOk(n.opp)?`Play it with the match tracker in ${esc(t3ModeLabel(t.mode))}: the result is recorded here by itself.`:`${esc(on)} has no Seekers League account linked, so the organizer enters this result.`}</p></div>`;
+    <p class="t3-next-h">${t3IdOk(n.opp)?`Play it with the match tracker in ${esc(t3GameLabel(t.mode))}: the result is recorded here by itself.`:`${esc(on)} has no Seekers League account linked, so the organizer enters this result.`}</p></div>`;
 }
 
 function t3Forget(t){return t3IsOrg(t)&&t3Archived(t)}
@@ -10325,7 +10319,7 @@ function t3Players(t,ed){
   return`<div class="panel plain t3-pl" id="t3-pl">
     <div class="t3-pl-h"><h2 style="margin:0">Players <span class="rel-count">${nIn} in${nDr?` &middot; ${nDr} dropped`:""}</span></h2>${ed&&draft?`<button class="ghost" id="t3-imp" onclick="t3Import()">Update from the Play Network</button>`:""}</div>
     ${draft?`<p class="hint t3-src">${p.pn&&p.pn.at?`Copied from the Play Network ${esc(pnShort({starts_at:p.pn.at}))}${null!=p.pn.n?` &middot; ${p.pn.n|0} registered there`:""}.`:"Not copied from the Play Network yet."}</p>`:closed?"":'<p class="hint t3-src">The list was fixed when the tournament started.</p>'}${t3PnDk(t,ed)}
-    ${ed&&draft?'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
+    ${ed&&draft?t3IsDemo(t)?'<p class="hint">Players with a linked account have their games recorded automatically. For the others, you enter the results.</p>':'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
     ${ed&&!draft&&!closed&&E.some(x=>x.wait&&!x.lock&&!t3IdOk(x.id))?'<p class="hint t3-wait">An account added a player\'s profile link after the start. Check that it is really them, then tap <b>Link the account</b> on their row.</p>':""}
     ${t3UnlHtml(t,ed)}<div class="t3-list">${E.map(x=>t3Row(t,x,ed)).join("")||`<div class="empty">No players yet.${ed&&draft?" Update the list from the Play Network, or add players by hand below.":""}</div>`}</div>
     ${ed&&draft?`<div class="t3-add" role="group" aria-label="Add a player">
@@ -10340,25 +10334,15 @@ function swRoundsSel(t,n){const s=window._swRnds,v=s&&s.tid===t.id?s.n:swRoundsD
 function swSetRounds(v){const t=cache.tourney;t&&(window._swRnds={tid:t.id,n:Math.max(1,Math.min(15,v|0||1))},t3Paint(t))}
 function swGuide(n){const r=swRoundsFor(n);return n<4?`With ${n} players, ${r} rounds give everyone one bye (a Seekers League suggestion).`:n>32?`Above 32 players, Seekers League suggests ${r} rounds.`:`The Malediction Tournament Guide suggests ${r} rounds for ${n<5?"4":n<9?"5–8":n<17?"9–16":"17–32"} players.`}
 function swPlan(n,r,min){const g=Math.floor(n/2);return`${n} players · ${r} round${1===r?"":"s"}${min?` of ${min} minutes`:""} · ${g} game${1===g?"":"s"}${n%2?" and a bye":""} each round`}
-
-function t3DemoHtml(t){
-  return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Open</h2>
-    <p class="hint" style="margin:0 0 10px">No rounds: players turn up, play a game with a 25-card deck and leave, and you add whoever walks in to the list below. Their matches are tracked from Play &rsaquo; Match like any other. Close the event when it is over.</p>
-    ${t3ScopeHtml(t,"event")}
-    ${evShareHtml(t)}
-    <div class="t-fin"><button class="act gold" onclick="t3Close()">Close the event</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button></div>
-  </div>`;
-}
 function swSetupHtml(t){
   const p=t.payload||{},n=t3Active(p).length,mode=t3ModeSel(t),ok=n>=TV_MIN,r=ok?swRoundsSel(t,n):0,pr=Number((p.pn||{}).rounds),
     pnr=Number.isInteger(pr)&&pr>=1&&pr<=100&&ok&&pr!==swRoundsFor(n),min=Number((p.pn||{}).minutes)|0||60;
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
     <p class="hint" style="margin:0 0 10px">On the day of the event, check the players below and drop anyone who did not come, then start. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. Standings: tournament points, then mastery differential (Malediction Tournament Guide).</p>
     ${t3DkSetup(t)}
-    ${t3ScopeHtml(t,"tournament")}
     ${ok?`<label class="tv-tables"><span>Rounds</span><input type="number" inputmode="numeric" min="1" max="${swMaxRounds(n)}" value="${r}" aria-label="Rounds" onchange="swSetRounds(this.value)"><small>${pnr?`The Play Network event lists ${pr} round${1===pr?"":"s"}. `:""}${esc(swGuide(n))}</small></label>`:""}
     <div class="tv-plan">${ok?swPlan(n,r,min):`At least ${TV_MIN} players are needed to start.`}</div>
-    <div class="t-fin"><button class="act gold" onclick="t3Start()"${ok?"":" disabled"}>Start the tournament</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button></div>
+    <div class="t-fin"><button class="act gold" onclick="t3Start()"${ok?"":" disabled"}>Start the tournament</button></div>
   </div>`;
 }
 function swPaired(s){const k=s.pairs.filter(x=>null!=x[1]).length;return`Round ${s.round} is paired: ${k} game${1===k?"":"s"}${s.bye?" and a bye":""}`}
@@ -10530,19 +10514,6 @@ function swChampHtml(p,rows){
   return c&&R.slice(1).some(r=>r.rk===c.rk)?`<div class="champion">Shared first place &middot; <b>${R.filter(r=>r.rk===c.rk).map(r=>esc(nameOf(r.id))).join(", ")}</b></div>`:"";
 }
 
-function swBody(t,ed){
-  const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,act=ed&&run,cur=swCur(p),R=p.rounds|0,
-    rows=closed&&Array.isArray(p.standings)&&p.standings.length?p.standings:swTable(p);
-  let h=run?t3DeckBlock(t)+t3NextHtml(t):"";
-  closed&&(h+=`<div class="panel plain"><h2>Final standings</h2>${swChampHtml(p,rows)}${swStandingsHtml(p,rows,!0)}${swPnAllBtn()}${p.ac?'<p class="hint sw-ac">Closed automatically after the last result.</p>':""}${ed?'<div class="t-fin"><span class="t-fin-tag">&#10003; Finished</span><button class="ghost" onclick="t3Reopen()">Reopen</button></div>':""}</div>`);
-  h+=`<div class="panel plain"><div class="tv-vh"><h2 style="margin:0">Rounds</h2><span class="sw-fmt">Swiss &middot; ${R} round${1===R?"":"s"}</span></div>
-    ${act?swActsHtml(t):run?swRunHint(p):""}
-    ${swRoundHtml(t,act)}
-    ${act?`<div class="t-fin"><button class="act" onclick="t3Close()">Close the tournament</button>${t3HasResults(p)?"":'<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>'}</div>`:""}
-  </div>`;
-  run&&(h+=`<div class="panel plain"><h2>Standings</h2>${swStandingsHtml(p,rows)}${(p.gm||[]).some(m=>null!=m.w&&null!=m.b)?swPnAllBtn():""}</div>`);
-  return h+t3Players(t,ed);
-}
 
 function swWaitHtml(t){
   const p=t.payload||{};if(!swIsSwiss(p)||!me||p.finalized)return"";
@@ -10679,6 +10650,86 @@ function swResultSheet(i){
   clear&&(o.querySelector("[data-clear]").onclick=()=>send(null,null,null));
   document.body.appendChild(o);
 }
+
+function evTabs(t,ed){
+  const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,draft="draft"===st,
+    act=ed&&run,demo=t3IsDemo(t),
+    rows=closed&&Array.isArray(p.standings)&&p.standings.length?p.standings:swTable(p),
+    T=[],B={};
+  const add=(k,l,html)=>{B[k]=html;T.push({k:k,l:l})};
+  if(demo){
+    add("players","Players",t3Players(t,ed));
+    ed&&draft&&t.join_code&&add("invite","Invite",t3InviteHtml(t));
+    ed&&add("settings","Settings",t3SettingsHtml(t,ed));
+  }else if(draft){
+    add("players","Players",t3Players(t,ed));
+    ed&&add("settings","Settings",t3SettingsHtml(t,ed));
+  }else if(swIsSwiss(p)){
+    closed&&add("result","Result",swResultPanel(t,p,rows));
+    add("rounds","Rounds",swRoundsPanel(t,act,p));
+    run&&add("standings","Standings",swStandingsPanel(p,rows));
+    add("players","Players",t3Players(t,ed));
+    ed&&add("settings","Settings",t3SettingsHtml(t,ed));
+  }else return null;   
+  const on=evTabKey(t,T);
+  
+  return(1<T.length?nbTabs(demo?"Event sections":"Tournament sections",T,on,"evTab",null,"ev-pane"):"")
+    +nbPane("ev-pane",T,on,B[on]||"");
+}
+
+function evTabKey(t,T){
+  const m=window._evTab||{},k=t&&m[t.id];
+  return T.some(x=>x.k===k)?k:(T[0]||{}).k;
+}
+function evTab(k){
+  const t=cache.tourney;if(!t)return;
+  (window._evTab=window._evTab||{})[t.id]=k;
+  const f=nbInBar("#t3-root");
+  t3Paint(t);
+  f&&nbFocus("#t3-root");
+}
+
+function t3InviteHtml(t){
+  const u=evLinkOf(t);
+  if(!u)return`<div class="panel plain"><h2 style="margin:0 0 6px">Invite</h2><p class="hint" style="margin:0">This event has no code yet. Reload the page in a moment.</p></div>`;
+  const svg=qrSvg(u,"QR code for joining this event");
+  return`<div class="panel plain ev-inv"><h2 style="margin:0 0 6px">Invite</h2>
+    <p class="hint" style="margin:0 0 12px">Anyone who opens this joins the event, signing up first if they have to. Show the code, read it out, or print it for the table.</p>
+    ${svg?`<div class="ev-inv-p">${svg}</div>`:""}
+    <div class="ev-inv-c">${esc(String(t.join_code||"").toUpperCase())}</div>
+    <p class="hint ev-inv-u">${esc(u)}</p>
+    <div class="t3-share-r"><button class="act" onclick="evCopy()">Copy the link</button><button type="button" class="ghost" onclick="window.print()">Print</button></div>
+  </div>`;
+}
+
+function t3SettingsHtml(t,ed){
+  if(!ed)return"";
+  const p=t.payload||{},st=t3St(t),closed="closed"===st,run="running"===st,draft="draft"===st,demo=t3IsDemo(t),
+    fin=closed?`<span class="t-fin-tag">&#10003; Finished</span><button class="ghost" onclick="t3Reopen()">Reopen</button>`
+      :demo?`<button class="act gold" onclick="t3Close()">Close the event</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`
+      :run?(t3HasResults(p)?"":`<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`)
+      :`<button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`;
+  return`<div class="panel plain"><h2 style="margin:0 0 6px">Settings</h2>
+    ${demo?`<p class="hint" style="margin:0 0 10px">A Demo event is open to everyone: there is nothing here to choose about who may come.</p>`:t3ScopeHtml(t,"tournament")}
+    ${t3HidNote(t)}
+    ${fin?`<div class="t-fin">${fin}</div>`:""}
+  </div>`;
+}
+
+function swRoundsPanel(t,act,p){
+  const R=p.rounds|0,run="running"===t3St(t);
+  return`<div class="panel plain"><div class="tv-vh"><h2 style="margin:0">Rounds</h2><span class="sw-fmt">Swiss &middot; ${R} round${1===R?"":"s"}</span></div>
+    ${act?swActsHtml(t):run?swRunHint(p):""}
+    ${swRoundHtml(t,act)}
+    ${act?`<div class="t-fin"><button class="act" onclick="t3Close()">Close the tournament</button></div>`:""}
+  </div>`;
+}
+function swStandingsPanel(p,rows){
+  return`<div class="panel plain"><h2>Standings</h2>${swStandingsHtml(p,rows)}${(p.gm||[]).some(m=>null!=m.w&&null!=m.b)?swPnAllBtn():""}</div>`;
+}
+function swResultPanel(t,p,rows){
+  return`<div class="panel plain"><h2>Final standings</h2>${swChampHtml(p,rows)}${swStandingsHtml(p,rows,!0)}${swPnAllBtn()}${p.ac?'<p class="hint sw-ac">Closed automatically after the last result.</p>':""}</div>`;
+}
 function t3Paint(t){
   const e=$("tnp-body");if(!e||!t)return;
   cache.tourney=t;t3Names(t);
@@ -10687,7 +10738,7 @@ function t3Paint(t){
     on=t.organizer_id?(cache.profNames||{})[t.organizer_id]||"":"",w=tvBracketChamp(p),lg=t3Lg(t),
     meta=[t.organizer_id?`Organized by <b>${esc(on||"the organizer")}</b>`:"No organizer: their account was deleted",esc(t3ModeLabel(t.mode)),`${np} player${1===np?"":"s"}`,lg&&lg.name?`<a href="#/league/${esc(t.league_id)}/events">${esc(lg.name)}</a>`:"",tvPnLink(p)].filter(Boolean);
   slSetTitle(title);
-  let h=`<div id="t3-root"><div class="t3-back"><button type="button" class="t3-lnk" onclick="go('tournaments')">&#8249; All tournaments</button></div>
+  let h=`<div id="t3-root"><div class="t3-back"><button type="button" class="t3-lnk" onclick="go('tournaments')">&#8249; All events</button></div>
   <div class="panel plain t3-hd">
     <div class="ev-kicker">${run?'<span class="tc-live"></span>':""}<span>${t3StateLabel(st,t.mode)}</span></div>
     <h2 class="t3-title">${esc(title)}</h2>
@@ -10698,18 +10749,23 @@ function t3Paint(t){
     ${t3HidNote(t)}
     ${draft?"":t3LinkHint(t)}
   </div>`;
-  if(draft){
-    h+=t3IsDemo(t)
-      ?ed?t3DemoHtml(t):`<div class="panel plain"><p class="t3-lead">Turn up on the day and play a game with a 25-card deck. There are no rounds and no standings: the organizer keeps the list of who came.</p>${t3JoinBtn(t)}${t3LinkHint(t)}</div>`
-      :ed?swSetupHtml(t):`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
+  
+  const demo=t3IsDemo(t),pane=evTabs(t,ed);
+  if(pane){
+    if(draft){
+      if(!ed)h+=`<div class="panel plain"><p class="t3-lead">${demo?"Turn up on the day and play a game with a 25-card deck. There are no rounds and no standings: the organizer keeps the list of who came.":"Registration is open. The organizer starts the tournament on the day of the event."}</p>${demo?t3JoinBtn(t):""}${t3LinkHint(t)}</div>`;
+      
+      else if(demo)h+=`<div class="panel plain"><p class="t3-lead">No rounds and no standings: players turn up, play one game with a 25-card deck and leave. Add whoever walks in, and close the event when it is over.</p></div>`;
+      else h+=swSetupHtml(t);
+      
+      if(!demo)h+=t3DeckBlock(t);
+    }
     
-    h+=(t3IsDemo(t)?"":t3DeckBlock(t))+t3Players(t,ed);
-  }else if(t3IsDemo(t)){
-    
-    h+=`<div class="panel plain"><p class="t3-lead">This Demo event is closed: it is off the public list and nobody else can be added. The games that were played are untouched.</p>${ed?`<div class="t-fin"><span class="t-fin-tag">&#10003; Finished</span><button class="ghost" onclick="t3Reopen()">Reopen</button></div>`:""}</div>`;
-    h+=t3Players(t,ed);
-  }else if(swIsSwiss(p))h+=swBody(t,ed);
-  else{
+    else if(demo)h+=`<div class="panel plain"><p class="t3-lead">This Demo event is closed: it is off the public list and nobody else can be added. The games that were played are untouched.</p></div>`;
+    else if(run)h+=t3DeckBlock(t)+t3NextHtml(t);
+    h+=pane;
+  }else
+  {
     const wait=run&&tvGroupsDone(p)&&!t3Drawn(p),act=ed&&run;
     run&&(h+=t3NextHtml(t));
     h+=`<div class="panel plain">${tvViewBar(p)}${tvGroupsPart({payload:p,id:t.id},act)}</div>
