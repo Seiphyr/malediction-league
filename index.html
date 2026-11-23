@@ -874,6 +874,12 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .t3-note{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0 0;font-size:13.5px;color:var(--bone-dim)}
 .t3-rep{margin:18px 0 2px;text-align:center}
 .t3-share{margin:14px 0 0}
+.ev-qr{max-width:380px;text-align:center}
+.ev-qr-p{background:#fff;border-radius:10px;padding:8px;display:flex;justify-content:center}
+.ev-qr .qr{width:100%;max-width:300px;height:auto;display:block}
+.ev-qr-c{margin:12px 0 2px}
+.ev-qr-u{word-break:break-all;margin:0 0 4px;font-size:11.5px}
+@media print{body>*{display:none!important}body>#ev-qr{display:block!important;position:static;background:none;padding:0}#ev-qr .tkmodal{border:0;box-shadow:none;max-width:none;padding:0;margin:0;background:none}#ev-qr .ev-qr-p{padding:0}#ev-qr .qr{max-width:none;width:14cm}#ev-qr .tk-ask-row,#ev-qr .ev-qr-u{display:none}}
 .t3-share-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .t3-code{font-family:Oswald,sans-serif;font-size:19px;letter-spacing:.22em;color:var(--bone);background:var(--coal-2);border:1px solid var(--line);border-radius:8px;padding:6px 12px}
 .t3-in{margin:10px 0 0;color:var(--bone-dim)}
@@ -5889,9 +5895,161 @@ function evShareHtml(t){
   if(!u)return"";
   return`<div class="t3-share"><div class="tm-label">Let people join</div>
     <p class="hint" style="margin:0 0 6px">Anyone who opens this joins the event, signing up first if they have to. Read the code out or send the link.</p>
-    <div class="t3-share-r"><code class="t3-code">${esc(String(t.join_code).toUpperCase())}</code><button type="button" class="ghost" onclick="evCopy()">Copy the link</button></div></div>`;
+    <div class="t3-share-r"><code class="t3-code">${esc(String(t.join_code).toUpperCase())}</code><button type="button" class="ghost" onclick="evCopy()">Copy the link</button><button type="button" class="ghost" onclick="evQr()">Show a QR code</button></div></div>`;
 }
 function evCopy(){const t=cache.tourney,u=evLinkOf(t);u&&copyText(u,()=>toast("Link copied",!0))}
+
+
+const QR_DC=[16,28,44,64,86,108],QR_EC=[10,16,26,18,24,16],QR_BL=[1,1,1,2,2,4];
+let QR_G=null;
+
+function qrGf(){
+  if(QR_G)return QR_G;
+  const e=new Uint8Array(512),l=new Uint8Array(256);
+  let x=1;
+  for(let i=0;i<255;i++){e[i]=x;l[x]=i;x=x<<1^(128&x?285:0)}
+  for(let i=255;i<512;i++)e[i]=e[i-255];
+  return QR_G={e,l}}
+const qrMul=(a,b)=>{if(!a||!b)return 0;const g=qrGf();return g.e[g.l[a]+g.l[b]]};
+
+function qrGen(n){
+  const g=qrGf();let p=[1];
+  for(let i=0;i<n;i++){
+    const r=new Array(p.length+1).fill(0);
+    for(let j=0;j<p.length;j++){r[j]^=p[j];r[j+1]^=qrMul(p[j],g.e[i])}
+    p=r}
+  return p}
+
+function qrRem(d,n){
+  const g=qrGen(n),r=new Uint8Array(n);
+  for(let i=0;i<d.length;i++){
+    const f=d[i]^r[0];
+    r.copyWithin(0,1);r[n-1]=0;
+    for(let j=0;j<n;j++)r[j]^=qrMul(g[j+1],f)}
+  return r}
+
+function qrMat(s,msk){
+  const by=(new TextEncoder).encode(String(s));
+  let v=0;
+  for(let i=0;i<6&&!v;i++)if(by.length<=QR_DC[i]-2)v=i+1;
+  if(!v)return null;
+  const D=QR_DC[v-1],E=QR_EC[v-1],NB=QR_BL[v-1],PB=D/NB,n=4*v+17;
+  
+  const b=[],pu=(x,w)=>{for(let i=w-1;i>=0;i--)b.push(x>>i&1)};
+  pu(4,4);pu(by.length,8);
+  for(let i=0;i<by.length;i++)pu(by[i],8);
+  for(let i=0;i<4&&b.length<8*D;i++)b.push(0);
+  while(b.length%8)b.push(0);
+  const dat=new Uint8Array(D);
+  for(let i=0;8*i<b.length;i++){let x=0;for(let j=0;j<8;j++)x=x<<1|b[8*i+j];dat[i]=x}
+  for(let i=b.length/8,p=0;i<D;i++,p^=1)dat[i]=p?17:236;
+  
+  const db=[],eb=[];
+  for(let i=0;i<NB;i++){const d=dat.slice(i*PB,(i+1)*PB);db.push(d);eb.push(qrRem(d,E))}
+  const cw=[];
+  for(let i=0;i<PB;i++)for(let j=0;j<NB;j++)cw.push(db[j][i]);
+  for(let i=0;i<E;i++)for(let j=0;j<NB;j++)cw.push(eb[j][i]);
+  
+  const m=new Uint8Array(n*n),f=new Uint8Array(n*n),st=(x,y,d)=>{m[y*n+x]=d;f[y*n+x]=1};
+  
+  const fd=(x,y)=>{for(let dy=-1;dy<8;dy++)for(let dx=-1;dx<8;dx++){
+    const X=x+dx,Y=y+dy;
+    if(X<0||Y<0||X>=n||Y>=n)continue;
+    const d=Math.max(Math.abs(dx-3),Math.abs(dy-3));
+    st(X,Y,2!==d&&d<=3?1:0)}};
+  fd(0,0);fd(n-7,0);fd(0,n-7);
+  
+  for(let i=8;i<n-8;i++){st(6,i,i%2?0:1);st(i,6,i%2?0:1)}
+  if(v>1){const c=n-7;
+    for(let dy=-2;dy<3;dy++)for(let dx=-2;dx<3;dx++)st(c+dx,c+dy,1!==Math.max(Math.abs(dx),Math.abs(dy))?1:0)}
+  
+  const put=k=>{
+    let r=k;
+    for(let i=0;i<10;i++)r=r<<1^0x537*(r>>9);
+    const fi=(k<<10|r)^0x5412,g=i=>fi>>i&1;
+    for(let i=0;i<6;i++)st(8,i,g(i));
+    st(8,7,g(6));st(8,8,g(7));st(7,8,g(8));
+    for(let i=9;i<15;i++)st(14-i,8,g(i));
+    for(let i=0;i<8;i++)st(n-1-i,8,g(i));
+    for(let i=8;i<15;i++)st(8,n-15+i,g(i));
+    st(8,n-8,1)};
+  
+  put(0);
+  
+  let i=0;
+  for(let right=n-1;right>=1;right-=2){
+    if(6===right)right=5;
+    for(let w=0;w<n;w++)for(let j=0;j<2;j++){
+      const x=right-j,y=2&right+1?w:n-1-w;
+      if(!f[y*n+x]&&i<8*cw.length){m[y*n+x]=cw[i>>3]>>(7-(7&i))&1;i++}}}
+  
+  const MK=[(x,y)=>!((x+y)%2),(x,y)=>!(y%2),(x,y)=>!(x%3),(x,y)=>!((x+y)%3),
+    (x,y)=>!(((y/2|0)+(x/3|0))%2),(x,y)=>!(x*y%2+x*y%3),
+    (x,y)=>!((x*y%2+x*y%3)%2),(x,y)=>!(((x+y)%2+x*y%3)%2)];
+  const ap=k=>{for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(!f[y*n+x]&&MK[k](x,y))m[y*n+x]^=1};
+  let best=null==msk?-1:msk;
+  if(0>best){let lo=Infinity;
+    for(let k=0;k<8;k++){ap(k);put(k);const p=qrPen(m,n);ap(k);if(p<lo){lo=p;best=k}}}
+  ap(best);put(best);
+  return{n:n,m:m,v:v,k:best}}
+
+const QR_F1=[1,0,1,1,1,0,1,0,0,0,0],QR_F2=[0,0,0,0,1,0,1,1,1,0,1];
+function qrPen(m,n){
+  let p=0;
+  const at=(x,y)=>m[y*n+x];
+  for(let i=0;i<n;i++)for(let d=0;d<2;d++){
+    let run=0,last=-1;
+    const L=[];
+    for(let j=0;j<n;j++){
+      const c=d?at(i,j):at(j,i);
+      L.push(c);
+      c===last?(++run,5===run?p+=3:run>5&&p++):(run=1,last=c)}
+    for(let j=0;j+11<=n;j++){
+      let a=1,b=1;
+      for(let k=0;k<11;k++){
+        const w=L[j+k];
+        w!==QR_F1[k]&&(a=0);w!==QR_F2[k]&&(b=0)}
+      p+=40*(a+b)}}
+  for(let y=0;y+1<n;y++)for(let x=0;x+1<n;x++){
+    const c=at(x,y);
+    c===at(x+1,y)&&c===at(x,y+1)&&c===at(x+1,y+1)&&(p+=3)}
+  let dk=0;
+  for(let i=0;i<m.length;i++)dk+=m[i];
+  return p+10*Math.floor(Math.abs(20*dk-10*m.length)/m.length)}
+
+function qrSvg(s,lab){
+  const r=qrMat(s);
+  if(!r)return"";
+  const n=r.n,m=r.m,T=n+8;
+  let d="";
+  for(let y=0;y<n;y++)for(let x=0;x<n;){
+    if(!m[y*n+x]){x++;continue}
+    let w=1;
+    while(x+w<n&&m[y*n+x+w])w++;
+    d+="M"+(x+4)+" "+(y+4)+"h"+w+"v1h-"+w+"z";x+=w}
+  return`<svg class="qr" viewBox="0 0 ${T} ${T}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(lab||"QR code")}"><path d="M0 0h${T}v${T}H0z" fill="#fff"/><path d="${d}" fill="#000"/></svg>`}
+
+function evQr(){
+  const t=cache.tourney,u=evLinkOf(t);
+  if(!u)return;
+  const g=qrSvg(u,"QR code for joining this event");
+  if(!g)return void toast("That link is too long to put in a QR code.");
+  const d=document.createElement("div");
+  d.className="tkov";d.id="ev-qr";
+  d.innerHTML=`<div class="tkmodal ev-qr" role="dialog" aria-modal="true" aria-labelledby="ev-qr-h">
+    <h3 id="ev-qr-h">Scan to join</h3>
+    <div class="ev-qr-p">${g}</div>
+    <p class="ev-qr-c"><code class="t3-code">${esc(String(t.join_code).toUpperCase())}</code></p>
+    <p class="hint ev-qr-u">${esc(u)}</p>
+    <div class="tk-ask-row"><button class="ghost" data-close data-autofocus>Close</button><button class="ghost" id="ev-qr-pr">Print</button><button class="act" id="ev-qr-cp">Copy the link</button></div>
+  </div>`;
+  const fin=()=>d.remove();
+  d._slClose=fin;
+  d.onclick=e=>{e.target===d&&fin()};
+  d.querySelector("[data-close]").onclick=fin;
+  d.querySelector("#ev-qr-pr").onclick=()=>window.print();
+  d.querySelector("#ev-qr-cp").onclick=()=>copyText(u,()=>toast("Link copied",!0));
+  document.body.appendChild(d)}
 function signInToJoin(id){
   try{sessionStorage.setItem(JOINAFTER,id);localStorage.setItem(PENDJOIN,JSON.stringify({l:id,t:Date.now()}))}catch(e){}
   go("auth");
@@ -10177,7 +10335,6 @@ function swGuide(n){const r=swRoundsFor(n);return n<4?`With ${n} players, ${r} r
 function swPlan(n,r,min){const g=Math.floor(n/2);return`${n} players · ${r} round${1===r?"":"s"}${min?` of ${min} minutes`:""} · ${g} game${1===g?"":"s"}${n%2?" and a bye":""} each round`}
 
 function t3DemoHtml(t){
-  const mode=t3ModeSel(t);
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Open</h2>
     <p class="hint" style="margin:0 0 10px">No rounds: players turn up, play a game with a 25-card deck and leave, and you add whoever walks in to the list below. Their matches are tracked from Play &rsaquo; Match like any other. Close the event when it is over.</p>
     <div class="tm-label" style="margin-top:12px">Who can come</div>
