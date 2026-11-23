@@ -9698,7 +9698,7 @@ async function paintTnMine(){
     ln=id=>(L.find(l=>l.id===id)||{}).name||"",run=T.filter(t=>!fin(t)),past=T.filter(fin),
     row=t=>{const p=t.payload||{},np=tvPlayers(p),r=!fin(t),dt=tvWhen(t),c=ln(t.league_id),pl=`${np} player${1===np?"":"s"}`;
       if(null!=t.status){const ti=String(p.pn&&p.pn.title||"").trim()||"Tournament";return`<button type="button" class="nu-row tnp-row" onclick="go('tournaments',{tournamentId:${jsq(t.id)}})">
-      <span class="tnp-l"><small>${esc(c||"Play Network event")}</small><span class="tnp-t">${esc(ti)}</span><span><b>${esc(t3StateLabel(t.status,t.mode))}</b> · ${pl}</span></span>
+      <span class="tnp-l"><small>${esc(c||"Play Network event")}</small><span class="tnp-t">${esc(ti)}</span><span><b>${esc(t3StateLabel(t.status,t.mode))}</b> · <span class="tn-dm">${esc("demo"===t.mode?t3GameLabel(t.mode):t3Kind(t.mode))}</span> · ${pl}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`}
       return`<button type="button" class="nu-row tnp-row" onclick="tnpOpen(${jsq(t.league_id)},${jsq(t.id)},${r?1:0})">
       <span class="tnp-l"><small>${esc(c||"Community")}</small><span><b>${r?"Running":"&#9819; Finished"}</b>${dt?" · "+esc(dt):""} · ${pl}</span></span>
