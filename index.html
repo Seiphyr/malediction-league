@@ -2524,7 +2524,12 @@ function slCommunityWords(t){return String(t).replace(/(?<!Seekers )\b([Ll])eagu
 function slIsNetErr(e){const s=e&&"object"==typeof e?(e.name||"")+" "+(e.message||""):String(e??"");return SL_ERR_MAP[0][0].test(s)}
 function toast(e,n,ms){const t=$("toast"),off=()=>{clearTimeout(t._t),t.className="toast"+(n?" ok":"")};n||(e=slHumanErr(e)),t.textContent=e,t.className="toast show"+(n?" ok":""),t.onclick=off,clearTimeout(t._t),t._t=setTimeout(off,ms||(n?2600:6e3))}function fmtDate(e){return slFmt(SL_DF_DAY,new Date(e+"T00:00:00"),String(e??""))}function timeAgo(e){if(!e)return"never";const n=Math.floor((Date.now()-new Date(e))/864e5);return n<=0?"today":1===n?"yesterday":n<30?n+"d ago":n<365?Math.floor(n/30)+"mo ago":Math.floor(n/365)+"y ago"}function safeUrl(e){if(!e)return null;const n=String(e).trim();if(!n)return null;try{const e=new URL(n);return"http:"===e.protocol||"https:"===e.protocol?e.href:null}catch(e){return null}}
 function joinCodeOk(c){return/^[A-Z0-9]{4,12}$/.test(String(c||""))}
-function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}function go(e,n={}){window._nbSt=null,"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e&&"makers"!==e||(window._mfTab="heralds"===e?"h":"makers"===e?"m":"c","makers"===e&&(window._mkF=""),window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e?"#/events"+(route.tournamentId?"/"+route.tournamentId:""):"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);"events"===e[0]&&(e[0]="tournaments");return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:"ev"===e[0]&&e[1]?{view:"ev",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
+function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",b=new Uint8Array(6);try{crypto.getRandomValues(b)}catch(x){for(let i=0;i<6;i++)b[i]=Math.floor(256*Math.random())}return Array.from(b,x=>A[x%32]).join("")}
+
+async function newJoinCode(){let r=null;try{r=await sb.rpc("gen_join_code")}catch(x){r={error:x}}
+  const c=r&&!r.error&&"string"==typeof r.data?r.data.trim().toUpperCase():"";
+  return joinCodeOk(c)?c:genCode()}
+function go(e,n={}){window._nbSt=null,"communities"===e&&(window._mfTab="c",e="leagues"),"finder"!==e&&"heralds"!==e&&"makers"!==e||(window._mfTab="heralds"===e?"h":"makers"===e?"m":"c","makers"===e&&(window._mkF=""),window._mfScroll=1,e="leagues"),"mine"!==e&&(openPane=null),"auth"===e&&"auth"!==route.view&&authBackSave(location.hash),"auth"!==e&&"auth"===route.view&&!me&&!ckMail&&authBackClear(),route.view=e,void 0!==n.leagueId&&(route.leagueId=n.leagueId),void 0!==n.tab&&(route.tab=n.tab),route.deckId=void 0!==n.deckId?n.deckId:null,route.profileId=n.profileId||null,route.tournamentId=n.tournamentId||null;const t="profile"===e&&route.profileId?`#/profile/${route.profileId}`:"tournaments"===e?"#/events"+(route.tournamentId?"/"+route.tournamentId:""):"league"===e?`#/league/${route.leagueId}${route.tab?"/"+route.tab:""}`:"builder"===e&&route.deckId?`#/builder/${route.deckId}`:"deck"===e&&route.deckId?`#/deck/${route.deckId}`:`#/${e}`;location.hash!==t?slmWrite(t):slmAfter=null,slmHref=location.href,scrollTop(),render()}function scrollTop(){try{window.scrollTo({top:0,left:0,behavior:"instant"})}catch(e){window.scrollTo(0,0)}const e=document.querySelector(".maincol");e&&e.scrollTop&&(e.scrollTop=0)}function parseHash(){const e=location.hash.replace(/^#\//,"").split("/").filter(Boolean);"events"===e[0]&&(e[0]="tournaments");return e.length?"card"===e[0]&&e[1]?{view:"browse",leagueId:null,tab:null,deckId:null,card:decodeURIComponent(e[1])}:"league"===e[0]&&e[1]?{view:"league",leagueId:e[1],tab:e[2]||"about",deckId:null}:"deck"===e[0]&&e[1]?{view:"deck",leagueId:null,tab:null,deckId:e[1]}:"builder"===e[0]?{view:"builder",leagueId:null,tab:null,deckId:e[1]||null}:"profile"===e[0]&&e[1]?{view:"profile",leagueId:null,tab:null,deckId:null,profileId:e[1]}:"tournaments"===e[0]&&e[1]?{view:"tournaments",leagueId:null,tab:null,deckId:null,tournamentId:e[1]}:"join"===e[0]&&e[1]?{view:"join",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:"ev"===e[0]&&e[1]?{view:"ev",leagueId:null,tab:null,deckId:null,code:String(e[1]).toUpperCase()}:{view:e[0],leagueId:null,tab:null,deckId:null}:{view:"browse",leagueId:null,tab:null,deckId:null}}
 
 const SLM_SEL=".tkov,.card-light,.sheet,.tk-die-ov";
 let slmStack=[],slmIgnore=0,slmSeq=0,slmSyncT=0,slmIgnoreT=0;
@@ -2671,6 +2676,8 @@ function authBackTake(){
   if(authBackOk(h)){0===h.indexOf("#/join/")&&(joinLinkOk=h.slice(7));0===h.indexOf("#/ev/")&&(evLinkOk=h.slice(5));return keep(h)}
   if(ja&&/^[0-9a-f-]{36}$/i.test(ja))return keep("#/league/"+ja);
   if(p&&Date.now()-p.t<36e5){
+    
+    if(p.k&&(joinCodeOk(p.c)||evCodeOk(p.e)))return keep("#/"+("event"===p.k?"ev":"join")+"/"+(p.c||p.e));
     if(joinCodeOk(p.c))return keep("#/join/"+p.c);
     
     if(evCodeOk(p.e))return keep("#/ev/"+p.e);
@@ -2687,10 +2694,12 @@ function authReturn(){
 function authJoining(){return!!authJoinWhat()}
 
 function authJoinWhat(){try{
+  const p=JSON.parse(localStorage.getItem(PENDJOIN)||"null");
+  
+  if(p&&p.k&&Date.now()-p.t<36e5)return p.k;
   const h=String(sessionStorage.getItem(AUTHBACK)||"");
   if(0===h.indexOf("#/ev/"))return"event";
   if(0===h.indexOf("#/join/")||sessionStorage.getItem(JOINAFTER))return"community";
-  const p=JSON.parse(localStorage.getItem(PENDJOIN)||"null");
   return p?(p.e?"event":"community"):null;
 }catch(e){return null}}
 function authSub(m){
@@ -5780,10 +5789,12 @@ function tkCompact(e,rc){const t=trk.p[e],a=TK_ACCENTS[e],s=tMasteryOf(e),o=tWon
     if(!re)me.role="organizer";
   }
   
-  const ci=on?null:($("nl-city")||{value:""}).value.trim()||null,co=on?null:($("nl-country")||{value:""}).value.trim()||null,row={name:e,location:on?n||"Online":n,city:ci,country:co,description:$("nl-desc").value.trim()||null,is_public:$("nl-public").checked,join_code:genCode(),owner_id:me.id};
+  const ci=on?null:($("nl-city")||{value:""}).value.trim()||null,co=on?null:($("nl-country")||{value:""}).value.trim()||null,row={name:e,location:on?n||"Online":n,city:ci,country:co,description:$("nl-desc").value.trim()||null,is_public:$("nl-public").checked,join_code:await newJoinCode(),owner_id:me.id};
   W&&(row.timezone=tzv,row.discord_url=dcr||null,on&&(row.is_online=!0,row.region=rg));
   if(ci){const hit=await geoOne([ci,co].filter(Boolean).join(", "));if(hit){row.lat=hit.lat;row.lon=hit.lon}}
   let{data:a,error:s}=await sb.from("leagues").insert(row).select().single();
+  
+  if(s&&"23505"===s.code){row.join_code=await newJoinCode();({data:a,error:s}=await sb.from("leagues").insert(row).select().single())}
   if(s&&null!=row.lat&&/\b(lat|lon)\b/.test(s.message||"")){delete row.lat;delete row.lon;({data:a,error:s}=await sb.from("leagues").insert(row).select().single())}
   
   if(s&&W&&slNoCol(s)){window._winOk=!1;if(on){if(btn){btn.disabled=!1;btn.textContent="Create community"}return toast(WIN_UPD)}delete row.timezone;delete row.discord_url;({data:a,error:s}=await sb.from("leagues").insert(row).select().single())}
@@ -5795,7 +5806,10 @@ function tkCompact(e,rc){const t=trk.p[e],a=TK_ACCENTS[e],s=tMasteryOf(e),o=tWon
   await slHomeAdopt(a.id);
   window._lgNew=a.id,openPane=null,window._nlV=null,window._nlKind=null,cache.myLeagues=[],cache.leagues=[],toast("Community created \u2014 code "+t,!0),go("league",{leagueId:a.id,tab:"manage"})
 }
-function joinErr(m){return/No league/i.test(m)?"No community with that code":/archived/i.test(m)?"This community is archived":/Sign in first/i.test(m)?"Sign in first":/retired you/i.test(m)?"An organizer retired you from this community. Ask them to restore you.":null}async function joinByCode(c){return joinWithCode((($("string"==typeof c?c:"join-code")||{}).value||""))}async function joinWithCode(e,say){const T=say||toast;e=String(e||"").trim().toUpperCase();if(!joinCodeOk(e))return T("A join code is letters and digits, usually 6 of them. Check it with your organizer.");if(!me)return joinFromLink(e);let n=null;const jr=await sb.rpc("join_league",{p_code:e}),jm=jr.error?(jr.error.code||"")+" "+(jr.error.message||""):"";if(jr.error&&!/PGRST202|could not find the function/i.test(jm))return T(joinErr(jm)||jr.error.message);if(jr.error){const{data:d,error:t}=await sb.from("leagues").select("id,name").eq("join_code",e).maybeSingle();if(t||!d)return T("No community with that code");const{error:a}=await sb.from("memberships").upsert({league_id:d.id,user_id:me.id,dropped_at:null},{onConflict:"league_id,user_id"});if(a)return T(a.message);n=d}else n=jr.data;await slHomeAdopt(n&&n.id);openPane=null,cache.myLeagues=[],toast("Joined "+n.name,!0),go("league",{leagueId:n.id,tab:"about"});return n}
+function joinErr(m){return/No league/i.test(m)?"No community with that code":/archived/i.test(m)?"This community is archived":/Sign in first/i.test(m)?"Sign in first":/retired you/i.test(m)?"An organizer retired you from this community. Ask them to restore you.":null}async function joinByCode(c){return joinWithCode((($("string"==typeof c?c:"join-code")||{}).value||""))}async function joinWithCode(e,say){const T=say||toast;e=String(e||"").trim().toUpperCase();if(!joinCodeOk(e))return T("A join code is letters and digits, usually 6 of them. Check it with your organizer.");if(!me)return joinFromLink(e);
+  if(evCodeOk(e)){const r=await evLook(e);
+    if(r.ev&&"league"!==r.ev.target)return void await evLinkAsk(e,r.ev);
+    if("revoked"===r.reason||"expired"===r.reason||"used_up"===r.reason)return T(EV_WHY[r.reason]);}let n=null;const jr=await sb.rpc("join_league",{p_code:e}),jm=jr.error?(jr.error.code||"")+" "+(jr.error.message||""):"";if(jr.error&&!/PGRST202|could not find the function/i.test(jm))return T(joinErr(jm)||jr.error.message);if(jr.error){const{data:d,error:t}=await sb.from("leagues").select("id,name").eq("join_code",e).maybeSingle();if(t||!d)return T("No community with that code");const{error:a}=await sb.from("memberships").upsert({league_id:d.id,user_id:me.id,dropped_at:null},{onConflict:"league_id,user_id"});if(a)return T(a.message);n=d}else n=jr.data;await slHomeAdopt(n&&n.id);openPane=null,cache.myLeagues=[],toast("Joined "+n.name,!0),go("league",{leagueId:n.id,tab:"about"});return n}
 
 async function joinLeague(id){
   if(!me)return signInToJoin(id);
@@ -5826,8 +5840,13 @@ async function evFromLink(c){
   c=String(c||"").toUpperCase();
   const ok=evCodeOk(c);
   if(ok&&!me){
+    
+    const r=await evLook(c);
+    if(!r.error&&!r.ev)return void toast(EV_WHY[r.reason]||"That event is no longer open.");
+    const K=r.ev?("league"===r.ev.target?"community":"event"):null;
     authBackSave("#/ev/"+c);
-    try{localStorage.setItem(PENDJOIN,JSON.stringify({e:c,t:Date.now()}))}catch(e){}
+    
+    try{localStorage.setItem(PENDJOIN,JSON.stringify({e:c,k:K,n:r.ev?String(r.ev.title||"").slice(0,40):"",t:Date.now()}))}catch(e){}
     authMode="signup";
     try{history.replaceState(null,"","#/auth")}catch(e){}
     route=parseHash();return void render();
@@ -5837,20 +5856,41 @@ async function evFromLink(c){
   if(!ok)return void toast("That event link isn't complete. Ask the organizer to send it again");
   try{localStorage.removeItem(PENDJOIN)}catch(e){}
   const asked=evLinkOk===c;evLinkOk=null;
-  if(!asked)return void evLinkAsk(c);
+  if(!asked)return void slCodeAsk(c,"ev");
   toast("Joining the event…",!0);
   await evJoinWithCode(c);
 }
 
 async function evLook(c){try{const{data:d,error:x}=await sb.rpc("t_by_code",{p_code:c});return x?{error:x}:{ev:d&&d.ok?d:null,reason:d&&d.reason||null}}catch(e){return{error:e}}}
-async function evLinkAsk(c){
-  const r=await evLook(c);
+
+async function slCodeAsk(c,road){
+  
+  const q=await evLook(c);
+  if(q.error)return void toast(slNoCol(q.error)?"Event links need a site update that is not live yet.":"That link could not be read. Check your connection and try again.");
+  const x=q.ev;
+  
+  if(!x)return"join"===road&&("gone"===q.reason||"bad_code"===q.reason)?void await joinLinkAsk(c):void toast(EV_WHY[q.reason]||"That event is no longer open.");
+  
+  if("league"===x.target)return void await joinLinkAsk(c,{id:x.id,name:x.title,mine:!!x.mine});
+  return void await evLinkAsk(c,x);
+}
+async function evLinkAsk(c,x0){
+  const r=void 0===x0?await evLook(c):{ev:x0};
   if(r.error)return void toast(slNoCol(r.error)?"Event links need a site update that is not live yet.":"That link could not be read. Check your connection and try again.");
   const x=r.ev;
-  if(!x)return void toast("bad_code"===r.reason?"That event link isn't complete. Ask the organizer to send it again":"That event is no longer open.");
+  if(!x)return void toast(EV_WHY[r.reason]||"That event is no longer open.");
   
-  if("draft"!==x.status)return void(toast("That event is over."),go("tournaments",{tournamentId:x.id}));
-  if("demo"!==x.mode)return void(toast("This is a Clash tournament: register on its Play Network page."),go("tournaments",{tournamentId:x.id}));
+  if("league"===x.target)return void await joinLinkAsk(c,{id:x.id,name:x.title,mine:!!x.mine});
+  if(x.invite){
+    
+    if("closed"===x.status)return void(toast("That event is over."),go("tournaments",{tournamentId:x.id}));
+    
+    window._evInv="seat"===x.grants?{c:c,id:x.id}:null;
+    if("seat"!==x.grants)return void await evJoinWithCode(c);
+  }else{
+    if("draft"!==x.status)return void(toast("That event is over."),go("tournaments",{tournamentId:x.id}));
+    if("demo"!==x.mode)return void(toast("This is a Clash tournament: register on its Play Network page."),go("tournaments",{tournamentId:x.id}));
+  }
   if(x.mine)return void(toast("You are already in this event",!0),go("tournaments",{tournamentId:x.id}));
   const where=[x.venue,x.city,x.country].filter(Boolean).join(", "),
     when=x.starts_at?pnWhen({starts_at:x.starts_at}):"",
@@ -5861,26 +5901,31 @@ async function evLinkAsk(c){
           np?np+(1===np?" player is":" players are")+" on the list":"Nobody is on the list yet",
           "\nIt is a Demo event: no rounds. Turn up, play a game with a 25-card deck, and your name is on the list of who came."]
          .filter(Boolean).join("\n"),
-    ok:"Join"}))return;
+    ok:"Join"}))return void(x.invite&&go("tournaments",{tournamentId:x.id}));
   await evJoinWithCode(c);
 }
 async function evJoinWithCode(c){
   let r;try{r=await sb.rpc("t_join",{p_code:c})}catch(e){r={error:e}}
   if(r.error)return void toast(slNoCol(r.error)?"Joining an event needs a site update that is not live yet.":"Not joined — check your connection and try again");
   const d=r.data;
+  if(d&&!d.ok&&"is_community"===d.reason)return void await joinWithCode(c);
   if(!d||!d.ok)return void toast(EV_WHY[d&&d.reason]||d&&d.message||"That did not work. Ask the organizer to add you.");
   
   window._tnRows=null;cache.homeTourneys=null;cache.tourneys=null;cache.allTourneys=null;
+  if(d.viewer)return void(toast("Invite accepted — this event is now open for you",!0),go("tournaments",{tournamentId:d.id}));
   toast(d.already?"You are already in this event":"You are on the list — have a good game",!0);
   go("tournaments",{tournamentId:d.id});
 }
-const EV_WHY={sign_in:"Sign in with your account first.",deleted:"This account was deleted.",bad_code:"That event link isn't complete. Ask the organizer to send it again.",gone:"That event is no longer open.",not_demo:"This is a Clash tournament: register on its Play Network page and link your profile.",status:"That event is over.",full:"That event is full.",ask_organizer:"You are already in this event under your Play Network profile. Ask the organizer to put your account on it.",rate_limited:"You have joined a lot of events. Leave one before joining another."};
+const EV_WHY={sign_in:"Sign in with your account first.",deleted:"This account was deleted.",revoked:"That invite was taken back. Ask the organizer for a new one.",expired:"That invite has expired. Ask the organizer for a new one.",used_up:"That invite has already been used. Ask the organizer for your own.",bad_code:"That event link isn't complete. Ask the organizer to send it again.",gone:"That event is no longer open.",not_demo:"This is a Clash tournament: register on its Play Network page and link your profile.",status:"That event is over.",full:"That event is full.",ask_organizer:"You are already in this event under your Play Network profile. Ask the organizer to put your account on it.",};
 
 function t3CanJoin(t){
   if(!me||!t||!t3IsDemo(t)||t.hidden_at)return!1;
   if("draft"!==t3St(t))return!1;
   if(t3Ent0(t,me.id))return!1;
   if(t.organizer_id===me.id||t3IsOrg(t))return!1;
+  
+  const iv=window._evInv;
+  if(iv&&iv.id===t.id&&iv.c)return!0;
   if("community"!==(t.scope||"community"))return!0;
   const l=t3Lg(t);return!!(l&&l.is_public&&!l.archived_at);
 }
@@ -5889,7 +5934,7 @@ async function t3JoinThis(){
   const t=cache.tourney;
   if(!t3CanJoin(t))return;
   if(!t.join_code)return void toast("Joining an event needs a site update that is not live yet.");
-  await evJoinWithCode(String(t.join_code).toUpperCase());
+  await evJoinWithCode(String((window._evInv&&window._evInv.id===t.id&&window._evInv.c)||t.join_code).toUpperCase());
 }
 
 function evLinkOf(t){return t&&t.join_code?location.origin+location.pathname+"#/ev/"+String(t.join_code).toUpperCase():""}
@@ -6033,8 +6078,11 @@ async function joinFromLink(c){
   c=String(c||"").toUpperCase();
   const ok=joinCodeOk(c);
   if(ok&&!me){
+    
+    const r=await evLook(c);
+    const K=r.ev?("league"===r.ev.target?"community":"event"):null;
     authBackSave("#/join/"+c);
-    try{localStorage.setItem(PENDJOIN,JSON.stringify({c,t:Date.now()}))}catch(e){}
+    try{localStorage.setItem(PENDJOIN,JSON.stringify({c,k:K,n:r.ev?String(r.ev.title||"").slice(0,40):"",t:Date.now()}))}catch(e){}
     authMode="signup";
     try{history.replaceState(null,"","#/auth")}catch(e){}
     route=parseHash();return void render();
@@ -6045,13 +6093,15 @@ async function joinFromLink(c){
   try{localStorage.removeItem(PENDJOIN)}catch(e){}
   
   const asked=joinLinkOk===c;joinLinkOk=null;
-  if(!asked)return void joinLinkAsk(c);
+  if(!asked)return void slCodeAsk(c,"join");
   toast("Joining the community…",!0);
   await joinWithCode(c);
 }
-async function joinLinkAsk(c){
+async function joinLinkAsk(c,l0){
   window._jlCode=c;
-  let l=null;try{const{data:d}=await sb.from("leagues").select("id,name").eq("join_code",c).maybeSingle();l=d||null}catch(e){}
+  
+  let l=l0||null;
+  if(!l)try{const{data:d}=await sb.from("leagues").select("id,name").eq("join_code",c).maybeSingle();l=d||null}catch(e){}
   if(l){let m=null;try{const{data:d}=await sb.from("memberships").select("dropped_at").eq("league_id",l.id).eq("user_id",me.id).maybeSingle();m=d}catch(e){}
     if(m&&!m.dropped_at){toast("You're already in "+l.name,!0);return void go("league",{leagueId:l.id,tab:"about"})}}
   let e=$("jl-modal");
@@ -6115,6 +6165,7 @@ async function renderLeague(){const e=route.leagueId;let n,t,a,s=[];
   
   if("meta"===u&&(s=await fetchMatches(e),fetchMatches.err))return void lgLoadFail(e,lgAgain);
   "manage"===u&&(cache.lgHasEv=await lgHasEvents(e));
+  "manage"===u&&(cache.lgInv=await lgInvLoad(e));
   await ensurePubDecks();await ensureProfNames();await loadDeckMeta(matchDeckIds(s).concat(tvDeckIds(cache.tourneys)));
   const lgAct=t.filter(x=>!x.dropped_at).length,lgUp=lgUpcoming(a).length,lgTn=cache.tourneys.filter(x=>x&&x.payload).length;$("league-header").innerHTML=`${lgArchivedBanner(n)}<div class="panel lg-hd">\n    <div class="flex-between">\n      <div class="lg-hd-info">\n        <h2 class="lg-hd-name">${esc(n.name)}</h2>\n        ${lgLocLine(n)}\n        ${n.description?`<p class="hint lg-hd-desc" style="margin:8px 0 0;max-width:640px">${esc(n.description)}</p>`:""}\n      </div>\n      ${o||l||r?`<div class="lg-hd-act" style="flex:0 0 auto;text-align:right">\n        ${o?`<div class="rolechip organizer" style="margin-bottom:6px">${isOwnerOf(n)?"Creator":"Organizer"}</div>`:l?'<div class="rolechip">Member</div>':""}\n      </div>`:""}\n    </div>\n    ${lgJoinBox(n,l,!1)}${lgHomeRow(n,l)}\n    <div class="lg-hd-chips"><span><b>${lgAct}</b> ${1===lgAct?"player":"players"}</span><span id="lg-upc"><b>${lgUp}</b> upcoming ${1===lgUp?"event":"events"}</span><span><b>${lgTn}</b> ${1===lgTn?"event":"events"}</span></div>\n  </div>`;if(me){let ja=null;try{ja=sessionStorage.getItem(JOINAFTER)}catch(x){}if(ja===n.id){try{sessionStorage.removeItem(JOINAFTER);localStorage.removeItem(PENDJOIN)}catch(x){}!l&&n.is_public&&!lgArchived(n)&&setTimeout(()=>joinLeague(n.id),0)}}$("league-header").classList.add("lg-st");route.view==="league"&&route.leagueId===e&&slSetTitle(({about:"About",events:"Events",tournament:"Tournaments",meta:"Meta",makers:"Makers",manage:"Manage"}[u]||"Community")+" · "+(n.name||"Community"));$("league-sub")&&($("league-sub").innerHTML="");$("league-tabs").innerHTML=d.filter(x=>"tournament"!==x.id).map(x=>`<button class="${x.id===u?"active":""}" onclick="go('league',{leagueId:${jsq(e)},tab:${jsq(x.id)}})">${x.label}</button>`).join("");const p=$("league-body");bdEdSave(p);"about"===u&&(await cbLoad(n),bdEdSave(p),p.innerHTML=paintAbout()),"events"===u&&(p.innerHTML=paintListings(n,a,o)),"meta"===u&&(window._metaRepaint=()=>{p.innerHTML=`<div class="panel plain">${renderMeta(cache.metaMatches)}</div>`},p.innerHTML=`<div class="panel plain">${renderMeta(metaTag(slNoDemo(s.filter(m=>slCounts(m)&&!m.tournament_id).concat(tvAllSynth(cache.tourneys)),await slDemoIds()),await fetchTourneySes()))}</div>`),"tournament"===u&&await paintTournament(n,a,s,t,o),"makers"===u&&(await mkMdLoad(t),p.innerHTML=paintLgMakers()),"manage"===u&&(p.innerHTML=paintManage(n,t));window._lgShown=e+"|"+(route.tab||"");
   if(lgAgain&&Math.abs(window.scrollY-lgY)>2){window.scrollTo(0,lgY);requestAnimationFrame(()=>{Math.abs(window.scrollY-lgY)>2&&window.scrollTo(0,lgY)})}}
@@ -6123,6 +6174,38 @@ async function fetchListings(e){fetchListings.missing=!1;try{const{data:d,error:
 
 function lgUpcoming(L){const t=Date.parse(todayStr()+"T00:00:00");return(L||[]).filter(x=>x&&(x.ends_at||x.starts_at)&&Date.parse(x.ends_at||x.starts_at)>=t)}
 
+
+async function lgInvLoad(id){
+  if(!me||!sb||!sb.rpc||!id)return null;
+  try{const{data:d,error:er}=await sb.rpc("inv_list",{p_tournament:null,p_league:id});
+    return er||!d||!d.ok||!Array.isArray(d.rows)?null:{lg:id,rows:d.rows}}
+  catch(x){return null}
+}
+function lgInvKeep(){const n=$("lg-inv-n");n&&(window._lgInv=n.value)}
+async function lgInvNew(){
+  const lg=cache.league;if(!lg)return;
+  lgInvKeep();
+  const n=String(($("lg-inv-n")||{}).value||"").trim().replace(/\s+/g," ");
+  let d=null;
+  try{const r=await sb.rpc("inv_new",{p_tournament:null,p_league:lg.id,p_note:n||null});
+    if(r.error)return void toast(/PGRST202|could not find the function/i.test((r.error.code||"")+" "+(r.error.message||""))?"Not available yet \u2014 the database needs its latest update":r.error.message);
+    d=r.data}catch(x){return void toast("That did not work. Check your connection and try again")}
+  if(!d||!d.ok)return void toast(d&&d.message||"That invite could not be made");
+  window._lgInv=null;
+  toast("Invite "+d.code+" is ready \u2014 copy its link from the list",!0);
+  renderLeague();
+}
+async function lgInvRevoke(id){
+  const lg=cache.league;if(!lg)return;
+  if(!await slConfirm({title:"Take this invite back?",body:"The code stops working.",ok:"Take back",danger:!0}))return;
+  let d=null;
+  try{const r=await sb.rpc("inv_revoke",{p_id:id});if(r.error)return void toast(r.error.message);d=r.data}
+  catch(x){return void toast("That did not work. Check your connection and try again")}
+  if(!d||!d.ok)return void toast(d&&d.message||"That did not work");
+  
+  toast(d.used?"Invite taken back \u2014 they stay a member of the community":"Invite taken back",!0);
+  renderLeague();
+}
 async function lgHasEvents(e){try{const{count:c,error:x}=await sb.from("sessions").select("id",{count:"exact",head:!0}).eq("league_id",e);return!x&&c>0}catch(x){return!1}}
 
 
@@ -6601,7 +6684,7 @@ function lgsGo(k){
   "event"===k&&(window._newEvent=!0);
   go("league",{leagueId:lg.id,tab:"events"});
 }
-function paintManage(e,n){return lgStartPanel(e,n)+`<div class="panel plain"><h2>Community details</h2><p class="hint">This is what players read at the top of the community page.</p>${lgKindLine(e)}${lgHasWin(e)&&lgOnl(e)?lgOnlineFields(e):`<label class="field"><span>Name</span><input id="lg-name" maxlength="60" value="${esc(e.name||"")}"></label><div class="row tight"><label class="field"><span>Venue</span><input id="lg-loc" maxlength="80" value="${esc(e.location||"")}"></label><label class="field"><span>City</span><input id="lg-city" maxlength="60" value="${esc(e.city||"")}"></label><label class="field"><span>Country</span><input id="lg-country" maxlength="60" value="${esc(e.country||"")}"></label></div><label class="field"><span>Address <span class="opt">optional</span></span><input id="lg-addr" maxlength="200" value="${esc(e.address||"")}" placeholder="Street and number" autocomplete="off"></label>${lgPinHtml(e)}${lgWinFields(e)}`}<label class="field"><span>Description (optional)</span><textarea id="lg-desc" rows="2" maxlength="240" placeholder="When and where you meet">${esc(e.description||"")}</textarea></label><label style="display:flex;align-items:center;gap:9px;margin:12px 0 16px;cursor:pointer"><input type="checkbox" id="lg-public" style="width:auto" ${e.is_public?"checked":""}><span class="hint" style="margin:0">Listed publicly on the home page</span></label><button class="act" id="lg-save" style="width:100%" onclick="saveLeague()">Save details</button></div><div class="panel plain">\n    <h2>Join code</h2>\n    <div class="code-box">\n      <div class="code">${esc(e.join_code)}</div>\n      <small>Community join code</small>\n    </div>\n    <div class="row">\n      <button class="ghost" onclick="copyCode(${jsq(e.join_code)})">Copy code</button>\n      <button class="ghost" onclick="copyInvite()">Copy invite link</button>\n      <button class="ghost" onclick="rerollCode()">Generate new code</button>\n    </div>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Invite link: <span class="inv-url">${esc(inviteLink(e.join_code))}</span><br>Whoever opens it joins this community as soon as they've signed in.</p>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Generating a new code doesn't remove existing members —\n      it only invalidates the old code for new joins.</p>\n  </div>\n\n  <div class="panel plain">\n    <h2>Members</h2>\n    <table><thead><tr><th>Player</th><th>Role</th><th></th></tr></thead><tbody>\n      ${n.map(n=>`<tr>\n        <td class="${me&&n.id===me.id?"me":""}">${esc(n.display_name)}${me&&n.id===me.id?" (you)":""}</td>\n        <td>${e.owner_id===n.id?'<span class="ownchip">Creator</span>':n.dropped_at?'<span class="retchip">Retired</span>'+(n.is_admin?' <span class="mb-still" title="Retired, but still has organizer rights. Demote them to take those away.">still co-organizer</span>':''):n.is_admin?'<span style="color:var(--brass)">Co-organizer</span>':"Player"}</td>\n        <td style="text-align:right"><div class="mb-act">${e.owner_id===n.id?"":n.dropped_at?`${n.is_admin&&canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},false)" title="Take away their organizer rights">Demote</button>`:""}${n.dropped_by===n.id?`<span class="hint" title="They left by themselves and can rejoin with the join code">Left</span>`:`<button class="ghost" onclick="mbRestore(${jsq(n.id)})">Bring back</button>`}`:`${canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},${!n.is_admin})" title="${n.is_admin?"Make them a player again":"Make them a co-organizer"}">${n.is_admin?"Demote":"Promote"}</button>`:""}${n.is_admin&&!canCreatorAct(e)?"":`<button class="t-x" onclick="mbDrop(${jsq(n.id)})" title="Drop from the community" aria-label="Drop player">&#10005;</button>`}`}</div></td></tr>`).join("")}\n    </tbody></table>\n  </div>\n\n  <div class="panel plain">\n    <h2>Creator controls</h2>\n    ${isOwnerOf(e)?`<p class="hint">Only you can do these.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>\n    <div class="oz-row"><div><b>Hand the community over</b><small>They get these controls and you drop to co-organizer. You cannot undo it yourself.</small></div><div class="oz-pick"><select id="lg-owner"><option value="">— pick a player —</option>${n.filter(x=>x.id!==e.owner_id&&!x.dropped_at).map(x=>`<option value="${x.id}">${esc(x.display_name)}</option>`).join("")}</select><button class="ghost" onclick="lgTransfer()">Transfer</button></div></div>\n    <div class="oz-row"><div><b>Delete the community</b><small>Ask the site admin with a reason. If it is approved, everything is deleted for good. To stop playing, Archive keeps the history instead.</small></div><button class="ghost t-danger-b" onclick="lgDeleteAsk()">Ask to delete</button></div>`:lgCreatorGone(e)?`<p class="hint">The creator deleted their account, so the organizers can archive or reopen the community and promote or demote organizers. To delete it, write to the site admin.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>`:`<p class="hint">Only ${esc((n.find(x=>x.id===e.owner_id)||{}).display_name||"the creator")}, who made the community, can promote or demote organizers, archive it, hand it over or ask to delete it.</p>`}\n  </div>`}
+function paintManage(e,n){return lgStartPanel(e,n)+`<div class="panel plain"><h2>Community details</h2><p class="hint">This is what players read at the top of the community page.</p>${lgKindLine(e)}${lgHasWin(e)&&lgOnl(e)?lgOnlineFields(e):`<label class="field"><span>Name</span><input id="lg-name" maxlength="60" value="${esc(e.name||"")}"></label><div class="row tight"><label class="field"><span>Venue</span><input id="lg-loc" maxlength="80" value="${esc(e.location||"")}"></label><label class="field"><span>City</span><input id="lg-city" maxlength="60" value="${esc(e.city||"")}"></label><label class="field"><span>Country</span><input id="lg-country" maxlength="60" value="${esc(e.country||"")}"></label></div><label class="field"><span>Address <span class="opt">optional</span></span><input id="lg-addr" maxlength="200" value="${esc(e.address||"")}" placeholder="Street and number" autocomplete="off"></label>${lgPinHtml(e)}${lgWinFields(e)}`}<label class="field"><span>Description (optional)</span><textarea id="lg-desc" rows="2" maxlength="240" placeholder="When and where you meet">${esc(e.description||"")}</textarea></label><label style="display:flex;align-items:center;gap:9px;margin:12px 0 16px;cursor:pointer"><input type="checkbox" id="lg-public" style="width:auto" ${e.is_public?"checked":""}><span class="hint" style="margin:0">Listed publicly on the home page</span></label><button class="act" id="lg-save" style="width:100%" onclick="saveLeague()">Save details</button></div><div class="panel plain">\n    <h2>Join code</h2>\n    <div class="code-box">\n      <div class="code">${esc(e.join_code)}</div>\n      <small>Community join code</small>\n    </div>\n    <div class="row">\n      <button class="ghost" onclick="copyCode(${jsq(e.join_code)})">Copy code</button>\n      <button class="ghost" onclick="copyInvite()">Copy invite link</button>\n      <button class="ghost" onclick="rerollCode()">Generate new code</button>\n    </div>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Invite link: <span class="inv-url">${esc(inviteLink(e.join_code))}</span><br>Whoever opens it joins this community as soon as they've signed in.</p>\n    <p class="hint" style="margin:12px 0 0;font-size:12.5px">Generating a new code doesn't remove existing members —\n      it only invalidates the old code for new joins.</p>\n  </div>\n\n  <div class="panel plain">\n    <h2>One-use invites</h2>\n    <p class="hint" style="margin:0 0 10px;font-size:12.5px">For one person: it works once, expires in 30 days, and you can take it back. The code above never expires and works for anybody who has it.</p>\n    ${(()=>{const C=cache.lgInv,R=C&&C.lg===e.id?C.rows:null,V="string"==typeof window._lgInv?window._lgInv:"";return(R?(R.length?`<ul class="t3-unl-l">${R.map(r=>t3InvRow(r,"join")).join("")}</ul>`:'<div class="empty">No invites yet.</div>'):'<p class="hint">That list could not be loaded.</p>')+`<div class="t3-add" role="group" aria-label="Make an invite">\n      <label class="field"><span>Who is it for <span class="opt">optional</span></span><input id="lg-inv-n" maxlength="40" autocomplete="off" placeholder="A name, so you know whose code is whose" value="${esc(V)}" oninput="lgInvKeep()" onkeydown="'Enter'===event.key&&(event.preventDefault(),lgInvNew())"></label>\n      <button class="act" onclick="lgInvNew()">Make an invite</button>\n    </div>`})()}\n  </div>\n\n  <div class="panel plain">\n    <h2>Members</h2>\n    <table><thead><tr><th>Player</th><th>Role</th><th></th></tr></thead><tbody>\n      ${n.map(n=>`<tr>\n        <td class="${me&&n.id===me.id?"me":""}">${esc(n.display_name)}${me&&n.id===me.id?" (you)":""}</td>\n        <td>${e.owner_id===n.id?'<span class="ownchip">Creator</span>':n.dropped_at?'<span class="retchip">Retired</span>'+(n.is_admin?' <span class="mb-still" title="Retired, but still has organizer rights. Demote them to take those away.">still co-organizer</span>':''):n.is_admin?'<span style="color:var(--brass)">Co-organizer</span>':"Player"}</td>\n        <td style="text-align:right"><div class="mb-act">${e.owner_id===n.id?"":n.dropped_at?`${n.is_admin&&canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},false)" title="Take away their organizer rights">Demote</button>`:""}${n.dropped_by===n.id?`<span class="hint" title="They left by themselves and can rejoin with the join code">Left</span>`:`<button class="ghost" onclick="mbRestore(${jsq(n.id)})">Bring back</button>`}`:`${canCreatorAct(e)?`<button class="ghost" onclick="toggleAdmin(${jsq(n.id)},${!n.is_admin})" title="${n.is_admin?"Make them a player again":"Make them a co-organizer"}">${n.is_admin?"Demote":"Promote"}</button>`:""}${n.is_admin&&!canCreatorAct(e)?"":`<button class="t-x" onclick="mbDrop(${jsq(n.id)})" title="Drop from the community" aria-label="Drop player">&#10005;</button>`}`}</div></td></tr>`).join("")}\n    </tbody></table>\n  </div>\n\n  <div class="panel plain">\n    <h2>Creator controls</h2>\n    ${isOwnerOf(e)?`<p class="hint">Only you can do these.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>\n    <div class="oz-row"><div><b>Hand the community over</b><small>They get these controls and you drop to co-organizer. You cannot undo it yourself.</small></div><div class="oz-pick"><select id="lg-owner"><option value="">— pick a player —</option>${n.filter(x=>x.id!==e.owner_id&&!x.dropped_at).map(x=>`<option value="${x.id}">${esc(x.display_name)}</option>`).join("")}</select><button class="ghost" onclick="lgTransfer()">Transfer</button></div></div>\n    <div class="oz-row"><div><b>Delete the community</b><small>Ask the site admin with a reason. If it is approved, everything is deleted for good. To stop playing, Archive keeps the history instead.</small></div><button class="ghost t-danger-b" onclick="lgDeleteAsk()">Ask to delete</button></div>`:lgCreatorGone(e)?`<p class="hint">The creator deleted their account, so the organizers can archive or reopen the community and promote or demote organizers. To delete it, write to the site admin.</p>\n    <div class="oz-row"><div><b>${lgArchived(e)?"Reopen the community":"Archive the community"}</b><small>${lgArchived(e)?"Events, tournaments and joining work again.":"The history stays readable. Nobody can add events, tournaments or members."}</small></div><button class="ghost" onclick="${lgArchived(e)?"lgUnarchive()":"lgArchive()"}">${lgArchived(e)?"Reopen":"Archive"}</button></div>`:`<p class="hint">Only ${esc((n.find(x=>x.id===e.owner_id)||{}).display_name||"the creator")}, who made the community, can promote or demote organizers, archive it, hand it over or ask to delete it.</p>`}\n  </div>`}
 async function lgDeleteAsk(){
   const lg=cache.league;if(!lg||!me||lg.owner_id!==me.id)return;
   const old=$("lg-del-ask");old&&old.remove();
@@ -6623,7 +6706,10 @@ async function lgDeleteSend(){
   b&&(b.disabled=!1);
   if(er)return toast(er.message);
   const m=$("lg-del-ask");m&&m.remove();toast("Request sent. The site admin will review it; the answer appears under My reports.",!0);
-}function copyCode(e){copyText(e,()=>{toast("Code copied",!0);cache.league&&cache.league.join_code===e&&lgsMarkShared()})}async function rerollCode(){if(!await slConfirm({title:"Generate a new join code?",body:"The old one stops working.",ok:"New code",danger:!0}))return;const e=genCode(),{error:n}=await sb.from("leagues").update({join_code:e}).eq("id",cache.league.id);if(n)return toast(n.message);toast("New code: "+e,!0),renderLeague()}async function toggleAdmin(e,n){const{error:t}=await sb.from("memberships").update({is_admin:n}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n?"Promoted to co-organizer":"Demoted to player",!0),cache.myLeagues=[],renderLeague()}
+}function copyCode(e){copyText(e,()=>{toast("Code copied",!0);cache.league&&cache.league.join_code===e&&lgsMarkShared()})}async function rerollCode(){if(!await slConfirm({title:"Generate a new join code?",body:"The old one stops working.",ok:"New code",danger:!0}))return;let e=await newJoinCode(),n=(await sb.from("leagues").update({join_code:e}).eq("id",cache.league.id)).error;
+  
+  if(n&&"23505"===n.code){e=await newJoinCode();n=(await sb.from("leagues").update({join_code:e}).eq("id",cache.league.id)).error}
+  if(n)return toast(n.message);toast("New code: "+e,!0),renderLeague()}async function toggleAdmin(e,n){const{error:t}=await sb.from("memberships").update({is_admin:n}).eq("league_id",cache.league.id).eq("user_id",e);if(t)return toast(t.message);toast(n?"Promoted to co-organizer":"Demoted to player",!0),cache.myLeagues=[],renderLeague()}
 const TV_MIN=3;
 
 function tvIsV2(p){return !!(p&&(2===p.v||3===p.v))}
@@ -9936,7 +10022,7 @@ async function t3Reload(){
   if(!r.row){cache.tourney=null;const e=$("tnp-body");return void(e&&t3Missing(e))}
   t3Paint(r.row);t3After(r.row);
 }
-async function t3After(t){duInbox();try{await t3DeckLoad(t)}catch(x){}try{swKick(t)}catch(x){}try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
+async function t3After(t){duInbox();try{await t3DeckLoad(t)}catch(x){}try{t3Ed(t)&&!t.hidden_at&&"closed"!==t3St(t)&&await t3InvLoad(t)}catch(x){}try{swKick(t)}catch(x){}try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
 function t3Typing(){const a=document.activeElement,b=$("tnp-body");return!!(a&&b&&b.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
 function t3Repaint(){const t=cache.tourney;"tournaments"===route.view&&t&&route.tournamentId===t.id&&!t3Typing()&&t3Paint(t)}
 
@@ -10567,6 +10653,19 @@ function swPnAll(){
   const n=swCur(t.payload);copyText(swPnAllText(t),()=>toast(`All results copied: ${n} round${1===n?"":"s"} and the ${"closed"===t3St(t)?"final ":""}standings.`,!0));
 }
 
+
+async function t3InvLoad(t,loud){
+  if(!me||!sb||!sb.rpc||!t||!t3Ed(t))return;
+  const C=cache.t3Inv;
+  if(!loud&&C&&C.tid===t.id&&!C.err&&Date.now()-C.at<6e4)return;
+  let d=null;
+  try{const r=await sb.rpc("inv_list",{p_tournament:t.id,p_league:null});d=r&&!r.error?r.data:null}catch(x){d=null}
+  
+  cache.t3Inv=d&&d.ok&&Array.isArray(d.rows)?{tid:t.id,at:Date.now(),rows:d.rows}:{tid:t.id,at:Date.now(),rows:null,err:!0};
+  loud&&cache.t3Inv.err&&toast("That list could not be loaded");
+  if("tournaments"!==route.view||!cache.tourney||cache.tourney.id!==t.id)return;
+  t3Repaint();
+}
 async function swPnRpLoad(t){
   if(!me||!sb||!sb.from||!t||!t.payload)return;
   const C=cache.swRp||(cache.swRp={}),ids=[...new Set((t.payload.gm||[]).filter(m=>m&&m.du&&null==m.rp&&!(m.du in C)).map(m=>String(m.du)))].filter(t3IdOk).slice(0,200);
@@ -10659,16 +10758,19 @@ function evTabs(t,ed){
   const add=(k,l,html)=>{B[k]=html;T.push({k:k,l:l})};
   if(demo){
     add("players","Players",t3Players(t,ed));
-    ed&&draft&&t.join_code&&add("invite","Invite",t3InviteHtml(t));
+    ed&&draft&&!t.hidden_at&&add("invite","Invite",t3InviteHtml(t));
     ed&&add("settings","Settings",t3SettingsHtml(t,ed));
   }else if(draft){
     add("players","Players",t3Players(t,ed));
+    ed&&!t.hidden_at&&add("invite","Invite",t3InviteHtml(t));
     ed&&add("settings","Settings",t3SettingsHtml(t,ed));
   }else if(swIsSwiss(p)){
     closed&&add("result","Result",swResultPanel(t,p,rows));
     add("rounds","Rounds",swRoundsPanel(t,act,p));
     run&&add("standings","Standings",swStandingsPanel(p,rows));
     add("players","Players",t3Players(t,ed));
+    
+    ed&&!closed&&!t.hidden_at&&add("invite","Invite",t3InviteHtml(t));
     ed&&add("settings","Settings",t3SettingsHtml(t,ed));
   }else return null;   
   const on=evTabKey(t,T);
@@ -10686,10 +10788,42 @@ function evTab(k){
   (window._evTab=window._evTab||{})[t.id]=k;
   const f=nbInBar("#t3-root");
   t3Paint(t);
+  "invite"===k&&t3InvLoad(t);
   f&&nbFocus("#t3-root");
 }
 
+
 function t3InviteHtml(t){
+  return(t3IsDemo(t)?t3PubInvHtml(t):"")+t3InvHtml(t);
+}
+
+function t3InvHtml(t){
+  const C=cache.t3Inv,mine=!!C&&C.tid===t.id,R=mine&&Array.isArray(C.rows)?C.rows:null,
+    V=window._t3Inv&&window._t3Inv.tid===t.id?window._t3Inv:{n:""};
+  const body=mine&&C.err?'<p class="hint">That list could not be loaded.</p><button class="ghost" onclick="t3InvLoad(cache.tourney,1)">Try again</button>'
+    :R?(R.length?`<ul class="t3-unl-l">${R.map(r=>t3InvRow(r,"ev")).join("")}</ul>`:'<div class="empty">No invites yet.</div>')
+    :'<div class="empty"><span class="spinner"></span> Loading\u2026</div>';
+  return`<div class="panel plain" id="t3-inv"><h2 style="margin:0 0 6px">One-use invites</h2>
+    ${body}
+    <div class="t3-add" role="group" aria-label="Make an invite">
+      <label class="field"><span>Who is it for <span class="opt">optional</span></span><input id="t3-inv-n" maxlength="40" autocomplete="off" placeholder="A name, so you know whose code is whose" value="${esc(V.n)}" oninput="t3InvKeep()" onkeydown="'Enter'===event.key&&(event.preventDefault(),t3InvNew())"></label>
+      <button class="act" onclick="t3InvNew()">Make an invite</button>
+    </div>
+  </div>`;
+}
+
+function t3InvRow(r,road){
+  const used=!!r.used_at,rev=!!r.revoked_at,
+    exp=!used&&!rev&&!!r.expires_at&&new Date(r.expires_at)<new Date(),
+    live=!used&&!rev&&!exp,
+    tag=rev?"Taken back":used?"Used":exp?"Expired":"Unused",
+    who=used?(r.used_name?r.used_name+" \u00b7 "+timeAgo(r.used_at):timeAgo(r.used_at)):"",
+    
+    ends=live&&r.expires_at?"until "+fmtDate(String(r.expires_at).slice(0,10)):"",
+    sub=[r.note||"",who,ends].filter(Boolean).join(" \u00b7 ");
+  return`<li><span class="t3-nm" title="${esc(r.note||"")}"><b>${esc(String(r.code||""))}</b>${sub?" \u00b7 "+esc(sub):""}</span><span class="t3-tag">${esc(tag)}</span>${live?`<button class="ghost t3-b" onclick="t3InvCopy(${jsq(r.code)},${jsq(road||"ev")})">Copy link</button>`:""}${rev?"":`<button class="ghost t3-b" onclick="t3InvRevoke(${jsq(r.id)})">Take back</button>`}</li>`;
+}
+function t3PubInvHtml(t){
   const u=evLinkOf(t);
   if(!u)return`<div class="panel plain"><h2 style="margin:0 0 6px">Invite</h2><p class="hint" style="margin:0">This event has no code yet. Reload the page in a moment.</p></div>`;
   const svg=qrSvg(u,"QR code for joining this event");
@@ -10927,6 +11061,29 @@ async function t3Ent(op,key){
   toast({drop:`${nm} dropped`,undrop:`${nm} is back in`,unlink:"Account unlinked",relink:x.wait&&run?"Account linked":"Linking allowed",remove:`${nm} removed`,forget:"Name removed"}[op],!0);
   await t3Reload();
 }
+
+function t3InvKeep(){const t=cache.tourney,n=$("t3-inv-n");t&&n&&(window._t3Inv={tid:t.id,n:n.value})}
+async function t3InvNew(){
+  const t=cache.tourney;if(!t||!t3Ed(t)||t.hidden_at||"closed"===t3St(t))return;
+  t3InvKeep();
+  const n=String(($("t3-inv-n")||{}).value||"").trim().replace(/\s+/g," ");
+  const d=await t3Rpc("inv_new",{p_tournament:t.id,p_league:null,p_note:n||null});
+  
+  if(!d)return;
+  window._t3Inv=null;
+  toast("Invite "+d.code+" is ready \u2014 copy its link from the list",!0);
+  await t3InvLoad(t,1);
+}
+async function t3InvRevoke(id){
+  const t=cache.tourney;if(!t||!t3Ed(t))return;
+  if(!await slConfirm({title:"Take this invite back?",body:"The code stops working.",ok:"Take back",danger:!0}))return;
+  const d=await t3Rpc("inv_revoke",{p_id:id});
+  if(!d)return;
+  
+  toast(d.seated?"Invite taken back \u2014 the player stays in the players list":"Invite taken back",!0);
+  await t3InvLoad(t,1);
+}
+function t3InvCopy(c,road){const u=invLinkOf(c,road||"ev");u&&copyText(u,()=>toast("Invite link copied",!0))}
 function t3AddKeep(){const t=cache.tourney,n=$("t3-add-n"),l=$("t3-add-l");t&&n&&l&&(window._t3Add={tid:t.id,n:n.value,l:l.value})}
 async function t3Add(){
   const t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t))return;
@@ -11028,6 +11185,8 @@ const DECK_ID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 function deckLink(id){return location.origin+location.pathname+"#/deck/"+id}
 
 function inviteLink(c){return location.origin+location.pathname+"#/join/"+String(c||"").toUpperCase()}
+
+function invLinkOf(c,road){return c?location.origin+location.pathname+"#/"+("join"===road?"join":"ev")+"/"+String(c).toUpperCase():""}
 function copyInvite(){
   const c=cache.league&&cache.league.join_code;
   if(!c)return toast("This community has no join code yet");
