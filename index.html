@@ -845,7 +845,7 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .fd-head h2{margin:0}
 .fbp-head{align-items:center;gap:12px}
 
-.tn-tabs{margin:10px 0 0}
+.tn-filt{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;box-shadow:none;overflow:visible}.tn-filt .seg-b{flex:0 0 auto;min-height:38px;padding:0 15px;border:1px solid var(--line-2);border-radius:999px;background:rgba(255,255,255,.03);font-family:Barlow,sans-serif;font-size:13.5px;font-weight:500;letter-spacing:0;text-transform:none}.tn-filt .seg-b.on{border-color:var(--brass);background:rgba(255,255,255,.09);color:var(--bone)}
 .t3-whob.off{display:none}
 .t3-whoh{margin:6px 0 0}
 #tnp-url{width:100%;box-sizing:border-box;margin:0}
@@ -2936,7 +2936,7 @@ function nlKind(k){nlKeep();window._nlKind="online"===k?"online":"place";paintMi
 function nlPane(){
   
   const ok=!1!==window._winOk,on=ok&&"online"===window._nlKind,v=window._nlV||{},V=k=>esc(v[k]||""),pub=void 0===v.pub||!!v.pub,
-    seg=ok?`<div class="seg nl-kind" role="radiogroup" aria-label="Where the community plays">${[["place","In person"],["online","Online"]].map(([k,l])=>{const s=(on?"online":"place")===k;return`<button type="button" role="radio" aria-checked="${s}" id="nl-k-${k}" class="seg-b${s?" on":""}" onclick="nlKind('${k}')">${l}</button>`}).join("")}</div>${on?'<p class="hint nl-kind-h">For communities that play online, for example on Tabletop Simulator. No address or map pin: players find it under Online communities on the Explore communities page.</p>':""}`:"",
+    seg=ok?`<div class="seg nl-kind" role="radiogroup" aria-label="Where the community plays">${[["place","In person"],["online","Online"]].map(([k,l])=>{const s=(on?"online":"place")===k;return`<button type="button" role="radio" aria-checked="${s}" id="nl-k-${k}" class="seg-b${s?" on":""}" onclick="nlKind('${k}')">${l}</button>`}).join("")}</div>${on?'<p class="hint nl-kind-h">For communities that play online, for example on Tabletop Simulator. No address or map pin: players find it under Online communities on the Communities page.</p>':""}`:"",
     tz=ok?`<label class="field"><span>Community time zone${on?"":' <span class="opt">optional</span>'}</span><select id="nl-tz">${tzOptions(void 0===v["nl-tz"]?null:v["nl-tz"],on?null:"Not set")}</select>${on?'<small class="hint nl-h">Event days start and end at midnight in this time zone.</small>':""}</label>`:"",
     dc=ok?`<label class="field"><span>Discord server invite <span class="opt">optional</span></span><input type="url" id="nl-discord" maxlength="80" placeholder="https://discord.gg/…" value="${V("nl-discord")}"></label>`:"",
     tail=`<label class="field"><span>Description (optional)</span>
@@ -3194,17 +3194,12 @@ function metaDecksBlock(e){const n=metaDeckRows(e),t=cache.deckMeta||{},G=metaIs
       <div class="wr-track"><i class="wr-fill" style="width:${Math.round(100*e.wr)}%;background:${wrToneBar(e.wr)}"></i></div>
       <div class="wr-val"><b style="color:${wrTone(e.wr)}">${pct(e.wr)}</b></div></div>`}).join("")}</div>`}
 function metaOpenSeeker(e){e&&(window._metaY=window.scrollY);window._metaSeeker=e,window._metaRepaint&&window._metaRepaint();const y=e?(c=>{if(!c)return null;const b=$("topbar"),h=b?b.getBoundingClientRect().height:0;return Math.max(0,Math.round(c.getBoundingClientRect().top+window.scrollY-h-12))})(document.querySelector(".sd-back")):window._metaY;if(null==y)return;try{window.scrollTo({top:y,left:0,behavior:"instant"})}catch(x){window.scrollTo(0,y)}}function myLeaguesSafe(){return cache.myLeagues||[]}function getActiveLeagueId(){const e=myLeaguesSafe();if(!e.length)return null;let n=null;try{n=localStorage.getItem("sl-active-league")}catch(x){}const k=e.find(e=>e.id===n);if(k&&(!k.archived_at||e.every(e=>e.archived_at)))return n;const f=(slHomeFallback(e)||e[0]).id;if(k)return f;try{localStorage.setItem("sl-active-league",f)}catch(x){}return f}function setActiveLeague(e){try{localStorage.setItem("sl-active-league",e)}catch(x){}renderChrome(),"browse"===route.view&&renderBrowse(),"leagues"===route.view&&paintMine()}function goLeagueTab(e,id){const n=id||("league"===route.view&&route.leagueId)||getActiveLeagueId();if(!n)return toast("Join a community first — open Communities to find one");closeSheet(),go("league",{leagueId:n,tab:e})}const BB_IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></svg>',play:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5 14 14"/><path d="M11.5 16.5l5-5"/><path d="M15 15l4 4"/><path d="M19.5 4.5 10 14"/><path d="M7.5 11.5l5 5"/><path d="M9 15l-4 4"/></svg>',league:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4.5h11.5l-2.5 4 2.5 4H6"/></svg>',collection:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="7" width="11" height="14" rx="2"/><path d="M8.5 3.5h9a2 2 0 0 1 2 2V17"/></svg>',utilities:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2 6.5 6.5 2-6.5 2-2 6.5-2-6.5-6.5-2 6.5-2z"/></svg>'};
-const SL_NAV_LG_MAX=6;
-
-(function(){try{if(localStorage.getItem("sl-nav-lg2"))return;localStorage.setItem("sl-nav-lg2","1");const s=localStorage.getItem("sl-nav-open");if(!s)return;const a=JSON.parse(s);Array.isArray(a)&&!a.includes("league")&&(a.push("league"),localStorage.setItem("sl-nav-open",JSON.stringify(a)))}catch(x){}})();
-function slNavLgKids(){const N=window._navLg;if(!me||!N||N.uid!==me.id)return[];const L=N.list.filter(l=>l&&l.id&&!l.archived_at);if(!L.length)return[];let h=null;try{h=localStorage.getItem("sl-active-league")}catch(x){}L.some(l=>l.id===h)||(h=(slHomeFallback(L)||{}).id);const nm=l=>String(l.name||"Community");return L.slice().sort((a,b)=>(b.id===h)-(a.id===h)||nm(a).localeCompare(nm(b),void 0,{sensitivity:"base"})).slice(0,SL_NAV_LG_MAX).map(l=>({id:"lgc-"+l.id,lg:l.id,label:'<span class="nav-ell">'+esc(nm(l))+"</span>",title:esc(nm(l)),go:"closeSheet();go('league',{leagueId:"+jsq(l.id)+",tab:'about'})"}))}
-function slNavLg(){const K=slNavLgKids(),c={id:"league",label:"Communities",icon:"⚑"};return K.length?(c.group=K.concat([{id:"lg-find",label:"Explore",go:"closeSheet();go('leagues')"}]),c):(c.go="closeSheet();go('leagues')",c)}
-
-function slNavLgAct(){const K=slNavLgKids();if(!K.length)return"league";const k="league"===route.view&&K.find(k=>k.lg===route.leagueId);return k?k.id:"lg-find"}
+function slNavLg(){return{id:"league",label:"Communities",icon:"⚑",go:"closeSheet();go('leagues')"}}
+function slNavLgAct(){return"league"}
 function navModel(){const e=[{id:"home",label:"Home",icon:"⌂",go:"go('browse')"}];return e.push({id:"play",label:"Play",icon:"⚔",group:[{id:"pl-match",label:"Match",go:"closeSheet();go('tracker')"},{id:"pl-tourn",label:"Events",go:"closeSheet();go('tournaments')"}]},slNavLg()),me&&e.push({id:"collection",label:"Collection",icon:"▤",group:[{id:"col-cards",label:"Collection",go:"closeSheet();go('collection')"},{id:"col-decks",label:"My decks",go:"closeSheet();go('decks')"}]}),e.push({id:"utilities",label:"Utilities",icon:"✦",group:[{id:"ut-perf",label:"Meta breakdown",go:"closeSheet();window._metaSeeker=null;go('meta')"},{id:"ut-rules",label:"Rules",go:"closeSheet();go('rules')"},{id:"ut-clt",label:"Clash test",go:"closeSheet();go('clashtest')"},{id:"ut-tracker",label:"Basic tracker",go:"closeSheet();go('basic-tracker')"},{id:"ut-cdecks",label:"Public decks",go:"closeSheet();go('cdecks')"},{id:"ut-preview",label:SET_PREVIEW.out?"New set":"Set preview",go:"closeSheet();go('setpreview')"}]}),e}function activeNavItem(){const v=route.view;return"browse"===v?"home":"leagues"===v||"league"===v?slNavLgAct():"tracker"===v?"pl-match":"basic-tracker"===v?"ut-tracker":"tournaments"===v?"pl-tourn":"meta"===v?"ut-perf":"rules"===v?"ut-rules":"clashtest"===v?"ut-clt":"cdecks"===v?"ut-cdecks":"setpreview"===v?"ut-preview":"decks"===v||"builder"===v?"col-decks":"collection"===v?"col-cards":null}function renderChrome(){const e=$("top-right"),n=$("sidebar"),t=$("bbar");if(!configured)return e&&(e.innerHTML=""),n&&(n.innerHTML=""),void(t&&(t.innerHTML=""));const a=activeNavItem(),s=navModel();if(e){let n="";n+=me?`${"function"==typeof topAdmHtml?topAdmHtml():""}<button class="avatar" onclick="go('profile')" title="${esc(me.display_name)}" aria-label="Profile${pnLinked()?"":", Play Network profile not linked"}">${esc((me.display_name||"?")[0].toUpperCase())}${avHtml(me)}${pnLinked()?"":'<span class="av-dot" aria-hidden="true"></span>'}</button>\n          <button class="ghost top-out" onclick="signOut()">Sign out</button>`:'<button class="ghost" onclick="go(\'auth\')">Sign in</button>',e.innerHTML=n}if(n){const e=new Set(JSON.parse(localStorage.getItem("sl-nav-open")||'["league","collection","utilities"]'));window._openGroups=e,n.innerHTML=s.map(n=>{if(!n.group)return`<button class="sn-item top-lvl ${a===n.id?"on":""}" onclick="${n.go}"><i>${n.icon}</i>${n.label}</button>`;const t=e.has(n.id);return`<div class="sn-group ${t?"open":""}">\n        <button class="sn-item top-lvl ${n.group.some(e=>e.id===a||e.cur)&&!t?"on":""}" onclick="toggleNavGroup(${jsq(n.id)})">\n          <i>${n.icon}</i>${n.label}<span class="chev">${t?"▾":"▸"}</span></button>\n        ${t?'<div class="sn-kids">'+n.group.map(e=>e.cap?`<div class="sn-cap">${e.label}</div>`:`<button class="sn-item kid ${a===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join("")+"</div>":""}\n      </div>`}).join("")}t&&(t.innerHTML=s.map(e=>{const n=e.group&&e.group.some(e=>e.id===a||e.cur);return`<button class="bb-tab ${a===e.id||n?"on":""}" onclick="${e.group?`openSheet(${jsq(e.id)})`:e.go}">${BB_IC[e.id]||`<i>${e.icon}</i>`}<span>${e.label}</span></button>`}).join(""))}function toggleNavGroup(e){const n=window._openGroups||new Set;n.has(e)?n.delete(e):n.add(e),localStorage.setItem("sl-nav-open",JSON.stringify([...n])),renderChrome()}function openSheet(e){const n=navModel().find(n=>n.id===e);if(!n||!n.group)return;const t=activeNavItem();$("sheet-card").innerHTML=`<div class="sheet-title">${n.label}</div>`+n.group.map(e=>e.cap?`<div class="sheet-title sheet-cap">${e.label}</div>`:`<button class="sheet-item ${t===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join(""),$("sheet").hidden=!1}function closeSheet(){const e=$("sheet");e&&(e.hidden=!0)}
 
 
-const SL_VIEW_TITLES={setpreview:SET_PREVIEW.out?"New set":"Set preview",tournaments:"Events",leagues:"Explore communities",tracker:"Play a match","basic-tracker":"Basic tracker",meta:"Meta breakdown",rules:"Rules",clashtest:"Clash test",privacy:"Privacy",terms:"Terms of use",about:"About",cdecks:"Public decks",decks:"My decks",builder:"Deck builder",deck:"Deck",collection:"Collection",profile:"Profile",admin:"Admin",auth:"Sign in",join:"Join a community",league:"Community"};
+const SL_VIEW_TITLES={setpreview:SET_PREVIEW.out?"New set":"Set preview",tournaments:"Events",leagues:"Communities",tracker:"Play a match","basic-tracker":"Basic tracker",meta:"Meta breakdown",rules:"Rules",clashtest:"Clash test",privacy:"Privacy",terms:"Terms of use",about:"About",cdecks:"Public decks",decks:"My decks",builder:"Deck builder",deck:"Deck",collection:"Collection",profile:"Profile",admin:"Admin",auth:"Sign in",join:"Join a community",league:"Community"};
 function slSetTitle(p){try{document.title=p?p+" · Seekers League":"Seekers League — Malediction community hub"}catch(e){}}
 function slViewTitle(){slSetTitle(SL_VIEW_TITLES[route.view]||"")}
 async function render(){return route.card&&cardFromRoute(),configured?(closeSheet(),duBoot(),setTimeout(duInvNote,0),"mine"===route.view&&(route.view="browse"),"freebattles"===route.view&&(route.view="profile",route.profileId=null),"league"===route.view&&isDemo(route.leagueId)&&(route.view="leagues"),"communities"===route.view&&(window._mfTab="c",route.view="leagues"),"finder"!==route.view&&"heralds"!==route.view&&"makers"!==route.view||(window._mfTab="heralds"===route.view?"h":"makers"===route.view?"m":"c","makers"===route.view&&(window._mkF=""),window._mfScroll=1,route.view="leagues"),slViewTitle(),renderChrome(),setTimeout(slGuideSync,0),setTimeout(slGuideSync,500),document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),($(route.view)||$("browse")).classList.add("active"),"browse"===route.view?(slHomeSup(),renderBrowse()):"rules"===route.view?renderRules():"about"===route.view?renderAbout():"privacy"===route.view||"terms"===route.view?renderLegal(route.view):"setpreview"===route.view?renderSetPreview():"clashtest"===route.view?renderClashTest():"tournaments"===route.view?renderTournamentsPage():"leagues"===route.view?renderLeaguesPage():"tracker"===route.view?renderTracker():"basic-tracker"===route.view?renderBasicTracker():"meta"===route.view?renderMetaView():"profile"===route.view?renderProfile():"collection"===route.view?renderCollection():"builder"===route.view?renderBuilder():"decks"===route.view?renderDecks():"deck"===route.view?renderDeckPage():"cdecks"===route.view?renderCDecks():"admin"===route.view?renderAdmin():"league"===route.view?renderLeague():"join"===route.view?joinFromLink(route.code):"ev"===route.view?evFromLink(route.code):"auth"===route.view?me?(ckHide(),authReturn()):ckMail?showCheckEmail(ckMail):(ckHide(),setAuthMode(authMode)):void 0):(document.querySelectorAll(".view").forEach(e=>e.classList.remove("active")),"about"===route.view?($("about").classList.add("active"),renderAbout()):"privacy"===route.view||"terms"===route.view?($(route.view).classList.add("active"),renderLegal(route.view)):($("browse").classList.add("active"),slHomeSup()),void($("home-head").innerHTML=SL_LIBFAIL?slBootFailHtml():'<div class="banner warn">\n      <b>Not configured yet.</b> Open this file in an editor and paste your Supabase project URL and\n      anon key at the top of the script. Run <code>schema.sql</code> in your Supabase SQL editor first.\n      Full steps are in <code>SETUP.md</code>.</div>'))}
@@ -4834,8 +4829,8 @@ function mkAfter(){"leagues"===route.view&&"m"===window._mfTab&&$("mk-list")&&pa
 
 function mkProfLine(u){const k=mkIs(u)?mkSet(u.makes):[];return k.length?`<div class="pf-makes"><span class="pf-mk-l">Makes</span> ${k.map(x=>x[2]).join(" · ")}${u.makes_note?`<small class="pf-mk-nt">${esc(u.makes_note)}</small>`:""}</div>`:""}
 
-const MF_TABS=[{k:"c",l:"Explore"},{k:"y",l:"Your communities"},{k:"h",l:"Heralds"},{k:"m",l:"Makers"}];
-function finderHead(t){return nbTabs("Explore, your communities, Heralds and Makers",MF_TABS,t,"mfTab",null,"mf-body")}
+const MF_TABS=[{k:"c",l:"Communities"},{k:"y",l:"Your communities"},{k:"h",l:"Heralds"},{k:"m",l:"Makers"}];
+function finderHead(t){return nbTabs("Communities, your communities, Heralds and Makers",MF_TABS,t,"mfTab",null,"mf-body")}
 
 function mfKey(t){return"h"===t||"m"===t||"y"===t?t:"c"}
 function goFind(t){window._mfTab=mfKey(t),"m"===window._mfTab&&(window._mkF=""),window._mfScroll=1,go("leagues")}
@@ -4860,9 +4855,8 @@ function paintMfBody(){"h"===window._mfTab?paintFindHeralds():"m"===window._mfTa
 function paintFindYours(){const e=$("mf-body");if(!e)return;e.innerHTML='<div id="home-mine"></div>';paintMine()}
 function paintFindComm(){
   const e=$("mf-body");if(!e)return;
-  const n=findPinned().length;
-  e.innerHTML=`<p class="hint" style="margin:0 0 10px">Every public community. ${n?`${n} ${1===n?"has":"have"} a pin on the map: tap one to open it.`:"None has a pin on the map yet."}</p>
-    <div style="margin:0 0 12px">${mapHtml("find-map",{})}</div>
+  
+  e.innerHTML=`<div style="margin:0 0 12px">${mapHtml("find-map",{})}</div>
     <input type="text" id="browse-search" placeholder="Search communities…" value="${esc(window._findQ||"")}"
       oninput="window._findQ=this.value; paintFindList(); paintFindOnline();">
     <div id="find-near" class="fn-bar"></div>
@@ -5837,7 +5831,7 @@ function togglePane(e){openPane=openPane===e?null:e,"create"===openPane&&(window
         ${H||!hm||A?"":`<div class="lc-foot"><button type="button" class="ghost" onclick="event.stopPropagation();setActiveLeague(${jsq(e.id)});toast('Home community set: it comes first on your home page and in the menu',!0)">Make home community</button></div>`}
         ${e.join_code?`<button type="button" class="lc-code" title="Tap to copy the join code" aria-label="Copy the join code ${esc(e.join_code)}" onclick="event.stopPropagation();copyText(${jsq(e.join_code)},()=>toast('Join code copied',!0))"><small>Join code</small><b>${esc(e.join_code)}</b><i>⧉ copy</i></button>`:""}
       </div>`}).join("")+"</div>":`<div class="empty">You're not in any community yet.<br>
-      <span style="font-size:13px">Join one with its code, start your own, or find one on Explore.</span></div>`;
+      <span style="font-size:13px">Join one with its code, start your own, or find one on the Communities tab.</span></div>`;
   a+=`<div class="lg-acts">
       <button class="ghost ${"join"===openPane?"on":""}" onclick="togglePane('join')">${"join"===openPane?"✕ Close":"+ Join with code"}</button>
       <button class="ghost ${"create"===openPane?"on":""}" onclick="togglePane('create')">${"create"===openPane?"✕ Close":"+ New community"}</button>
@@ -6631,7 +6625,7 @@ function paintAbout(){
         ${sec("Organizers",org)||'<div class="ip-row dim">No organizer listed.</div>'}
         ${sec("Heralds",her)}
         ${sec("Players",rest)}
-        ${her.length?"":'<p class="hint ab-noher">No Herald plays here yet. Heralds run demos and teach the game; find one on the Explore communities page.</p>'}
+        ${her.length?"":'<p class="hint ab-noher">No Herald plays here yet. Heralds run demos and teach the game; find one on the Communities page.</p>'}
       </div>
     </details>
     ${me&&M.some(m=>m.id===me.id)&&me.id!==L.owner_id?'<div class="st-leave"><button class="ghost" style="color:var(--bone-dim)" onclick="leaveLeague()">Leave this community</button></div>':""}
@@ -9484,7 +9478,7 @@ function pfAvaKey(e){const k=e.key,d="ArrowRight"===k||"ArrowDown"===k?1:"ArrowL
 
 function pfMkRow(){if(!me||!("makes"in me))return"";const s=mkSet(me.makes).map(k=>k[0]).join("");
   return`<div class="field pf-mk" id="pf-mk"><span class="pf-mvh" id="pf-mk-h">Makers <span class="opt">optional</span></span>
-    <p class="acc-note">Do you 3D print or paint miniatures for other players? Tick what you make and you are listed under Makers in your communities and on Explore, for everyone to see, with your Discord name so players can reach you.</p>
+    <p class="acc-note">Do you 3D print or paint miniatures for other players? Tick what you make and you are listed under Makers in your communities and on the Communities page, for everyone to see, with your Discord name so players can reach you.</p>
     <div class="pf-mk-g" role="group" aria-labelledby="pf-mk-h">${MK.map(k=>`<label class="rem-row"><input type="checkbox" name="pf-mk" value="${k[0]}"${s.includes(k[0])?" checked":""} onchange="pfMkSync()"> <span>${k[1]}</span></label>`).join("")}</div>
     <label class="field pf-mk-nw" id="pf-mk-nw"${s?"":" hidden"}><span>Note <span class="opt">optional, up to 80 characters</span></span>
       <input id="pf-mk-note" oninput="pfMkCap(this)" value="${esc(me.makes_note||"")}" placeholder="32mm minis, pickup in Naples" autocomplete="off"></label>
@@ -9534,7 +9528,7 @@ function pfAccount(){
             </select></label>
           <label class="field"><span>Where you are</span>
             <button type="button" class="ghost acc-where" onclick="mapPickOpen('me')">${null!=me.lat?`\u25C9 ${esc(me.place||'Location set')} \u00b7 change`:'\u25CE Set a city or postcode'}</button></label>
-          <p class="acc-note">Heralds run demos and teach the game. With a rank and a place you appear on the Heralds map of the Explore communities page; both are public.</p>
+          <p class="acc-note">Heralds run demos and teach the game. With a rank and a place you appear on the Heralds map of the Communities page; both are public.</p>
           <button class="act acc-save" id="pf-herald-btn" onclick="pfSaveHerald()">Save Herald rank</button>`)}
         ${pane('signin',`
           <label class="field"><span>Email</span><input type="email" id="pf-email" value="${esc(mail)}" placeholder="Email address"></label>
@@ -9814,39 +9808,60 @@ async function fbDel(e){if(!await slConfirm({title:"Delete this game?",body:"You
 
 
 const TN_TABS=[["all","All"],["comm","Communities"]];
+
+const TN_KINDS=[{k:"t",l:"Tournaments"},{k:"d",l:"Demos"}];
+function tnKindKey(k){return"d"===k?"d":"t"}
+function tnKindFits(r,k){return("demo"===(r&&r.mode))===("d"===k)}
 function tnTabKey(t){return me?"mine"===t||TN_TABS.some(x=>x[0]===t)?t:"mine":TN_TABS.some(x=>x[0]===t)?t:"all"}
 
-function tnStill(t){return"tournaments"===route.view&&!route.tournamentId&&window._tnTab===t&&!!$("tnp-sec")}
+function tnStill(t,k,e){return"tournaments"===route.view&&!route.tournamentId&&window._tnTab===t&&window._tnKind===k&&!!$("tnp-sec")&&(!e||$("tnp-sec")===e)}
+function tnPaintSec(){"mine"===window._tnTab?paintTnMine():paintTnShelf(window._tnTab)}
+
 function tnTab(t){
   t=tnTabKey(t);if(t===window._tnTab&&$("tnp-sec"))return;
   window._tnTab=t;
-  document.querySelectorAll("#tnp-root .seg-b").forEach(b=>{const on=b.dataset.tn===t;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on))});
-  const s=$("tnp-sec");s&&(s.innerHTML='<div class="empty"><span class="spinner"></span> Loading\u2026</div>');
-  "mine"===t?paintTnMine():paintTnShelf(t);
+  document.querySelectorAll("#tnp-root .tn-filt .seg-b").forEach(b=>{const on=b.dataset.tn===t;b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on))});
+  const s=$("tnp-sec");s&&(s.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>');
+  tnPaintSec();
 }
+
+function tnKind(k){
+  k=tnKindKey(k);if(k===window._tnKind&&$("tnp-sec"))return;
+  window._tnKind=k;
+  const r=$("tnp-root");if(!r)return;
+  const f=nbInBar("#tnp-root");
+  r.innerHTML=tnpHead(tnTabKey(window._tnTab),k);tnpOv();
+  f&&nbFocus("#tnp-root");
+  tnPaintSec();
+}
+
+function tnpOv(){const b=document.querySelector("#tnp-root .nb-tabs");b&&nbOv(b)}
 async function renderTournamentsPage(){
   const e=$("tnp-body");if(!e)return;
   if(route.tournamentId)return t3Open(route.tournamentId);
   t3Timer&&(clearInterval(t3Timer),t3Timer=null);
-  const t=tnTabKey(window._tnTab);window._tnTab=t;
-  e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading tournaments\u2026</div></div>';
+  const t=tnTabKey(window._tnTab),k=tnKindKey(window._tnKind);window._tnTab=t,window._tnKind=k;
+  e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading events…</div></div>';
   
   if(me&&(!cache.myLeagues||!cache.myLeagues.length))cache.myLeagues=await fetchMyLeagues();
   if("tournaments"!==route.view||route.tournamentId)return;
-  e.innerHTML=`<div class="panel plain" id="tnp-root">${tnpHead(t)}<div id="tnp-sec"><div class="empty"><span class="spinner"></span> Loading\u2026</div></div></div>`;
-  "mine"===t?paintTnMine():paintTnShelf(t);
+  
+  window._tnTab=tnTabKey(window._tnTab),window._tnKind=tnKindKey(window._tnKind);
+  e.innerHTML=`<div class="panel plain" id="tnp-root">${tnpHead(window._tnTab,window._tnKind)}</div>`;
+  tnpOv();
+  tnPaintSec();
 }
-function tnpHead(t){
-  const org=me?myLeaguesSafe().filter(l=>!l.archived_at&&(isOwnerOf(l)||isAdminOf(l))):[],
-    tab=k=>`<button type="button" class="seg-b${k[0]===t?" on":""}" data-tn="${k[0]}" aria-pressed="${k[0]===t}" onclick="tnTab(${jsq(k[0])})">${k[1]}</button>`;
-  return`<div class="flex-between fbp-head"><div><h2 style="margin:0 0 3px">Events</h2>
-    <p class="hint" style="margin:0">Everything that is run here: tournaments, which are paired in Swiss rounds and keep standings, and Demo events, which have neither. Organize on the Play Network; tracked matches are recorded automatically.</p></div>
+
+function tnpHead(t,k){
+  const f=x=>`<button type="button" class="seg-b${x[0]===t?" on":""}" data-tn="${x[0]}" aria-pressed="${x[0]===t}" onclick="tnTab(${jsq(x[0])})">${x[1]}</button>`;
+  return`<div class="flex-between fbp-head"><div><h2 style="margin:0">Events</h2></div>
     ${me?`<button class="act" onclick="tnpNew()">+ New event</button>`:""}</div>
-    <div class="seg tn-tabs" role="group" aria-label="Which events to show">${(me?[["mine","Yours"]]:[]).concat(TN_TABS).map(tab).join("")}</div>`;
+    ${nbTabs("Kinds of event",TN_KINDS,k,"tnKind",null,"tnp-pane")}
+    ${nbPane("tnp-pane",TN_KINDS,k,`<div class="seg tn-filt" role="group" aria-label="Whose events to show">${(me?[["mine","Yours"]]:[]).concat(TN_TABS).map(f).join("")}</div><div id="tnp-sec"><div class="empty"><span class="spinner"></span> Loading…</div></div>`)}`;
 }
 
 async function paintTnMine(){
-  const e=$("tnp-sec");if(!e||!me)return;
+  const e=$("tnp-sec"),k=tnKindKey(window._tnKind);if(!e||!me)return;
   const L=myLeaguesSafe(),ids=L.map(l=>l.id).filter(t3IdOk);
   let T=[],bad=null;
   if(ids.length){const{data,error:er}=await sb.from("tournaments").select("*").in("league_id",ids).order("created_at",{ascending:!1}).limit(60);
@@ -9854,11 +9869,11 @@ async function paintTnMine(){
   
   if(!bad)try{const{data:x,error:xe}=await sb.rpc("t_mine");!xe&&Array.isArray(x)&&x.forEach(r=>{r&&r.id&&!T.some(y=>y.id===r.id)&&T.push(r)})}catch(x){}
   
-  if(!tnStill("mine"))return;
+  if(!tnStill("mine",k,e))return;
   if(bad)return void(e.innerHTML=`<div class="banner">${esc(bad)}</div>`);
   
   const mine=t=>t.organizer_id===me.id||t.created_by===me.id||JSON.stringify(t.payload).includes(me.id);
-  T=T.filter(t=>t&&t.payload&&mine(t)).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+  T=T.filter(t=>t&&t.payload&&mine(t)&&tnKindFits(t,k)).sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
   
   const fin=t=>null!=t.status?"closed"===t.status:!!t.payload.finalized,
     ln=id=>(L.find(l=>l.id===id)||{}).name||"",run=T.filter(t=>!fin(t)),past=T.filter(fin),
@@ -9870,19 +9885,19 @@ async function paintTnMine(){
       <span class="tnp-l"><small>${esc(c||"Community")}</small><span><b>${r?"Running":"&#9819; Finished"}</b>${dt?" · "+esc(dt):""} · ${pl}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   e.innerHTML=T.length?`${run.length?`<div class="ip-sec">Current</div><div class="nu-list">${run.map(row).join("")}</div>`:""}${past.length?`<div class="ip-sec">Finished</div><div class="nu-list">${past.map(row).join("")}</div>`:""}`
-    :`<div class="empty">You are not in any tournament yet. The ones you organize or are registered for show up here, and <b>All</b> has every event that is listed.</div>`;
+    :`<div class="empty">You are not in any ${"d"===k?"demo event":"tournament"} yet. The ones you organize or are registered for show up here, and <b>All</b> has every one that is listed.</div>`;
 }
 
 function tnKindOf(r){return"open"===r.scope?"open":"comm"}
 function tnFits(r,k){return"all"===k||("comm"===k?"comm"===tnKindOf(r):!0)}
 
 function tnWhose(r){return r.league_name||("comm"===tnKindOf(r)?"Community":"Open to everyone")}
-function tnEmpty(k){return"comm"===k?"No community has an event listed right now."
-  :"No event is listed right now. An organizer starts one from a Play Network event."}
+function tnEmpty(k,d){const w="d"===d?"demo event":"tournament";return"comm"===k?`No community has a ${w} listed right now.`
+  :`No ${w} is listed right now. An organizer starts one from a Play Network event.`}
 function tnShelfKeep(rows){window._tnRows={at:Date.now(),rows:rows}}
 function tnShelfCached(){const c=window._tnRows;return c&&Date.now()-c.at<6e4&&Array.isArray(c.rows)?c.rows:null}
 async function paintTnShelf(kind){
-  const e=$("tnp-sec");if(!e)return;
+  const e=$("tnp-sec"),k=tnKindKey(window._tnKind);if(!e)return;
   let all=tnShelfCached(),gone=!1,bad=null,off=!1;
   if(!all){
     try{const{data,error:er}=await sb.rpc("t_browse");
@@ -9893,11 +9908,11 @@ async function paintTnShelf(kind){
     catch(x){off=!0}
   }
   
-  if(!tnStill(kind))return;
+  if(!tnStill(kind,k,e))return;
   if(off)return void(e.innerHTML='<div class="empty">Not loaded \u2014 check your connection and try again.</div>');
   if(bad)return void(e.innerHTML=`<div class="banner">${esc(bad)}</div>`);
   if(gone)return void(e.innerHTML=`<div class="empty">The public list is not here yet \u2014 the database needs its latest update.${me?" Everything else on this page works.":""}</div>`);
-  const rows=(all||[]).filter(r=>tnFits(r,kind));
+  const rows=(all||[]).filter(r=>tnFits(r,kind)&&tnKindFits(r,k));
   const o=findOrigin(),km=r=>o&&null!=r.lat&&null!=r.lon?findKm(o,{lat:+r.lat,lon:+r.lon}):null;
   o&&rows.sort((a,b)=>{const x=km(a),y=km(b);return null==x&&null==y?0:null==x?1:null==y?-1:x-y});
   
@@ -9908,9 +9923,9 @@ async function paintTnShelf(kind){
       <span><b>${esc(t3StateLabel(r.status,r.mode))}</b>${' · <span class="tn-dm">'+esc("demo"===r.mode?t3GameLabel(r.mode):t3Kind(r.mode))+"</span>"} · ${esc(pnShort(r))} · ${np} player${1===np?"":"s"}${null!=k?' · <span class="tn-km">'+esc(fmtKm(k))+"</span>":""}</span></span>
       <i class="nu-chev" aria-hidden="true">›</i></button>`};
   
-  e.innerHTML=`<p class="hint" style="margin:0 0 10px">Available events:${pins.length?` ${pins.length} on the map — tap one to open it.`:""}</p>
+  e.innerHTML=`${rows.length?`<p class="hint" style="margin:0 0 10px">Available events:${pins.length?` ${pins.length} on the map — tap one to open it.`:""}</p>`:""}
     ${pins.length?`<div style="margin:0 0 12px">${mapHtml("tn-map",{})}</div>`:""}
-    ${rows.length?`<div class="nu-list">${rows.map(row).join("")}</div>`:`<div class="empty">${esc(tnEmpty(kind))}</div>`}
+    ${rows.length?`<div class="nu-list">${rows.map(row).join("")}</div>`:`<div class="empty">${esc(tnEmpty(kind,k))}</div>`}
     ${me?"":`<div class="tn-cta"><p class="hint" style="margin:0">Sign in to see the events you are registered for or organize.</p><button class="act" onclick="go('auth')">Sign in</button></div>`}`;
   pins.length&&mapMount("tn-map",{points:pins.map(r=>({lon:+r.lon,lat:+r.lat,cls:"",label:`${r.title||"Tournament"} — ${[r.city,r.country].filter(Boolean).join(", ")||r.league_name||""}`,onPick:()=>go("tournaments",{tournamentId:r.id})})),fit:!0});
 }
