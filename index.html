@@ -4712,6 +4712,10 @@ async function homeLoad(){
   
   const[a,b,c]=await Promise.all([ids.length?tvFetchOpen(ids).then(r=>r||[]):[],ids.length?pnFetchHome(ids):[],t3MineGet(0)]);
   cache.homeTourneys=t3Merge(a,c);cache.homeListings=b;
+  
+  const need=[...new Set(cache.homeTourneys.filter(t=>t&&t.pn_event_id&&!(t.pn_events&&t.pn_events.starts_at)&&!(b||[]).some(x=>x&&x.id===t.pn_event_id)).map(t=>t.pn_event_id))].slice(0,30);
+  if(need.length)try{const{data:d,error:x}=await sb.from("pn_events").select("id,title,starts_at,ends_at,type_name").in("id",need);
+    x||(d||[]).forEach(e=>cache.homeTourneys.forEach(t=>{t&&t.pn_event_id===e.id&&!(t.pn_events&&t.pn_events.starts_at)&&(t.pn_events=e)}))}catch(x){}
   cache.homeTourneys.forEach(t=>{try{swKick(t)}catch(x){}});
   return cache.homeAll=o;
 }
@@ -10371,7 +10375,7 @@ function t3Tags(p,m,ref){
 }
 function t3LiveFor(t,ref){const v=t&&cache.t3Live&&cache.t3Live.tid===t.id&&cache.t3Live.m[ref];return!!v&&"waiting"!==v.status}
 async function t3Load(id){
-  let q=await sb.from("tournaments").select("*,pn_events(starts_at,ends_at,venue,city,country,location_type),leagues(id,name,owner_id,archived_at,is_public)").eq("id",id).maybeSingle();
+  let q=await sb.from("tournaments").select("*,pn_events(starts_at,ends_at,venue,city,country,location_type),leagues!tournaments_league_id_fkey(id,name,owner_id,archived_at,is_public)").eq("id",id).maybeSingle();
   
   q.error&&(q=await sb.from("tournaments").select("*").eq("id",id).maybeSingle());
   if(q.error)return{error:q.error};
@@ -10509,7 +10513,7 @@ async function t3Create(id,x){
       wseg=()=>[["community","My community"],["open","Anyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
       
       fmtHint=()=>"2x2"===x.game_mode?"Team (2v2) events cannot be run as a tournament here yet."
-        :"demo"===md?"A Demo event has no rounds and no standings: players play a simplified version of a standard match, and you add whoever walks in. Their games are tracked from Play › Match like any other. It is open to everyone, so somebody who has never played can find it."
+        :"demo"===md?"A Demo event has no rounds and no standings: players play a simplified version of a standard match. Their games are tracked from Play › Match like any other. It is open to everyone, so somebody who has never played can find it."
         :`It runs as a Tournament · Clash · Single${/^league$/i.test(x.format||"")?", although the Play Network lists it as League":""}: Swiss rounds, the official Play Network format, paired here on the day. The decks show up once you start the event on the Play Network, and matches played with the match tracker between paired players are recorded automatically.`,
       whoHint=()=>gte?gateTxt(gte).b+(x.league_id?" Your community's own tournament is not affected.":"")
         :!x.league_id?"This event has no community, so it is open to everyone."
