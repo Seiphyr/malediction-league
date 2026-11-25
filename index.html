@@ -876,7 +876,7 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 
 .ev-inv-c,.ev-inv-u{text-align:center}
 .ev-inv .t3-share-r{justify-content:center}
-.ev-inv-t,.ev-inv-f{display:none}
+.ev-inv-t,.ev-inv-f,.ev-inv-k{display:none}.ev-inv.ci button[onclick^="invShare"],.ev-inv.ci button[onclick^="qrPostOpen"]{display:none}@media print{.ev-inv .ev-inv-k{display:block!important;font-family:Oswald,sans-serif;font-size:14pt;color:#000;margin:0 0 6pt;text-align:center}}
 .ev-inv-p .qr{width:100%;max-width:220px;height:auto;display:block}
 .ev-inv-c{font-family:Oswald,sans-serif;font-size:20px;letter-spacing:.24em;color:var(--bone);margin:12px 0 2px}
 .ev-inv-u{word-break:break-all;margin:0 0 12px;font-size:11.5px}
@@ -925,7 +925,7 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .t3-ln a{color:var(--bone)}
 .t3-ln.none{color:var(--bone-faint)}
 .t3-chip{flex:0 0 auto;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);border:1px solid var(--line-2);border-radius:999px;padding:2px 8px}
-.t3-chip.dr{color:var(--crimson-txt);border-color:var(--crimson)}.t3-chip.in{color:var(--brass);border-color:var(--brass-dim)}.t3-ci{margin:10px 0}.t3-ci .t3-b{margin-left:8px}.t3-ci .hint{margin:8px 0 0}
+.t3-chip.dr{color:var(--crimson-txt);border-color:var(--crimson)}.t3-chip.in{color:var(--brass);border-color:var(--brass-dim)}.t3-leave{margin-top:14px}.t3-left{margin:12px 0 0}.t3-ci{margin:10px 0}.t3-ci .t3-b{margin-left:8px}.t3-ci .hint{margin:8px 0 0}
 .t3-chip.dk{color:var(--brass);border-color:var(--brass)}
 .t3-chip.dk.no{color:var(--bone-faint);border-color:var(--line-2)}
 .t3-dk-v{margin:0 0 6px;font-size:14.5px;color:var(--bone);overflow-wrap:anywhere}
@@ -2696,7 +2696,7 @@ function authBackTake(){
   if(ja&&/^[0-9a-f-]{36}$/i.test(ja))return keep("#/league/"+ja);
   if(p&&Date.now()-p.t<36e5){
     
-    if(p.k&&(joinCodeOk(p.c)||evCodeOk(p.e)))return keep("#/"+("event"===p.k?"ev":"join")+"/"+(p.c||p.e));
+    if(p.k&&(joinCodeOk(p.c)||evCodeOk(p.e)))return keep("#/"+("community"===p.k?"join":"ev")+"/"+(p.c||p.e));
     if(joinCodeOk(p.c))return keep("#/join/"+p.c);
     
     if(evCodeOk(p.e))return keep("#/ev/"+p.e);
@@ -2723,7 +2723,8 @@ function authJoinWhat(){try{
 }catch(e){return null}}
 function authSub(m){
   const jw=authJoinWhat();
-  return jw?("signup"===m?"Pick a name and you're in. You'll join the "+jw+" straight after.":"Sign in and you'll join the "+jw+" straight after.")
+  return"checkin"===jw?("signup"===m?"Pick a name, then tap your nickname from the Play Network list and you are checked in.":"Sign in and you'll be checked in straight after.")
+    :jw?("signup"===m?"Pick a name and you're in. You'll join the "+jw+" straight after.":"Sign in and you'll join the "+jw+" straight after.")
     :"signup"===m?"Pick a name and you are in.":"Welcome back to the tracker.";
 }
 
@@ -2737,7 +2738,7 @@ function showCheckEmail(addr){
   p.innerHTML=`<h2>Check your email</h2>
     <p class="ck-p">We sent a confirmation link to</p>
     <div class="ck-addr">${esc(addr)}</div>
-    <p class="ck-p">Open that email and <b>click the link</b> to activate your account. It signs you in on the page it opens${authJoinWhat()?", where joining the "+authJoinWhat()+" is one tap":""}.</p>
+    <p class="ck-p">Open that email and <b>click the link</b> to activate your account. It signs you in on the page it opens${"checkin"===authJoinWhat()?", where checking in is one tap":authJoinWhat()?", where joining the "+authJoinWhat()+" is one tap":""}.</p>
     <p class="ck-p" style="font-size:13px">Nothing after a few minutes? Look in your spam folder, or send it again.</p>
     <button class="act" id="au-resend" style="width:100%" onclick="resendSignup()">Resend email</button>
     <p class="ck-msg" id="au-ck-msg" role="status" aria-live="polite"></p>
@@ -5988,7 +5989,7 @@ async function evFromLink(c){
     
     const r=await evLook(c);
     if(!r.error&&!r.ev)return void toast(EV_WHY[r.reason]||"That event is no longer open.");
-    const K=r.ev?("league"===r.ev.target?"community":"event"):null;
+    const K=r.ev?(r.ev.checkin?"checkin":"league"===r.ev.target?"community":"event"):null;
     authBackSave("#/ev/"+c);
     
     try{localStorage.setItem(PENDJOIN,JSON.stringify({e:c,k:K,n:r.ev?String(r.ev.title||"").slice(0,40):"",t:Date.now()}))}catch(e){}
@@ -6034,6 +6035,7 @@ async function evLinkAsk(c,x0){
     if("seat"!==x.grants)return void await evJoinWithCode(c);
   }else{
     if("draft"!==x.status)return void(toast("That event is over."),go("tournaments",{tournamentId:x.id}));
+    if(x.checkin)return void await evCiAsk(c,x);
     if("demo"!==x.mode)return void(toast("This is a Clash tournament: register on its Play Network page."),go("tournaments",{tournamentId:x.id}));
   }
   if(x.mine)return void(toast("You are already in this event",!0),go("tournaments",{tournamentId:x.id}));
@@ -6053,6 +6055,8 @@ async function evJoinWithCode(c){
   if(r.error)return void toast(slNoCol(r.error)?"Joining an event needs a site update that is not live yet.":"Not joined — check your connection and try again");
   const d=r.data;
   if(d&&!d.ok&&"is_community"===d.reason)return void await joinWithCode(c);
+  
+  if(d&&!d.ok&&"not_demo"===d.reason)return void await evCiWithCode(c,!0);
   if(!d||!d.ok)return void toast(EV_WHY[d&&d.reason]||d&&d.message||"That did not work. Ask the organizer to add you.");
   
   window._tnRows=null;cache.homeTourneys=null;cache.tourneys=null;cache.allTourneys=null;
@@ -6060,7 +6064,31 @@ async function evJoinWithCode(c){
   d.already||(window._ctaJust=d.id);toast(d.already?"You are already in this event":"You're in, enjoy your games!",!0);
   go("tournaments",{tournamentId:d.id});
 }
-const EV_WHY={sign_in:"Sign in with your account first.",deleted:"This account was deleted.",revoked:"That invite was taken back. Ask the organizer for a new one.",expired:"That invite has expired. Ask the organizer for a new one.",used_up:"That invite has already been used. Ask the organizer for your own.",bad_code:"That event link isn't complete. Ask the organizer to send it again.",gone:"That event is no longer open.",not_demo:"This is a Clash tournament: register on its Play Network page and link your profile.",status:"That event is over.",full:"That event is full.",ask_organizer:"You are already in this event under your Play Network profile. Ask the organizer to put your account on it.",};
+
+async function evCiAsk(c,x){
+  if(x.mine){const w=x.starts_at?pnWhen({starts_at:x.starts_at}):"";
+    if(!await slConfirm({title:"Check in?",body:[x.title||"",w].filter(Boolean).join("\n")+"\n\nCheck in when you are at the venue.",ok:"I'm here"}))return void(x.id&&go("tournaments",{tournamentId:x.id}))}
+  await evCiWithCode(c)}
+async function evCiWithCode(c,j){
+  let r;try{r=await sb.rpc("t_checkin_code",{p_code:c})}catch(e){r={error:e}}
+  if(r.error)return void toast(slNoCol(r.error)?"Check-in by QR needs a site update that is not live yet.":"Not checked in — check your connection and try again");
+  const d=r.data||{},open=Array.isArray(d.open)?d.open:[],pg=()=>{d.id&&d.visible&&go("tournaments",{tournamentId:d.id})};
+  if(d.ok){cache.t3Mine=null;cache.homeTourneys=null;window._tnRows=null;cache.tourneys=null;
+    toast(d.already?"You were already checked in":"You are checked in — see you at the table",!0);return void go("tournaments",{tournamentId:d.id})}
+  if("is_demo"===d.reason)return void await evLinkAsk(c);
+  if("too_early"===d.reason)return void(toast("Check-in opens at "+pnWhen({starts_at:d.opens})+". Scan again then.",0,4500),pg());
+  if("not_entrant"===d.reason&&d.org)return void(toast("This is your tournament's check-in QR: players scan it at the venue."),pg());
+  if("not_entrant"===d.reason&&open.length&&d.id){window._ciTn={c,id:d.id,status:"draft",payload:{entrants:open},pn_events:null,title:d.title};return void pnCiSheet()}
+  toast(j&&"not_entrant"===d.reason?EV_WHY.not_demo:"status"===d.reason&&d.message||EV_WHY[d.reason]||d.message||"That did not work.");pg()}
+
+function pnCiSheet(){const t=window._ciTn;if(!t)return;let e=$("ci-modal");
+  e||(e=document.createElement("div"),e.id="ci-modal",e.className="card-light",e.onclick=n=>{n.target===e&&(window._ciTn=null,e.remove())},document.body.appendChild(e));
+  e.innerHTML=`<div class="info-pop" onclick="event.stopPropagation()" style="max-width:min(94vw,440px)" role="dialog" aria-labelledby="ci-t">
+    <div class="ip-head" style="margin-bottom:10px"><div><div class="ip-name" id="ci-t">Check in to ${esc(t.title||"this tournament")}</div>
+      <div class="col-sub">Registered on the Play Network? Tap your nickname: your profile is linked and you are checked in.</div></div>
+      <button class="bldd-x" style="align-self:flex-start" onclick="window._ciTn=null;document.getElementById('ci-modal').remove()" aria-label="Close">×</button></div>
+    ${pnPickHtml(t)}<p class="hint" style="margin:10px 0 0">Not in the list? Register on the tournament's Play Network page first.</p></div>`}
+const EV_WHY={sign_in:"Sign in with your account first.",deleted:"This account was deleted.",revoked:"That invite was taken back. Ask the organizer for a new one.",expired:"That invite has expired. Ask the organizer for a new one.",used_up:"That invite has already been used. Ask the organizer for your own.",bad_code:"That event link isn't complete. Ask the organizer to send it again.",gone:"That event is no longer open.",too_early:"Check-in opens 2 hours before the start.",not_entrant:"You are not on this tournament's list. Register on its Play Network page and link your profile.",dropped:"You were dropped. Ask the organizer to bring you back.",archived:"This community is archived.",ask_organizer:"Your Play Network registration is on the list, but the organizer has to put your account on it. Ask them to check you in.",not_demo:"This is a Clash tournament: register on its Play Network page and link your profile.",status:"That event is over.",full:"That event is full.",ask_organizer:"You are already in this event under your Play Network profile. Ask the organizer to put your account on it.",};
 
 function t3CanJoin(t){
   if(!me||!t||!t3IsDemo(t)||t.hidden_at)return!1;
@@ -7732,7 +7760,7 @@ function tvOpenNote(d){
   try{
     const u=new URL(String(d&&d.url||""),location.href);
     if(u.origin!==location.origin)return;
-    const t3=/^#\/tournaments\/([0-9a-f-]{36})$/.exec(u.hash);
+    const t3=/^#\/(?:tournaments|events)\/([0-9a-f-]{36})$/.exec(u.hash);
     if(t3)return void go("tournaments",{tournamentId:t3[1]});
     const m=/^#\/league\/([A-Za-z0-9-]{1,64})\/tournament$/.exec(u.hash);
     
@@ -7836,7 +7864,7 @@ async function slPushSync(force,old){
 async function slPushState(){if(!me)return;const u=me.id,s=slPushGet(),r=await slPushRpc("push_state",{p_endpoint:s&&s.uid===u?s.ep:null});if(!me||me.id!==u)return;
   r.ok&&r.prefs&&slPushPrefsPut(r.prefs);window._pushSt=Object.assign({uid:u},r);slPushPaint()}
 function slPushPaint(){const e=$("acc-push");e&&(e.innerHTML=slPushPane())}
-const SL_PUSH_FAM=[["tournaments","Tournaments","New rounds: your opponent and table, or a bye. Your opponent waiting for you. Organizers: a round to pair, or results to enter by hand."],
+const SL_PUSH_FAM=[["tournaments","Tournaments","New rounds: your opponent and table, or a bye. Your opponent waiting for you. Reminders the day before and an hour before a tournament you registered for. Organizers: time to start, a round to pair, or results to enter by hand."],
   ["matches","Matches","A player joins your match, or ends it and waits for you to confirm the result."],
   ["events","Community events","New events in your communities, and reminders the day before and one hour before. Also when an event you were reminded of is removed."],
   ["notices","Board notices","New notices from your communities' organizers. Organizers also hear about reports on their board."]];
@@ -9058,7 +9086,7 @@ function pnOpen(t){
   const p=t&&t.payload;if(!me||!p||!["draft","running"].includes(t.status)||t3Mine(t))return[];
   const L=(p.entrants||[]).filter(e=>e&&"string"==typeof e.pid&&e.id==="pn:"+e.pid&&!!mgPid("https://malediction.gg/app/profile/"+e.pid+"/")&&!0!==e.lock&&!e.wait&&"drop"!==e.st);
   return L.filter(pnIsMe).concat(L.filter(e=>!pnIsMe(e)))}
-function pnTnById(tid){return cache.tourney&&cache.tourney.id===tid?cache.tourney:(cache.homeTourneys||[]).find(x=>x&&x.id===tid)||tvOf(tid)}
+function pnTnById(tid){const s=window._ciTn;if(s&&s.id===tid)return s;return cache.tourney&&cache.tourney.id===tid?cache.tourney:(cache.homeTourneys||[]).find(x=>x&&x.id===tid)||tvOf(tid)}
 
 function pnHomeTn(){
   if(!cache.homeAll||!cache.homeTourneys)return null;
@@ -9093,7 +9121,9 @@ async function pnClaim(tid,key){
   
   pnSet(u);let r=null;try{const q=await sb.from("tournaments").select("id,status,payload").eq("id",tid).maybeSingle();r=q.error||!q.data||!q.data.payload?null:q.data}catch(y){}
   const m=r&&t3Mine(r),w=r&&!m&&!!((r.payload.entrants||[]).find(z=>z&&z.pid===e.pid&&z.id==="pn:"+e.pid)||{}).wait;
-  !r?toast("Your Play Network profile is linked.",!0):m?toast(`You're in ${t3Title(r)}: your games will be tracked.`,!0):w?toast(`Linked. ${t3Title(r)} has started, so the organizer confirms the link.`,!0):toast(`Your Play Network profile is linked, but this registration could not be matched. Ask the organizer.`)}
+  !r?toast("Your Play Network profile is linked.",!0):m?toast(`You're in ${t3Title(r)}: your games will be tracked.`,!0):w?toast(`Linked. ${t3Title(r)} has started, so the organizer confirms the link.`,!0):toast(`Your Play Network profile is linked, but this registration could not be matched. Ask the organizer.`);
+  
+  const ci=window._ciTn;if(ci&&ci.id===tid){window._ciTn=null;const mm=$("ci-modal");mm&&mm.remove();await evCiWithCode(ci.c)}}
 
 function pnOrgOf(t){const x=t&&t.payload&&t3Mine(t);return x&&!0===x.org&&"string"==typeof x.pid&&!!mgPid("https://malediction.gg/app/profile/"+x.pid+"/")?x:null}
 function pnOrgOk(t){return!!me&&!me.deleted_at&&!pnLinked()&&!!pnOrgOf(t)&&!pnSnoozed(t.id)&&("closed"!==t.status||Date.now()-Date.parse((t.payload||{}).finalized_at||t.created_at||0)<30*864e5)}
@@ -10335,6 +10365,7 @@ async function tnpNew(){
 }
 
 const T3_WHY={not_allowed:"Only the organizer of this tournament can do that.",archived:"This community is archived.",status:"The tournament has moved on since this page was loaded. It has been reloaded.",bad_input:"That was not accepted. Check it and try again.",finals_drawn:"The finals are drawn; this player stays dropped.",has_results:"Results are already recorded, so this can no longer be done.",duplicate:"This player is already in the list.",round0_needed:"The finals could not be drawn. Reload the page and try again.",rematch:"This pairing has a rematch. Reload and pair again.",round_open:"The round still has games without a result.",rounds_done:"All the rounds are already paired.",busy:"A tracked match of this round is being played. Try again when it has ended."};
+const T3_LEAVE={not_entrant:"You are not on the list of this tournament.",status:"This tournament can no longer be left here. Ask the organizer.",busy:"Your tracked match is still being played. Finish it first.",archived:"This community is archived.",not_allowed:"This tournament was not found.",bad_input:"A Demo event has nothing to leave."};
 const T3_IMP={not_allowed:"Only the organizer of this tournament can update its players.",started:"The tournament has started, so its list of players is fixed.",archived:"This community is archived.",parse_error:"The list of registered players could not be read from the Play Network page. Add players by hand.",unreachable:"The Play Network could not be reached from here. Add players by hand, or try again later."};
 let t3Busy=!1,t3Timer=null;
 function t3IdOk(x){return/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(x||""))}
@@ -11217,7 +11248,7 @@ function evTabs(t,ed){
     ed&&add("settings","Settings",t3SettingsHtml(t,ed));
   }else if(draft){
     add("players","Players",t3Players(t,ed));
-    ed&&!t.hidden_at&&add("invite","Invite",t3InviteHtml(t));
+    ed&&!t.hidden_at&&add("invite","Check-in",t3InviteHtml(t));
     ed&&add("settings","Settings",t3SettingsHtml(t,ed));
   }else if(swIsSwiss(p)){
     closed&&add("result","Result",swResultPanel(t,p,rows));
@@ -11249,7 +11280,7 @@ function evTab(k){
 
 
 function t3InviteHtml(t){
-  return(t3IsDemo(t)?t3PubInvHtml(t):"")+t3InvHtml(t);
+  return(t3IsDemo(t)||"draft"===t3St(t)?t3PubInvHtml(t):"")+t3InvHtml(t);
 }
 
 function t3InvHtml(t){
@@ -11281,10 +11312,12 @@ function t3InvRow(r,road){
 function t3PubInvHtml(t){
   const u=evLinkOf(t);
   if(!u)return`<div class="panel plain"><h2 style="margin:0 0 6px">Invite</h2><p class="hint" style="margin:0">This event has no code yet. Reload the page in a moment.</p></div>`;
-  const svg=qrSvg(u,"QR code for joining this event");
+  const ci=!t3IsDemo(t),svg=qrSvg(u,ci?"QR code for checking in to this tournament":"QR code for joining this event"),
+    st=ci&&t.pn_events&&t.pn_events.starts_at,cw=st?" (from "+slFmt(SL_DF_TIME,new Date(Date.parse(st)-72e5),"")+")":"";
   
-  return`<div class="panel plain ev-inv"><h2 style="margin:0 0 6px">Invite</h2>
-    <p class="ev-inv-t">${esc(t3Title(t))}</p>
+  return`<div class="panel plain ev-inv${ci?" ci":""}"><h2 style="margin:0 0 6px">${ci?"Check-in":"Invite"}</h2>
+    ${ci?`<p class="hint" style="margin:0 0 10px">Show this at the venue: registered players scan it and are checked in, from 2 hours before the start${esc(cw)}. Anyone not on the list is told to register on the Play Network.</p>`:""}
+    <p class="ev-inv-t">${esc(t3Title(t))}</p>${ci?'<p class="ev-inv-k">Scan to check in</p>':""}
     ${svg?`<div class="ev-inv-p">${svg}</div>`:""}
     <div class="ev-inv-c">${esc(String(t.join_code||"").toUpperCase())}</div>
     <p class="hint ev-inv-u">${esc(u)}</p>
@@ -11344,7 +11377,7 @@ function t3Paint(t){
   const demo=t3IsDemo(t),pane=evTabs(t,ed);
   if(pane){
     if(draft){
-      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3CtaHtml(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">${esc(t3RegLine(t.pn_events)||"Registration is open. The organizer starts the tournament on the day of the event.")}</p>${t3CiHtml(t)}${t3LinkHint(t)}</div>`;
+      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3CtaHtml(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">${esc(t3RegLine(t.pn_events)||"Registration is open. The organizer starts the tournament on the day of the event.")}</p>${t3CiHtml(t)}${t3LeaveHtml(t)}${t3LinkHint(t)}</div>`;
       
       else if(!demo)h+=swSetupHtml(t);
       
@@ -11353,7 +11386,7 @@ function t3Paint(t){
       if(!demo)h+=t3DeckBlock(t);
     }
     
-    else if(run)h+=t3DeckBlock(t)+t3NextHtml(t);
+    else if(run)h+=t3DeckBlock(t)+t3NextHtml(t)+t3LeaveHtml(t);
     h+=pane;
   }else
   {
@@ -11537,6 +11570,25 @@ async function t3DropAbsent(){const t=cache.tourney;if(!t||!t3Ed(t))return;
   try{await t3Reload()}catch(x){}const t2=cache.tourney;if(!t2||t2.id!==t.id)return;
   const d=await t3Rpc("t_drop_absent",{p_tid:t.id,p_rev:t2.rev|0});if(!d)return;
   toast(`${d.dropped|0} dropped`,!0);await t3Reload()}
+
+function t3LeaveOk(t){const m=t3Mine(t),s=t3St(t);return!!m&&"drop"!==m.st&&!t3IsDemo(t)&&!t3Archived(t)&&!t.hidden_at&&("draft"===s||"running"===s&&swIsSwiss(t.payload||{}))}
+function t3LeaveHtml(t){const m=t3Mine(t);if(!m||t3IsDemo(t))return"";
+  if("drop"===m.st&&"closed"!==t3St(t))return'<p class="hint t3-left">You are no longer playing in this tournament. Only the organizer can bring you back.</p>';
+  return t3LeaveOk(t)?`<div class="t3-acts t3-leave"><button type="button" class="ghost" onclick="t3Leave(${jsq(t.id)})">Leave the tournament</button></div>`:""}
+
+async function t3Leave(tid){if(!me)return void go("auth");if(t3Leave.busy)return;
+  try{await t3Reload()}catch(x){}const t=cache.tourney;if(!t||t.id!==tid||!t3LeaveOk(t))return;
+  const p=t.payload||{},run="running"===t3St(t),r=swCur(p),R=p.rounds|0,
+    g=run?(p.gm||[]).find(x=>x&&(x.r|0)===r&&null==x.w&&null!=x.b&&(x.a===me.id||x.b===me.id)):null,
+    on=g?((t3Ent0(t,g.a===me.id?g.b:g.a)||{}).name||"your opponent"):"",
+    body=run?(g?`Your round ${r} game counts as a win for ${on} and a loss for you. `:"")+"You are not paired again; your results so far stay. Only the organizer can bring you back"+(r<R?` until round ${r+1} is paired.`:".")
+      :"You are taken off the list of players. Only the organizer can bring you back. Your Play Network registration is not changed: cancel it there too if you will not play.";
+  if(!await slConfirm({title:"Leave this tournament?",body,ok:"Leave",danger:!0}))return;
+  t3Leave.busy=1;let q;try{q=await sb.rpc("t_leave",{p_tid:tid})}catch(e){q={error:e}}t3Leave.busy=0;
+  if(q.error)return void toast(slNoCol(q.error)?"Leaving needs a site update that is not live yet.":"Not saved — check your connection and try again");
+  const d=q.data;if(!d||!d.ok)return void toast(T3_LEAVE[d&&d.reason]||d&&d.message||"That did not work.");
+  toast("You left the tournament",!0);cache.t3Mine=null;cache.homeTourneys=null;
+  if("tournaments"===route.view&&cache.tourney&&cache.tourney.id===tid)await t3Reload()}
 
 function t3CiHtml(t){const m=t3Mine(t);if(!m||"drop"===m.st||t3IsDemo(t)||"draft"!==t3St(t))return"";const s=t.pn_events&&t.pn_events.starts_at,tj=jsq(t.id);
   return`<div class="t3-ci">${!0===m.here?`<p class="t3-in"><b>You are checked in &#10003;</b> <button type="button" class="link" onclick="t3CheckIn(${tj},false)">Undo</button></p>`
