@@ -1555,7 +1555,7 @@ details.msec:not([open])>summary{margin-bottom:0}
 .nu-act{flex:0 0 auto;display:flex;align-items:center}
 .nu-act .act{min-height:40px;padding:0 14px;font-size:12px;box-sizing:border-box}
 .nu-chev{flex:0 0 auto;font-style:normal;font-size:20px;line-height:1;color:var(--bone-dim);padding:0 2px}
-.nu-row:hover .nu-chev{color:var(--bone)}.dkf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-top:14px}.dkf-f{display:flex;flex-direction:column;gap:3px;flex:1 1 140px;min-width:0}.dkf-f span{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}.dkf-f select{width:100%;min-height:40px}.dkf-n{flex:1 1 100%;font-size:13px;color:var(--bone-dim)}.dkf-n .link{padding:0;font-size:13px}.dkf-empty{grid-column:1/-1}.nu-more{min-height:44px;padding:0 0 4px}
+.nu-row:hover .nu-chev{color:var(--bone)}.dkf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-top:14px}.dkf-f{display:flex;flex-direction:column;gap:3px;flex:1 1 140px;min-width:0}.dkf-f span{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}.dkf-f select{width:100%;min-height:40px}.dkf-n{flex:1 1 100%;font-size:13px;color:var(--bone-dim)}.dkf-n .link{padding:0;font-size:13px}.dkf-empty{grid-column:1/-1}.nu-more{min-height:44px;padding:0 0 4px}.nu-ev .nu-main{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:9px 0}.nu-dt{flex:0 0 54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;border:1px solid var(--line-2);border-radius:8px;background:var(--coal);line-height:1.05}.nu-dt>span{font-family:Oswald,sans-serif;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim)}.nu-dt>b{font-family:Oswald,sans-serif;font-size:20px;font-weight:600;color:var(--brass)}.nu-dt.now{border-color:var(--crimson)}.nu-dt.now>span:first-child{color:var(--crimson-txt)}.nu-tx{display:flex;flex-direction:column;gap:3px;min-width:0}.nu-ev .nu-tx b{font-size:15.5px;font-weight:600;color:var(--bone);line-height:1.25;overflow-wrap:anywhere}.nu-ev .nu-tx small{font-size:13px;font-weight:400;color:var(--bone-dim);line-height:1.35}.nu-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}.nu-tag{display:inline-block;font-family:Oswald,sans-serif;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;padding:0 7px;border:1px solid var(--line-2);border-radius:999px;color:var(--bone-dim)}.nu-tag.in{border-color:var(--brass-dim);color:var(--brass)}
 
 
 .sn-cap{padding:10px 12px 3px 38px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);opacity:.75;overflow-wrap:anywhere}
@@ -4653,6 +4653,17 @@ async function nbDelete(e){
 const NU_MAX=6;
 function nuRow(k,b,go,act){return`<div class="nu-row"><button type="button" class="nu-main" onclick="${go}"><small>${k}</small><b>${b}</b></button>${act?`<div class="nu-act">${act}</div>`:'<i class="nu-chev" aria-hidden="true">›</i>'}</div>`}
 
+const NU_WD=SL_DF({weekday:"short"}),NU_MO=SL_DF({month:"short"});
+function nuTag(s,c){return s?`<span class="nu-tag${c?" "+c:""}">${esc(s)}</span>`:""}
+function nuEvSub(s,l){const d=s?new Date(s):null;return[d&&!isNaN(d)?esc(slFmt(SL_DF_TIME,d,"")):"",l?esc(l):""].filter(Boolean).join(" · ")}
+function nuEvRow(s,title,sub,tags,go,lab){
+  const d=s?new Date(s):null,ok=!!d&&!isNaN(d),k=ok?dateStr(d):"",
+    td=ok&&k===dateStr(new Date),tm=ok&&k===dateStr(new Date(Date.now()+864e5));
+  const tile=ok?`<span class="nu-dt${td?" now":""}" aria-hidden="true"><span>${td?"Today":tm?"Tomorrow":esc(slFmt(NU_WD,d,""))}</span><b>${d.getDate()}</b><span>${esc(slFmt(NU_MO,d,""))}</span></span>`
+    :'<span class="nu-dt" aria-hidden="true"><b>?</b></span>';
+  return`<div class="nu-row nu-ev"><button type="button" class="nu-main" onclick="${go}" aria-label="${esc(lab)}">${tile}<span class="nu-tx"><b>${title}</b><small>${sub}</small>${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button><i class="nu-chev" aria-hidden="true">›</i></div>`;
+}
+
 function swOrgTodo(p){if(!swIsSwiss(p))return"enter the results, then close it";const c=swCur(p),R=p.rounds|0,h=p.hold||{};
   
   if(swRoundDone(p))return c<R?h.pair===c+1?`Round ${c} is complete: pair round ${c+1}`:`Round ${c} is complete: round ${c+1} is paired automatically`:h.close?"Reopened: close it when you are done":"All rounds are played: it closes automatically";
@@ -4669,7 +4680,12 @@ function paintHomeNext(){
   n3&&(tm=!0,top.push(duNuRow(n3)));
   V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuRow(`${esc(t3Title(x))} · Round ${by}`,"You have a bye: 3 points",`go('tournaments',{tournamentId:${jsq(x.id)}})`)))});
   
-  T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Demo event`,"Turn up and play · 25 cards",`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
+  const LS=cache.homeListings||[],dmE=new Set,lgN=id=>((L.find(y=>y.id===id)||(cache.leagues||[]).find(y=>y&&y.id===id))||{}).name||"";
+  T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>{
+    const e=x.pn_events&&x.pn_events.starts_at?x.pn_events:LS.find(y=>y&&y.id===x.pn_event_id)||null,s=e&&e.starts_at,l=lgN(x.league_id),ti=t3Title(x);
+    x.pn_event_id&&dmE.add(x.pn_event_id);
+    top.push(nuEvRow(s,esc(ti),nuEvSub(s,l),nuTag("Demo")+nuTag("You're in","in"),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
+      [ti,s?pnShort(e):"",l,"Demo event, you are on the list"].filter(Boolean).join(", ")))});
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
     const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
@@ -4677,7 +4693,7 @@ function paintHomeNext(){
     n&&(tm=!0,top.push(nuRow(`${nm} · Next match · ${esc(n.stage)}`,`vs ${esc(tvOppName(n.opp))}${n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:""}`,`window._tPick=${jsq(n.tid)};goLeagueTab('tournament',${jsq(lid)})`)));
     adm&&tOpenList(lt).filter(x=>!(n&&n.tid===x.id)).forEach(x=>top.push(nuRow(`${nm} · Tournament running`,`${x.month?esc(monthLabel(x.month))+" · ":""}finish it, then finalize`,`window._tPick=${jsq(x.id)};goLeagueTab('tournament',${jsq(lid)})`)));
   });
-  (cache.homeListings||[]).forEach(x=>{const l=L.find(y=>y.id===x.league_id);l&&top.push(nuRow(`${esc(l.name)} · ${esc(pnShort(x))}`,esc(x.title||"Event"),`goLeagueTab('events',${jsq(l.id)})`))});
+  (cache.homeListings||[]).forEach(x=>{const l=L.find(y=>y.id===x.league_id);l&&!dmE.has(x.id)&&top.push(nuEvRow(x.starts_at,esc(x.title||"Event"),nuEvSub(x.starts_at,l.name),nuTag(x.type_name),`goLeagueTab('events',${jsq(l.id)})`,[x.title||"Event",pnShort(x),l.name,x.type_name].filter(Boolean).join(", ")))});
   const rows=top,all=!!window._nuAll,sh=all?rows:rows.slice(0,NU_MAX),
     can="Notification"in window,
     nt=!tm?"":can&&!slIosNeedsHome()?tvNotifyOn()?'<button class="ghost on" onclick="tvNotifyOff()" title="Stop telling me">✓ Notifying</button>':'<button class="ghost" onclick="tvNotifyAsk()" title="Tell me when my next match is up">Notify me</button>':slIosNeedsHome()?'<button class="ghost" onclick="slIosNotifyHelp()">Notify me</button>':"";
@@ -6624,7 +6640,7 @@ async function pnRemove(id){const lg=cache.league,x=(cache.listings||[]).find(r=
   if(r.error)return void toast(r.error);if(!(r.data||[]).length)return void toast("Could not remove it. Reload the page and try again");
   cache.listings=(cache.listings||[]).filter(r=>r.id!==id);pnS&&pnS.edit===id&&(pnS.edit=null,pnS.hand=null);toast("Event removed",1);pnPaint();pnHdr()}
 
-async function pnFetchHome(ids){ids=(ids||[]).filter(x=>x&&!isDemo(x));if(!ids.length)return[];try{const{data:d,error:x}=await sb.from("pn_events").select("id,league_id,title,starts_at,ends_at").in("league_id",ids).gte("starts_at",new Date(Date.parse(todayStr()+"T00:00:00")).toISOString()).order("starts_at").limit(5);return x?[]:d||[]}catch(x){return[]}}
+async function pnFetchHome(ids){ids=(ids||[]).filter(x=>x&&!isDemo(x));if(!ids.length)return[];try{const{data:d,error:x}=await sb.from("pn_events").select("id,league_id,title,starts_at,ends_at,type_name").in("league_id",ids).gte("starts_at",new Date(Date.parse(todayStr()+"T00:00:00")).toISOString()).order("starts_at").limit(5);return x?[]:d||[]}catch(x){return[]}}
 
 const AB_PIN='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
 function abMapUrl(L){const t=x=>String(x||"").trim(),a=t(L.address),q=[a||t(L.location),t(L.city),t(L.country)].filter(Boolean).join(", "),G="https://www.google.com/maps/search/?api=1&query=";
@@ -10275,12 +10291,12 @@ function t3Mine(t){return me?t3Ent0(t,me.id):null}
 
 const T3_MODES={
   clash:{game:"Clash",side:"Single",cards:40},
-  demo:{game:"Demo",cards:25},
+  demo:{game:"Demo"},
   allegiance:{game:"Allegiance",side:"Teams",cards:50},
   nemesis:{game:"Nemesis",side:"Single",cards:50},
   dominion:{game:"Dominion",side:"Single",cards:40}};
 
-function t3GameLabel(m){const x=T3_MODES[m]||T3_MODES.clash;return x.game+" \u00b7 "+x.cards}
+function t3GameLabel(m){const x=T3_MODES[m]||T3_MODES.clash;return x.cards?x.game+" \u00b7 "+x.cards:x.game}
 
 function t3Kind(m){return"demo"===m?"Demo":"Tournament"}
 function t3ModeLabel(m){
@@ -10493,7 +10509,7 @@ async function t3Create(id,x){
       wseg=()=>[["community","My community"],["open","Anyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
       
       fmtHint=()=>"2x2"===x.game_mode?"Team (2v2) events cannot be run as a tournament here yet."
-        :"demo"===md?"A Demo event has no rounds and no standings: players turn up, play one game with a 25-card deck and leave, and you add whoever walks in. Their games are tracked from Play › Match like any other. It is open to everyone, so somebody who has never played can find it."
+        :"demo"===md?"A Demo event has no rounds and no standings: players play a simplified version of a standard match, and you add whoever walks in. Their games are tracked from Play › Match like any other. It is open to everyone, so somebody who has never played can find it."
         :`It runs as a Tournament · Clash · Single${/^league$/i.test(x.format||"")?", although the Play Network lists it as League":""}: Swiss rounds, the official Play Network format, paired here on the day. The decks show up once you start the event on the Play Network, and matches played with the match tracker between paired players are recorded automatically.`,
       whoHint=()=>gte?gateTxt(gte).b+(x.league_id?" Your community's own tournament is not affected.":"")
         :!x.league_id?"This event has no community, so it is open to everyone."
