@@ -5981,8 +5981,7 @@ async function evLinkAsk(c,x0){
   if(!await slConfirm({title:"Join this event?",
     body:[x.title,[when,where].filter(Boolean).join(" · "),
           x.league_name?"Run by "+x.league_name:"",
-          np?np+(1===np?" player is":" players are")+" on the list":"Nobody is on the list yet",
-          "\nIt is a Demo event: no rounds. Turn up, play a game with a 25-card deck, and your name is on the list of who came."]
+          np?np+(1===np?" player is":" players are")+" on the list":"Nobody is on the list yet"]
          .filter(Boolean).join("\n"),
     ok:"Join"}))return void(x.invite&&go("tournaments",{tournamentId:x.id}));
   await evJoinWithCode(c);
@@ -5996,7 +5995,7 @@ async function evJoinWithCode(c){
   
   window._tnRows=null;cache.homeTourneys=null;cache.tourneys=null;cache.allTourneys=null;
   if(d.viewer)return void(toast("Invite accepted — this event is now open for you",!0),go("tournaments",{tournamentId:d.id}));
-  d.already||(window._ctaJust=d.id);toast(d.already?"You are already in this event":"You are on the list — have a good game",!0);
+  d.already||(window._ctaJust=d.id);toast(d.already?"You are already in this event":"You're in, enjoy your games!",!0);
   go("tournaments",{tournamentId:d.id});
 }
 const EV_WHY={sign_in:"Sign in with your account first.",deleted:"This account was deleted.",revoked:"That invite was taken back. Ask the organizer for a new one.",expired:"That invite has expired. Ask the organizer for a new one.",used_up:"That invite has already been used. Ask the organizer for your own.",bad_code:"That event link isn't complete. Ask the organizer to send it again.",gone:"That event is no longer open.",not_demo:"This is a Clash tournament: register on its Play Network page and link your profile.",status:"That event is over.",full:"That event is full.",ask_organizer:"You are already in this event under your Play Network profile. Ask the organizer to put your account on it.",};
@@ -6029,7 +6028,7 @@ function t3CtaHtml(t){
   const c=t&&t._cta;
   if(!c||!c.ok||t.hidden_at||!t3IsDemo(t)||"draft"!==t3St(t))return"";
   const just=window._ctaJust===t.id&&!!me&&!!t3Ent0(t,me.id),
-    box=(p,b,x)=>`<div class="t3-cta${just?" just":""}" role="note">${just?'<p class="t3-cta-k">You are in. One more thing</p>':""}<p class="t3-cta-t">${p}</p>${b?`<div class="t3-acts">${b}</div>`:""}${x||""}</div>`;
+    box=(p,b,x)=>`<div class="t3-cta${just?" just":""}" role="note">${just?'<p class="t3-cta-k">You&#39;re in, enjoy your games!</p>':""}<p class="t3-cta-t">${p}</p>${b?`<div class="t3-acts">${b}</div>`:""}${x||""}</div>`;
   if("community"===c.kind){
     if(c.member||!c.name)return"";
     const nm=esc(c.name),cl=just?"act gold":"act";
@@ -6367,7 +6366,7 @@ async function joinLinkAsk(c,l0){
   e.innerHTML=`<div class="info-pop" onclick="event.stopPropagation()" style="max-width:min(94vw,420px)" role="dialog" aria-labelledby="jl-t">
     <div class="ip-head" style="margin-bottom:12px">
       <div><div class="ip-name" id="jl-t">Join ${l?esc(l.name):"this community"}?</div>
-        <div class="col-sub">${l?"":"A private community. "}Invite code <b>${esc(c)}</b>. Joining puts you in its players.</div></div>
+        <div class="col-sub">Joining puts you in its players.</div></div>
       <button class="bldd-x" style="align-self:flex-start" onclick="document.getElementById('jl-modal').remove()" aria-label="Close">×</button>
     </div>
     <div class="dn-cta"><button class="act" id="jl-go" onclick="joinLinkGo()">Join</button>
