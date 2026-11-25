@@ -904,7 +904,7 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .ev-inv-f span{font-family:Oswald,sans-serif;font-size:12pt;letter-spacing:.08em;color:#000!important}}
 .t3-share-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .t3-code{font-family:Oswald,sans-serif;font-size:19px;letter-spacing:.22em;color:var(--bone);background:var(--coal-2);border:1px solid var(--line);border-radius:8px;padding:6px 12px}
-.t3-in{margin:10px 0 0;color:var(--bone-dim)}.t3-cta{margin:0}.t3-cta:not(:first-child){margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2)}.t3-cta.just:not(:first-child){border-top-color:var(--brass-dim)}.t3-cta-k{margin:0 0 4px;color:var(--brass);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}.t3-cta-t{margin:0;overflow-wrap:anywhere}.t3-cta-n{margin:10px 0 0;overflow-wrap:anywhere}.t3-cta-ns{align-self:center;color:var(--brass-dim-txt)}.t3-cta-u{color:var(--bone-dim);font-size:.85rem;margin:6px 0 0;overflow-wrap:anywhere}
+.t3-in{margin:10px 0 0;color:var(--bone-dim)}.t3-cta{margin:0}.t3-cta:not(:first-child){margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2)}.t3-cta.just:not(:first-child){border-top-color:var(--brass-dim)}.t3-cta-k{margin:0 0 4px;color:var(--brass);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}.t3-cta-t{margin:0;overflow-wrap:anywhere}.t3-cta-n{margin:10px 0 0;overflow-wrap:anywhere}.t3-cta-seg+label.field{margin-top:18px}.t3-cta-ns{align-self:center;color:var(--brass-dim-txt)}.t3-cta-u{color:var(--bone-dim);font-size:.85rem;margin:6px 0 0;overflow-wrap:anywhere}
 .t3-rep-b{font-size:12.5px;color:var(--bone-dim)}
 .t3-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .t3-lead{margin:0;font-size:14.5px;color:var(--bone)}
@@ -4656,6 +4656,14 @@ function nuRow(k,b,go,act){return`<div class="nu-row"><button type="button" clas
 const NU_WD=SL_DF({weekday:"short"}),NU_MO=SL_DF({month:"short"});
 function nuTag(s,c){return s?`<span class="nu-tag${c?" "+c:""}">${esc(s)}</span>`:""}
 function nuEvSub(s,l){const d=s?new Date(s):null;return[d&&!isNaN(d)?esc(slFmt(SL_DF_TIME,d,"")):"",l?esc(l):""].filter(Boolean).join(" · ")}
+
+async function nuEvFill(T,LS){
+  const M=cache.homeEvX||(cache.homeEvX={});
+  const need=[...new Set((T||[]).filter(t=>t&&t.pn_event_id&&!(t.pn_events&&t.pn_events.starts_at)&&!(LS||[]).some(x=>x&&x.id===t.pn_event_id)&&!(t.pn_event_id in M)).map(t=>t.pn_event_id))].slice(0,30);
+  if(!need.length)return!1;
+  try{const{data:d,error:x}=await sb.from("pn_events").select("id,title,starts_at,ends_at,type_name").in("id",need);if(x)return!1;
+    need.forEach(i=>{M[i]=null});(d||[]).forEach(e=>{e&&e.id&&(M[e.id]=e)});return!0}catch(x){return!1}
+}
 function nuEvRow(s,title,sub,tags,go,lab){
   const d=s?new Date(s):null,ok=!!d&&!isNaN(d),k=ok?dateStr(d):"",
     td=ok&&k===dateStr(new Date),tm=ok&&k===dateStr(new Date(Date.now()+864e5));
@@ -4682,10 +4690,10 @@ function paintHomeNext(){
   
   const LS=cache.homeListings||[],dmE=new Set,lgN=id=>((L.find(y=>y.id===id)||(cache.leagues||[]).find(y=>y&&y.id===id))||{}).name||"";
   T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>{
-    const e=x.pn_events&&x.pn_events.starts_at?x.pn_events:LS.find(y=>y&&y.id===x.pn_event_id)||null,s=e&&e.starts_at,l=lgN(x.league_id),ti=t3Title(x);
+    const e=x.pn_events&&x.pn_events.starts_at?x.pn_events:LS.find(y=>y&&y.id===x.pn_event_id)||(cache.homeEvX||{})[x.pn_event_id]||null,in1=!!me&&!!t3Ent0(x,me.id),org=!!me&&x.organizer_id===me.id,s=e&&e.starts_at,l=lgN(x.league_id),ti=t3Title(x);
     x.pn_event_id&&dmE.add(x.pn_event_id);
-    top.push(nuEvRow(s,esc(ti),nuEvSub(s,l),nuTag("Demo")+nuTag("You're in","in"),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
-      [ti,s?pnShort(e):"",l,"Demo event, you are on the list"].filter(Boolean).join(", ")))});
+    top.push(nuEvRow(s,esc(ti),nuEvSub(s,l),nuTag("Demo")+(in1?nuTag("You're in","in"):org?nuTag("You organize","in"):""),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
+      [ti,s?pnShort(e):"",l,in1?"Demo event, you are on the list":org?"Demo event you organize":"Demo event"].filter(Boolean).join(", ")))});
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
     const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
@@ -4712,10 +4720,7 @@ async function homeLoad(){
   
   const[a,b,c]=await Promise.all([ids.length?tvFetchOpen(ids).then(r=>r||[]):[],ids.length?pnFetchHome(ids):[],t3MineGet(0)]);
   cache.homeTourneys=t3Merge(a,c);cache.homeListings=b;
-  
-  const need=[...new Set(cache.homeTourneys.filter(t=>t&&t.pn_event_id&&!(t.pn_events&&t.pn_events.starts_at)&&!(b||[]).some(x=>x&&x.id===t.pn_event_id)).map(t=>t.pn_event_id))].slice(0,30);
-  if(need.length)try{const{data:d,error:x}=await sb.from("pn_events").select("id,title,starts_at,ends_at,type_name").in("id",need);
-    x||(d||[]).forEach(e=>cache.homeTourneys.forEach(t=>{t&&t.pn_event_id===e.id&&!(t.pn_events&&t.pn_events.starts_at)&&(t.pn_events=e)}))}catch(x){}
+  await nuEvFill(cache.homeTourneys,b);
   cache.homeTourneys.forEach(t=>{try{swKick(t)}catch(x){}});
   return cache.homeAll=o;
 }
@@ -6094,21 +6099,21 @@ function t3CtaEdHtml(t){
     k=K?K.k:"community"===t.cta_kind&&t.cta_text&&!t3CtaLgOf(t,P)?"own":t.cta_kind||"community",x=K?K.x:t.cta_text||"",u=K?K.u:t.cta_url||"",
     hid=!!t.hidden_at,lg=K&&"community"===K.k&&void 0!==K.lg?K.lg:t3CtaLgOf(t,P),
     L=P.find(p=>p.id===lg)||null,com="community"===k;
-  const seg=[["community","A community"],["own","Your own words"],["none","None"]].map(([v,lb])=>`<button type="button" class="seg-b${k===v?" on":""}" role="radio" aria-checked="${k===v}" onclick="t3CtaPick(${jsq(v)})"${!P.length&&"community"===v||hid&&"none"!==v?" disabled":""}>${lb}</button>`).join("");
-  if(hid)return`<div class="tm-label" style="margin-top:12px">After they join</div>
-    <div class="seg t3-cta-seg" role="radiogroup" aria-label="Invitation after they join">${seg}</div>
+  const seg=[["community","A community"],["own","A message"],["none","Nothing"]].map(([v,lb])=>`<button type="button" class="seg-b${k===v?" on":""}" role="radio" aria-checked="${k===v}" onclick="t3CtaPick(${jsq(v)})"${!P.length&&"community"===v||hid&&"none"!==v?" disabled":""}>${lb}</button>`).join("");
+  if(hid)return`<div class="tm-label" style="margin-top:12px">What a player sees after joining</div>
+    <div class="seg t3-cta-seg" role="radiogroup" aria-label="What a player sees after joining">${seg}</div>
     <p class="hint t3-cta-h">This event was taken off the public list, so its invitation can only be switched off.</p>`;
   const pick=com&&P.length?`<label class="field"><span>Community</span><select id="t3-cta-l" onchange="t3CtaLg(this.value)">${L?"":'<option value="" selected disabled>Pick a community</option>'}${P.map(p=>`<option value="${esc(p.id)}"${p.id===lg?" selected":""}>${esc(p.name)}${p.public?"":" (private)"}</option>`).join("")}</select></label>`:"";
   const note=com?(L?(L.public?`Players who are not in <b>${esc(L.name)}</b> yet see a button that joins it in one tap.`
-      :`<b>${esc(L.name)}</b> is private, so the button carries its join code: anyone who sees this event can join the community. Pick a public one, your own words or None to keep the code to yourself.`)
-      :P.length?"Pick the community to invite them to.":"You run no community to invite them to. Write your own words, or pick None.")
+      :`<b>${esc(L.name)}</b> is private, so the button carries its join code: anyone who sees this event can join the community. Pick a public one, A message or Nothing to keep the code to yourself.`)
+      :P.length?"Pick the community to invite them to.":"You run no community to invite them to. Write a message, or pick Nothing.")
     :"own"===k?"One line, and one link if you want. Players see it under the Join button, and after they join."
     :"Players see no invitation.";
   const form="own"===k||com&&L?`<label class="field"><span>${com?'A line under it <span class="opt">optional</span>':"What it says"}</span><input id="t3-cta-x" maxlength="140" autocomplete="off" placeholder="${com?"Questions? Ask for me at the counter":"Follow us on Discord for the next one"}" value="${esc(x)}" oninput="t3CtaKeep()"></label>
     <label class="field"><span>Link <span class="opt">optional</span></span><input id="t3-cta-u" type="url" inputmode="url" maxlength="300" autocomplete="off" placeholder="https://" value="${esc(u)}" oninput="t3CtaKeep()" onkeydown="'Enter'===event.key&&(event.preventDefault(),t3CtaSave())"></label>
     <div class="t3-acts"><button type="button" class="act" onclick="t3CtaSave()">Save</button>${K&&(t.cta_kind!==K.k||(t.cta_text||"")!==K.x||(t.cta_url||"")!==K.u)?'<span class="hint t3-cta-ns">Not saved yet</span>':""}</div>`:"";
-  return`<div class="tm-label" style="margin-top:12px">After they join</div>
-    <div class="seg t3-cta-seg" role="radiogroup" aria-label="Invitation after they join">${seg}</div>
+  return`<div class="tm-label" style="margin-top:12px">What a player sees after joining</div>
+    <div class="seg t3-cta-seg" role="radiogroup" aria-label="What a player sees after joining">${seg}</div>
     ${pick}<p class="hint t3-cta-h">${note}</p>${form}`;
 }
 
@@ -7847,7 +7852,7 @@ async function tvPoll(){
   const list=t3Merge(l0,mine),old=list.filter(t=>null==t.status);
   list.length&&await ensureProfNames();
   
-  cache.homeTourneys=list;
+  cache.homeTourneys=list;nuEvFill(list,cache.homeListings).then(n=>{n&&"browse"===route.view&&paintHomeNext()});
   list.forEach(t=>{try{swKick(t)}catch(x){}});
   try{const o=localStorage.getItem("sl.lastmatch");if(null!==o){o&&ids.forEach(id=>{const n=tvMyNext(old.filter(t=>t.league_id===id));n&&n.tid+":"+n.key===o&&null===localStorage.getItem(tvLastKey(id))&&localStorage.setItem(tvLastKey(id),o)});localStorage.removeItem("sl.lastmatch")}}catch(e){}
   let ch=!1;
