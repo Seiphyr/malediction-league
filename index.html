@@ -925,7 +925,7 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .t3-ln a{color:var(--bone)}
 .t3-ln.none{color:var(--bone-faint)}
 .t3-chip{flex:0 0 auto;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);border:1px solid var(--line-2);border-radius:999px;padding:2px 8px}
-.t3-chip.dr{color:var(--crimson-txt);border-color:var(--crimson)}
+.t3-chip.dr{color:var(--crimson-txt);border-color:var(--crimson)}.t3-chip.in{color:var(--brass);border-color:var(--brass-dim)}.t3-ci{margin:10px 0}.t3-ci .t3-b{margin-left:8px}.t3-ci .hint{margin:8px 0 0}
 .t3-chip.dk{color:var(--brass);border-color:var(--brass)}
 .t3-chip.dk.no{color:var(--bone-faint);border-color:var(--line-2)}
 .t3-dk-v{margin:0 0 6px;font-size:14.5px;color:var(--bone);overflow-wrap:anywhere}
@@ -1039,7 +1039,7 @@ button.sw-pnc{margin-left:auto;flex:0 0 auto;min-height:40px;min-width:64px;padd
 .sw-err{margin:8px 0 12px;min-height:1em;font-size:13px;color:var(--crimson-txt)}
 .pnl-tn{display:inline-flex;align-items:center;min-height:40px;color:var(--brass);font-size:14px}
 .pnl-run{flex:0 0 auto;min-height:40px}
-.du-tn{display:flex;flex-direction:column;gap:3px;margin:0 0 16px;padding:10px 12px;border:1px solid var(--crimson);border-radius:10px;background:linear-gradient(90deg,rgba(192,80,58,.16),rgba(200,165,104,.04));min-width:0}
+.du-tn-ban{margin:0 0 14px}.du-tn-ban .du-tn{margin:0}.du-tn{display:flex;flex-direction:column;gap:3px;margin:0 0 16px;padding:10px 12px;border:1px solid var(--crimson);border-radius:10px;background:linear-gradient(90deg,rgba(192,80,58,.16),rgba(200,165,104,.04));min-width:0}
 .du-tn small{font-family:Oswald,sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
 .du-tn b{font-family:Oswald,sans-serif;font-weight:600;font-size:15px;color:var(--bone);overflow-wrap:anywhere}
 .du-tn-vs{font-size:14px;color:var(--bone);overflow-wrap:anywhere}
@@ -2826,7 +2826,7 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   const{data:d2}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
   if(d2)me=d2,nkSoon();
 }
-async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,duDrop(),cache.myDecks=null,cache.collection=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote(),cache.gate=void 0,cache.pnClaim=void 0,cache.clOpen=void 0,window.aacReset&&aacReset(1)}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return $("au-email").focus(),toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
+async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,window._tnAll=null,duDrop(),cache.myDecks=null,cache.collection=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote(),cache.gate=void 0,cache.pnClaim=void 0,cache.clOpen=void 0,window.aacReset&&aacReset(1)}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return $("au-email").focus(),toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
 
 async function fetchMyLeagues(){const u=me&&me.id,L=await fetchMyLeagues0();L&&u&&me&&me.id===u&&slNavLgPut(u,L);return L||[]}
 function slNavLgSig(L){return(L||[]).map(l=>[l.id,l.name,!!l.archived_at].join("\u0001")).join("\u0002")}
@@ -4654,6 +4654,9 @@ const NU_MAX=6;
 function nuRow(k,b,go,act){return`<div class="nu-row"><button type="button" class="nu-main" onclick="${go}"><small>${k}</small><b>${b}</b></button>${act?`<div class="nu-act">${act}</div>`:'<i class="nu-chev" aria-hidden="true">›</i>'}</div>`}
 
 const NU_WD=SL_DF({weekday:"short"}),NU_MO=SL_DF({month:"short"});
+
+const DM_AFTER_H=6;
+function dmGone(e,now){if(!e)return!1;const en=Date.parse(e.ends_at||""),st=Date.parse(e.starts_at||""),lim=!isNaN(en)?en+DM_AFTER_H*36e5:!isNaN(st)?st+12*36e5:NaN;return!isNaN(lim)&&(now||Date.now())>lim}
 function nuTag(s,c){return s?`<span class="nu-tag${c?" "+c:""}">${esc(s)}</span>`:""}
 function nuEvSub(s,l){const d=s?new Date(s):null;return[d&&!isNaN(d)?esc(slFmt(SL_DF_TIME,d,"")):"",l?esc(l):""].filter(Boolean).join(" · ")}
 
@@ -4664,12 +4667,18 @@ async function nuEvFill(T,LS){
   try{const{data:d,error:x}=await sb.from("pn_events").select("id,title,starts_at,ends_at,type_name").in("id",need);if(x)return!1;
     need.forEach(i=>{M[i]=null});(d||[]).forEach(e=>{e&&e.id&&(M[e.id]=e)});return!0}catch(x){return!1}
 }
-function nuEvRow(s,title,sub,tags,go,lab){
+
+function nuIn(s){const m=Math.ceil((Date.parse(s||"")-Date.now())/6e4);return!(m>0)?"":m<60?"in "+m+" min":m<1440?"in "+Math.round(m/60)+" h":(n=>"in "+n+" day"+(n>1?"s":""))(Math.round(m/1440))}
+function t3RegLim(e){const en=Date.parse(e&&e.ends_at||""),st=Date.parse(e&&e.starts_at||"");return!isNaN(en)?en:!isNaN(st)?st+12*36e5:NaN}
+function t3RegLine(e){const s=e&&e.starts_at,d=s?new Date(s):null;if(!d||isNaN(d))return"";
+  if(d>Date.now()){const w=nuIn(s);return"Starts at "+slFmt(SL_DF_TIME,d,"")+(dateStr(d)===dateStr(new Date)?"":" · "+pnDay(d))+(w?" · "+w:"")}
+  const lim=t3RegLim(e);return!isNaN(lim)&&Date.now()>lim?"":"Waiting for the organizer to start"}
+function nuEvRow(s,title,sub,tags,go,lab,act){
   const d=s?new Date(s):null,ok=!!d&&!isNaN(d),k=ok?dateStr(d):"",
     td=ok&&k===dateStr(new Date),tm=ok&&k===dateStr(new Date(Date.now()+864e5));
   const tile=ok?`<span class="nu-dt${td?" now":""}" aria-hidden="true"><span>${td?"Today":tm?"Tomorrow":esc(slFmt(NU_WD,d,""))}</span><b>${d.getDate()}</b><span>${esc(slFmt(NU_MO,d,""))}</span></span>`
     :'<span class="nu-dt" aria-hidden="true"><b>?</b></span>';
-  return`<div class="nu-row nu-ev"><button type="button" class="nu-main" onclick="${go}" aria-label="${esc(lab)}">${tile}<span class="nu-tx"><b>${title}</b><small>${sub}</small>${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button><i class="nu-chev" aria-hidden="true">›</i></div>`;
+  return`<div class="nu-row nu-ev"><button type="button" class="nu-main" onclick="${go}" aria-label="${esc(lab)}">${tile}<span class="nu-tx"><b>${title}</b><small>${sub}</small>${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button>${act?`<div class="nu-act">${act}</div>`:'<i class="nu-chev" aria-hidden="true">›</i>'}</div>`;
 }
 
 function swOrgTodo(p){if(!swIsSwiss(p))return"enter the results, then close it";const c=swCur(p),R=p.rounds|0,h=p.hold||{};
@@ -4692,8 +4701,29 @@ function paintHomeNext(){
   T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>{
     const e=x.pn_events&&x.pn_events.starts_at?x.pn_events:LS.find(y=>y&&y.id===x.pn_event_id)||(cache.homeEvX||{})[x.pn_event_id]||null,in1=!!me&&!!t3Ent0(x,me.id),org=!!me&&x.organizer_id===me.id,s=e&&e.starts_at,l=lgN(x.league_id),ti=t3Title(x);
     x.pn_event_id&&dmE.add(x.pn_event_id);
+    if(dmGone(e))return;
+    const pl=in1&&"drop"!==t3Ent0(x,me.id).st;
     top.push(nuEvRow(s,esc(ti),nuEvSub(s,l),nuTag("Demo")+(in1?nuTag("You're in","in"):org?nuTag("You organize","in"):""),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
-      [ti,s?pnShort(e):"",l,in1?"Demo event, you are on the list":org?"Demo event you organize":"Demo event"].filter(Boolean).join(", ")))});
+      [ti,s?pnShort(e):"",l,in1?"Demo event, you are on the list":org?"Demo event you organize":"Demo event"].filter(Boolean).join(", "),
+      pl?'<button type="button" class="act gold nu-go" onclick="duPlayDemo()">Play a game</button>':""))});
+  
+  let reg=!1;
+  T.filter(x=>x&&"draft"===x.status&&"demo"!==x.mode&&!x.hidden_at).forEach(x=>{
+    const en=me&&t3Ent0(x,me.id),in1=!!en&&"drop"!==en.st,org=!!me&&x.organizer_id===me.id;if(!in1&&!org)return;
+    const e=x.pn_events&&x.pn_events.starts_at?x.pn_events:LS.find(y=>y&&y.id===x.pn_event_id)||(cache.homeEvX||{})[x.pn_event_id]||null,s=e&&e.starts_at,d=s?new Date(s):null,
+      day=!!d&&!isNaN(d)&&(dateStr(d)===dateStr(new Date)||d<=Date.now()),line=t3RegLine(e),l=lgN(x.league_id),ti=t3Title(x);
+    if(d&&!isNaN(d)&&!line)return;
+    if(!in1&&!day)return;
+    x.pn_event_id&&dmE.add(x.pn_event_id);reg=!0;in1&&day&&(tm=!0);
+    const n=(x.payload&&x.payload.entrants||[]).filter(y=>y&&"drop"!==y.st).length,
+      sub=[line||"Registration is open",org&&!in1?n+" registered":l].filter(Boolean).map(esc).join(" · ");
+    const here=in1&&!0===en.here;
+    top.push(nuEvRow(s,esc(ti),sub,nuTag("Tournament")+(in1?nuTag(here?"Checked in":"You're registered","in"):nuTag("You organize","in")),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
+      [ti,line,l,in1?here?"you are checked in":"you are registered":"you organize it"].filter(Boolean).join(", "),
+      in1&&!here&&t3CiOpen(x,s)?`<button type="button" class="act gold nu-go" onclick="t3CheckIn(${jsq(x.id)})">I'm here</button>`:""))});
+  
+  reg&&!window._nuTick?window._nuTick=setInterval(()=>{if("browse"!==route.view||!me)return;Promise.resolve(me&&tvPoll()).catch(()=>{}).finally(()=>{"browse"===route.view&&paintHomeNext()})},6e4)
+    :!reg&&window._nuTick&&(clearInterval(window._nuTick),window._nuTick=null);
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
     const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
@@ -4701,7 +4731,7 @@ function paintHomeNext(){
     n&&(tm=!0,top.push(nuRow(`${nm} · Next match · ${esc(n.stage)}`,`vs ${esc(tvOppName(n.opp))}${n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:""}`,`window._tPick=${jsq(n.tid)};goLeagueTab('tournament',${jsq(lid)})`)));
     adm&&tOpenList(lt).filter(x=>!(n&&n.tid===x.id)).forEach(x=>top.push(nuRow(`${nm} · Tournament running`,`${x.month?esc(monthLabel(x.month))+" · ":""}finish it, then finalize`,`window._tPick=${jsq(x.id)};goLeagueTab('tournament',${jsq(lid)})`)));
   });
-  (cache.homeListings||[]).forEach(x=>{const l=L.find(y=>y.id===x.league_id);l&&!dmE.has(x.id)&&top.push(nuEvRow(x.starts_at,esc(x.title||"Event"),nuEvSub(x.starts_at,l.name),nuTag(x.type_name),`goLeagueTab('events',${jsq(l.id)})`,[x.title||"Event",pnShort(x),l.name,x.type_name].filter(Boolean).join(", ")))});
+  (cache.homeListings||[]).forEach(x=>{const l=L.find(y=>y.id===x.league_id);l&&!dmE.has(x.id)&&!(/demo/i.test(x.type_name||"")&&dmGone(x))&&top.push(nuEvRow(x.starts_at,esc(x.title||"Event"),nuEvSub(x.starts_at,l.name),nuTag(x.type_name),`goLeagueTab('events',${jsq(l.id)})`,[x.title||"Event",pnShort(x),l.name,x.type_name].filter(Boolean).join(", ")))});
   const rows=top,all=!!window._nuAll,sh=all?rows:rows.slice(0,NU_MAX),
     can="Notification"in window,
     nt=!tm?"":can&&!slIosNeedsHome()?tvNotifyOn()?'<button class="ghost on" onclick="tvNotifyOff()" title="Stop telling me">✓ Notifying</button>':'<button class="ghost" onclick="tvNotifyAsk()" title="Tell me when my next match is up">Notify me</button>':slIosNeedsHome()?'<button class="ghost" onclick="slIosNotifyHelp()">Notify me</button>':"";
@@ -5057,6 +5087,8 @@ function duModeLab(id){const t=TRK_MODES.find(x=>x.id===id)||TRK_MODES[0];return
 function duModeOpts(m,tn){const o=id=>{const off=DU_MP.includes(id)&&!GM_ON;return`<option value="${id}"${m===id?" selected":""}${off?" disabled":""}>${esc(duModeLab(id))}${off?" · soon":""}</option>`};return`<optgroup label="1v1">${["demo","clash"].map(o).join("")}</optgroup>`+(tn?"":`<optgroup label="Multiplayer">${DU_MP.map(o).join("")}</optgroup>`)}
 function duModeHint(m,tn){const t=TRK_MODES.find(x=>x.id===m)||TRK_MODES[0];return t.desc+(tn?".":". Joining uses the host's mode.")}
 function duPick(){if(!window._duPick){let e={};try{e=JSON.parse(localStorage.getItem(DU_PICK)||"{}")||{}}catch(n){}window._duPick={seeker:String(e.seeker||""),terrain:String(e.terrain||""),deck:String(e.deck||""),mode:duModeOk(e.mode),seats:3===+e.seats?3:4}}const e=window._duPick;e.mode=duModeOk(e.mode);seekerList().some(n=>n.n===e.seeker)||(e.seeker=""),TERRAINS.includes(e.terrain)||(e.terrain=""),cache.myDecks&&e.deck&&!cache.myDecks.some(n=>n.id===e.deck)&&(e.deck="");return e}
+
+function duPlayDemo(){if(!me)return void go("auth");const p=duPick();p.mode=duModeOk("demo");duPickSave();window._duPinOpen=0;"tracker"===route.view?renderTracker():go("tracker")}
 function duPickSave(){try{localStorage.setItem(DU_PICK,JSON.stringify(window._duPick||{}))}catch(e){}}
 
 
@@ -5137,11 +5169,12 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
     <div class="du-acts"><button class="act gold" onclick="go('auth')">Sign in to play</button><button class="ghost" onclick="go('basic-tracker')">Open the Basic tracker</button></div>
     <p class="hint du-foot">${GM_ON?"No account?":"No account, or more than two players?"} The Basic tracker keeps score on this device only and saves nothing online.</p>
   </div>`);
-  const tn=t3DuNext(),tnb=t3DuBlock(tn);duInvNote();if(tn&&swIsSwiss(tn.t&&tn.t.payload))return void(e.innerHTML=duTnPage(tnb));tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
-  e.innerHTML=`<div class="panel du-wrap">
-    <h2 class="du-h">Play a match</h2>
-    <p class="du-lead">${DU_MP.includes(p.mode)?"Pick what you are playing, then start the match and read out the PIN. The others join with it, teams follow the order they join, and the match starts by itself when every seat is taken. When it ends, a player from another side confirms the result and it is saved to every player's profile.":"Pick what you are playing, then start the match and read out the PIN, or join your opponent's with theirs. Once you are both in, one phone can keep score for both. When it ends, the other player confirms the result and it is saved to both profiles."}</p>
-    <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}${avHtml(me)}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${tnb}
+  
+  const tn0=t3DuNext(),tnb=t3DuBlock(tn0),sw=!!tn0&&swIsSwiss(tn0.t&&tn0.t.payload),tn=sw?null:tn0;duInvNote();tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
+  e.innerHTML=(sw?`<div class="du-tn-ban">${tnb}</div>`:"")+`<div class="panel du-wrap">
+    <h2 class="du-h">${sw?"Or play a casual match":"Play a match"}</h2>
+    <p class="du-lead">${sw?"Your tournament game starts from the card above, with one tap and no PIN. A match started here is a casual one. ":""}${DU_MP.includes(p.mode)?"Pick what you are playing, then start the match and read out the PIN. The others join with it, teams follow the order they join, and the match starts by itself when every seat is taken. When it ends, a player from another side confirms the result and it is saved to every player's profile.":"Pick what you are playing, then start the match and read out the PIN, or join your opponent's with theirs. Once you are both in, one phone can keep score for both. When it ends, the other player confirms the result and it is saved to both profiles."}</p>
+    <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}${avHtml(me)}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${sw?"":tnb}
     <div class="field"><label class="du-lab" for="du-seeker">Your Seeker</label>
       <div class="du-sk"${hx?` style="--fac:${hx}"`:""}><span class="du-fi">${cur?fBadges(cur.f):""}</span>
       <select id="du-seeker" required aria-required="true" onchange="duPickSet('seeker',this.value)"><option value="">Pick your Seeker</option>${sk.map(c=>`<option value="${esc(c.n)}"${c.n===p.seeker?" selected":""}>${esc(c.n)} \u00b7 ${esc(factionLabel(c.f))}</option>`).join("")}</select></div></div>
@@ -5723,7 +5756,7 @@ function duTnCard(n){
       ${"untracked"===s?`<p>${esc(n.oppName)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.</p>`:dl?`<p class="du-tn-dk">${dl}</p>`:""}${t3DcLine(t,n,n.oppName,"du-tn-dc")}
       <p>Mode: ${esc(t3GameLabel(n.mode))}, set by the tournament</p><p>Time ran out with equal Mastery? End the match and choose Draw.</p>
       ${a}
-      <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${tj}})">Tournament page</button><button type="button" class="link" onclick="t3DuOff()">Play a casual match instead</button>${iv?`<button type="button" class="link" onclick="duInvDecline(${jsq(iv.id)})">Decline</button>`:""}</div>
+      <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${tj}})">Tournament page</button>${iv?`<button type="button" class="link" onclick="duInvDecline(${jsq(iv.id)})">Decline</button>`:""}</div>
     </div>`}
 
 function t3NextSw(t,n,on){
@@ -5743,7 +5776,11 @@ function t3NextSw(t,n,on){
 function duNuRow(n){
   const t=n.t,sw=!!t&&swIsSwiss(t.payload),s=sw?t3GameState(t,n):"",iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,tb=n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:"",tj=jsq(n.tid);
   return nuRow(`${esc(n.title)} · Next match · ${esc(n.stage)}`,iv?`${esc(iv.host_name||n.oppName)} is waiting for you${tb}`:`vs ${esc(n.oppName)}${tb}`,`go('tournaments',{tournamentId:${tj}})`,
-    iv?`<button type="button" class="act nu-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join</button>`:"start"===s||"nodeck"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj})">Start the match</button>`:"");
+    
+    iv?`<button type="button" class="act nu-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join</button>`
+    :"waiting"===s?`<button type="button" class="act nu-go" onclick="go('tracker')">Open the match</button>`
+    :"live"===s&&DU&&DU.tId===n.tid?`<button type="button" class="act nu-go" onclick="go('tracker')">Open the match</button>`
+    :"start"===s||"nodeck"===s||"live"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`:"");
 }
 
 function duInvList(){const c=cache.duInv;return me&&c&&c.uid===me.id?c.list:[]}
@@ -6036,7 +6073,7 @@ function t3CanJoin(t){
   if("community"!==(t.scope||"community"))return!0;
   const l=t3Lg(t);return!!(l&&l.is_public&&!l.archived_at);
 }
-function t3JoinBtn(t){return t3CanJoin(t)?`<div class="t3-acts"><button class="act gold" onclick="t3JoinThis()">Join this event</button></div>`:me&&t3IsDemo(t)&&"draft"===t3St(t)&&t3Ent0(t,me.id)?`<p class="hint t3-in">You are on the list for this event.</p>`:""}
+function t3JoinBtn(t){return t3CanJoin(t)?`<div class="t3-acts"><button class="act gold" onclick="t3JoinThis()">Join this event</button></div>`:me&&t3IsDemo(t)&&"draft"===t3St(t)&&t3Ent0(t,me.id)&&"drop"!==t3Ent0(t,me.id).st?`<p class="hint t3-in">You are on the list for this event.</p><div class="t3-acts"><button type="button" class="act gold" onclick="duPlayDemo()">Play a game</button></div>`:""}
 
 async function t3CtaLoad(t){
   t._cta=null;t._ctaPool=null;
@@ -10134,9 +10171,27 @@ function tnKind(k){
 }
 
 function tnpOv(){const b=document.querySelector("#tnp-root .nb-tabs");b&&nbOv(b)}
+
+function tnMyActive(){if(!me)return null;
+  const c=cache.t3Mine,R=t3Merge(c&&c.uid===me.id?c.rows:[],cache.homeTourneys||[]),mine=t=>{const x=t3Ent0(t,me.id);return!!x&&"drop"!==x.st};
+  const run=R.filter(t=>t&&"running"===t.status&&!t.hidden_at&&mine(t)).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
+  if(run.length)return run[0].id;
+  const today=dateStr(new Date),dr=R.filter(t=>{if(!t||"draft"!==t.status||t.hidden_at||!mine(t))return!1;
+    const e=t.pn_events&&t.pn_events.starts_at?t.pn_events:(cache.homeListings||[]).find(y=>y&&y.id===t.pn_event_id)||(cache.homeEvX||{})[t.pn_event_id]||null;
+    return!!(e&&e.starts_at)&&dateStr(new Date(e.starts_at))===today&&!("demo"===t.mode&&dmGone(e))});
+  return dr.length?dr[0].id:null}
+function tnAllEv(){window._tnAll=tnMyActive()||route.tournamentId||(cache.tourney&&cache.tourney.id)||1;go("tournaments")}
 async function renderTournamentsPage(){
   const e=$("tnp-body");if(!e)return;
   if(route.tournamentId)return t3Open(route.tournamentId);
+  
+  if(me){let id=tnMyActive();
+    if(!id&&!(cache.t3Mine&&cache.t3Mine.uid===me.id&&cache.t3Mine.at)){
+      e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading events…</div></div>';
+      try{await t3MineGet()}catch(x){}if("tournaments"!==route.view||route.tournamentId)return;id=tnMyActive()}
+    if(id&&window._tnAll!==id){route.tournamentId=id;const h="#/events/"+id;
+      if(slmIgnore||slmAfter)slmAfter=h;else{try{history.replaceState(null,"",h)}catch(x){}slmHref=location.href}
+      return t3Open(id)}}
   t3Timer&&(clearInterval(t3Timer),t3Timer=null);
   const t=tnTabKey(window._tnTab),k=tnKindKey(window._tnKind);window._tnTab=t,window._tnKind=k;
   e.innerHTML='<div class="panel plain"><div class="empty"><span class="spinner"></span> Loading events…</div></div>';
@@ -10210,7 +10265,7 @@ async function paintTnShelf(kind){
   if(off)return void(e.innerHTML='<div class="empty">Not loaded \u2014 check your connection and try again.</div>');
   if(bad)return void(e.innerHTML=`<div class="banner">${esc(bad)}</div>`);
   if(gone)return void(e.innerHTML=`<div class="empty">The public list is not here yet \u2014 the database needs its latest update.${me?" Everything else on this page works.":""}</div>`);
-  const rows=(all||[]).filter(r=>tnFits(r,kind)&&tnKindFits(r,k));
+  const rows=(all||[]).filter(r=>tnFits(r,kind)&&tnKindFits(r,k)&&!("demo"===r.mode&&"draft"===r.status&&dmGone(r)));
   const o=findOrigin(),km=r=>o&&null!=r.lat&&null!=r.lon?findKm(o,{lat:+r.lat,lon:+r.lon}):null;
   o&&rows.sort((a,b)=>{const x=km(a),y=km(b);return null==x&&null==y?0:null==x?1:null==y?-1:x-y});
   
@@ -10391,7 +10446,7 @@ async function t3Load(id){
       if(l&&l.owner_id!==t.organizer_id)try{const r=await sb.from("memberships").select("is_admin,dropped_at").eq("league_id",t.league_id).eq("user_id",t.organizer_id).maybeSingle();r.error||(t._orgGone=!(r.data&&r.data.is_admin&&!r.data.dropped_at))}catch(x){}}}
   return{row:t};
 }
-function t3Missing(e){e.innerHTML=`<div class="panel plain"><div class="empty">This tournament was not found, or you cannot see it.</div><div class="t3-mis"><button class="ghost" onclick="go('tournaments')">All events</button></div></div>`}
+function t3Missing(e){e.innerHTML=`<div class="panel plain"><div class="empty">This tournament was not found, or you cannot see it.</div><div class="t3-mis"><button class="ghost" onclick="tnAllEv()">All events</button></div></div>`}
 async function t3Open(id){
   const e=$("tnp-body");if(!e)return;
   if(!t3IdOk(id))return t3Missing(e);
@@ -10419,7 +10474,8 @@ async function t3After(t){duInbox();try{await t3DeckLoad(t)}catch(x){}try{t3Ed(t
 function t3Typing(){const a=document.activeElement,b=$("tnp-body");return!!(a&&b&&b.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
 function t3Repaint(){const t=cache.tourney;"tournaments"===route.view&&t&&route.tournamentId===t.id&&!t3Typing()&&t3Paint(t)}
 
-function t3Watch(id){t3Timer&&clearInterval(t3Timer);t3Timer=setInterval(()=>t3Poll(id),3e4)}
+
+function t3Watch(id){t3Timer&&clearInterval(t3Timer);let c=0;t3Timer=setInterval(()=>{const t=cache.tourney,f=!!t&&t.id===id&&t3Ed(t)&&t3CiOpen(t,t.pn_events&&t.pn_events.starts_at);(f||++c%3==0)&&t3Poll(id)},1e4)}
 async function t3Poll(id){
   if("tournaments"!==route.view||route.tournamentId!==id){clearInterval(t3Timer);t3Timer=null;return}
   if("hidden"===document.visibilityState||t3Busy)return;
@@ -10488,14 +10544,18 @@ function t3PnDk(t,ed){
   return s;
 }
 
-async function t3Import(t){
-  t=t||cache.tourney;if(!t||!t.id||t3Busy)return null;
+
+async function t3Import(t,o){
+  o=o||{};t=t||cache.tourney;if(!t||!t.id||t3Busy)return null;
   t3Busy=!0;document.body.classList.add("tv-busy");
-  const b=$("t3-imp");b&&(b.disabled=!0,b.textContent="Updating\u2026");
+  const pnI=a=>o.quiet?Promise.race([pnInvoke(a),new Promise(z=>setTimeout(()=>z({ok:!1,code:"unreachable"}),4e4))]):pnInvoke(a);
+  const b=o.quiet?null:$("t3-imp");b&&(b.disabled=!0,b.textContent="Updating\u2026");
   
-  let r;try{r=await pnInvoke({tournament_id:t.id,known:t3Known()});
-    if(!r.ok&&"bad_url"===r.code){const r2=await pnInvoke({tournament_id:t.id});"rate_limited"!==r2.code&&(r=r2)}}finally{t3Busy=!1;document.body.classList.remove("tv-busy")}
-  if(r.ok&&r.tournament){const g=r.registrants||{};
+  let r;try{r=await pnI({tournament_id:t.id,known:t3Known()});
+    if(r&&!r.ok&&"bad_url"===r.code){const r2=await pnI({tournament_id:t.id});r2&&"rate_limited"!==r2.code&&(r=r2)}}catch(x){r=null}finally{t3Busy=!1;document.body.classList.remove("tv-busy")}
+  r=r||{ok:!1,code:"unreachable"};
+  if(o.quiet);
+  else if(r.ok&&r.tournament){const g=r.registrants||{};
     toast(`Players updated from the Play Network: ${g.total|0} registered, ${g.added|0} new, ${g.removed|0} removed.`+("too_many"===r.warning?" Only the first 256 were copied.":"count_mismatch"===r.warning?" Some registrations could not be read: check the list against the event page.":"")+t3PnDkToast(r.decks),!0)}
   else toast(r.msg||T3_IMP[r.code]||"The players could not be updated from the Play Network.");
   cache.tourney&&cache.tourney.id===t.id&&"tournaments"===route.view&&route.tournamentId===t.id&&await t3Reload();
@@ -10622,10 +10682,11 @@ function t3Grouped(p,id){return(p.groups||[]).some(g=>(g||[]).includes(id))}
 function t3Row(t,x,ed){
   const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,uid=t3IdOk(x.id),dn=uid?(cache.profNames||{})[x.id]||"":"",dr="drop"===x.st,k=jsq(x.id),my=!!(me&&x.id===me.id),
     wt=!uid&&!!x.wait&&!x.lock&&!closed,
-    chip=dr?'<span class="t3-chip dr">Dropped</span>':"hand"===x.src?`<span class="t3-chip">${ed?"Added by you":"Added by the organizer"}</span>`:'<span class="t3-chip">Registered</span>',
+    chip=dr?'<span class="t3-chip dr">Dropped</span>':!0===x.here&&"draft"===st&&!t3IsDemo(t)?'<span class="t3-chip in">Checked in</span>':"hand"===x.src?`<span class="t3-chip">${ed?"Added by you":"Added by the organizer"}</span>`:'<span class="t3-chip">Registered</span>',
     [dkc,dkl]=t3DkRow(t,x);
   let a="";
-  if(ed){!closed&&(a+=dr?run&&(t3Drawn(p)||!t3Grouped(p,x.id)||swIsSwiss(p)&&(x.dr|0)<swCur(p))?"":`<button class="ghost t3-b" onclick="t3Ent('undrop',${k})">Bring back</button>`:`<button class="ghost t3-b" onclick="t3Ent('drop',${k})">Drop</button>`);
+  if(ed){"draft"===st&&!t3IsDemo(t)&&!dr&&(a+=!0===x.here?`<button class="ghost t3-b" onclick="t3Ci(${k},false)">Not here</button>`:`<button class="ghost t3-b" onclick="t3Ci(${k},true)">Here</button>`);
+    !closed&&(a+=dr?run&&(t3Drawn(p)||!t3Grouped(p,x.id)||swIsSwiss(p)&&(x.dr|0)<swCur(p))?"":`<button class="ghost t3-b" onclick="t3Ent('undrop',${k})">Bring back</button>`:`<button class="ghost t3-b" onclick="t3Ent('drop',${k})">Drop</button>`);
     wt&&(a+=`<button class="ghost t3-b" onclick="t3Ent('relink',${k})">Link the account</button>`);
     t3MoreOps(t,x).length&&(a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`)}
   else if(t3Forget(t)&&t3MoreOps(t,x).length)a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`;
@@ -10817,11 +10878,12 @@ function swSetupHtml(t){
   const p=t.payload||{},n=t3Active(p).length,mode=t3ModeSel(t),ok=n>=TV_MIN,r=ok?swRoundsSel(t,n):0,pr=Number((p.pn||{}).rounds),
     pnr=Number.isInteger(pr)&&pr>=1&&pr<=100&&ok&&pr!==swRoundsFor(n),min=Number((p.pn||{}).minutes)|0||60;
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
-    <p class="hint" style="margin:0 0 10px">On the day of the event, check the players below and drop anyone who did not come, then start. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. Standings: tournament points, then mastery differential (Malediction Tournament Guide).</p>
+    <p class="hint" style="margin:0 0 10px">On the day, players check in with I'm here from 2 hours before the start; check in the others on their row (Here), drop whoever did not come, then start. The list is read again from the Play Network when you tap Start. Round 1 is paired at random; each later round pairs players with the same points, and nobody meets the same opponent twice when it can be avoided. Standings: tournament points, then mastery differential (Malediction Tournament Guide).</p>
+    ${(()=>{const E=(p.entrants||[]).filter(e=>e&&"drop"!==e.st),h=E.filter(e=>!0===e.here).length;return E.length?`<div class="t3-ci"><b>${h} of ${E.length} checked in</b>${h&&h<E.length?` <button class="ghost t3-b" onclick="t3DropAbsent()">Drop everyone who did not check in</button>`:""}</div>`:""})()}
     ${t3DkSetup(t)}
     ${ok?`<label class="tv-tables"><span>Rounds</span><input type="number" inputmode="numeric" min="1" max="${swMaxRounds(n)}" value="${r}" aria-label="Rounds" onchange="swSetRounds(this.value)"><small>${pnr?`The Play Network event lists ${pr} round${1===pr?"":"s"}. `:""}${esc(swGuide(n))}</small></label>`:""}
     <div class="tv-plan">${ok?swPlan(n,r,min):`At least ${TV_MIN} players are needed to start.`}</div>
-    <div class="t-fin"><button class="act gold" onclick="t3Start()"${ok?"":" disabled"}>Start the tournament</button></div>
+    <div class="t-fin"><button class="act gold" id="t3-go" onclick="t3Start()"${ok||t.pn_event_id?"":" disabled"}>Start the tournament</button></div>
   </div>`;
 }
 function swPaired(s){const k=s.pairs.filter(x=>null!=x[1]).length;return`Round ${s.round} is paired: ${k} game${1===k?"":"s"}${s.bye?" and a bye":""}`}
@@ -11267,7 +11329,7 @@ function t3Paint(t){
     on=t.organizer_id?(cache.profNames||{})[t.organizer_id]||"":"",w=tvBracketChamp(p),lg=t3Lg(t),
     meta=[t.organizer_id?`Organized by <b>${esc(on||"the organizer")}</b>`:"No organizer: their account was deleted",esc(t3ModeLabel(t.mode)),`${np} player${1===np?"":"s"}`,lg&&lg.name?`<a href="#/league/${esc(t.league_id)}/events">${esc(lg.name)}</a>`:"",tvPnLink(p)].filter(Boolean);
   slSetTitle(title);
-  let h=`<div id="t3-root"><div class="t3-back"><button type="button" class="t3-lnk" onclick="go('tournaments')">&#8249; All events</button></div>
+  let h=`<div id="t3-root"><div class="t3-back"><button type="button" class="t3-lnk" onclick="tnAllEv()">&#8249; All events</button></div>
   <div class="panel plain t3-hd">
     <div class="ev-kicker">${run?'<span class="tc-live"></span>':""}<span>${t3StateLabel(st,t.mode)}</span></div>
     <h2 class="t3-title">${esc(title)}</h2>
@@ -11282,9 +11344,11 @@ function t3Paint(t){
   const demo=t3IsDemo(t),pane=evTabs(t,ed);
   if(pane){
     if(draft){
-      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3CtaHtml(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
+      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3CtaHtml(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">${esc(t3RegLine(t.pn_events)||"Registration is open. The organizer starts the tournament on the day of the event.")}</p>${t3CiHtml(t)}${t3LinkHint(t)}</div>`;
       
       else if(!demo)h+=swSetupHtml(t);
+      
+      else if(me&&t3Ent0(t,me.id)&&"drop"!==t3Ent0(t,me.id).st)h+='<div class="panel plain"><div class="t3-acts"><button type="button" class="act gold" onclick="duPlayDemo()">Play a game</button></div></div>';
       
       if(!demo)h+=t3DeckBlock(t);
     }
@@ -11308,13 +11372,27 @@ function t3Paint(t){
   const so=$("sw-pn");so&&so._paint&&(so._paint(),swPnRpLoad(t));
 }
 
+
 async function t3Start(){
-  const t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t))return;
+  let t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t)||t3Start.busy)return;
+  let add=0;
+  if(t.pn_event_id||(t.payload&&t.payload.pn&&t.payload.pn.url)){
+    t3Start.busy=1;const b=$("t3-go");b&&(b.disabled=!0,b.textContent="Checking the Play Network…");
+    try{const r=await t3Import(t,{quiet:1});add=r&&r.ok&&r.registrants?r.registrants.added|0:0}catch(x){}
+    try{await t3Reload()}catch(x){}
+    t3Start.busy=0;t=cache.tourney;
+    const b2=$("t3-go");b2&&(b2.disabled=!1,b2.textContent="Start the tournament");
+    if(!t||!t3Ed(t)||"draft"!==t3St(t)||"tournaments"!==route.view||route.tournamentId!==t.id)return;
+  }
   const keys=t3Active(t.payload||{}),n=keys.length;
   if(n<TV_MIN)return toast(`At least ${TV_MIN} players are needed to start`);
   const mode=t3ModeSel(t),rounds=swRoundsSel(t,n),seed=crypto.getRandomValues(new Uint32Array(1))[0],s=swPairRound1(keys,seed);
-  if(!await swAsk({title:"Start the tournament?",lead:`Round 1 is paired at random from the ${n} players in the list, for ${rounds} round${1===rounds?"":"s"} in all. Players without a Seekers League account stay in; you enter their results.${t3DkMiss(t)}`,s,ok:"Start"}))return;
-  const d=await t3Rpc("t_start",{p_tid:t.id,p_rev:t.rev|0,p_mode:mode,p_engine:{fmt:"swiss",rounds,seed,pairs:s.pairs}});
+  if(!await swAsk({title:"Start the tournament?",lead:`Round 1 is paired at random from the ${n} players in the list, for ${rounds} round${1===rounds?"":"s"} in all. Players without a Seekers League account stay in; you enter their results.${add?` ${add} new player${1===add?"":"s"} came in from the Play Network just now.`:""}${t3DkMiss(t)}`,s,ok:"Start"}))return;
+  
+  try{await t3Reload()}catch(x){}
+  const t2=cache.tourney;if(!t2||t2.id!==t.id||"draft"!==t3St(t2))return;
+  if(t3Active(t2.payload||{}).join("|")!==keys.join("|"))return void toast("The player list changed. Check it and tap Start again.");
+  const d=await t3Rpc("t_start",{p_tid:t.id,p_rev:t2.rev|0,p_mode:mode,p_engine:{fmt:"swiss",rounds,seed,pairs:s.pairs}});
   if(!d)return;
   window._swRnd=null;toast(swPaired(s),!0);
   await t3Reload();
@@ -11415,7 +11493,7 @@ async function t3Discard(){
   const d=await t3Rpc("t_discard",{p_tid:t.id},{has_results:"Results are already recorded, so the tournament cannot be discarded. Close it instead."});
   if(!d)return;
   cache.tourney=null;cache.tourneys=(cache.tourneys||[]).filter(x=>x&&x.id!==t.id);cache.allTourneys=null;
-  toast("Tournament discarded",!0);go("tournaments");
+  toast("Tournament discarded",!0);cache.t3Mine=null;cache.homeTourneys&&(cache.homeTourneys=cache.homeTourneys.filter(x=>x&&x.id!==t.id));go("tournaments");
 }
 async function t3TakeOver(){
   const t=cache.tourney;if(!t||!t3CanTake(t))return;
@@ -11441,6 +11519,29 @@ function t3DropEnds(p,key){
   const D=t3DropSet(p);D.add(key);
   return p.gm.every(m=>!!m.w||D.has(m.a)||D.has(m.b));
 }
+
+function t3CiOpen(t,s){if(!t||"draft"!==t3St(t)||t3IsDemo(t))return!1;const d=Date.parse(s||"");return isNaN(d)||Date.now()>=d-72e5}
+
+async function t3CheckIn(tid,on){if(!me)return void go("auth");if(t3CheckIn.busy)return;t3CheckIn.busy=1;
+  let r;try{r=await sb.rpc("t_checkin",{p_tid:tid,p_on:!1!==on})}catch(e){r={error:e}}t3CheckIn.busy=0;
+  if(r.error)return void toast(slNoCol(r.error)?"Check-in needs a site update that is not live yet.":"Not saved — check your connection and try again");
+  const d=r.data;if(!d||!d.ok)return void toast(d&&d.message||"That did not work.");
+  toast(!1===on?"Check-in taken back":"You are checked in",!0);cache.t3Mine=null;
+  if("tournaments"===route.view&&cache.tourney&&cache.tourney.id===tid)return void await t3Reload();
+  if("browse"===route.view){try{await homeLoad()}catch(x){}paintHomeNext()}}
+
+async function t3Ci(key,on){const t=cache.tourney;if(!t||!t3Ed(t))return;const d=await t3Rpc("t_checkin",{p_tid:t.id,p_rev:t.rev|0,p_key:key,p_on:!!on});if(d)await t3Reload()}
+async function t3DropAbsent(){const t=cache.tourney;if(!t||!t3Ed(t))return;
+  const E=(t.payload&&t.payload.entrants||[]).filter(e=>e&&"drop"!==e.st),A=E.filter(e=>!0!==e.here);if(!A.length)return;
+  if(!await slConfirm({title:`Drop ${A.length} player${1===A.length?"":"s"}?`,body:"Not checked in: "+A.map(e=>e.name||"Player").join(", ")+".\n\nYou can bring any of them back from their row before the start.",ok:"Drop",danger:!0}))return;
+  try{await t3Reload()}catch(x){}const t2=cache.tourney;if(!t2||t2.id!==t.id)return;
+  const d=await t3Rpc("t_drop_absent",{p_tid:t.id,p_rev:t2.rev|0});if(!d)return;
+  toast(`${d.dropped|0} dropped`,!0);await t3Reload()}
+
+function t3CiHtml(t){const m=t3Mine(t);if(!m||"drop"===m.st||t3IsDemo(t)||"draft"!==t3St(t))return"";const s=t.pn_events&&t.pn_events.starts_at,tj=jsq(t.id);
+  return`<div class="t3-ci">${!0===m.here?`<p class="t3-in"><b>You are checked in &#10003;</b> <button type="button" class="link" onclick="t3CheckIn(${tj},false)">Undo</button></p>`
+    :t3CiOpen(t,s)?`<div class="t3-acts"><button type="button" class="act gold" onclick="t3CheckIn(${tj})">I'm here</button></div>`
+    :'<p class="hint">Check-in opens 2 hours before the start.</p>'}<p class="hint">Your table and opponent appear here and on Home when round 1 starts.</p></div>`}
 async function t3Ent(op,key){
   const t=cache.tourney,x=t3Ent0(t,key);if(!t||!x||!(t3Ed(t)||"forget"===op&&t3Forget(t)))return;
   const p=t.payload||{},nm=x.name||"this player",run="running"===t3St(t),drawn=run&&t3Drawn(p),C={
