@@ -5345,7 +5345,7 @@ async function duJoin(){if(!me)return go("auth");if(!duPickOk())return toast(duN
     window._duPinOpen=!1;DU=duMake({id:String(r.id).toLowerCase(),role:"guest",uid:me.id,mode:"demo"===r.mode?"demo":"clash",target:+r.target||("demo"===r.mode?25:40),status:"live",hid:r.host_id,hn:r.host_name,hs:r.host_seeker,ht:r.host_terrain,gid:me.id,gn:me.display_name,gs:p.seeker,gt:p.terrain});
     
     const tt=r.t&&"object"==typeof r.t?r.t:null,sk=tt&&!tt.id?tt.skip:null;tt&&tt.id&&(DU.tId=String(tt.id),DU.tTitle=tt.title||null,DU.tLabel=tt.label||null);
-    duInitTrk();duStore();duRun();"mode"===sk?toast(`Not counted as a tournament game: the tournament plays ${"demo"===DU.mode?"Clash · 40":"Demo · 25"}. Cancel and start again in that mode to count it.`,0,4500):"deck"===sk?toast("Not counted as a tournament game: both players must pick a deck."):"busy"===sk?toast("Not counted as a tournament game: another tracked match for this game is in progress."):toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);"tracker"===route.view&&(renderTracker(),scrollTop())}catch(x){toast(x)}finally{duBusy(0)}}
+    duInitTrk();duStore();duRun();"mode"===sk?toast(`Not counted as a tournament game: the tournament plays ${"demo"===DU.mode?"Clash · 40":"Demo"}. Cancel and start again in that mode to count it.`,0,4500):"deck"===sk?toast("Not counted as a tournament game: both players must pick a deck."):"busy"===sk?toast("Not counted as a tournament game: another tracked match for this game is in progress."):toast(`You joined ${DU.hn||"the match"}: the match is on (${"demo"===DU.mode?"Demo":"Clash"}, first to ${DU.target})${DU.tLabel?" · "+DU.tLabel:""}`,!0);"tracker"===route.view&&(renderTracker(),scrollTop())}catch(x){toast(x)}finally{duBusy(0)}}
 
 function gmPl(s){return(DU.players||[]).find(p=>p.seat===s)||null}
 function gmSideOf(s){if("dominion"===DU.mode)return s;const p=gmPl(s);return p?p.side:"allegiance"===DU.mode?s<2?0:1:s?1:0}
@@ -10514,7 +10514,7 @@ async function t3Create(id,x){
     
     const scope=()=>"demo"===md?"open":"community"===who?"community":"open",
       fin=v=>{m.remove();res(v)},
-      seg=()=>[["clash","Clash · 40"],["demo","Demo · 25"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join(""),
+      seg=()=>[["clash","Clash · 40"],["demo","Demo"]].map(([k,l])=>`<button type="button" class="seg-b${md===k?" on":""}" role="radio" aria-checked="${md===k}" data-m="${k}">${l}</button>`).join(""),
       wseg=()=>[["community","My community"],["open","Anyone"]].map(([k,l])=>`<button type="button" class="seg-b${who===k?" on":""}" role="radio" aria-checked="${who===k}" data-w="${k}"${!x.league_id&&"community"===k||gte&&"open"===k?" disabled":""}>${l}</button>`).join(""),
       
       fmtHint=()=>"2x2"===x.game_mode?"Team (2v2) events cannot be run as a tournament here yet."
