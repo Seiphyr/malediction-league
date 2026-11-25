@@ -904,7 +904,7 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .ev-inv-f span{font-family:Oswald,sans-serif;font-size:12pt;letter-spacing:.08em;color:#000!important}}
 .t3-share-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .t3-code{font-family:Oswald,sans-serif;font-size:19px;letter-spacing:.22em;color:var(--bone);background:var(--coal-2);border:1px solid var(--line);border-radius:8px;padding:6px 12px}
-.t3-in{margin:10px 0 0;color:var(--bone-dim)}
+.t3-in{margin:10px 0 0;color:var(--bone-dim)}.t3-cta{margin:0}.t3-cta:not(:first-child){margin-top:14px;padding-top:14px;border-top:1px solid var(--line-2)}.t3-cta.just:not(:first-child){border-top-color:var(--brass-dim)}.t3-cta-k{margin:0 0 4px;color:var(--brass);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}.t3-cta-t{margin:0;overflow-wrap:anywhere}.t3-cta-ns{align-self:center;color:var(--brass-dim-txt)}.t3-cta-u{color:var(--bone-dim);font-size:.85rem;margin:6px 0 0;overflow-wrap:anywhere}
 .t3-rep-b{font-size:12.5px;color:var(--bone-dim)}
 .t3-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .t3-lead{margin:0;font-size:14.5px;color:var(--bone)}
@@ -5996,7 +5996,7 @@ async function evJoinWithCode(c){
   
   window._tnRows=null;cache.homeTourneys=null;cache.tourneys=null;cache.allTourneys=null;
   if(d.viewer)return void(toast("Invite accepted — this event is now open for you",!0),go("tournaments",{tournamentId:d.id}));
-  toast(d.already?"You are already in this event":"You are on the list — have a good game",!0);
+  d.already||(window._ctaJust=d.id);toast(d.already?"You are already in this event":"You are on the list — have a good game",!0);
   go("tournaments",{tournamentId:d.id});
 }
 const EV_WHY={sign_in:"Sign in with your account first.",deleted:"This account was deleted.",revoked:"That invite was taken back. Ask the organizer for a new one.",expired:"That invite has expired. Ask the organizer for a new one.",used_up:"That invite has already been used. Ask the organizer for your own.",bad_code:"That event link isn't complete. Ask the organizer to send it again.",gone:"That event is no longer open.",not_demo:"This is a Clash tournament: register on its Play Network page and link your profile.",status:"That event is over.",full:"That event is full.",ask_organizer:"You are already in this event under your Play Network profile. Ask the organizer to put your account on it.",};
@@ -6013,6 +6013,99 @@ function t3CanJoin(t){
   const l=t3Lg(t);return!!(l&&l.is_public&&!l.archived_at);
 }
 function t3JoinBtn(t){return t3CanJoin(t)?`<div class="t3-acts"><button class="act gold" onclick="t3JoinThis()">Join this event</button></div>`:me&&t3IsDemo(t)&&"draft"===t3St(t)&&t3Ent0(t,me.id)?`<p class="hint t3-in">You are on the list for this event.</p>`:""}
+
+async function t3CtaLoad(t){
+  t._cta=null;
+  if(!t3IsDemo(t)||"draft"!==t.status||t.hidden_at)return;
+  try{const r=await sb.rpc("t_cta_get",{p_tid:t.id});r.error||(t._cta=r.data||null)}catch(x){}
+}
+
+function t3CtaUrl(u){
+  if("string"!=typeof u||!/^https:\/\/[^\s<>"]+$/i.test(u)||u.length>300)return null;
+  try{const x=new URL(u);return"https:"===x.protocol&&x.hostname?x.href:null}catch(e){return null}
+}
+function t3CtaHost(u){try{return new URL(u).hostname.replace(/^www\./i,"")}catch(e){return""}}
+function t3CtaHtml(t){
+  const c=t&&t._cta;
+  if(!c||!c.ok||t.hidden_at||!t3IsDemo(t)||"draft"!==t3St(t))return"";
+  const just=window._ctaJust===t.id&&!!me&&!!t3Ent0(t,me.id),
+    box=(p,b,x)=>`<div class="t3-cta${just?" just":""}" role="note">${just?'<p class="t3-cta-k">You are in. One more thing</p>':""}<p class="t3-cta-t">${p}</p>${b?`<div class="t3-acts">${b}</div>`:""}${x||""}</div>`;
+  if("community"===c.kind){
+    if(c.member||!c.name)return"";
+    const nm=esc(c.name),cl=just?"act gold":"act";
+    const b=c.public&&c.league_id?`<button type="button" class="${cl}" id="t3-cta-b" onclick="t3CtaJoin()">Join the community</button>`
+      :c.code?`<button type="button" class="${cl}" id="t3-cta-b" onclick="t3CtaGo()">Join the community</button>`:"";
+    return b?box(`This event is run by <b>${nm}</b>. Join the community to hear about the next one.`,b):"";
+  }
+  if("own"===c.kind&&c.text){
+    const u=t3CtaUrl(c.url),h=u&&t3CtaHost(u);
+    return box(esc(c.text),u?`<button type="button" class="${just?"act gold":"act"}" id="t3-cta-b" onclick="t3CtaOpen()">Open ${esc(h)} &#8599;</button>`:"",
+      u?`<p class="t3-cta-u">Opens ${esc(h)}, a site the organizer chose.</p>`:"");
+  }
+  return"";
+}
+
+async function t3CtaJoin(){
+  const t=cache.tourney,c=t&&t._cta;if(!c||!c.league_id)return;
+  if(!me)return go("league",{leagueId:c.league_id,tab:"about"}),void signInToJoin(c.league_id);
+  const b=$("t3-cta-b");if(b&&b.disabled)return;b&&(b.disabled=!0,b.textContent="Joining\u2026");
+  let r;try{r=await sb.rpc("join_league",{p_league:c.league_id})}catch(e){r={error:e}}
+  if(r.error){const m=(r.error.code||"")+" "+(r.error.message||"");b&&(b.disabled=!1,b.textContent="Join the community");
+    return void toast(/No league/i.test(m)?"This community is private. Ask the organizer for its join code":joinErr(m)||r.error.message||"Not joined \u2014 try again")}
+  try{await slHomeAdopt(c.league_id)}catch(e){}
+  cache.myLeagues=[];c.member=!0;
+  toast("Joined "+(r.data&&r.data.name||c.name||"the community"),!0);
+  cache.tourney===t&&"tournaments"===route.view&&route.tournamentId===t.id&&t3Paint(t);
+}
+
+function t3CtaGo(){const t=cache.tourney,c=t&&t._cta;c&&c.code&&(location.hash="#/join/"+encodeURIComponent(String(c.code)))}
+function t3CtaOpen(){const t=cache.tourney,c=t&&t._cta,u=c&&"own"===c.kind&&t3CtaUrl(c.url);
+  if(!u)return;const w=window.open(u,"_blank","noopener,noreferrer");w&&(w.opener=null)}
+
+function t3CtaEdHtml(t){
+  if(!t||!("cta_kind"in t)||"closed"===t3St(t))return"";
+  const K=t3CtaDraft(t),
+    k=K?K.k:t.cta_kind||"community",x=K?K.x:t.cta_text||"",u=K?K.u:t.cta_url||"",
+    l=t3Lg(t),has=!!(t.league_id&&l&&l.name&&!l.archived_at),hid=!!t.hidden_at;
+  const seg=[["community","Your community"],["own","Your own words"],["none","None"]].map(([v,lb])=>`<button type="button" class="seg-b${k===v?" on":""}" role="radio" aria-checked="${k===v}" onclick="t3CtaPick(${jsq(v)})"${!has&&"community"===v||hid&&"none"!==v?" disabled":""}>${lb}</button>`).join("");
+  const note="community"===k?(has?(l.is_public?`Players who are not in <b>${esc(l.name)}</b> yet see a button that joins it in one tap.`
+      :`<b>${esc(l.name)}</b> is private, so the button carries its join code: anyone who sees this event can join the community. Pick your own words or None to keep the code to yourself.`)
+      :"This event has no community. Write your own words, or pick None.")
+    :"own"===k?"One line, and one link if you want. Players see it under the Join button, and after they join."
+    :"Players see no invitation.";
+  const form="own"===k?`<label class="field"><span>What it says</span><input id="t3-cta-x" maxlength="140" autocomplete="off" placeholder="Follow us on Discord for the next one" value="${esc(x)}" oninput="t3CtaKeep()"></label>
+    <label class="field"><span>Link <span class="opt">optional</span></span><input id="t3-cta-u" type="url" inputmode="url" maxlength="300" autocomplete="off" placeholder="https://" value="${esc(u)}" oninput="t3CtaKeep()" onkeydown="'Enter'===event.key&&(event.preventDefault(),t3CtaSave())"></label>
+    <div class="t3-acts"><button type="button" class="act" onclick="t3CtaSave()">Save</button>${K&&(t.cta_kind!=="own"||(t.cta_text||"")!==K.x||(t.cta_url||"")!==K.u)?'<span class="hint t3-cta-ns">Not saved yet</span>':""}</div>`:"";
+  return`<div class="tm-label" style="margin-top:12px">After they join</div>
+    <div class="seg t3-cta-seg" role="radiogroup" aria-label="Invitation after they join">${seg}</div>
+    <p class="hint t3-cta-h">${hid?"This event was taken off the public list, so its invitation can only be switched off.":note}</p>${hid?"":form}`;
+}
+
+function t3CtaDraft(t){const K=window._ctaEd;return K&&t&&K.tid===t.id&&K.rev===t.rev?K:null}
+function t3CtaKeep(){const t=cache.tourney,a=$("t3-cta-x"),b=$("t3-cta-u");t&&a&&(window._ctaEd={tid:t.id,rev:t.rev,k:"own",x:a.value,u:b?b.value:""})}
+function t3CtaPick(v){
+  const t=cache.tourney;if(!t||t3Busy)return;
+  if("own"===v){const K=t3CtaDraft(t);
+    window._ctaEd={tid:t.id,rev:t.rev,k:"own",x:K?K.x:t.cta_text||"",u:K?K.u:t.cta_url||""};t3Paint(t);const e=$("t3-cta-x");e&&e.focus();return}
+  window._ctaEd=null;
+  if(v===t.cta_kind)return void t3Paint(t);
+  t3CtaSend(v,null,null);
+}
+async function t3CtaSave(){
+  const t=cache.tourney,a=$("t3-cta-x"),b=$("t3-cta-u");if(!t||!a)return;
+  const x=a.value.replace(/\s+/g," ").trim();let u=(b&&b.value||"").trim();
+  if(!x)return a.focus(),void toast("Write what the invitation says first");
+  u&&!/^[a-z][a-z0-9+.-]*:/i.test(u)&&(u="https://"+u);
+  if(u&&!t3CtaUrl(u))return b&&b.focus(),void toast("The link has to be a full web address starting with https://");
+  await t3CtaSend("own",x,u||null);
+}
+async function t3CtaSend(k,x,u){
+  const t=cache.tourney;if(!t)return;
+  const d=await t3Rpc("t_cta",{p_tid:t.id,p_rev:t.rev,p_kind:k,p_text:x,p_url:u});
+  if(!d)return;
+  window._ctaEd=null;await t3Reload();
+  toast("none"===k?"No invitation after they join":"Invitation saved",!0);
+}
 async function t3JoinThis(){
   const t=cache.tourney;
   if(!t3CanJoin(t))return;
@@ -10210,7 +10303,7 @@ async function t3Load(id){
   q.error&&(q=await sb.from("tournaments").select("*").eq("id",id).maybeSingle());
   if(q.error)return{error:q.error};
   const t=q.data||null;
-  if(t&&null!=t.status&&t.payload){await ensureProfNames();t3Names(t);cache.tourney=t;
+  if(t&&null!=t.status&&t.payload){await ensureProfNames();t3Names(t);await t3CtaLoad(t);cache.tourney=t;
     
     if(me&&t.organizer_id&&t.organizer_id!==me.id&&t3AdminMe(t)){const l=t3Lg(t);
       if(l&&l.owner_id!==t.organizer_id)try{const r=await sb.from("memberships").select("is_admin,dropped_at").eq("league_id",t.league_id).eq("user_id",t.organizer_id).maybeSingle();r.error||(t._orgGone=!(r.data&&r.data.is_admin&&!r.data.dropped_at))}catch(x){}}}
@@ -11064,7 +11157,7 @@ function t3SettingsHtml(t,ed){
       :run?(t3HasResults(p)?"":`<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`)
       :`<button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`;
   return`<div class="panel plain"><h2 style="margin:0 0 6px">Settings</h2>
-    ${demo?"":t3ScopeHtml(t,"tournament")}
+    ${demo?t3CtaEdHtml(t):t3ScopeHtml(t,"tournament")}
     ${t3HidNote(t)}
     ${fin?`<div class="t-fin">${fin}</div>`:""}
   </div>`;
@@ -11107,7 +11200,7 @@ function t3Paint(t){
   const demo=t3IsDemo(t),pane=evTabs(t,ed);
   if(pane){
     if(draft){
-      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
+      if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3CtaHtml(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">Registration is open. The organizer starts the tournament on the day of the event.</p>${t3LinkHint(t)}</div>`;
       
       else if(!demo)h+=swSetupHtml(t);
       
