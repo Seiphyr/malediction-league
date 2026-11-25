@@ -860,6 +860,11 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 .tnp-l small{font-family:Oswald,sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
 .tnp-l b{font-family:Oswald,sans-serif;font-weight:600;color:var(--brass)}
 .tnp-t{color:var(--bone);font-weight:600;overflow-wrap:anywhere}
+.tnp-rbox{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.tnp-rbox input{width:100%;box-sizing:border-box}
+.tnp-rd{margin:8px 0 0;font-size:13.5px;line-height:1.4;color:var(--bone)}
+.tnp-rd b{color:var(--brass);font-weight:600}
+.tnp-rd2{font-size:12.5px;color:var(--bone-dim)}
 
 .t3-back{margin:0 0 6px}
 .t3-lnk{display:inline-flex;align-items:center;min-height:40px;padding:0;background:0 0;border:0;cursor:pointer;font:inherit;font-size:13.5px;color:var(--bone-dim)}
@@ -1542,20 +1547,20 @@ details.msec:not([open])>summary{margin-bottom:0}
 .fr-km{font-size:12px;color:var(--brass);white-space:nowrap}
 
 .nu-box{background:var(--coal-2);border:1px solid var(--line);border-left:3px solid var(--crimson);border-radius:12px;padding:8px 14px 6px;margin-bottom:16px;min-width:0}.nb-panel .nu-box{background:#141414;margin:12px 0 0}
-.nu-box h2.sn-k{margin:0;padding:6px 0;font-weight:400;line-height:1.3}
+.nu-box h2.sn-k{margin:0;padding:6px 0;font-weight:400;line-height:1.3;font-size:11.5px;letter-spacing:.14em;color:var(--bone-dim)}
 .nu-box .sn-top .ghost{min-height:40px}
 .nu-list{display:flex;flex-direction:column}
 .nu-row{display:flex;align-items:center;gap:10px;min-height:52px;border-top:1px solid var(--line);box-sizing:border-box}
 .nu-list>.nu-row:first-child{border-top:0}
 .nu-main{flex:1 1 auto;min-width:0;min-height:48px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;padding:8px 0;background:0 0;border:0;color:var(--bone);font-family:inherit;text-align:left;cursor:pointer}
-.nu-main small,.nu-main b{font-size:14.5px;font-weight:600;color:var(--bone);overflow-wrap:anywhere}
+.nu-main small,.nu-main b{font-size:15.5px;font-weight:600;color:var(--bone);overflow-wrap:anywhere}
 .nu-main .tc-live{display:inline-block;margin-right:6px;vertical-align:1px}
 .nu-tb{color:var(--brass)}
 
 .nu-act{flex:0 0 auto;display:flex;align-items:center}
 .nu-act .act{min-height:40px;padding:0 14px;font-size:12px;box-sizing:border-box}
 .nu-chev{flex:0 0 auto;font-style:normal;font-size:20px;line-height:1;color:var(--bone-dim);padding:0 2px}
-.nu-row:hover .nu-chev{color:var(--bone)}.dkf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-top:14px}.dkf-f{display:flex;flex-direction:column;gap:3px;flex:1 1 140px;min-width:0}.dkf-f span{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}.dkf-f select{width:100%;min-height:40px}.dkf-n{flex:1 1 100%;font-size:13px;color:var(--bone-dim)}.dkf-n .link{padding:0;font-size:13px}.dkf-empty{grid-column:1/-1}.nu-more{min-height:44px;padding:0 0 4px}.nu-ev .nu-main{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:9px 0}.nu-dt{flex:0 0 46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:42px;border:1px solid var(--line-2);border-radius:8px;background:var(--coal);line-height:1.05}.nu-dt>span{font-family:Oswald,sans-serif;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--bone-dim)}.nu-dt>b{font-family:Oswald,sans-serif;font-size:16px;font-weight:600;color:var(--brass)}.nu-dt.now{border-color:var(--crimson)}.nu-dt.now>span:first-child{color:var(--crimson-txt)}.nu-tx{display:flex;flex-direction:column;gap:3px;min-width:0}.nu-ev .nu-tx b{font-size:15.5px;font-weight:600;color:var(--bone);line-height:1.25;overflow-wrap:anywhere}.nu-ev .nu-tx small{font-size:13px;font-weight:400;color:var(--bone-dim);line-height:1.35}.nu-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}.nu-tag{display:inline-block;font-family:Oswald,sans-serif;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;padding:0 7px;border:1px solid var(--line-2);border-radius:999px;color:var(--bone-dim)}.nu-tag.in{border-color:var(--brass-dim);color:var(--brass)}
+.nu-row:hover .nu-chev{color:var(--bone)}.dkf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-top:14px}.dkf-f{display:flex;flex-direction:column;gap:3px;flex:1 1 140px;min-width:0}.dkf-f span{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}.dkf-f select{width:100%;min-height:40px}.dkf-n{flex:1 1 100%;font-size:13px;color:var(--bone-dim)}.dkf-n .link{padding:0;font-size:13px}.dkf-empty{grid-column:1/-1}.nu-more{min-height:44px;padding:0 0 4px}.nu-ev .nu-main{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:9px 0}.nu-dt{flex:0 0 48px;box-sizing:border-box;padding:4px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:42px;border:1px solid var(--line-2);border-radius:8px;background:var(--coal);line-height:1.05}.nu-dt>span{font-family:Oswald,sans-serif;font-size:7.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--bone-dim)}.nu-dt>b{font-family:Oswald,sans-serif;font-size:16px;font-weight:600;color:var(--brass)}.nu-dt.now{border-color:var(--crimson)}.nu-dt.now>span:first-child{color:var(--crimson-txt)}.nu-tx{display:flex;flex-direction:column;gap:3px;min-width:0}.nu-ev .nu-tx b{font-size:17px;font-weight:600;color:var(--bone);line-height:1.25;overflow-wrap:anywhere}.nu-ev .nu-tx small{font-size:14px;font-weight:400;color:var(--bone-dim);line-height:1.35}.nu-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}.nu-tag{display:inline-block;font-family:Oswald,sans-serif;font-size:10.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;padding:0 7px;border:1px solid var(--line-2);border-radius:999px;color:var(--bone-dim)}.nu-tag.in{border-color:var(--brass-dim);color:var(--brass)}
 
 
 .sn-cap{padding:10px 12px 3px 38px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);opacity:.75;overflow-wrap:anywhere}
@@ -10314,9 +10319,20 @@ async function paintTnShelf(kind){
 }
 function tnpOpen(lid,id,r){r?(window._tRun=id):(window._tPast=id);window._tScroll=id;go("league",{leagueId:lid,tab:"tournament"})}
 
+
+function tnpRounds(v,ag){
+  const s=String(v??"").trim(),n=Math.floor(Number(s)),w=ag?"teams":"players";
+  if(!s||!isFinite(n)||n<1)return"";
+  if(n>512)return`<p class="tnp-rd">That is more ${w} than this can plan for.</p>`;
+  if(n<TV_MIN)return`<p class="tnp-rd">A Swiss tournament needs at least ${TV_MIN} ${w}.</p>`;
+  const r=swRoundsFor(n),g=ag?120:60,
+    hm=m=>{const h=Math.floor(m/60),x=m%60;return(h?h+" h":"")+(h&&x?" ":"")+(x?x+" min":"")};
+  return`<p class="tnp-rd"><b>${r} rounds</b> to set on the Play Network.</p>
+    <p class="tnp-rd">About <b>${hm(r*(g+30))}</b> in all: ${g} minutes a round plus 30 to set up each one.</p>
+    <p class="tnp-rd tnp-rd2">${esc(ag?swGuide(n).replace(/players/g,"teams"):swGuide(n))}</p>`}
 async function tnpNew(){
   if(!me)return go("auth");
-  const St={busy:!1,url:"",msg:""};
+  const St={busy:!1,url:"",msg:"",np:"",ag:!1};
   const old=$("tnp-pick");old&&old.remove();
   const m=document.createElement("div");m.id="tnp-pick";m.className="tkov";
   m.onclick=e=>{e.target===m&&!St.busy&&m.remove()};
@@ -10335,6 +10351,7 @@ async function tnpNew(){
     if(r.length){try{const{data:u,error:ue}=await sb.from("tournaments").select("pn_event_id").in("pn_event_id",r.map(x=>x.id));!ue&&(u||[]).forEach(z=>{r=r.filter(x=>x.id!==z.pn_event_id)})}catch(x){}}
     return r.map(x=>Object.assign({},x,{_ln:ln(x.league_id)}))};
   const paint=()=>{
+    const ae=document.activeElement;let fid=ae&&m.contains(ae)&&("tnp-np"===ae.id||"tnp-url"===ae.id)&&!ae.disabled?ae.id:null;
     m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="tnp-pick-h"><h3 id="tnp-pick-h">New event</h3>
       ${null===rows?'<div class="empty"><span class="spinner"></span> Loading\u2026</div>':rows.length?`<p class="tk-ask-t">Which event do you want to run as a tournament?</p>
       <div class="nu-list">${rows.map(x=>`<button type="button" class="nu-row tnp-row" data-id="${esc(x.id)}"${St.busy?" disabled":""}><span class="tnp-l"><small>${esc(x._ln)}</small><span class="tnp-t">${esc(x.title||"Event")}</span><span>${esc(pnShort(x))}</span></span><i class="nu-chev" aria-hidden="true">›</i></button>`).join("")}</div>`
@@ -10343,11 +10360,22 @@ async function tnpNew(){
       <p class="hint" style="margin:0 0 8px">An event added here belongs to no community, so it is open to everyone.</p>
       <input id="tnp-url" type="url" inputmode="url" autocomplete="off" spellcheck="false" aria-label="Play Network event link" placeholder="https://malediction.gg/play-network/events/single/…" value="${esc(St.url)}"${St.busy?" disabled":""}>
       ${St.msg?`<div class="banner" style="margin:8px 0 0">${esc(St.msg)}</div>`:""}
+      <div class="tnp-rbox">
+        <div class="tm-label">How many rounds?</div>
+        <p class="hint" style="margin:0 0 8px">Useful info for organizing.</p>
+        <div class="seg tnp-ag" role="radiogroup" aria-label="Game mode">${[[!1,"1v1"],[!0,"Allegiance 2v2"]].map(([k,l])=>`<button type="button" class="seg-b${St.ag===k?" on":""}" role="radio" aria-checked="${St.ag===k}" data-ag="${k?1:0}">${l}</button>`).join("")}</div>
+        <input id="tnp-np" type="number" inputmode="numeric" min="1" max="512" step="1" autocomplete="off" aria-label="Number of ${St.ag?"teams":"players"}" placeholder="Number of ${St.ag?"teams":"players"}" value="${esc(St.np)}" style="margin-top:10px">
+        <div id="tnp-rout" aria-live="polite">${tnpRounds(St.np,St.ag)}</div>
+      </div>
       <div class="tk-ask-row" style="margin-top:14px"><button class="ghost" data-close${St.busy?" disabled":""}>Close</button><button class="act" data-add${St.busy?" disabled":""}>${St.busy?"Reading\u2026":"Add event"}</button></div></div>`;
     m.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{const x=(rows||[]).find(y=>y.id===b.dataset.id);m.remove();x&&t3Create(x.id,x)});
     m.querySelector("[data-close]").onclick=()=>{St.busy||m.remove()};
     m.querySelector("[data-add]").onclick=add;
     const i=$("tnp-url");i&&(i.oninput=()=>{St.url=i.value});
+    const np=$("tnp-np");np&&(np.oninput=()=>{St.np=np.value;const o=$("tnp-rout");o&&(o.innerHTML=tnpRounds(St.np,St.ag))},np.onkeydown=e=>{"Enter"===e.key&&(e.preventDefault(),np.blur())});
+    m.querySelectorAll("[data-ag]").forEach(b=>b.onclick=()=>{St.ag="1"===b.dataset.ag;paint()});
+    
+    fid&&(fid=$(fid))&&(fid.focus(),"tnp-url"===fid.id&&fid.setSelectionRange&&fid.setSelectionRange(fid.value.length,fid.value.length));
     i&&(i.onkeydown=e=>{"Enter"===e.key&&(e.preventDefault(),add())})};
   const add=async()=>{
     const i=$("tnp-url");i&&(St.url=i.value);
