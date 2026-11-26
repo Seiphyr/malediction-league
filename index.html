@@ -2209,7 +2209,7 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .slg-track::-webkit-scrollbar{display:none}
 .slg-p{flex:0 0 100%;min-width:0;box-sizing:border-box;padding:0 16px;scroll-snap-align:start;scroll-snap-stop:always}
 .slg-fig{margin:0 0 14px}
-.slg .slg-l{margin:0 0 12px;font-size:14.5px;line-height:1.5;color:var(--bone)}
+.slg .slg-l{margin:0 0 12px;font-size:14.5px;line-height:1.5;color:var(--bone-dim)}
 .slg .slg-s{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;counter-reset:slg}
 .slg .slg-s li{font-size:14px;line-height:1.3;color:var(--bone-dim)}
 .slg-jump{counter-increment:slg;display:flex;align-items:center;gap:7px;width:100%;height:100%;min-height:40px;padding:5px 8px;font-size:12.5px!important;line-height:1.2;overflow-wrap:anywhere;border:1px solid var(--line);border-radius:10px;background:var(--coal-2);color:var(--bone);font:inherit;font-size:14px;text-align:left;cursor:pointer}
@@ -2218,7 +2218,7 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .slg-t{display:flex;align-items:flex-start;gap:10px;margin:0;font-size:14.5px;line-height:1.5;color:var(--bone-dim)}
 .slg-k{flex:0 0 22px;height:22px;margin-top:1px;border-radius:50%;background:var(--brass);color:#1c1c1c;font:600 12px/22px Oswald,sans-serif;text-align:center}
 .slg b{color:var(--brass);font-weight:600}
-.slg em{font-style:normal;color:var(--bone);background:linear-gradient(transparent 60%,rgba(229,30,57,.38) 60%);padding:0 1px}
+.slg em{font-style:normal;color:#fff;font-weight:500}
 .slg .slg-n{margin:12px 0 0;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--coal-2);font-size:13px;line-height:1.45;color:var(--bone-dim)}
 .slg .slg-n b{color:var(--brass)}
 .slg-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:14px}
@@ -9877,7 +9877,7 @@ const SL_GFX={
 };
 
 const SL_GUIDES={
-  tracker:{t:"Play a match",l:"Two phones, one match: <em>the score stays in step on both</em>.",f:"trkHero",
+  tracker:{t:"Play a match",l:"Two phones, one match: <em>the score is synced on both</em>.",f:"trkHero",
     s:[["Pick your Seeker","and your terrain: nothing can start until both are set. <b>Mode</b> picks the game: <em>Demo</em> (first to 25), <em>Clash</em> (first to 40) or one for more players.","trkPick"],
        ["Start a match","gives you a <em>4-digit PIN</em>, valid for 15 minutes. Read it out to your opponent.","trkPin"],
        ["I have a PIN","the other side of the same thing: type the <em>four digits</em> and join.","trkJoin"],
