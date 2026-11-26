@@ -2203,6 +2203,170 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .slg-n{margin:13px 0 0;padding-top:11px;border-top:1px solid var(--line);font-size:13px;color:var(--bone-faint)}
 .slg-n b{color:var(--bone-dim);font-weight:600}
 
+.slg{max-width:440px;padding:18px 16px 14px;width:min(94vw,440px);box-sizing:border-box}
+.slg h3{margin:0 46px 12px 0}
+.slg-track{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;margin:0 -16px;-webkit-overflow-scrolling:touch}
+.slg-track::-webkit-scrollbar{display:none}
+.slg-p{flex:0 0 100%;min-width:0;box-sizing:border-box;padding:0 16px;scroll-snap-align:start;scroll-snap-stop:always}
+.slg-fig{margin:0 0 14px}
+.slg .slg-l{margin:0 0 12px;font-size:14.5px;line-height:1.5;color:var(--bone)}
+.slg .slg-s{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;counter-reset:slg}
+.slg .slg-s li{font-size:14px;line-height:1.3;color:var(--bone-dim)}
+.slg-jump{counter-increment:slg;display:flex;align-items:center;gap:7px;width:100%;height:100%;min-height:40px;padding:5px 8px;font-size:12.5px!important;line-height:1.2;overflow-wrap:anywhere;border:1px solid var(--line);border-radius:10px;background:var(--coal-2);color:var(--bone);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.slg-jump:hover,.slg-jump:focus-visible{border-color:var(--brass-dim)}
+.slg-jump::before{content:counter(slg);flex:0 0 20px;height:20px;border-radius:50%;border:1px solid var(--brass-dim);color:var(--brass);font:600 11px/18px Oswald,sans-serif;text-align:center;box-sizing:border-box}
+.slg-t{display:flex;align-items:flex-start;gap:10px;margin:0;font-size:14.5px;line-height:1.5;color:var(--bone-dim)}
+.slg-k{flex:0 0 22px;height:22px;margin-top:1px;border-radius:50%;background:var(--brass);color:#1c1c1c;font:600 12px/22px Oswald,sans-serif;text-align:center}
+.slg b{color:var(--brass);font-weight:600}
+.slg em{font-style:normal;color:var(--bone);background:linear-gradient(transparent 60%,rgba(229,30,57,.38) 60%);padding:0 1px}
+.slg .slg-n{margin:12px 0 0;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--coal-2);font-size:13px;line-height:1.45;color:var(--bone-dim)}
+.slg .slg-n b{color:var(--brass)}
+.slg-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:14px}
+.slg-foot .ghost,.slg-foot .act{flex:0 0 auto;min-height:40px;min-width:72px;padding:0 12px}
+.slg-foot .ghost:disabled{visibility:hidden}
+.slg-dots{flex:1 1 auto;display:flex;justify-content:center;flex-wrap:wrap;min-width:0}
+.slg-dot{width:15px;height:28px;padding:0;border:0;background:0 0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.slg-dot::before{content:"";width:7px;height:7px;border-radius:4px;background:var(--bone-faint);transition:width .2s,background .2s}
+.slg-dot.on::before{width:16px;background:var(--brass)}
+.slg-dot.on{width:22px}
+
+.gx{position:relative;height:150px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:radial-gradient(120% 90% at 50% 0,#262626 0,var(--coal-2) 70%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:12px;color:var(--bone);font-family:Barlow,sans-serif;font-size:12px;line-height:1.2;user-select:none}
+.gx-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap;max-width:100%}
+.gx-cap{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-faint)}
+.gx-b{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:28px;padding:0 11px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);font-family:Oswald,sans-serif;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--bone);white-space:nowrap}
+.gx-b.act{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.gx-b.brs{border-color:var(--brass-dim);color:var(--brass)}
+.gx-b.sq{width:30px;padding:0;font-size:17px;font-family:Barlow,sans-serif}
+.gx-in{position:relative;display:flex;align-items:center;min-width:150px;max-width:100%;height:30px;padding:0 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--coal);font-size:12px;color:var(--bone);overflow:hidden;white-space:nowrap}
+.gx-in .ph{color:var(--bone-faint)}
+.gx-sel::after{content:"\25BE";margin-left:auto;padding-left:8px;color:var(--bone-faint)}
+.gx-card{position:relative;width:min(100%,250px);box-sizing:border-box;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;align-items:center;gap:9px}
+.gx-card b{font-weight:600;font-size:12.5px}
+.gx-card small{display:block;color:var(--bone-dim);font-size:11px;margin-top:2px}
+.gx-dt{flex:0 0 34px;height:34px;border:1px solid var(--line-2);border-radius:7px;background:var(--coal);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:7px;letter-spacing:.04em;text-transform:uppercase;color:var(--bone-dim)}
+.gx-dt b{font-size:13px;color:var(--brass);line-height:1}
+.gx-chip{display:inline-flex;align-items:center;padding:1px 7px;border:1px solid var(--line-2);border-radius:999px;font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim)}
+.gx-chip.in{border-color:var(--brass-dim);color:var(--brass)}
+.gx-chip.ok{border-color:#3d6b4a;color:var(--win)}
+.gx-tabs{display:flex;border-bottom:1px solid var(--line);font-family:Oswald,sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+.gx-tabs span{position:relative;padding:6px 9px;color:var(--bone-faint)}
+.gx-tabs span.on{color:var(--bone)}
+.gx-tabs span.on::after{content:"";position:absolute;left:6px;right:6px;bottom:-1px;height:2px;background:var(--crimson)}
+.gx-pills{display:flex;gap:5px}
+.gx-pills span{padding:3px 9px;border:1px solid var(--line-2);border-radius:999px;font-size:10.5px;color:var(--bone-dim)}
+.gx-pills span.on{border-color:var(--bone-dim);background:var(--surface-2);color:var(--bone)}
+
+.gx-f{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(242,239,233,.82);box-shadow:0 2px 8px rgba(0,0,0,.5);opacity:0;pointer-events:none;z-index:3}
+.gx-f::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid rgba(242,239,233,.7);opacity:0}
+.slg-p.on .gx-f{animation:gxTap 3.2s ease-in-out infinite}
+.slg-p.on .gx-f::after{animation:gxRing 3.2s ease-out infinite}
+.slg-p.on .gx-press{animation:gxPress 3.2s ease-in-out infinite}
+@keyframes gxTap{0%,12%{opacity:0;transform:translate(14px,18px) scale(1.15)}26%{opacity:1;transform:translate(0,0) scale(1)}34%{transform:scale(.86)}42%{transform:scale(1)}62%{opacity:1}74%,100%{opacity:0}}
+@keyframes gxRing{0%,32%{opacity:0;transform:scale(.6)}36%{opacity:.9;transform:scale(1)}58%,100%{opacity:0;transform:scale(2.3)}}
+@keyframes gxPress{0%,30%{transform:none;filter:none}34%{transform:scale(.94);filter:brightness(1.25)}44%,100%{transform:none;filter:none}}
+
+.gx-then{opacity:1}
+.slg-p.on .gx-then{animation:gxThen 3.2s ease-out infinite}
+@keyframes gxThen{0%,36%{opacity:0;transform:translateY(4px)}46%,92%{opacity:1;transform:none}100%{opacity:0}}
+.gx-pop{position:absolute;padding:3px 8px;border-radius:999px;background:var(--brass);color:#1c1c1c;font-family:Oswald,sans-serif;font-size:10px;font-weight:600;letter-spacing:.06em}
+
+.gx-type{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;max-width:100%}
+.slg-p.on .gx-type{animation:gxType 3.2s steps(var(--n,10),end) infinite}
+@keyframes gxType{0%,8%{max-width:0}48%,100%{max-width:100%}}
+.gx-caret{display:inline-block;width:1px;height:14px;margin-left:1px;background:var(--bone);vertical-align:middle}
+.slg-p.on .gx-caret{animation:gxBlink .9s steps(1) infinite}
+@keyframes gxBlink{50%{opacity:0}}
+
+.gx-ctr{position:relative;display:flex;align-items:center;gap:12px}
+.gx-val{position:relative;width:46px;height:38px;font-family:Oswald,sans-serif;font-size:30px;font-weight:600;color:var(--bone);text-align:center}
+.gx-val span{position:absolute;inset:0;opacity:0}
+.gx-val .v3{opacity:1}
+.slg-p.on .gx-val .v1{animation:gxV1 6s infinite}
+.slg-p.on .gx-val .v2{animation:gxV2 6s infinite}
+.slg-p.on .gx-val .v3{animation:gxV3 6s infinite}
+@keyframes gxV1{0%,22%{opacity:1}23%,100%{opacity:0}}
+@keyframes gxV2{0%,22%{opacity:0}23%,62%{opacity:1}63%,100%{opacity:0}}
+@keyframes gxV3{0%,62%{opacity:0}63%,100%{opacity:1}}
+.gx-hold{position:absolute;inset:-5px;border-radius:10px;border:2px solid var(--brass);opacity:0;clip-path:inset(0 100% 0 0)}
+.slg-p.on .gx-hold{animation:gxHold 6s linear infinite}
+@keyframes gxHold{0%,36%{opacity:0;clip-path:inset(0 100% 0 0)}38%{opacity:1}62%{opacity:1;clip-path:inset(0 0 0 0)}70%,100%{opacity:0;clip-path:inset(0 0 0 0)}}
+.slg-p.on .gx-f.gx-f6{animation:gxTap6 6s ease-in-out infinite}
+.slg-p.on .gx-f.gx-f6::after{animation:gxRing6 6s ease-out infinite}
+@keyframes gxTap6{0%,8%{opacity:0;transform:translate(12px,16px) scale(1.1)}14%{opacity:1;transform:none}18%{transform:scale(.86)}22%{transform:none}30%{opacity:1;transform:none}36%{transform:scale(.86)}62%{transform:scale(.86)}66%{transform:none}74%,100%{opacity:0}}
+@keyframes gxRing6{0%,17%{opacity:0;transform:scale(.6)}19%{opacity:.9;transform:scale(1)}30%,100%{opacity:0;transform:scale(2.3)}}
+.gx-lbl{position:absolute;white-space:nowrap;padding:2px 8px;border-radius:999px;font-family:Oswald,sans-serif;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:0}
+.gx-lbl.l1{background:var(--surface-2);color:var(--bone)}
+.gx-lbl.l5{background:var(--brass);color:#1c1c1c;opacity:1}
+.slg-p.on .gx-lbl.l1{animation:gxL1 6s infinite}
+.slg-p.on .gx-lbl.l5{animation:gxL5 6s infinite}
+@keyframes gxL1{0%,20%{opacity:0}24%,58%{opacity:1}60%,100%{opacity:0}}
+@keyframes gxL5{0%,62%{opacity:0}64%,96%{opacity:1}100%{opacity:0}}
+
+.gx-pin{display:flex;gap:6px}
+.gx-pin span{width:30px;height:38px;border:1px solid var(--line-2);border-radius:8px;background:var(--coal);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:22px;font-weight:600;color:var(--brass)}
+.gx-pin i{font-style:normal}
+.slg-p.on .gx-pin i{animation:gxDig 3.6s infinite both}
+.slg-p.on .gx-pin span:nth-child(2) i{animation-delay:.25s}
+.slg-p.on .gx-pin span:nth-child(3) i{animation-delay:.5s}
+.slg-p.on .gx-pin span:nth-child(4) i{animation-delay:.75s}
+@keyframes gxDig{0%,10%{opacity:0;transform:translateY(-6px)}20%,85%{opacity:1;transform:none}100%{opacity:0}}
+
+.gx-star{position:relative;font-size:26px;line-height:1;color:var(--bone-dim)}
+.gx-star b{position:absolute;inset:0;color:var(--brass);opacity:1}
+.slg-p.on .gx-star b{animation:gxThen 3.2s ease-out infinite}
+
+.gx-qr{position:relative;width:62px;height:62px;padding:5px;border-radius:6px;background:#f2efe9;box-sizing:border-box;display:grid;grid-template-columns:repeat(7,1fr);gap:1px}
+.gx-qr i{background:#1c1c1c;border-radius:1px}
+.gx-qr i.o{background:transparent}
+.gx-scan{position:absolute;left:-4px;right:-4px;top:0;height:2px;background:var(--crimson);box-shadow:0 0 8px var(--crimson)}
+.slg-p.on .gx-scan{animation:gxScan 2.4s ease-in-out infinite alternate}
+@keyframes gxScan{from{top:2px}to{top:58px}}
+
+.gx-d20{width:46px;height:46px;display:flex;align-items:center;justify-content:center;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--brass);color:#1c1c1c;font-family:Oswald,sans-serif;font-size:17px;font-weight:700}
+.slg-p.on .gx-d20{animation:gxRoll 3.2s ease-out infinite}
+@keyframes gxRoll{0%,28%{transform:rotate(0)}48%{transform:rotate(330deg)}56%,100%{transform:rotate(360deg)}}
+.gx-then{display:flex;justify-content:center;max-width:100%}
+.gx-row .gx-card{width:auto;min-width:0}
+.gx-row .gx-in{min-width:0;flex:1 1 0}
+.gx-pills span.now{border-color:var(--bone-dim);background:var(--surface-2);color:var(--bone)}
+.slg-p.on .gx-pills span.now{animation:gxNow 3.2s infinite,gxPress 3.2s ease-in-out infinite}
+.slg-p.on .gx-pills span.was{animation:gxWas 3.2s infinite}
+@keyframes gxNow{0%,33%{border-color:var(--line-2);background:transparent;color:var(--bone-dim)}36%,100%{border-color:var(--bone-dim);background:var(--surface-2);color:var(--bone)}}
+@keyframes gxWas{0%,33%{border-color:var(--bone-dim);background:var(--surface-2);color:var(--bone)}36%,100%{border-color:var(--line-2);background:transparent;color:var(--bone-dim)}}
+.gx-ph{width:84px;height:108px;box-sizing:border-box;border:2px solid var(--line-2);border-radius:14px;background:var(--coal);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.gx-big{font-family:Oswald,sans-serif;font-size:30px;font-weight:600;color:var(--brass);line-height:1}
+.gx-sync{font-size:22px;color:var(--crimson-txt)}
+.slg-p.on .gx-sync{animation:gxBlink 1.6s steps(1) infinite}
+.gx-lnk{font-size:11.5px;color:var(--bone-dim);text-decoration:underline;text-underline-offset:3px}
+.gx-list{display:flex;flex-direction:column;gap:4px;width:min(100%,230px)}
+.gx-list>span{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:11.5px}
+.gx-list small{color:var(--brass);font-family:Oswald,sans-serif;font-size:11px}
+.gx-n{min-width:16px;text-align:center;font-family:Oswald,sans-serif;font-size:14px}
+.gx-tg{width:38px;height:22px;border-radius:999px;background:var(--brass-dim);display:inline-block;flex:0 0 auto}
+.gx-tg>i{position:absolute;top:3px;left:19px;width:16px;height:16px;border-radius:50%;background:var(--bone)}
+.slg-p.on .gx-tg>i{animation:gxSlide 3.2s ease-in-out infinite}
+@keyframes gxSlide{0%,32%{left:3px}40%,100%{left:19px}}
+.gx-stat{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:62px;padding:8px 6px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.gx-stat b{font-family:Oswald,sans-serif;font-size:22px;color:var(--brass);line-height:1}
+.gx-stat.dim b{color:var(--bone-dim)}
+.gx-stat small{font-family:Oswald,sans-serif;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-faint)}
+.gx-ico{width:28px;height:28px;border-radius:8px;border:1px solid var(--brass-dim);color:var(--brass);display:flex;align-items:center;justify-content:center;font-size:14px}
+.gx-bars{display:flex;flex-direction:column;gap:7px;width:min(100%,230px)}
+.gx-bars>span{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:8px}
+.gx-bars small{font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}
+.gx-bars i{height:7px;border-radius:4px;background:var(--line);overflow:hidden}
+.gx-bars b{display:block;height:100%;border-radius:4px}
+.slg-p.on .gx-bars b{animation:gxGrow 1.4s ease-out both}
+@keyframes gxGrow{from{width:0}}
+.gx-doc{width:54px;height:70px;padding:8px 7px;box-sizing:border-box;border-radius:4px;background:#f2efe9;display:flex;flex-direction:column;gap:6px}
+.gx-doc i{height:6px;border-left:6px solid #1c1c1c;background:linear-gradient(90deg,transparent 4px,#b0aaa2 4px);opacity:.8}
+.gx-ring{--p:50;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--brass) calc(var(--p)*1%),var(--line) 0);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.gx-ring b{width:48px;height:48px;border-radius:50%;background:var(--coal-2);display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-size:15px;color:var(--bone)}
+.gx-menu{display:flex;flex-direction:column;min-width:180px;padding:4px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface)}
+.gx-menu span{padding:6px 10px;border-radius:7px;font-size:12px;color:var(--bone-dim)}
+.gx-menu span.on{color:var(--bone);background:var(--surface-2)}
+@media (prefers-reduced-motion:reduce){.slg .gx *,.slg .gx *::before,.slg .gx *::after{animation:none!important}.slg .gx-f{display:none}.slg .gx-lbl.l1{opacity:1;margin-top:-22px!important}.slg .gx-lbl.l5{margin-top:3px!important}}
+
 .clt-p{max-width:700px;margin-left:auto;margin-right:auto}
 .clt-pair{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;position:relative;max-width:500px;margin:0 auto}
 .clt-side{display:contents}
@@ -9632,57 +9796,145 @@ function slBootDone(){
   setTimeout(()=>{b.classList.add("sl-go");setTimeout(()=>b.remove(),460)},wait);
 }
 setTimeout(slBootDone,8000);
+
+const gxF=`<i class="gx-f"></i>`,
+  gx=(...a)=>`<div class="gx">${a.join("")}</div>`,
+  gxR=(...a)=>`<div class="gx-row">${a.join("")}</div>`,
+  gxB=(t,c,tap)=>`<span class="gx-b ${c||""}${tap?" gx-press":""}">${t}${tap?gxF:""}</span>`,
+  gxIn=(t,c)=>`<span class="gx-in ${c||""}">${t}</span>`,
+  gxTy=t=>`<span class="gx-type" style="--n:${t.length}">${t}</span><span class="gx-caret"></span>`,
+  gxCap=t=>`<span class="gx-cap">${t}</span>`,
+  gxThen=(t,s)=>`<div class="gx-then"${s?` style="${s}"`:""}>${t}</div>`,
+  gxChip=(t,c)=>`<span class="gx-chip ${c||""}">${t}</span>`,
+  gxTabs=(a,on,tap)=>`<div class="gx-tabs">${a.map((x,i)=>`<span class="${i===on?"on":""}${i===tap?" gx-press":""}" style="position:relative">${x}${i===tap?gxF:""}</span>`).join("")}</div>`,
+  gxPills=(a,on,tap)=>`<div class="gx-pills">${a.map((x,i)=>`<span class="${null!=tap&&tap!==on?i===tap?"now gx-press":i===on?"was":"":i===on?"on":""}" style="position:relative">${x}${i===tap?gxF:""}</span>`).join("")}</div>`,
+  gxCard=(dt,t,s,x)=>`<div class="gx-card">${dt?`<span class="gx-dt">${dt[0]}<b>${dt[1]}</b>${dt[2]}</span>`:""}<span style="flex:1;min-width:0"><b>${t}</b>${s?`<small>${s}</small>`:""}</span>${x||""}</div>`,
+  gxQR=()=>`<span class="gx-qr">${"1110111101010111011101110000000101110111010110111".split("").map(c=>"0"===c?`<i class="o"></i>`:`<i></i>`).join("")}<i class="gx-scan"></i></span>`,
+  gxCtr=(a,b,c,lab)=>`<div class="gx-ctr">${gxB("&minus;","sq")}<span class="gx-val"><span class="v1">${a}</span><span class="v2">${b}</span><span class="v3">${c}</span></span><span class="gx-b sq" style="position:relative">+<i class="gx-hold"></i><i class="gx-f gx-f6"></i></span><span class="gx-lbl l1" style="top:50%;left:calc(100% + 8px);margin-top:-9px">${lab[0]}</span><span class="gx-lbl l5" style="top:50%;left:calc(100% + 8px);margin-top:-9px">${lab[1]}</span></div>`;
+const SL_GFX={
+  
+  trkHero:()=>gx(gxR(`<span class="gx-ph">${gxCap("You")}<b class="gx-big">13</b>${gxCap("Mastery")}</span>`,
+      `<span class="gx-sync">&#8644;</span>`,
+      `<span class="gx-ph">${gxCap("Opponent")}<b class="gx-big">13</b>${gxCap("Mastery")}</span>`)),
+  trkPick:()=>gx(gxIn(`<span class="ph">Pick your Seeker</span>${gxThen("&#10003;","margin-left:auto;color:var(--win)")}`,"gx-sel"),gxIn(`<span class="ph">Pick your terrain</span>${gxThen("&#10003;","margin-left:auto;color:var(--win)")}`,"gx-sel"),
+      gxR(gxThen(gxChip("Mode: Clash &middot; 40","in")),gxThen(gxB("Start a match","act")))),
+  trkPin:()=>gx(gxCap("Your match PIN"),`<div class="gx-pin"><span><i>4</i></span><span><i>8</i></span><span><i>2</i></span><span><i>7</i></span></div>`,
+      gxR(gxChip("Valid for 15:00"),gxChip("Waiting for your opponent&hellip;"))),
+  trkJoin:()=>gx(gxB("I have a PIN","",!0),gxR(gxIn(gxThen(gxTy("4827"),"display:inline-flex")),gxThen(gxB("Join","act")))),
+  trkCtr:()=>gx(gxCap("Mastery"),gxCtr(12,13,18,["tap +1","hold +5"]),gxB("Next round &rarr; +4 Echo","brs")),
+  trkTn:()=>gx(gxCard(null,"Tournament game","Round 2 &middot; Table 3 &middot; vs Mara",gxChip("no PIN","in")),gxB("Start the match","act",!0)),
+  trkEnd:()=>gx(gxB("End match","",!0),gxThen(gxR(gxChip("You &middot; 40","in"),gxChip("Mara &middot; 31"),gxB("Send the result","act"))),gxThen(gxChip("&#10003; Saved to both profiles","ok"))),
+  
+  evHero:()=>gx(gxTabs(["Tournaments","Demos"],0),gxPills(["Yours","All","Communities"],1),gxCard(["Sat","29","Nov"],"Shop Clash","Tournament &middot; Registration open")),
+  evTabs:()=>gx(gxTabs(["Tournaments","Demos"],1),gxPills(["Yours","All","Communities"],0,1),gxThen(gxCard(["Sun","30","Nov"],"Learn to Play","Demo &middot; open to everyone"))),
+  evMe:()=>gx(gxCap("Is this you?"),gxR(gxB("Mara_PN","",!0),gxB("Leo_91")),gxThen(gxChip("&#10003; Linked to your account","ok"))),
+  evIn:()=>gx(gxR(gxQR(),gxCap("or"),gxB("I&#39;m here","act",!0)),gxThen(gxChip("&#10003; Checked in","ok"))),
+  evDeck:()=>gx(gxIn("Iron Vigil &middot; 40 cards","gx-sel"),gxB("Save deck","act",!0),gxThen(gxChip("&#128274; locks when the tournament starts","in"))),
+  evMatch:()=>gx(gxCard(null,"Round 1 &middot; Table 2","vs Leo"),gxB("Start the match","act",!0),gxR(`<span class="gx-lnk">Leave the tournament</span>`)),
+  evStart:()=>gx(`<div class="gx-list">${[["Mara",1],["Leo",1],["Cy",0]].map(([n,h])=>`<span style="padding:3px 9px">${n}${h?gxChip("Checked in","ok"):`<span style="display:flex;gap:5px;align-items:center">${gxChip("Registered")}${gxB("Here","")}</span>`}</span>`).join("")}</div>`,gxR(gxB("Start the tournament","act",!0),gxThen(gxChip("Round 1 paired","in")))),
+  
+  bldHero:()=>gx(gxIn("Iron Vigil"),gxIn("&mdash; pick a Seeker &mdash;","gx-sel"),gxR(gxChip("Pool follows the rules","in"))),
+  bldName:()=>gx(gxCap("Deck name"),gxIn(gxTy("Iron Vigil"))),
+  bldSeeker:()=>gx(gxIn(`<span class="ph">&mdash; pick a Seeker &mdash;</span>${gxF}`,"gx-sel gx-press"),gxThen(gxR(gxChip("Seeker &#10003;","in"),gxChip("Legacy &#10003;","in"),gxChip("pool ready","ok")))),
+  bldSearch:()=>gx(gxIn(gxTy("relic")),`<div class="gx-card"><span style="flex:1"><b>Relic Hunter</b><small>Unit &middot; 3</small></span>${gxB("&minus;","sq")}<b class="gx-n">2</b>${gxB("+","sq",!0)}</div>`),
+  bldSide:()=>gx(gxR(gxB("Main","brs"),gxB("Side 1/7","",!0)),gxCap("+ now fills the side deck")),
+  bldOwn:()=>gx(gxR(`<span class="gx-tg gx-press" style="position:relative"><i></i>${gxF}</span>`,`<span>Only cards I own</span>`),gxThen(gxCap("the cards you do not own step aside"))),
+  bldSave:()=>gx(gxB("Save deck","act",!0),gxThen(gxCard(null,"Iron Vigil","My decks",gxR(gxChip("Share"),gxChip("Edit"))))),
+  
+  colHero:()=>gx(gxR(`<span class="gx-stat"><b>214</b><small>Owned</small></span>`,`<span class="gx-stat dim"><b>38</b><small>Printed</small></span>`,`<span class="gx-stat dim"><b>12</b><small>Painted</small></span>`)),
+  colManage:()=>gx(gxCard(null,"Core box","every card inside",gxB("Add","act",!0)),gxThen(gxChip("&#10003; cards","ok"))),
+  colOwned:()=>gx(gxCard(null,"Relic Hunter","Unit",`<span class="gx-ico gx-press" style="position:relative">&#10003;${gxF}</span>`),gxThen(gxCap("every copy you can play is marked"))),
+  colCount:()=>gx(gxCap("Printed"),`<div class="gx-ctr" style="gap:10px"><span class="gx-val"><span class="v1">0</span><span class="v2">1</span><span class="v3">2</span></span><span class="gx-b sq" style="position:relative">+<i class="gx-f gx-f6"></i></span></div>`,gxCap("each tap is one more copy")),
+  colMissing:()=>gx(gxR(gxB("&#9776; Filters","brs"),gxIn(`Status: Missing${gxF}`,"gx-sel gx-press")),gxThen(gxCap("what you still have to find"))),
+  colFac:()=>gx(`<div class="gx-bars">${[["Throne",80,"var(--f-throne)"],["Primal",55,"var(--f-primal)"],["Conclave",35,"var(--f-conclave)"],["Fallen",65,"var(--f-fallen)"]].map(([n,w,c])=>`<span><small>${n}</small><i><b style="width:${w}%;background:${c}"></b></i></span>`).join("")}</div>`),
+  colShare:()=>gx(gxR(`<span class="gx-doc">${"<i></i>".repeat(5)}</span>`,gxB("Share a checklist","",!0)),gxThen(gxChip("PDF with boxes to tick","in"))),
+  
+  metaHero:()=>gx(gxR(`<span class="gx-ring" style="--p:54"><b>54%</b></span>`,`<span class="gx-list" style="width:150px">${["Seeker A","Seeker B","Seeker C"].map((n,i)=>`<span>${n}<small>${[54,48,41][i]}%</small></span>`).join("")}</span>`)),
+  metaSeg:()=>gx(gxPills(["All","Standard matches","Tournaments"],0,1),gxThen(gxCap("every number now counts these games"))),
+  metaPeriod:()=>gx(gxPills(["Last 30 days","Last 90 days","All time"],2,0),gxThen(gxCap("the span the numbers cover"))),
+  metaRings:()=>gx(gxR(`<span class="gx-ring" style="--p:54"><b>54%</b></span>`,`<span class="gx-list" style="width:140px"><span style="border-color:var(--brass-dim);color:var(--brass)">Win share</span><span>Win rate</span><span>Games</span><span>Pick rate</span></span>`)),
+  metaTap:()=>gx(`<span class="gx-list gx-press" style="width:200px;position:relative"><span>Seeker A<small>54%</small></span>${gxF}</span>`,gxThen(gxR(gxChip("Matchups"),gxChip("Terrains"),gxChip("Decks"))),gxThen(`<span class="gx-lnk">&larr; All Seekers</span>`)),
+  
+  lgHero:()=>gx(gxCard(null,"Bologna Seekers","Shop &middot; Bologna",gxChip("Member","in")),gxTabs(["About","Events","Tournaments"],0)),
+  lgJoin:()=>gx(gxB("Join this community","act",!0),gxCap("private? its Join code"),gxIn(gxTy("K7Q2XD"))),
+  lgStar:()=>gx(gxR(`<span class="gx-b gx-press" style="position:relative"><span class="gx-star">&#9734;<b>&#9733;</b></span>${gxF}</span>`,gxThen(gxCap("your favourite community")))),
+  lgBoard:()=>gx(gxTabs(["Notices","Messages"],1),gxR(gxIn(gxTy("Who is in on Saturday?")),gxB("Post","act"))),
+  lgEvents:()=>gx(gxCard(["Sat","29","Nov"],"Shop Clash",`<span style="color:var(--brass)">Tournament &middot; Registration open &rsaquo;</span>`),`<span class="gx-lnk">Open on the Play Network &#8599;</span>`),
+  lgPlayers:()=>gx(`<div class="gx-list" style="width:210px"><span>Ada${gxChip("Organizer","in")}</span><span>Leo${gxChip("Herald","in")}</span><span>Mara</span></div>`),
+  lgManage:()=>gx(gxTabs(["Details","Invite","Members","Controls"],1),gxR(gxQR(),gxB("Image","brs"))),
+  
+  cltHero:()=>gx(gxR(gxCard(null,"Attacker","engaged"),`<span class="gx-d20">17</span>`,gxCard(null,"Defender","holds"))),
+  cltPick:()=>gx(gxCap("Attacker"),gxIn(`<span class="ph">Pick a unit&hellip;</span>${gxF}`,"gx-sel gx-press"),gxCap("Defender"),gxIn(`<span class="ph">Pick a unit&hellip;</span>`,"gx-sel")),
+  cltD20:()=>gx(gxB("Clash!","act",!0),`<span class="gx-d20">17</span>`,gxThen(gxChip("Hit","ok"))),
+  cltBonus:()=>gx(gxCap("Power"),`<div class="gx-ctr" style="gap:10px">${gxB("&minus;","sq")}<span class="gx-val"><span class="v1">0</span><span class="v2">+1</span><span class="v3">+2</span></span><span class="gx-b sq" style="position:relative">+<i class="gx-f gx-f6"></i></span></div>`,gxCap("one tap, one step &middot; up to 5 each way")),
+  
+  cdHero:()=>gx(gxIn(`<span class="ph">Search deck, player or Seeker&hellip;</span>`),gxCard(null,"Iron Vigil","by Mara &middot; Competitive")),
+  cdSearch:()=>gx(gxIn(gxTy("Iron")),gxThen(gxCard(null,"Iron Vigil","by Mara"))),
+  cdFilter:()=>gx(gxR(gxIn("Seeker: all","gx-sel"),gxIn(`Tag: all${gxF}`,"gx-sel gx-press")),gxIn("Order: Newest","gx-sel")),
+  cdCard:()=>gx(gxIn(gxTy("Relic Hunter")),gxThen(gxCap("only the decks holding that card"))),
+  cdOpen:()=>gx(`<div class="gx-card gx-press" style="position:relative"><span style="flex:1"><b>Iron Vigil</b><small>by Mara</small></span>${gxF}</div>`,gxThen(gxTabs(["List","Cards","Stats","Draw %"],0))),
+  cdCopy:()=>gx(`<div class="gx-menu"><span>Download list</span><span class="on gx-press" style="position:relative">Make a personal copy${gxF}</span></div>`,gxThen(gxChip("&#10003; under My decks","ok")))
+};
+
 const SL_GUIDES={
-  tracker:{t:"Play a match",l:"Two phones, one match: the score stays in step on both.",
-    s:[["Pick your Seeker","and your terrain. Nothing can start until both are set."],
-       ["Start a match","gives you a 4-digit PIN. Read it out to your opponent."],
-       ["I have a PIN","the other side of the same thing: type the four digits and join."],
-       ["&minus; and +","tap for one, hold for five. The round button adds the Echo itself."],
-       ["End match","pick the winner and send it: the game lands on both profiles."]],
+  tracker:{t:"Play a match",l:"Two phones, one match: <em>the score stays in step on both</em>.",f:"trkHero",
+    s:[["Pick your Seeker","and your terrain: nothing can start until both are set. <b>Mode</b> picks the game: <em>Demo</em> (first to 25), <em>Clash</em> (first to 40) or one for more players.","trkPick"],
+       ["Start a match","gives you a <em>4-digit PIN</em>, valid for 15 minutes. Read it out to your opponent.","trkPin"],
+       ["I have a PIN","the other side of the same thing: type the <em>four digits</em> and join.","trkJoin"],
+       ["&minus; and +","<em>tap for one, hold for five</em>. The round button adds the Echo itself.","trkCtr"],
+       ["Start the match","on the <b>Tournament game</b> card: your paired game in one tap, <em>no PIN</em>, and the result goes to the tournament.","trkTn"],
+       ["End match","pick the winner, or <b>Draw</b> on equal Mastery, and send it: once your opponent <em>confirms</em>, it lands on both profiles.","trkEnd"]],
     n:"No account? <b>Open the Basic tracker</b> keeps score on this device and saves nothing."},
-  tournaments:{t:"Tournaments",l:"Your games and your pairings &mdash; and the whole event, if you run it.",
-    s:[["Is this you?","tap your Play Network nickname once to link it to your account."],
-       ["Save deck","registers the deck you will play. It locks when the tournament starts."],
-       ["Start the match","opens your paired game in the tracker; the result files itself."],
-       ["Start the tournament","the organizer's button: it pairs the first round."],
-       ["Enter result","the organizer's too. The official standings still go on the Play Network."],
-       ["All, Conventions, Communities","the other three tabs: every open tournament anyone can turn up to, on a map."]],
-    n:"<b>Copy for the Play Network</b> copies a round for you to paste there: it sends nothing by itself."},
-  builder:{t:"Deck builder",l:"Pick the Seeker first &mdash; the pool then follows the deck rules by itself.",
-    s:[["Deck name","a deck with no name cannot be saved."],
-       ["&mdash; pick a Seeker &mdash;","until you choose one there is no pool to build from."],
-       ["Search name, trait or ability&hellip;","then + and &minus; on a row set how many copies you want."],
-       ["Only cards I own","hides everything that is not marked in your Collection."],
-       ["Save deck","it appears under My decks, with a page of its own."]]},
-  collection:{t:"Collection",l:"Mark what you own once, and the rest of the app knows.",
-    s:[["Manage products","then <b>Add</b> marks a whole box or deck as owned in one tap."],
-       ["Owned","the per-card button, for anything you got loose."],
-       ["Printed and Painted","counters, not switches: each tap is one more copy."],
-       ["Missing","in the Status filter: what you still have to find."],
-       ["Share a checklist","a PDF with boxes to tick, to plan the work or to send it on."]],
+  tournaments:{t:"Events",l:"Tournaments and Demos: your games, your pairings &mdash; and <em>the whole event</em>, if you run it.",f:"evHero",
+    s:[["Yours, All, Communities","filter the <b>Tournaments</b> and <b>Demos</b> tabs: your own events, or <em>every open one</em> anyone can turn up to.","evTabs"],
+       ["Is this you?","tap your Play Network nickname <em>once</em> to link it to your account.","evMe"],
+       ["I&#39;m here","checks you in, from <em>2 hours before</em> the start. At the venue, scanning the organizer&#39;s <b>QR</b> does the same.","evIn"],
+       ["Save deck","registers the deck you will play. It <em>locks</em> when the tournament starts.","evDeck"],
+       ["Start the match","opens your paired game in the tracker; <em>the result files itself</em>. Cannot stay? <b>Leave the tournament</b> takes you off.","evMatch"],
+       ["Start the tournament","the organizer&#39;s button: it <em>pairs the first round</em> by itself. Before it, <b>Here</b> on a player&#39;s row checks them in, and the <b>Check-in</b> tab holds the QR for the venue.","evStart"]],
+    n:"A Demo has no rounds: <b>Join this event</b>, then <b>Play a game</b>. <b>Enter result</b> and <b>Copy for the Play Network</b> are the organizer&#39;s; the official standings still go on the Play Network."},
+  builder:{t:"Deck builder",l:"Pick the Seeker first &mdash; the pool then <em>follows the deck rules</em> by itself.",f:"bldHero",
+    s:[["Deck name","a deck with no name <em>cannot be saved</em>.","bldName"],
+       ["&mdash; pick a Seeker &mdash;","until you choose one there is <em>no pool</em> to build from. The Seeker and its Legacy go into the deck by themselves.","bldSeeker"],
+       ["Search name, trait or ability&hellip;","then <b>+</b> and <b>&minus;</b> on a row set <em>how many copies</em> you want.","bldSearch"],
+       ["Side","switch to it before tapping <b>+</b> to fill the <em>side deck</em> instead: 7 cards at most.","bldSide"],
+       ["Only cards I own","hides everything that is <em>not marked</em> in your Collection.","bldOwn"],
+       ["Save deck","it gets <em>a page of its own</em>, with <b>Share</b> and <b>Edit</b>, under My decks.","bldSave"]],
+    n:"Tick <b>Public</b> to list the deck in Public decks. <b>Import a list</b> is in the &#8942; menu."},
+  collection:{t:"Collection",l:"Mark what you own <em>once</em>, and the rest of the app knows.",f:"colHero",
+    s:[["Manage products","then <b>Add</b>, and once more to confirm: a <em>whole box</em> or deck is marked as owned.","colManage"],
+       ["Owned","the per-card button, for anything you got loose: <em>one tap</em> marks every copy you can play.","colOwned"],
+       ["Printed and Painted","<em>counters, not switches</em>: each tap is one more copy, up to the card&#39;s limit, then back to zero.","colCount"],
+       ["Missing","in the Status filter, behind <b>&#9776; Filters</b>: what you <em>still have to find</em>.","colMissing"],
+       ["Factions","a bar for every faction: which army is <em>closest to complete</em>.","colFac"],
+       ["Share a checklist","a <em>PDF with boxes to tick</em>, to plan the work or to send it on.","colShare"]],
     n:"Marking happens in <b>List</b>. In <b>Grid</b> a card just opens its details."},
-  meta:{t:"Meta breakdown",l:"Who is winning, against whom, and on what ground.",
-    s:[["All &middot; Standard matches &middot; Tournaments","which games every number on the page counts."],
-       ["Last 30 days &middot; Last 90 days &middot; All time","the span those numbers cover."],
-       ["Win share &middot; Win rate &middot; Games &middot; Pick rate","what the big number beside each Seeker means."],
-       ["Tap a Seeker","to see its matchups, terrains and decks. <b>&larr; All Seekers</b> goes back."]],
+  meta:{t:"Meta breakdown",l:"Who is winning, <em>against whom</em>, and on what ground.",f:"metaHero",
+    s:[["All &middot; Standard matches &middot; Tournaments","<em>which games</em> every number on the page counts.","metaSeg"],
+       ["Last 30 days &middot; Last 90 days &middot; All time","the <em>span</em> those numbers cover.","metaPeriod"],
+       ["Win share &middot; Win rate &middot; Games &middot; Pick rate","what <em>the big number</em> beside each Seeker means.","metaRings"],
+       ["Tap a Seeker","to see its <em>matchups, terrains and decks</em>. <b>&larr; All Seekers</b> goes back.","metaTap"]],
     n:"A faded row is under three games: too few to mean much yet."},
-  league:{t:"A community",l:"The group, what it is playing, and where it talks.",
-    s:[["Join this community","a public one lets you in at once; a private one asks for a <b>Join code</b>."],
-       ["Write to the community&hellip;","the board, for members. <b>Post</b> sends it."],
-       ["Events","what is coming up. <b>Open on the Play Network &#8599;</b> is where you register."],
-       ["Players","the organizers, the Heralds and everyone else in the group."]]},
-  clashtest:{t:"Clash test",l:"What happens if these two fight, counted face by face.",
-    s:[["Pick a unit&hellip;","one under <b>Attacker</b>, one under <b>Defender</b>."],
-       ["Clash!","throws one d20: a hit, a graze, a critical hit or a critical graze."],
-       ["Add bonuses","&minus; and + for auras, relics and card text. Nothing here reads a keyword."]],
-    n:"The attacker stands engaged and attacks twice a round; the defender does not answer."},
-  cdecks:{t:"Public decks",l:"What other players are building, and what you could build.",
-    s:[["Search deck, player or Seeker&hellip;","free text over deck names, authors and Seekers."],
-       ["Seeker: all &middot; Tag: all","narrow it to one Seeker, or to Precon, Competitive, Test or Fun."],
-       ["Contains card&hellip;","three letters at least, then only the decks holding that card."],
-       ["Tap a deck","it opens where it is, with its list and its cards."],
-       ["Make a personal copy","in a deck's &#8942; menu: saves it privately under My decks."]]}
+  league:{t:"A community",l:"The group, what it is playing, and <em>where it talks</em>.",f:"lgHero",
+    s:[["Join this community","a public one lets you in <em>at once</em>; a private one asks for its <b>Join code</b>, typed or scanned from the organizer&#39;s QR.","lgJoin"],
+       ["Make it your favourite","the star, in a community you are in: it comes <em>first on Home</em> and is picked for you wherever the site needs one community.","lgStar"],
+       ["Write to the community&hellip;","the board, <em>for members</em>. <b>Notices</b> are the organizers&#39; news, <b>Messages</b> are for everyone; <b>Post</b> sends it.","lgBoard"],
+       ["Events","what is coming up. <b>Open on the Play Network &#8599;</b> is <em>where you register</em>; when the organizer runs it here too, the card opens its page.","lgEvents"],
+       ["Players","the organizers, the Heralds and <em>everyone else</em> in the group. A name opens their profile.","lgPlayers"],
+       ["Manage","for organizers: <b>Details</b>, <b>Invite</b> (the join code as a <em>QR</em> to share or print), <b>Members</b> and <b>Controls</b>.","lgManage"]],
+    n:"To step out, <b>Leave this community</b> is in About: your history stays."},
+  clashtest:{t:"Clash test",l:"What happens if these two fight, <em>counted face by face</em>.",f:"cltHero",
+    s:[["Pick a unit&hellip;","one under <b>Attacker</b>, one under <b>Defender</b>.","cltPick"],
+       ["Clash!","throws <em>one d20</em>: a hit, a graze, a critical hit or a critical graze.","cltD20"],
+       ["Add bonuses","&minus; and + on <b>Acc</b>, <b>Power</b>, <b>Def</b> and <b>Health</b>, up to 5 each way, for auras, relics and card text. <em>Nothing here reads a keyword.</em>","cltBonus"]],
+    n:"The attacker stands engaged and attacks <em>twice a round</em>; the defender does not answer."},
+  cdecks:{t:"Public decks",l:"What other players are building, and <em>what you could build</em>.",f:"cdHero",
+    s:[["Search deck, player or Seeker&hellip;","<em>free text</em> over deck names, authors and Seekers.","cdSearch"],
+       ["Seeker: all &middot; Tag: all","narrow it to one Seeker, or to Precon, Competitive, Test or Fun. <b>Order</b> puts the newest or <em>the most played</em> first.","cdFilter"],
+       ["Contains card&hellip;","three letters at least, then <em>only the decks holding that card</em>.","cdCard"],
+       ["Tap a deck","it opens where it is: its list, its cards, its stats and <em>the odds of drawing</em> each card.","cdOpen"],
+       ["Make a personal copy","in a deck&#39;s &#8942; menu: saves it <em>privately</em> under My decks.","cdCopy"]],
+    n:"<b>Valid only</b> keeps the decks that pass the deck rules; signed in, <b>Buildable with my collection</b> keeps the ones you can build."}
 };
 function slGuideKey(k){return"sl.guide."+k}
 function slGuideSeen(k){try{return!!localStorage.getItem(slGuideKey(k))}catch(e){return!0}}
@@ -9701,7 +9953,7 @@ function slGuideSync(){
   slGuideFirst(k);
 }
 function slGuideFirst(k){if(slGuideSeen(k))return;slGuideMark(k);slGuideOpen(k)}
-function slGuideClose(){const o=$("sl-guide");if(!o)return;o.remove();const b=window._slgBack;window._slgBack=null;b&&document.contains(b)&&b.focus({preventScroll:!0})}
+function slGuideClose(){const o=$("sl-guide");if(!o)return;o.remove();window._slgRs&&(removeEventListener("resize",window._slgRs),window._slgRs=null);const b=window._slgBack;window._slgBack=null;b&&document.contains(b)&&b.focus({preventScroll:!0})}
 function slGuideOpen(k){
   const g=SL_GUIDES[k];if(!g||$("sl-guide"))return;
   window._slgBack=document.activeElement;
@@ -9713,16 +9965,46 @@ function slGuideOpen(k){
     const f=[...o.querySelectorAll("button")].filter(x=>!x.disabled);if(!f.length)return;
     const a=f[0],z=f[f.length-1];
     e.shiftKey&&document.activeElement===a?(e.preventDefault(),z.focus()):e.shiftKey||document.activeElement!==z||(e.preventDefault(),a.focus())};
+  const N=g.s.length+1,fig=f=>{const h=f&&SL_GFX[f];return h?`<div class="slg-fig" aria-hidden="true">${"function"==typeof h?h():h}</div>`:""},
+    lab=i=>`aria-roledescription="slide" aria-label="${i+1} of ${N}"`;
   o.innerHTML=`<div class="tkmodal slg" role="dialog" aria-modal="true" aria-labelledby="slg-h">
     <button class="tkx" onclick="slGuideClose()" aria-label="Close">&times;</button>
     <h3 id="slg-h">${g.t}</h3>
-    <p class="slg-l">${g.l}</p>
-    <ol class="slg-s">${g.s.map(([a,b])=>`<li><b>${a}</b> &mdash; ${b}</li>`).join("")}</ol>
-    ${g.n?`<p class="slg-n">${g.n}</p>`:""}
-    <div class="tkfoot"><button class="act" onclick="slGuideClose()">Got it</button></div>
+    <p class="sr-only" id="slg-lv" aria-live="polite"></p>
+    <div class="slg-track" role="group" aria-roledescription="carousel" aria-label="${g.t}: the steps">
+      <section class="slg-p" ${lab(0)}>${fig(g.f)}<p class="slg-l">${g.l}</p>
+        <ol class="slg-s">${g.s.map(([a],j)=>`<li><button type="button" class="slg-jump" data-go="${j+1}"><b>${a}</b></button></li>`).join("")}</ol></section>
+      ${g.s.map(([a,b,f],j)=>`<section class="slg-p" ${lab(j+1)}>${fig(f)}<p class="slg-t"><span class="slg-k" aria-hidden="true">${j+1}</span><span><b>${a}</b> &mdash; ${b}</span></p>${j===g.s.length-1&&g.n?`<p class="slg-n">${g.n}</p>`:""}</section>`).join("")}
+    </div>
+    <div class="tkfoot slg-foot"><button type="button" class="ghost slg-prev">Back</button>
+      <div class="slg-dots">${Array.from({length:N},(_,i)=>`<button type="button" class="slg-dot" data-go="${i}" tabindex="-1" aria-label="Window ${i+1} of ${N}"></button>`).join("")}</div>
+      <button type="button" class="act slg-next">Next</button></div>
   </div>`;
   document.body.appendChild(o);
-  const f=o.querySelector(".tkfoot .act");f&&f.focus({preventScroll:!0});
+  const tr=o.querySelector(".slg-track"),pv=o.querySelector(".slg-prev"),nx=o.querySelector(".slg-next"),
+    ps=[...o.querySelectorAll(".slg-p")],ds=[...o.querySelectorAll(".slg-dot")],
+    rm=(()=>{try{return matchMedia("(prefers-reduced-motion: reduce)").matches}catch(x){return!1}})();
+  let at=-1,tm=0;
+  const lv=o.querySelector("#slg-lv"),x0=j=>ps[j].offsetLeft-ps[0].offsetLeft,
+    near=()=>{let b=0,d=1/0;ps.forEach((p,j)=>{const e=Math.abs(x0(j)-tr.scrollLeft);e<d&&(d=e,b=j)});return b},
+    mark=i=>{if(i===at)return;at=i;
+      const f=document.activeElement,fp=f&&o.contains(f)&&f.closest(".slg-p"),lost=!!(fp&&fp!==ps[i]||f===pv&&0===i);
+      ps.forEach((p,j)=>{const on=j===i;p.classList.toggle("on",on);p.toggleAttribute("inert",!on);p.setAttribute("aria-hidden",on?"false":"true")});
+      ds.forEach((d,j)=>{d.classList.toggle("on",j===i);d.setAttribute("aria-current",j===i?"step":"false")});
+      pv.disabled=0===i;nx.textContent=i===N-1?"Got it":"Next";
+      lv&&(lv.textContent=`${i+1} of ${N}: `+(i?(ps[i].querySelector(".slg-t>span:last-child")||{}).textContent||"":g.t));
+      lost&&nx.focus({preventScroll:!0})},
+    go=i=>{i=Math.max(0,Math.min(N-1,i));tr.scrollTo({left:x0(i),behavior:rm?"auto":"smooth"});mark(i)};
+  
+  tr.addEventListener("scroll",()=>{clearTimeout(tm);tm=setTimeout(()=>mark(near()),140)},{passive:!0});
+  pv.onclick=()=>go(at-1);nx.onclick=()=>at>=N-1?slGuideClose():go(at+1);
+  o.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{go(+b.dataset.go);nx.focus({preventScroll:!0})});
+  o.addEventListener("keydown",e=>{"ArrowRight"===e.key?(e.preventDefault(),go(at+1)):"ArrowLeft"===e.key&&(e.preventDefault(),go(at-1))});
+  mark(0);
+  window._slgRs&&removeEventListener("resize",window._slgRs);
+  window._slgRs=()=>{tr.scrollLeft=x0(Math.max(0,at))};
+  addEventListener("resize",window._slgRs);
+  nx.focus({preventScroll:!0});
 }
 const CN_ORDER=(()=>{const g={ORD:0,LEG:1,PRI:2,CON:3,ITEM:4,REL:5,TER:6};return c=>{if(!c.cn)return 1e9;const m=c.cn.split("-");return (g[m[0]]??9)*1e4+(+m[1]||0)}})();
 const CARD_NORM={};function seekerList(){return CARDS.filter(e=>(e.tr||[]).includes("Seeker"))}function bldInPool(e,n){if(rpHide(e))return!1;if((e.tr||[]).includes("Seeker"))return!1;if((e.tr||[]).includes("Relic"))return!1;if("T"===e.t)return!0;if("G"===e.t)return!1;return("U"===e.t||"S"===e.t||"A"===e.t)&&(!e.f||(2===e.f.length?e.f===n:n.includes(e.f)))}function bldCount(){return deckMainCount(window._bld.cards)}function bldOwned(e){return ownedCopies(e)>0}async function renderBuilder(){if(!me)return go("auth");if($("builder-body").innerHTML='<div class="empty"><span class="spinner"></span> Opening builder…</div>',cache.myDecks||(cache.myDecks=await fetchMyDecks()),!cache.collection){const{data:e}=await sb.from("collection").select("*").eq("user_id",me.id);cache.collection={},(e||[]).forEach(e=>cache.collection[e.card_key]=colNorm(e))}const e=route.deckId&&cache.myDecks.find(e=>e.id===route.deckId)||null;await detectCardImgs();const n=window._bld;if(n&&(n.id||null)===(route.deckId||null))return e&&!n.visSet&&(n.is_public=!!e.is_public),void paintBuilder();const t=bldLoadDraft(route.deckId||null);if(t)return e?(t.is_public=!!e.is_public,delete t.visSet):"boolean"!=typeof t.is_public&&(t.is_public=!1),window._bld=t,paintBuilder(),void toast("Unsaved draft restored",!0);window._bld={id:e?e.id:null,name:e?e.name:"",seeker:e&&e.seeker||"",url:e&&e.url||"",cards:e&&e.cards?{...e.cards}:{},tag:e&&e.tag||"",description:e&&e.description||"",side:e&&e.side?{...e.side}:{},is_public:!(!e||!e.is_public),tgt:"main",ownedOnly:bldOwnDefault(),mtab:"cards",q:"",t:"",sort:""},paintBuilder()}CARDS.forEach(e=>CARD_NORM[normName(e.n)]=e.n);const BLD_DRAFT="sl.bld.draft";function bldDraft(){const e=window._bld;if(!e)return;const n=!(e.name||e.seeker||Object.keys(e.cards||{}).length||Object.keys(e.side||{}).length);try{if(n)return void localStorage.removeItem(BLD_DRAFT);localStorage.setItem(BLD_DRAFT,JSON.stringify({...e,ts:Date.now()}))}catch(e){}}function bldLoadDraft(e){try{const n=localStorage.getItem(BLD_DRAFT);if(!n)return null;const t=JSON.parse(n);return(t.id||null)!==(e||null)||Date.now()-(t.ts||0)>6048e5?null:t.name||t.seeker||Object.keys(t.cards||{}).length?(delete t.ts,{tgt:"main",q:"",t:"",sort:"",mtab:"cards",...t,ownedOnly:bldOwnDefault()}):null}catch(e){return null}}function bldClearDraft(){try{localStorage.removeItem(BLD_DRAFT)}catch(e){}}function paintBuilder(){const e=$("builder-body");if(!e)return;const n=window._bld;e.innerHTML=`<div class="panel plain">\n    <div class="flex-between bld-head" style="margin-bottom:12px">\n      <h2 style="margin:0">${n.id?"Edit deck":"New deck"}</h2>\n      <div class="bld-head-acts">\n        <button class="act gold bld-topsave" onclick="bldSave()">Save deck</button>\n        <div class="dk-act bld-more"><button class="dk-kebab" aria-label="Deck options" aria-haspopup="menu" onclick="event.stopPropagation();this.nextElementSibling.classList.toggle('open')">⋮</button>\n        <div class="dk-menu" onclick="this.classList.remove('open')">\n          <button class="dk-mi" onclick="window._bldImp=!window._bldImp;paintBuilder()">${window._bldImp?"✕ Close import":"Import a list"}</button>\n          <button class="dk-mi bld-dl"${bldCount()?"":" hidden"} onclick="bldDownloadList()">Download list</button>\n          <button class="dk-mi bld-dl"${bldCount()?"":" hidden"} onclick="bldDownloadProxies()">Print proxies…</button>\n          <button class="dk-mi" onclick="go('decks')">Cancel</button>\n        </div></div>\n      </div>\n    </div>\n    <div class="row">\n      <label class="field"><span>Deck name</span>\n        <input type="text" maxlength="60" value="${esc(n.name)}" oninput="window._bld.name=this.value;bldDraft()" placeholder="Deck name"></label>\n      <label class="field"><span>Seeker</span>\n        <select onchange="bldSetSeeker(this.value)">\n          <option value="">— pick a Seeker —</option>\n          ${seekerList().map(e=>`<option value="${esc(e.n)}" ${n.seeker===e.n?"selected":""}>${esc(e.n)} (${factionLabel(e.f)})</option>`).join("")}\n        </select></label>\n      <label class="field"><span>Link (optional)</span>\n        <input type="url" value="${esc(n.url)}" oninput="window._bld.url=this.value" placeholder="https://play.malediction.gg/decks/..."></label>\n      <label class="field" style="max-width:170px"><span>Tag</span>\n        <select onchange="window._bld.tag=this.value">\n          <option value="">—</option>\n          ${Object.keys(DTAGS).map(e=>`<option value="${e}" ${n.tag===e?"selected":""}>${DTAGS[e]}</option>`).join("")}\n        </select></label>\n    </div>\n    <label class="field" style="margin-top:2px"><span>How it plays <small style="text-transform:none;letter-spacing:0;color:var(--bone-dim);font-size:10.5px">optional, shown to anyone you share it with</small></span>\n      <textarea rows="3" maxlength="1200" placeholder="What the deck wants to do, what to mulligan for, which matchups hurt." oninput="window._bld.description=this.value;bldDraft()">${esc(n.description||"")}</textarea></label>\n    <label class="bld-vis"><input type="checkbox" ${n.is_public?"checked":""} onchange="window._bld.is_public=this.checked;window._bld.visSet=1;bldDraft()"><span><b>Public</b> <small>anyone with the link can open it, and it is listed in Public decks. Off: only you can open it.</small></span></label>\n    ${window._bldImp?'<div class="pane" style="margin:0 0 12px">\n      <textarea id="bld-imp-ta" rows="6" placeholder="Seeker name&#10;3x Card name&#10;Card name ×2&#10;…" style="width:100%"></textarea>\n      <button class="act" style="margin-top:8px" onclick="bldImport()">Import list</button>\n    </div>':""}\n    ${bldMissBox()}\n    <div id="bld-bar"></div>\n    ${n.seeker?`\n    <div class="seg bld-tabs" role="tablist" aria-label="Builder view">\n      <button type="button" role="tab" class="seg-b bld-tab ${"deck"!==n.mtab?"on":""}" data-t="cards" aria-selected="${"deck"!==n.mtab}" onclick="bldMobTab('cards')">Cards</button>\n      <button type="button" role="tab" class="seg-b bld-tab ${"deck"===n.mtab?"on":""}" data-t="deck" aria-selected="${"deck"===n.mtab}" onclick="bldMobTab('deck')">Deck <span class="bld-tabn" id="bld-tabn">${bldCount()}</span></button>\n    </div>\n    <div class="bld-grid ${"deck"===n.mtab?"tab-deck":"tab-cards"}">\n      <div class="bld-poolcol">\n        <div class="bld-tools">\n          <input type="text" id="bld-q" placeholder="Search name, trait or ability…" value="${esc(n.q)}"\n            oninput="window._bld.q=this.value;paintBldPool()">\n          <div class="chip-row" style="margin:8px 0 2px">\n            ${[["","All"],["U","Units"],["S","Spells"],["A","Attachments"],["T","Terrains"],["G","Legacies"]].map(([e,n])=>`<button class="fchip ${bldTypeOn(e)?"on":""}" onclick="bldTypeTog(${jsq(e)})">${n}</button>`).join("")}\n            <button class="fchip own ${n.ownedOnly?"on":""}" onclick="bldOwnTog()" title="Show only cards marked as owned in your Collection (terrains and Legacies always stay listed). Your other decks never count against them">Only cards I own</button>\n          </div>\n        </div>\n        <div class="col-count bld-sorts" style="margin-top:10px">\n          <span class="seg" role="group" aria-label="Add cards to">\n            <button type="button" class="seg-b ${"side"!==n.tgt?"on":""}" aria-pressed="${"side"!==n.tgt}" onclick="window._bld.tgt='main';paintBuilder()">Main</button>\n            <button type="button" class="seg-b ${"side"===n.tgt?"on":""}" aria-pressed="${"side"===n.tgt}" onclick="window._bld.tgt='side';paintBuilder()">Side ${sideTotal()}/7</button>\n          </span>\n        </div>\n        <div class="bld-selrow">\n          <select class="tr-pick" aria-label="Filter by keyword" onchange="window._bld.kw=this.value;paintBldPool()">${kwOptions(n.kw)}</select>\n          <select class="sortsel" aria-label="Order by" onchange="window._bld.sort=this.value;paintBuilder()">${sortOptions(n.sort)}</select>\n        </div>\n        <div id="bld-pool"></div>\n      </div>\n      <div id="bld-side"></div>\n    </div>\n    <div id="bld-charts"></div>`:'<div class="empty" style="margin-top:8px">Pick a Seeker — the pool follows deck legality: their faction\'s cards, their exact dual-faction cards, and neutrals.</div>'}\n    <div class="bld-mbar" id="bld-mbar"></div>\n  </div>`,paintBldBar(),n.seeker&&(paintBldPool(),paintBldSide(),bldChartsPanel()),requestAnimationFrame(bldFit)}function paintBldBar(){const e=$("bld-bar");if(!e)return;const n=bldCount(),t=Math.min(100,n/50*100);let a="low",s=`${n} cards — ${30-n} more to a legal deck`;n>=30&&n<=50&&(a="ok",s=`${n} cards — legal deck size (30–50)`),n>50&&(a="over",s=`${n} cards — ${n-50} over the limit`),e.innerHTML=`<div class="bldbar ${a}">\n    <div class="bldbar-track"><div class="bldbar-fill" style="width:${t}%"></div>\n      <span class="bldbar-mark" style="left:60%"></span><span class="bldbar-mark" style="left:100%"></span></div>\n    <div class="bldbar-label">${s}</div>\n  </div>`,paintBldMob()}function paintBldPool(){const e=$("bld-pool");if(!e)return;let hid=0;const n=window._bld,t=(CARDS[CARD_IDX[n.seeker]]||{}).f||"",a=(n.q||"").toLowerCase(),s=CARDS.map((e,n)=>({c:e,i:n})).filter(({c:e})=>{if(!bldInPool(e,t))return!1;const hideOwn=n.ownedOnly&&!bldOwned(e.n)&&"T"!==e.t&&"G"!==e.t;{const n=bldTypes();if(n.length&&!n.includes(e.t))return!1}if(window._bld.kw&&!(e.kw||[]).includes(window._bld.kw))return!1;const m=!(a&&!(e.n.toLowerCase().includes(a)||(e.tr||[]).some(e=>e.toLowerCase().includes(a))||(e.kw||[]).some(e=>e.toLowerCase().includes(a))));return m&&hideOwn?(hid++,!1):m});cardSort(s,n.sort);const i=e=>"G"===e.t?0:"T"===e.t?2:1;s.sort((e,n)=>i(e.c)-i(n.c)),s.length?(e.className="",e.innerHTML=bldOwnHint(hid,s.length)+s.map(({c:e,i:t})=>{const a=("side"===n.tgt?(n.side||{})[e.n]:n.cards[e.n])||0;return`<div class="col-row bld-row" id="bldrow-${t}">\n      <span class="pk-zone" onmouseenter="bldPeek(${t},event)" onmousemove="bldPeek(${t},event)" onmouseleave="bldPeekOff()">${cardThumb(t)}</span>\n      <div class="col-main">\n        <div class="col-name"><span class="pk-zone" onmouseenter="bldPeek(${t},event)" onmousemove="bldPeek(${t},event)" onmouseleave="bldPeekOff()">${esc(e.n)}</span>${bldOwned(e.n)?"":' <span class="notown" title="Not in your collection">◇</span>'}</div>\n        <div class="col-sub">${TNAME[e.t]}${e.tr&&e.tr.length?" · "+e.tr.map(esc).join(" · "):""}${e.kw&&e.kw.length?` <span class="kwln">· ${e.kw.map(esc).join(" · ")}</span>`:""}</div>\n      </div>\n      ${null!=e.e?`<span class="echip r${e.r||"X"}" title="Echo cost ${e.e}"><i>${e.e}</i></span>`:""}\n      ${e.r?`<span class="rchip r${e.r}" title="${RNAME[e.r]} — max ${maxCopies(e)} ${1===maxCopies(e)?"copy":"copies"} per deck">${RNAME[e.r]}</span>`:""}\n      <div class="col-facs">${fBadges(e.f)}</div>\n      <div class="bld-step">\n        <button class="stp" onclick="bldSub(${t})" aria-label="Remove one ${esc(e.n)}" ${a?"":"disabled"}>−</button>\n        <span class="stp-n" id="bldn-${t}">${a}<small class="stp-max">/${maxCopies(e)}</small></span>\n        <button class="stp" onclick="bldAdd(${t})" aria-label="Add one ${esc(e.n)}" ${(n.cards[e.n]||0)+((n.side||{})[e.n]||0)>=maxCopies(e)?"disabled":""}>+</button>\n      </div>\n    </div>`}).join("")):e.innerHTML=`<div class="empty">${n.ownedOnly&&hid?'Nothing you own matches. Mark cards in your Collection, or <button type="button" class="link tap" onclick="bldOwnTog(!1)">show all cards</button>.':"No cards match."}</div>`}
