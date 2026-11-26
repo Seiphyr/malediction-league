@@ -316,6 +316,7 @@ body:has(#wts-modal) #toast{z-index:1700}
 .nb-title::before,.nb-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--brass-dim))}
 .nb-title::after{background:linear-gradient(90deg,var(--brass-dim),transparent)}
 .nb-title h2{margin:0;color:var(--brass);letter-spacing:.16em;font-size:16px;white-space:nowrap}
+.nb-pin{width:1.05em;height:1.05em;margin-right:.45em;vertical-align:-.15em;flex:0 0 auto}
 
 #home-board .nb-title{justify-content:space-between;gap:10px;margin:0 0 8px;min-width:0}
 #home-board .nb-title::before,#home-board .nb-title::after{content:none}
@@ -2226,9 +2227,13 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .sl-gq:hover,.sl-gq:focus-visible{color:var(--bone);border-color:var(--brass-dim)}
 
 
-.sl-gq{width:34px;height:34px;padding:3px;border:0;background:#c0152e;background-clip:content-box;font-size:14px;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,0 1px 0 #000,0 -1px 0 #000,1px 0 0 #000,-1px 0 0 #000}
-.sl-gq:hover,.sl-gq:focus-visible{background:#d81b36;background-clip:content-box;color:#fff}
-.gx-b.gx-q{background:#c0152e;border-color:#c0152e;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;border-radius:50%;font-family:Oswald,sans-serif;font-weight:600}
+
+.sl-gq{width:auto;height:34px;padding:0;border:0;border-radius:0;background:none;color:var(--brass);font-size:12px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;text-shadow:none}
+.sl-gq>span{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border:1px solid var(--brass);border-radius:12px;white-space:nowrap}
+.sl-gq>span b{font-weight:600;font-size:13px}
+.sl-gq:hover,.sl-gq:focus-visible{background:none;color:var(--bone)}
+.sl-gq:hover>span,.sl-gq:focus-visible>span{background:rgba(200,165,104,.14)}
+.gx-b.gx-q{background:none;border:1px solid var(--brass);color:var(--brass);border-radius:12px;padding:0 9px;height:24px;display:inline-flex;align-items:center;font-family:Oswald,sans-serif;font-weight:500;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
 .slg-n .slg-cta{display:flex;width:100%;justify-content:center;margin-top:9px;min-height:44px}
 #topbar .sl-gq~.top-right{margin-left:0}
 
@@ -4726,6 +4731,8 @@ function nbCard(e){
   </article>`;
 }
 
+const NB_MARK='<svg class="nb-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4M9 15l-4.5 4.5M14.5 4l5.5 5.5"/></svg>';
+
 const NB_FIRST=3*864e5;
 function nbHash(s){let h=5381;s=String(s);for(let i=0;i<s.length;i++)h=Math.imul(h,33)^s.charCodeAt(i);return(h>>>0).toString(36)}
 function nbSK(k){return"sl.seen."+(me&&me.id)+"."+k}
@@ -4787,7 +4794,7 @@ function paintHomeBoard(){
   if(!t.length&&!nu&&!isSiteAdmin())return void(e.innerHTML="",typeof admHomeNote=="function"&&admHomeNote());
   const B=nbHome(t,nu),adm=isSiteAdmin(),bx=e.querySelector(".nb-tabs"),bl=bx?bx.scrollLeft:0,lx=e.querySelector(".nb-list"),lt=lx?lx.scrollTop:0;
   e.innerHTML=`<div class="panel plain nb-panel">
-    <div class="nb-title">${adm?`<h2><button type="button" class="nb-h" aria-expanded="${nbPostOpen?"true":"false"}" aria-controls="nb-new" onclick="nbPostTg(this)">\u2726 Notice board<svg class="nb-chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m1 1.5 4 3 4-3"/></svg></button></h2>`:`<h2>\u2726 Notice board</h2>`}<div class="nb-cl"><button type="button" class="link" onclick="slChangelog()" aria-label="Changelog: what\u2019s new">What\u2019s new</button></div></div>
+    <div class="nb-title">${adm?`<h2><button type="button" class="nb-h" aria-expanded="${nbPostOpen?"true":"false"}" aria-controls="nb-new" onclick="nbPostTg(this)">${NB_MARK}Notice board<svg class="nb-chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m1 1.5 4 3 4-3"/></svg></button></h2>`:`<h2>${NB_MARK}Notice board</h2>`}<div class="nb-cl"><button type="button" class="link" onclick="slChangelog()" aria-label="Changelog: what\u2019s new">What\u2019s new</button></div></div>
     ${B.bar}
     ${B.body}
     ${adm?`<div id="nb-new"${nbPostOpen?"":" hidden"}><button class="ghost nb-post" onclick="nbCompose(null)">Post to everyone</button></div>`:""}
@@ -7171,7 +7178,7 @@ function cbBoard(L){
     mh=`${c.err?"":cbCompose(L,w)}
     ${c.err?'<p class="hint cb-ro">The messages could not be loaded. Reload the page to try again.</p>':ms.length?`<div class="cb-list">${ms.map(m=>mN.includes(m)?nbMark(cbMsg(m,L,w)):cbMsg(m,L,w)).join("")}</div>${ms.length>=100?'<p class="hint cb-ro">Showing the latest 100 messages.</p>':""}`:`<p class="hint cb-ro">${w.write?"No messages yet. Say hello to the community.":"No messages yet."}</p>`}`;
   return`<div class="panel plain nb-panel cb-panel" id="cb-board">
-    <div class="nb-title"><h2>✦ Community board ✦</h2></div>
+    <div class="nb-title"><h2>${NB_MARK}Community board</h2></div>
     <p class="cb-sub">Only the members of this community see this board.</p>
     ${nbTabs("Community board",TB,on,"cbTab",s,"cb-pane")}
     ${nbPane("cb-pane",TB,on,"n"===on?nh:"r"===on?bdCbRep(L):mh)}
@@ -9878,7 +9885,7 @@ const gxF=`<i class="gx-f"></i>`,
 const SL_GFX={
   
   wlHero:()=>gx(gxCard(["Today","26","Nov"],"Saturday Clash",`Round 1 &middot; <span style="color:var(--brass)">Table 3</span> &middot; vs Mara`),`<div class="gx-row" style="flex-wrap:wrap;justify-content:center;gap:6px">${["Home","Play","Communities",me&&"Collection","Utilities"].filter(Boolean).map((x,i)=>gxChip(x,1===i?"in":"")).join("")}</div>`,gxCap("the main menu: at the foot on a phone")),
-  wlHelp:()=>gx(gxR(`<span class="gx-b sq gx-q gx-press" style="position:relative">?${gxF}</span>`,gxThen(gxCap("How this page works"))),gxThen(`<span class="gx-lnk">Send feedback</span>`)),
+  wlHelp:()=>gx(gxR(`<span class="gx-b gx-q gx-press" style="position:relative">? Guide${gxF}</span>`,gxThen(gxCap("How this page works"))),gxThen(`<span class="gx-lnk">Send feedback</span>`)),
   
   trkHero:()=>gx(gxR(`<span class="gx-ph">${gxCap("You")}<b class="gx-big">13</b>${gxCap("Mastery")}</span>`,
       `<span class="gx-sync">&#8644;</span>`,
@@ -9951,7 +9958,7 @@ const SL_GUIDES={
        ["Communities","find the group near you, or join with its code: its events, its board and <em>its players</em>.","lgHero"],
        ["Collection","mark the cards you own <em>once</em>. Next to it, <b>My decks</b> is where you build your decks, and it can show <em>only the cards you own</em>.","colHero"],
        ["Utilities","the <b>Meta breakdown</b>, the <b>Rules</b>, the <b>Clash test</b>, <b>Public decks</b>, and the <b>Basic tracker</b> for a game <em>with no account</em>.","metaHero"],
-       ["Need help?","the harder pages have a red <b>?</b> at the top: it opens <em>that page&#39;s guide</em>, like this one. Stuck, or something missing? <b>Send feedback</b>, at the foot of Home, reaches the people who build the site.","wlHelp"]],
+       ["Need help?","the harder pages have a <b>? Guide</b> button at the top: it opens <em>that page&#39;s guide</em>, like this one. Stuck, or something missing? <b>Send feedback</b>, at the foot of Home, reaches the people who build the site.","wlHelp"]],
     
     get n(){if(!me)return'<button type="button" class="act gold slg-cta" onclick="slGuideClose();go(\'auth\')">Sign in or create an account</button>';
       if(!wtsTodo())return"";const a=[!pnLinked()&&"link your Play Network profile",!myLeaguesSafe().length&&"find your community"].filter(Boolean).join(" and ");
@@ -10024,7 +10031,7 @@ function slGuideSync(){
   document.querySelectorAll(".sl-gq").forEach(b=>b.remove());
   if(!g||!v||!v.classList.contains("active")||!hd)return;
   const b=document.createElement("button");
-  b.type="button";b.className="sl-gq";b.textContent="?";
+  b.type="button";b.className="sl-gq";b.innerHTML='<span aria-hidden="true"><b>?</b>Guide</span>';
   b.setAttribute("aria-label","How this page works");b.title="How this page works";
   b.onclick=()=>slGuideOpen(k);
   
