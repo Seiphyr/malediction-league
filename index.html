@@ -1584,6 +1584,11 @@ details.msec:not([open])>summary{margin-bottom:0}
 .nu-big .nu-act{margin-top:10px;width:100%}
 .nu-big .nu-act>*{flex:1 1 auto;width:100%;min-height:44px;font-size:13px}
 
+.nu-list>.nu-big.nu-hsm{position:relative}
+.nu-big.nu-hsm .nu-tx{padding-right:96px}
+.nu-big .nu-act.nu-act-sm{position:absolute;top:34px;right:12px;width:auto;margin:0}
+.nu-big .nu-act.nu-act-sm>*{flex:0 0 auto;width:auto;min-height:32px;padding:0 12px;font-size:11px}
+
 
 .sn-cap{padding:10px 12px 3px 38px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);opacity:.75;overflow-wrap:anywhere}
 .sheet-card{max-height:calc(100vh - 96px);overflow-y:auto}
@@ -2219,6 +2224,11 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 #topbar .brand .beta-chip:after{inset:-5px -6px}
 .sl-gq{flex:0 0 auto;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--coal-2);color:var(--bone-dim);font-family:Oswald,sans-serif;font-size:15px;font-weight:600;line-height:1;letter-spacing:0;text-transform:none;cursor:pointer}
 .sl-gq:hover,.sl-gq:focus-visible{color:var(--bone);border-color:var(--brass-dim)}
+
+.sl-gq{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.sl-gq:hover,.sl-gq:focus-visible{background:#f0334d;border-color:#f0334d;color:#fff}
+.gx-b.gx-q{background:var(--crimson);border-color:var(--crimson);color:#fff;border-radius:50%;font-family:Oswald,sans-serif;font-weight:600}
+.slg-n .slg-cta{display:flex;width:100%;justify-content:center;margin-top:9px;min-height:44px}
 #topbar .sl-gq~.top-right{margin-left:0}
 
 @media(max-width:400px){#topbar{gap:8px;padding-left:8px;padding-right:8px}#topbar .top-right{gap:6px}#topbar .top-right>.ghost{padding-left:10px;padding-right:10px}}
@@ -4887,7 +4897,7 @@ function t3RegLine(e){const s=e&&e.starts_at,d=s?new Date(s):null;if(!d||isNaN(d
   if(d>Date.now()){const w=nuIn(s);return"Starts at "+slFmt(SL_DF_TIME,d,"")+(dateStr(d)===dateStr(new Date)?"":" · "+pnDay(d))+(w?" · "+w:"")}
   const lim=t3RegLim(e);return!isNaN(lim)&&Date.now()>lim?"":"Waiting for the organizer to start"}
 
-function nuBig(k,w,title,sub,tags,go,lab,act,cls){return`<div class="nu-row nu-big${cls?" "+cls:""}"><button type="button" class="nu-main" onclick="${go}"${lab?` aria-label="${esc(lab)}"`:""}><span class="nu-bh"><small>${k}</small>${w||!act?`<span class="nu-in">${w||""}${act?"":'<i class="nu-chev" aria-hidden="true">›</i>'}</span>`:""}</span><span class="nu-tx"><b>${title}</b>${sub?`<small>${sub}</small>`:""}${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button>${act?`<div class="nu-act">${act}</div>`:""}</div>`}
+function nuBig(k,w,title,sub,tags,go,lab,act,cls){const sm=!!act&&act.includes(" nu-sm");return`<div class="nu-row nu-big${cls?" "+cls:""}${sm?" nu-hsm":""}"><button type="button" class="nu-main" onclick="${go}"${lab?` aria-label="${esc(lab)}"`:""}><span class="nu-bh"><small>${k}</small>${w||!act?`<span class="nu-in">${w||""}${act?"":'<i class="nu-chev" aria-hidden="true">›</i>'}</span>`:""}</span><span class="nu-tx"><b>${title}</b>${sub?`<small>${sub}</small>`:""}${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button>${act?`<div class="nu-act${sm?" nu-act-sm":""}">${act}</div>`:""}</div>`}
 
 function nuInF(s){const m=Math.ceil((Date.parse(s||"")-Date.now())/6e4);if(!(m>0))return"";if(m<60)return"in "+m+" min";const h=Math.floor(m/60),r=m%60;return"in "+h+" h"+(r?" "+r+" min":"")}
 function nuEvRow(s,title,sub,tags,go,lab,act){
@@ -4924,7 +4934,7 @@ function paintHomeNext(){
     const pl=in1&&"drop"!==t3Ent0(x,me.id).st;
     top.push(nuEvRow(s,esc(ti),nuEvSub(s,l),nuTag("Demo")+(in1?nuTag("You're in","in"):org?nuTag("You organize","in"):""),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
       [ti,s?pnShort(e):"",l,in1?"Demo event, you are on the list":org?"Demo event you organize":"Demo event"].filter(Boolean).join(", "),
-      pl?'<button type="button" class="act gold nu-go" onclick="duPlayDemo()">Play a game</button>':org?`<button type="button" class="ghost nu-go" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
+      pl?'<button type="button" class="act gold nu-go" onclick="duPlayDemo()">Play a game</button>':org?`<button type="button" class="ghost nu-go nu-sm" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
   
   let reg=!1;
   T.filter(x=>x&&"draft"===x.status&&"demo"!==x.mode&&!x.hidden_at).forEach(x=>{
@@ -4941,7 +4951,7 @@ function paintHomeNext(){
     const here=in1&&!0===en.here;
     top.push(nuEvRow(s,esc(ti),sub,nuTag("Tournament")+(in1?nuTag(here?"Checked in":"You're registered","in"):nuTag("You organize","in")),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
       [ti,line,l,in1?here?"you are checked in":"you are registered":"you organize it"].filter(Boolean).join(", "),
-      in1&&!here&&t3CiOpen(x,s)?`<button type="button" class="act gold nu-go" onclick="t3CheckIn(${jsq(x.id)})">I'm here</button>`:org?`<button type="button" class="ghost nu-go" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
+      in1&&!here&&t3CiOpen(x,s)?`<button type="button" class="act gold nu-go" onclick="t3CheckIn(${jsq(x.id)})">I'm here</button>`:org?`<button type="button" class="ghost nu-go nu-sm" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
   
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
@@ -9410,12 +9420,12 @@ async function wtsMaybe(n){
     if(!wtsOk())return;
     let seen=null;try{seen=localStorage.getItem("sl.welcome."+me.id)}catch(e){}
     if(seen||$("nk-modal"))return;
-    const later=()=>void((n|0)<40&&(clearTimeout(wtsT),wtsT=setTimeout(()=>wtsMaybe((n|0)+1),1500)));
-    if(wtsBusy())return later();
+    const later=()=>void((n|0)<40&&(clearTimeout(wtsT),wtsT=setTimeout(()=>wtsMaybe((n|0)+1),1500)));const hg=()=>{const g=$("sl-guide");return!!g&&"browse"===g.dataset.k&&(wtsMark(),slGuideMark("browse"),g.dataset.auto=me.id,!0)};
+    if(hg())return;if(wtsBusy())return later();
     
     if(pnLinked()){const u=me.id,L=myLeaguesSafe().length?myLeaguesSafe():await fetchMyLeagues0();if(!L||!me||me.id!==u)return;if(L.length)return void(wtsDone[u]=1);
-      if(!wtsOk()||$("nk-modal"))return;if(wtsBusy())return later()}
-    wtsMark();wtsOpen(null,1);
+      if(!wtsOk()||$("nk-modal"))return;if(hg())return;if(wtsBusy())return later()}
+    wtsMark();slGuideMark("browse");slGuideOpen("browse");{const g=$("sl-guide");g&&(g.dataset.auto=me.id)}
   }catch(e){}
 }
 
@@ -9866,6 +9876,9 @@ const gxF=`<i class="gx-f"></i>`,
   gxCtr=(a,b,c,lab)=>`<div class="gx-ctr">${gxB("&minus;","sq")}<span class="gx-val"><span class="v1">${a}</span><span class="v2">${b}</span><span class="v3">${c}</span></span><span class="gx-b sq" style="position:relative">+<i class="gx-hold"></i><i class="gx-f gx-f6"></i></span><span class="gx-lbl l1" style="top:50%;left:calc(100% + 8px);margin-top:-9px">${lab[0]}</span><span class="gx-lbl l5" style="top:50%;left:calc(100% + 8px);margin-top:-9px">${lab[1]}</span></div>`;
 const SL_GFX={
   
+  wlHero:()=>gx(gxCard(["Today","26","Nov"],"Saturday Clash",`Round 1 &middot; <span style="color:var(--brass)">Table 3</span> &middot; vs Mara`),`<div class="gx-row" style="flex-wrap:wrap;justify-content:center;gap:6px">${["Home","Play","Communities",me&&"Collection","Utilities"].filter(Boolean).map((x,i)=>gxChip(x,1===i?"in":"")).join("")}</div>`,gxCap("the main menu: at the foot on a phone")),
+  wlHelp:()=>gx(gxR(`<span class="gx-b sq gx-q gx-press" style="position:relative">?${gxF}</span>`,gxThen(gxCap("How this page works"))),gxThen(`<span class="gx-lnk">Send feedback</span>`)),
+  
   trkHero:()=>gx(gxR(`<span class="gx-ph">${gxCap("You")}<b class="gx-big">13</b>${gxCap("Mastery")}</span>`,
       `<span class="gx-sync">&#8644;</span>`,
       `<span class="gx-ph">${gxCap("Opponent")}<b class="gx-big">13</b>${gxCap("Mastery")}</span>`)),
@@ -9930,6 +9943,18 @@ const SL_GFX={
 };
 
 const SL_GUIDES={
+  
+  browse:{t:"Welcome to Seekers League",l:"A free companion to the Malediction Play Network: <em>play, keep score and run events</em> from your phone.",f:"wlHero",
+    s:[["Play","start a match and read out the <em>4-digit PIN</em>: two phones, one score, and the result lands on both profiles.","trkPin"],
+       ["Events","tournaments and Demos from the Play Network. <b>I&#39;m here</b> checks you in, and <em>your table and opponent</em> come to Home.","evIn"],
+       ["Communities","find the group near you, or join with its code: its events, its board and <em>its players</em>.","lgHero"],
+       ["Collection","mark what you own <em>once</em>; <b>My decks</b>, next to it, then knows what you can build.","colHero"],
+       ["Utilities","the <b>Meta breakdown</b>, the <b>Rules</b>, the <b>Clash test</b>, <b>Public decks</b>, and the <b>Basic tracker</b> for a game <em>with no account</em>.","metaHero"],
+       ["Need help?","the harder pages have a red <b>?</b> at the top: it opens <em>that page&#39;s guide</em>, like this one. Stuck, or something missing? <b>Send feedback</b>, at the foot of Home, reaches the people who build the site.","wlHelp"]],
+    
+    get n(){if(!me)return'<button type="button" class="act gold slg-cta" onclick="slGuideClose();go(\'auth\')">Sign in or create an account</button>';
+      if(!wtsTodo())return"";const a=[!pnLinked()&&"link your Play Network profile",!myLeaguesSafe().length&&"find your community"].filter(Boolean).join(" and ");
+      return`<b>Next:</b> ${a}.<button type="button" class="act gold slg-cta" onclick="slGuideClose(1)">Where to start</button>`}},
   tracker:{t:"Play a match",l:"Two phones, one match: <em>the score is synced on both</em>.",f:"trkHero",
     s:[["Pick your Seeker","and your terrain: nothing can start until both are set. <b>Mode</b> picks the game: <em>Demo</em> (first to 25), <em>Clash</em> (first to 40) or one for more players.","trkPick"],
        ["Start a match","gives you a <em>4-digit PIN</em>, valid for 15 minutes. Read it out to your opponent.","trkPin"],
@@ -10003,14 +10028,16 @@ function slGuideSync(){
   b.onclick=()=>slGuideOpen(k);
   
   hd.insertBefore(b,hd.querySelector(".top-right"));
-  slGuideFirst(k);
+  
+  "browse"!==k&&slGuideFirst(k);
 }
 function slGuideFirst(k){if(slGuideSeen(k))return;slGuideMark(k);slGuideOpen(k)}
-function slGuideClose(){const o=$("sl-guide");if(!o)return;o.remove();window._slgRs&&(removeEventListener("resize",window._slgRs),window._slgRs=null);const b=window._slgBack;window._slgBack=null;b&&document.contains(b)&&b.focus({preventScroll:!0})}
+
+function slGuideClose(w){const o=$("sl-guide");if(!o)return;const au=!!me&&o.dataset.auto===me.id,wt=!!me&&(!!w||au&&"browse"===route.view&&wtsTodo());o.remove();window._slgRs&&(removeEventListener("resize",window._slgRs),window._slgRs=null);const b=window._slgBack;window._slgBack=null;b&&document.contains(b)&&b.focus({preventScroll:!0});wt&&wtsOpen(null,au?1:0)}
 function slGuideOpen(k){
   const g=SL_GUIDES[k];if(!g||$("sl-guide"))return;
   window._slgBack=document.activeElement;
-  const o=document.createElement("div");o.id="sl-guide";o.className="tkov";
+  const o=document.createElement("div");o.id="sl-guide";o.className="tkov";o.dataset.k=k;
   o.onclick=e=>{e.target===o&&slGuideClose()};
   o.onkeydown=e=>{
     if("Escape"===e.key)return slGuideClose();
@@ -10026,7 +10053,7 @@ function slGuideOpen(k){
     <p class="sr-only" id="slg-lv" aria-live="polite"></p>
     <div class="slg-track" role="group" aria-roledescription="carousel" aria-label="${g.t}: the steps">
       <section class="slg-p" ${lab(0)}>${fig(g.f)}<p class="slg-l">${g.l}</p>
-        <ol class="slg-s">${g.s.map(([a],j)=>`<li><button type="button" class="slg-jump" data-go="${j+1}"><b>${a}</b></button></li>`).join("")}</ol></section>
+        <ol class="slg-s">${g.s.map(([a],j)=>`<li><button type="button" class="slg-jump" data-go="${j+1}"><b>${a}</b></button></li>`).join("")}</ol>${g.top&&g.n?`<p class="slg-n">${g.n}</p>`:""}</section>
       ${g.s.map(([a,b,f],j)=>`<section class="slg-p" ${lab(j+1)}>${fig(f)}<p class="slg-t"><span class="slg-k" aria-hidden="true">${j+1}</span><span><b>${a}</b> &mdash; ${b}</span></p>${j===g.s.length-1&&g.n?`<p class="slg-n">${g.n}</p>`:""}</section>`).join("")}
     </div>
     <div class="tkfoot slg-foot"><button type="button" class="ghost slg-prev">Back</button>
