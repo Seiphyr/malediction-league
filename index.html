@@ -1568,6 +1568,13 @@ details.msec:not([open])>summary{margin-bottom:0}
 .sheet-card .sheet-title.sheet-cap{padding-top:12px;overflow-wrap:anywhere}
 .lg-mkhome{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:12px}
 .lg-mkhome .hint{margin:0;font-size:12.5px}
+.lg-star.on{border-color:var(--brass);color:var(--brass)}
+.lc-tr{flex:0 0 auto;display:flex;align-items:center;gap:2px}
+.lc-star{display:inline-flex;align-items:center;justify-content:center;min-width:40px;min-height:40px;margin:-9px 0 -9px -6px;padding:0;background:0 0;border:0;font-size:22px;line-height:1;color:var(--bone-dim);cursor:pointer}
+.lc-star:hover{color:var(--bone)}
+.lc-star.on{color:var(--brass)}
+.pf-bio{margin:12px 0 0;font-size:14.5px;line-height:1.5;color:var(--bone);overflow-wrap:anywhere;white-space:normal}
+.pf-bio-x{margin:6px 0 0}
 
 .tkmodal:focus,.info-pop:focus,.sheet-card:focus,.card-light:focus,.tk-die-ov:focus{outline:none}
 .sl-cf .tk-ask-row button{min-height:44px}
@@ -2832,9 +2839,9 @@ async function initAuth(){if(!sb)return;const e=window.location.hash||"",hp=(()=
   const{data:d2}=await sb.from("profiles").select().eq("id",u.id).maybeSingle();
   if(d2)me=d2,nkSoon();
 }
-async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){window._navLg=null,window._tnAll=null,duDrop(),cache.myDecks=null,cache.collection=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote(),cache.gate=void 0,cache.pnClaim=void 0,cache.clOpen=void 0,window.aacReset&&aacReset(1)}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return $("au-email").focus(),toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
+async function doAuth(){const e=$("au-email").value.trim(),n=$("au-pass").value;if(!e||!n)return toast("Email and password required");if("signup"===authMode){const tc=$("au-terms");if(tc&&!tc.checked)return toast("Tick the box to confirm you are 16 or older and accept the Terms");if(n.length<8)return toast("Use a password of at least 8 characters")}const rm=$("au-remember");setRemember(!rm||rm.checked);const t=$("au-submit");t.disabled=!0,t.textContent="…";try{if("signup"===authMode){const t=$("au-name").value.trim();if(!t)return void toast("Pick a name");const{data:sd,error:a}=await sb.auth.signUp({email:e,password:n,options:{data:{display_name:t,role:"player",terms_accepted:SL_TERMS_VER},emailRedirectTo:location.origin+location.pathname}});if(a)throw a;if(sd&&sd.user&&Array.isArray(sd.user.identities)&&!sd.user.identities.length)return void(setAuthMode("signin"),toast("That email already has an account. Sign in, or use Forgot your password"));if(!sd||!sd.session)return void(ckUntil=Date.now()+6e4,showCheckEmail(e));toast("Account created",!0)}else{const{error:t}=await sb.auth.signInWithPassword({email:e,password:n});if(t)throw t}await loadMe(),authReturn()}catch(e){toast(e.message||"Auth failed")}finally{t.disabled=!1,t.textContent="signup"===authMode?"Create account":"Sign in"}}function slUserReset(){cache.fav=void 0,window._navLg=null,window._tnAll=null,duDrop(),cache.myDecks=null,cache.collection=null,window._duPick&&(window._duPick.deck=""),cache.myLeagues=[],cache.homeAll=null,cache.homeTourneys=[],cache.t3Mine=null,cache.t3Dk=null,tvWatchTimer&&clearInterval(tvWatchTimer),tvWatchTimer=null,duInboxStop(),cache.duInv=null,duInvNote(),cache.gate=void 0,cache.pnClaim=void 0,cache.clOpen=void 0,window.aacReset&&aacReset(1)}async function signOut(){await slPushOut(),await sb.auth.signOut(),me=null,slUserReset(),authBackClear(),joinLinkOk=null,go("browse")}async function sendReset(){const e=$("au-email").value.trim();if(!e)return $("au-email").focus(),toast("Enter your email first, then tap reset");const n=$("au-forgot");n.disabled=!0,n.textContent="Sending…";const{error:t}=await sb.auth.resetPasswordForEmail(e,{redirectTo:window.location.origin+window.location.pathname});if(n.disabled=!1,n.textContent="Forgot your password?",t)return toast(t.message);toast("Check your email for a reset link",!0)}function showSetNewPassword(){route={view:"auth"},document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"));const e=document.getElementById("auth");e&&e.classList.add("active"),renderChrome(),authMode="signin",$("auth-title").textContent="Set a new password",$("auth-sub").textContent="Enter a new password for your account, then you're in.",$("signup-only").style.display="none",$("au-terms-row")&&($("au-terms-row").style.display="none"),$("au-email").closest(".field").style.display="none",$("au-pass").value="",$("au-pass").placeholder="New password",$("au-submit").textContent="Update password",$("au-switch-text").parentElement.style.display="none",$("au-forgot-row").style.display="none",$("au-submit").onclick=updatePassword,$("au-pass").onkeydown=e=>{"Enter"===e.key&&updatePassword()},$("au-pass").focus()}async function updatePassword(){const e=$("au-pass").value;if(!e||e.length<8)return toast("Password must be at least 8 characters");const n=$("au-submit");n.disabled=!0,n.textContent="Updating…";const{error:t}=await sb.auth.updateUser({password:e});if(n.disabled=!1,n.textContent="Update password",t)return toast(t.message);toast("Password updated — you're signed in",!0),recoveryPending=!1,history.replaceState(null,"",window.location.pathname),$("au-email").closest(".field").style.display="",$("au-pass").onkeydown=e=>{"Enter"===e.key&&doAuth()},$("au-submit").onclick=doAuth,setAuthMode("signin"),go("browse")}function setAuthMode(e){authMode=e;const rmb=$("au-remember");rmb&&(rmb.checked=rememberOn());const n=$("au-email").closest(".field");n&&(n.style.display=""),$("au-pass").placeholder="••••••••";const t=$("au-switch-text").parentElement;t&&(t.style.display="");const a=$("au-forgot-row");a&&(a.style.display=""),$("au-submit").onclick=doAuth,$("auth-title").textContent="signup"===e?"Create account":"Sign in",$("auth-sub").textContent=authSub(e),$("signup-only").style.display="signup"===e?"":"none",$("au-terms-row")&&($("au-terms-row").style.display="signup"===e?"":"none"),$("au-submit").textContent="signup"===e?"Create account":"Sign in",$("au-switch-text").textContent="signup"===e?"Already have an account?":"No account yet?",$("au-switch").textContent="signup"===e?"Sign in":"Create one"}async function fetchPublicLeagues(){const{data:e,error:n}=await sb.from("public_leagues").select("*");return n?[]:e||[]}async function fetchMyLeagues0(){if(!me)return null;const{data:e,error:n}=await sb.from("memberships").select("is_admin, joined_at, dropped_at, leagues(*)").eq("user_id",me.id).is("dropped_at",null);return n?null:(e||[]).filter(e=>e&&e.leagues&&!e.dropped_at).map(e=>({...e.leagues,is_admin:e.is_admin,joined_at:e.joined_at||null})).sort((a,b)=>!!a.archived_at-!!b.archived_at||String(b.joined_at||"").localeCompare(String(a.joined_at||""))||String(a.name||"").localeCompare(String(b.name||"")))}
 
-async function fetchMyLeagues(){const u=me&&me.id,L=await fetchMyLeagues0();L&&u&&me&&me.id===u&&slNavLgPut(u,L);return L||[]}
+async function fetchMyLeagues(){const u=me&&me.id,[L]=await Promise.all([fetchMyLeagues0(),favLoad()]);L&&u&&me&&me.id===u&&slNavLgPut(u,L);return L||[]}
 function slNavLgSig(L){return(L||[]).map(l=>[l.id,l.name,!!l.archived_at].join("\u0001")).join("\u0002")}
 function slNavLgPut(u,L){const P=window._navLg,was=P&&P.uid===u?slNavLgSig(P.list):null;window._navLg={uid:u,list:L.slice()};was!==slNavLgSig(L)&&slNavLgPaint()}
 function slNavLgPaint(){clearTimeout(window._navLgT);window._navLgT=setTimeout(renderChrome,0)}
@@ -3208,7 +3215,7 @@ function metaDecksBlock(e){const n=metaDeckRows(e),t=cache.deckMeta||{},G=metaIs
       <div class="wr-nm"><b><span class="wr-t">${esc(s?s.name:"A deck kept private")}</span></b><small>${[by,`${e.w}–${e.l}`].filter(Boolean).join(" &middot; ")}</small></div>
       <div class="wr-track"><i class="wr-fill" style="width:${Math.round(100*e.wr)}%;background:${wrToneBar(e.wr)}"></i></div>
       <div class="wr-val"><b style="color:${wrTone(e.wr)}">${pct(e.wr)}</b></div></div>`}).join("")}</div>`}
-function metaOpenSeeker(e){e&&(window._metaY=window.scrollY);window._metaSeeker=e,window._metaRepaint&&window._metaRepaint();const y=e?(c=>{if(!c)return null;const b=$("topbar"),h=b?b.getBoundingClientRect().height:0;return Math.max(0,Math.round(c.getBoundingClientRect().top+window.scrollY-h-12))})(document.querySelector(".sd-back")):window._metaY;if(null==y)return;try{window.scrollTo({top:y,left:0,behavior:"instant"})}catch(x){window.scrollTo(0,y)}}function myLeaguesSafe(){return cache.myLeagues||[]}function getActiveLeagueId(){const e=myLeaguesSafe();if(!e.length)return null;let n=null;try{n=localStorage.getItem("sl-active-league")}catch(x){}const k=e.find(e=>e.id===n);if(k&&(!k.archived_at||e.every(e=>e.archived_at)))return n;const f=(slHomeFallback(e)||e[0]).id;if(k)return f;try{localStorage.setItem("sl-active-league",f)}catch(x){}return f}function setActiveLeague(e){try{localStorage.setItem("sl-active-league",e)}catch(x){}renderChrome(),"browse"===route.view&&renderBrowse(),"leagues"===route.view&&paintMine()}function goLeagueTab(e,id){const n=id||("league"===route.view&&route.leagueId)||getActiveLeagueId();if(!n)return toast("Join a community first — open Communities to find one");closeSheet(),go("league",{leagueId:n,tab:e})}const BB_IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></svg>',play:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5 14 14"/><path d="M11.5 16.5l5-5"/><path d="M15 15l4 4"/><path d="M19.5 4.5 10 14"/><path d="M7.5 11.5l5 5"/><path d="M9 15l-4 4"/></svg>',league:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4.5h11.5l-2.5 4 2.5 4H6"/></svg>',collection:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="7" width="11" height="14" rx="2"/><path d="M8.5 3.5h9a2 2 0 0 1 2 2V17"/></svg>',utilities:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2 6.5 6.5 2-6.5 2-2 6.5-2-6.5-6.5-2 6.5-2z"/></svg>'};
+function metaOpenSeeker(e){e&&(window._metaY=window.scrollY);window._metaSeeker=e,window._metaRepaint&&window._metaRepaint();const y=e?(c=>{if(!c)return null;const b=$("topbar"),h=b?b.getBoundingClientRect().height:0;return Math.max(0,Math.round(c.getBoundingClientRect().top+window.scrollY-h-12))})(document.querySelector(".sd-back")):window._metaY;if(null==y)return;try{window.scrollTo({top:y,left:0,behavior:"instant"})}catch(x){window.scrollTo(0,y)}}function myLeaguesSafe(){return cache.myLeagues||[]}function getActiveLeagueId(){const e=myLeaguesSafe();if(!e.length)return null;{const fv=favId();if(fv)return fv}let n=null;try{n=localStorage.getItem("sl-active-league")}catch(x){}const k=e.find(e=>e.id===n);if(k&&(!k.archived_at||e.every(e=>e.archived_at)))return n;const f=(slHomeFallback(e)||e[0]).id;if(k)return f;try{localStorage.setItem("sl-active-league",f)}catch(x){}return f}function setActiveLeague(e){try{localStorage.setItem("sl-active-league",e)}catch(x){}renderChrome(),"browse"===route.view&&renderBrowse(),"leagues"===route.view&&paintMine()}function goLeagueTab(e,id){const n=id||("league"===route.view&&route.leagueId)||getActiveLeagueId();if(!n)return toast("Join a community first — open Communities to find one");closeSheet(),go("league",{leagueId:n,tab:e})}const BB_IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h4.5v-5.5h3V20H18V9.5"/></svg>',play:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5 14 14"/><path d="M11.5 16.5l5-5"/><path d="M15 15l4 4"/><path d="M19.5 4.5 10 14"/><path d="M7.5 11.5l5 5"/><path d="M9 15l-4 4"/></svg>',league:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4.5h11.5l-2.5 4 2.5 4H6"/></svg>',collection:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="7" width="11" height="14" rx="2"/><path d="M8.5 3.5h9a2 2 0 0 1 2 2V17"/></svg>',utilities:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2 6.5 6.5 2-6.5 2-2 6.5-2-6.5-6.5-2 6.5-2z"/></svg>'};
 function slNavLg(){return{id:"league",label:"Communities",icon:"⚑",go:"closeSheet();go('leagues')"}}
 function slNavLgAct(){return"league"}
 function navModel(){const e=[{id:"home",label:"Home",icon:"⌂",go:"go('browse')"}];return e.push({id:"play",label:"Play",icon:"⚔",group:[{id:"pl-match",label:"Match",go:"closeSheet();go('tracker')"},{id:"pl-tourn",label:"Events",go:"closeSheet();go('tournaments')"}]},slNavLg()),me&&e.push({id:"collection",label:"Collection",icon:"▤",group:[{id:"col-cards",label:"Collection",go:"closeSheet();go('collection')"},{id:"col-decks",label:"My decks",go:"closeSheet();go('decks')"}]}),e.push({id:"utilities",label:"Utilities",icon:"✦",group:[{id:"ut-perf",label:"Meta breakdown",go:"closeSheet();window._metaSeeker=null;go('meta')"},{id:"ut-rules",label:"Rules",go:"closeSheet();go('rules')"},{id:"ut-clt",label:"Clash test",go:"closeSheet();go('clashtest')"},{id:"ut-tracker",label:"Basic tracker",go:"closeSheet();go('basic-tracker')"},{id:"ut-cdecks",label:"Public decks",go:"closeSheet();go('cdecks')"},{id:"ut-preview",label:SET_PREVIEW.out?"New set":"Set preview",go:"closeSheet();go('setpreview')"}]}),e}function activeNavItem(){const v=route.view;return"browse"===v?"home":"leagues"===v||"league"===v?slNavLgAct():"tracker"===v?"pl-match":"basic-tracker"===v?"ut-tracker":"tournaments"===v?"pl-tourn":"meta"===v?"ut-perf":"rules"===v?"ut-rules":"clashtest"===v?"ut-clt":"cdecks"===v?"ut-cdecks":"setpreview"===v?"ut-preview":"decks"===v||"builder"===v?"col-decks":"collection"===v?"col-cards":null}function renderChrome(){const e=$("top-right"),n=$("sidebar"),t=$("bbar");if(!configured)return e&&(e.innerHTML=""),n&&(n.innerHTML=""),void(t&&(t.innerHTML=""));const a=activeNavItem(),s=navModel();if(e){let n="";n+=me?`${"function"==typeof topAdmHtml?topAdmHtml():""}<button class="avatar" onclick="go('profile')" title="${esc(me.display_name)}" aria-label="Profile${pnLinked()?"":", Play Network profile not linked"}">${esc((me.display_name||"?")[0].toUpperCase())}${avHtml(me)}${pnLinked()?"":'<span class="av-dot" aria-hidden="true"></span>'}</button>\n          <button class="ghost top-out" onclick="signOut()">Sign out</button>`:'<button class="ghost" onclick="go(\'auth\')">Sign in</button>',e.innerHTML=n}if(n){const e=new Set(JSON.parse(localStorage.getItem("sl-nav-open")||'["league","collection","utilities"]'));window._openGroups=e,n.innerHTML=s.map(n=>{if(!n.group)return`<button class="sn-item top-lvl ${a===n.id?"on":""}" onclick="${n.go}"><i>${n.icon}</i>${n.label}</button>`;const t=e.has(n.id);return`<div class="sn-group ${t?"open":""}">\n        <button class="sn-item top-lvl ${n.group.some(e=>e.id===a||e.cur)&&!t?"on":""}" onclick="toggleNavGroup(${jsq(n.id)})">\n          <i>${n.icon}</i>${n.label}<span class="chev">${t?"▾":"▸"}</span></button>\n        ${t?'<div class="sn-kids">'+n.group.map(e=>e.cap?`<div class="sn-cap">${e.label}</div>`:`<button class="sn-item kid ${a===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join("")+"</div>":""}\n      </div>`}).join("")}t&&(t.innerHTML=s.map(e=>{const n=e.group&&e.group.some(e=>e.id===a||e.cur);return`<button class="bb-tab ${a===e.id||n?"on":""}" onclick="${e.group?`openSheet(${jsq(e.id)})`:e.go}">${BB_IC[e.id]||`<i>${e.icon}</i>`}<span>${e.label}</span></button>`}).join(""))}function toggleNavGroup(e){const n=window._openGroups||new Set;n.has(e)?n.delete(e):n.add(e),localStorage.setItem("sl-nav-open",JSON.stringify([...n])),renderChrome()}function openSheet(e){const n=navModel().find(n=>n.id===e);if(!n||!n.group)return;const t=activeNavItem();$("sheet-card").innerHTML=`<div class="sheet-title">${n.label}</div>`+n.group.map(e=>e.cap?`<div class="sheet-title sheet-cap">${e.label}</div>`:`<button class="sheet-item ${t===e.id||e.cur?"on":""}"${e.title?` title="${e.title}"`:""} onclick="${e.go}">${e.label}</button>`).join(""),$("sheet").hidden=!1}function closeSheet(){const e=$("sheet");e&&(e.hidden=!0)}
@@ -4534,7 +4541,7 @@ function nbMore(b){const el=b.previousElementSibling;el&&el.scrollBy({left:Math.
 window.addEventListener("resize",()=>{document.querySelectorAll(".nb-tabs").forEach(nbOv);document.querySelectorAll(".nb-panel .nb-list").forEach(nbVOv)});
 function nbHome(t,nu){
   const s=nbSt("home"),R=nu?window._nuRows||[]:[],G=t.filter(x=>!x.league_id),C={},ord=[];
-  t.forEach(x=>{const l=x.league_id;l&&(C[l]||(C[l]=[],ord.push(l)),C[l].push(x))});
+  t.forEach(x=>{const l=x.league_id;l&&(C[l]||(C[l]=[],ord.push(l)),C[l].push(x))});{const fv=favId(),j=fv?ord.indexOf(fv):-1;j>0&&(ord.splice(j,1),ord.unshift(fv))}
   
   const ks=x=>x.league_id?["home.c."+x.league_id,"cb."+x.league_id+".notes"]:["home.sl"],
     N=new Set(t.filter(x=>nbNew(s,x,ks(x)))),NA=new Set(t.filter(x=>N.has(x)&&nbNew(s,x,["home.all"].concat(ks(x))))),
@@ -4779,11 +4786,35 @@ function slLeft(id){return!!(id&&me)&&slLeftList().includes(me.id+":"+id)}
 function slLeftSet(id,on){if(!id||!me)return;const k=me.id+":"+id,v=slLeftList().filter(x=>x!==k);on&&v.push(k);try{localStorage.setItem("sl-left",JSON.stringify(v.slice(-50)))}catch(x){}}
 
 function lgHomeRow(n,l){
-  if(!me||!l||!n||lgArchived(n)||myLeaguesSafe().length<2)return"";
-  const h=activeLeague();
-  if(!h||h.id===n.id)return"";
-  return`<div class="lg-mkhome" id="lg-mkhome"><button class="ghost" onclick="lgMakeHome(${jsq(n.id)})">⌂ Make it your home community</button><span class="hint">${esc(h.name)} comes first on your home page and in the menu now.</span></div>`;
+  if(!me||!l||!n||lgArchived(n)||window._noFav)return"";
+  const on=favId()===n.id;
+  return`<div class="lg-mkhome" id="lg-mkhome"><button type="button" class="ghost lg-star${on?" on":""}" aria-pressed="${on}" onclick="favToggle(${jsq(n.id)})">${on?"★ Your favourite community":"☆ Make it your favourite"}</button><span class="hint">${on?"It comes first on Home and is picked for you wherever the site needs one community. Tap to remove the star.":"Your favourite comes first on Home and is picked for you wherever the site needs one community."}</span></div>`;
 }
+
+function favId(){const f=cache.fav;return f&&myLeaguesSafe().some(l=>l.id===f&&!l.archived_at)?f:null}
+async function favLoad(){
+  if(!me)return cache.fav=null;const u=me.id;
+  try{const{data:d,error:er}=await sb.from("fav_leagues").select("league_id").eq("user_id",u).maybeSingle();
+    if(!me||me.id!==u||window._favBusy)return cache.fav;
+    er?(slNoCol(er)||"42P01"===er.code||"PGRST205"===er.code?(window._noFav=1,cache.fav=null):void 0):cache.fav=d&&d.league_id||null}catch(x){}
+  return cache.fav}
+async function favToggle(id){
+  if(!me)return go("auth");
+  if(window._favBusy||!myLeaguesSafe().some(l=>l.id===id&&!l.archived_at))return;
+  const was=cache.fav||null,on=favId()===id;
+  window._favBusy=!0;cache.fav=on?null:id;favPaint();
+  let d=null,er=null;try{const r=await sb.rpc("set_fav_league",{p_league:on?null:id});d=r.data;er=r.error}catch(x){er=x}
+  window._favBusy=!1;
+  if(er||!d||!d.ok){cache.fav=was;favPaint();
+    return void toast(er&&"PGRST202"===er.code?"Favourites need a site update that is not live yet. Try again later."
+      :d&&"archived"===d.reason?"This community is archived."
+      :d&&"not_member"===d.reason?"You are not in this community any more."
+      :"The favourite could not be saved. Check your connection and try again.")}
+  cache.fav=d.league_id||null;
+  if(on){try{localStorage.removeItem("sl-active-league")}catch(x){}}else setActiveLeague(id);
+  favPaint();
+  toast(on?"No favourite community now":"★ Favourite community: it comes first and is picked for you",!0)}
+function favPaint(){const b=$("lg-mkhome");b&&cache.league&&"league"===route.view&&(b.outerHTML=lgHomeRow(cache.league,!0));"leagues"===route.view&&paintMine();renderChrome()}
 function lgMakeHome(id){
   if(!myLeaguesSafe().some(l=>l.id===id))return;
   setActiveLeague(id);
@@ -4801,6 +4832,7 @@ function findHome(){
   const o=findOrigin();
   if(o)return[o.lon,o.lat,6];
   const L=myLeaguesSafe().filter(l=>l&&null!=l.lat&&null!=l.lon&&!l.is_online&&!isDemo(l.id));
+  {const fv=favId(),F=fv&&L.find(l=>l.id===fv);if(F)return[+F.lon,+F.lat,6]}
   if(L.length){
     
     const x=L.reduce((s,l)=>s+ +l.lon,0)/L.length,y=L.reduce((s,l)=>s+ +l.lat,0)/L.length;
@@ -5040,13 +5072,14 @@ function tkAsk(title,body,okLabel,onOk){
 }
 function tNextRound(){if(tGm()&&gmNextEnd())return;const T0=trk,R0=trk.round;
   const gain=echoForRound(trk.round+1),l=tLead(),w=null!=l.w?tSideName(l.w):"",pre=l.rel?`${w} holds every relic and wins. `:null!=l.w?`${w} wins with ${l.m} Mastery. `:l.tie?`Tied at the top on ${l.m} Mastery: play another round. `:"";
-  tkAsk(null!=l.w?"Match over":`Start round ${trk.round+1}?`,pre+(null!=l.w?(tkDu?"Tap End match to save the result, or keep playing":`To keep playing, start round ${trk.round+1}`)+`: everyone gains +${gain} Echo.`:`Everyone gains +${gain} Echo.`),null!=l.w?"Keep playing":"Start round",()=>{if(trk!==T0||trk.round!==R0)return void toast(`Round ${trk.round} has already started`);if(tGm()&&gmNextEnd())return;if(tkDu)return void tkDu.next();
+  tkAsk(null!=l.w?"Match over":`Start round ${trk.round+1}?`,pre+(null!=l.w?(tkDu?"Tap End match to save the result, or keep playing":`To keep playing, start round ${trk.round+1}`)+`: everyone gains +${gain} Echo.`:`Everyone gains +${gain} Echo.`),null!=l.w?"Keep playing":"Start round",()=>{if(trk!==T0||trk.round!==R0)return void toast(`Round ${trk.round} has already started`,!0);if(tGm()&&gmNextEnd())return;if(tkDu)return void tkDu.next();
     trk.round++;
     const n=echoForRound(trk.round);
     for(let i=0;i<trk.players;i++)trk.p[i].echo+=n;
     tTouch();
     toast(`Round ${trk.round} — everyone +${n} Echo`,!0);
   });
+  const q=$("tk-ask");q&&(q.dataset.r=R0);
 }
 function tReset(){
   if(tkDu&&tkDu.reset)return tkDu.reset();tkAsk("Reset the tracker?","demo"===trk.mode?"Scores and relics go back to zero and Echo to 10. Names stay.":"Scores, Echo and relics go back to zero. Names stay.","Reset",()=>{
@@ -5295,7 +5328,7 @@ function duClear(keep){const d=DU;if(d){clearInterval(d.iv);clearTimeout(d.ft);d
 function duDrop(){window._duBoot=null;window._duFind=null;DU&&duClear(!0)}
 function duNew(){duClear();"tracker"===route.view&&renderTracker()}
 function duMatches(){duClear();window._pfMx=1;go("profile")}
-function duView(full){if(!DU)return;if("tracker"!==route.view||tkDu!==DU)return void duSheet();if(!DU_HOOKS.on())return void((full||!$("du-bigpin")&&!$("du-invw"))&&duPaint());if(duParked())return void(full||!$("du-park")?duPaint():(duParkPatch(),duStrip(),duSheet()));if(full||!$("tk-card-"+("group"===DU.kind?DU.me:0)))return void duPaint();trk===DU.trk&&(tPatch(),tkTick(),duStrip());duSheet();const k=$("du-end");if(k&&"group"===DU.kind)gmEndPatch();else if(k){const s=[DU.trk.p[0].mastery,DU.trk.p[1].mastery],bs=k.querySelectorAll(".du-who b");(s[0]===s[1]&&duDrawOk(DU))!==(bs.length>2)?duEndPaint():bs.forEach((b,i)=>b.textContent=i<2?s[i]:s[0]+"–"+s[1])}}
+function duView(full){if(!DU)return;{const q=$("tk-ask"),r=q&&q.dataset.r;r&&trk&&+r!==trk.round&&q.querySelector("#tk-ask-no").click()}if("tracker"!==route.view||tkDu!==DU)return void duSheet();if(!DU_HOOKS.on())return void((full||!$("du-bigpin")&&!$("du-invw"))&&duPaint());if(duParked())return void(full||!$("du-park")?duPaint():(duParkPatch(),duStrip(),duSheet()));if(full||!$("tk-card-"+("group"===DU.kind?DU.me:0)))return void duPaint();trk===DU.trk&&(tPatch(),tkTick(),duStrip());duSheet();const k=$("du-end");if(k&&"group"===DU.kind)gmEndPatch();else if(k){const s=[DU.trk.p[0].mastery,DU.trk.p[1].mastery],bs=k.querySelectorAll(".du-who b");(s[0]===s[1]&&duDrawOk(DU))!==(bs.length>2)?duEndPaint():bs.forEach((b,i)=>b.textContent=i<2?s[i]:s[0]+"–"+s[1])}}
 function duPaint(){const e=$("tracker-body"),d=DU;if(!e||!d)return;clearInterval(window._duCd);if(DU_HOOKS.on()&&!duParked())return tkDu=d,trk=d.trk,paintTracker(),void duSheet();
   clearInterval(_tkClock);window._tkFs&&(window._tkFs=!1,document.fullscreenElement&&document.exitFullscreen().catch(()=>{}));const k=$("du-end");k&&k.remove();
   if(DU_HOOKS.on()){tkDu=d;trk=d.trk;window._tkSet=!1;const q=$("tk-ask");q&&q.remove()}
@@ -5891,13 +5924,13 @@ function togglePane(e){openPane=openPane===e?null:e,"create"===openPane&&(window
   const e=$("home-mine");if(!e)return;
   if(!me)return void(e.innerHTML=`<div class="home-cta"><div><h2 style="margin:0 0 3px">Your communities</h2><p class="hint" style="margin:0">Sign in to see them, join one with its code or start your own.</p></div><button class="act" onclick="go('auth')">Sign in</button></div>`);
   
-  const hm=myLeaguesSafe().length>1?getActiveLeagueId():null,t=myLeaguesSafe().slice().sort((a,b)=>(b.id===hm)-(a.id===hm)),pc={};
+  const hm=myLeaguesSafe().length>1?getActiveLeagueId():null,F=favId(),t=myLeaguesSafe().slice().sort((a,b)=>(b.id===hm)-(a.id===hm)),pc={};
   
   (cache.leagues||[]).forEach(p=>{p&&null!=p.member_count&&(pc[p.id]=+(null!=p.roster_count?p.roster_count:p.member_count)||0)});
   
   let a="";
   a+=t.length?'<div class="league-grid">'+t.map(e=>{const r=e.owner_id===me.id?"Creator":e.is_admin?"Organizer":"",H=e.id===hm,A=!!e.archived_at,c=pc[e.id];return`<div class="league-card${H?" is-home":""}${A?" is-arch":""}" role="link" tabindex="0" onclick="go('league',{leagueId:${jsq(e.id)},tab:'about'})" onkeydown="if(event.key==='Enter'&&event.target===this)this.click()">
-        <div class="lc-top"><h4>${esc(e.name)}</h4><i class="nu-chev" aria-hidden="true">›</i>${H?'<span class="lc-home" title="Listed first on your home page and in the menu">Home community</span>':""}</div>
+        <div class="lc-top"><h4>${esc(e.name)}</h4><span class="lc-tr">${A||window._noFav?"":`<button type="button" class="lc-star${e.id===F?" on":""}" aria-pressed="${e.id===F}" aria-label="${e.id===F?"Your favourite community. Tap to remove the star":"Make it your favourite community"}" title="${e.id===F?"Your favourite community":"Make it your favourite"}" onclick="event.stopPropagation();favToggle(${jsq(e.id)})">${e.id===F?"★":"☆"}</button>`}<i class="nu-chev" aria-hidden="true">›</i></span></div>
         <div class="loc">${e.is_online?"\u{1F310} Online"+(e.region?" · "+esc(regionLabel(e.region)):"")+(e.location&&"Online"!==e.location?" · "+esc(e.location):""):`${esc(e.location)}${e.city?" · "+esc(e.city):""}${e.country?", "+esc(e.country):""}`}</div>
         ${e.description?`<p class="lc-desc">${esc(e.description)}</p>`:""}
         <div class="meta" style="margin-bottom:0">${r?`
@@ -5905,7 +5938,6 @@ function togglePane(e){openPane=openPane===e?null:e,"create"===openPane&&(window
           <span>${c} ${1===c?"player":"players"}</span>`:""}
           <span>${e.is_public?"Public":"Private"}</span>${A?'<span class="lc-arch">Archived</span>':""}
         </div>
-        ${H||!hm||A?"":`<div class="lc-foot"><button type="button" class="ghost" onclick="event.stopPropagation();setActiveLeague(${jsq(e.id)});toast('Home community set: it comes first on your home page and in the menu',!0)">Make home community</button></div>`}
         ${e.join_code?`<button type="button" class="lc-code" title="Tap to copy the join code" aria-label="Copy the join code ${esc(e.join_code)}" onclick="event.stopPropagation();copyText(${jsq(e.join_code)},()=>toast('Join code copied',!0))"><small>Join code</small><b>${esc(e.join_code)}</b><i>⧉ copy</i></button>`:""}
       </div>`}).join("")+"</div>":`<div class="empty">You're not in any community yet.<br>
       <span style="font-size:13px">Join one with its code, start your own, or find one on the Communities tab.</span></div>`;
@@ -6222,7 +6254,8 @@ function t3CtaPick(v){
   if(v===t.cta_kind)return void t3Paint(t);
   if("community"===v&&"cta_league"in t){
     
-    const lg=t3CtaLgOf(t,t3CtaPoolOf(t));
+    
+    const P=t3CtaPoolOf(t),fv=favId(),lg=t3CtaLgOf(t,P)||(fv&&P.some(p=>p.id===fv)?fv:"");
     if(!lg)return void(window._ctaEd={tid:t.id,rev:t.rev,k:"community",x:t.cta_text||"",u:t.cta_url||""},t3Paint(t));
     const w="none"!==t.cta_kind;return void t3CtaSend("community",w&&t.cta_text||null,w&&t.cta_url||null,lg);
   }
@@ -9856,6 +9889,23 @@ function pfMkRow(){if(!me||!("makes"in me))return"";const s=mkSet(me.makes).map(
   </div>`}
 
 const MK_TRIM=/^[\s\u200b-\u200d\u2060]+|[\s\u200b-\u200d\u2060]+$/g;
+
+function pfBioLeft(v){const n=240-Array.from(String(v||"").replace(/\r/g,"")).length;return`${n} ${1===n?"character":"characters"} left · up to 5 lines · everyone can read it`}
+
+function pfBioCap(i){const v=i.value.replace(/\r/g,""),n=$("pf-bio-n");void 0===i._ok&&(i._ok=i.defaultValue.replace(/\r/g,""),i._okc=i._ok.length);
+  const fits=s=>s.split("\n").length<=5&&Array.from(s).length<=240;
+  if(!fits(v)){const o=i._ok;let a=0,b=0;while(a<o.length&&a<v.length&&o[a]===v[a])a++;
+    while(b<o.length-a&&b<v.length-a&&o[o.length-1-b]===v[v.length-1-b])b++;
+    const H=o.slice(0,a),Tl=o.slice(o.length-b),ins=Array.from(v.slice(a,v.length-b));let lo=0,hi=ins.length;
+    while(lo<hi){const m=lo+hi+1>>1;fits(H+ins.slice(0,m).join("")+Tl)?lo=m:hi=m-1}
+    let nv=H+ins.slice(0,lo).join("")+Tl,c=(H+ins.slice(0,lo).join("")).length;fits(nv)||(nv=o,c=i._okc);
+    i.value=nv;try{i.setSelectionRange(c,c)}catch(x){}i._ok=nv;i._okc=c;n&&(n.textContent="That is the most it holds: 240 characters and 5 lines.");return}
+  i._ok=v;i._okc=i.selectionStart;n&&(n.textContent=pfBioLeft(v))}
+async function pfClearBio(pid){
+  if(!isSiteAdmin()||!await slConfirm({title:"Clear this bio?",body:"The bio disappears from this player's profile. They can write a new one.",ok:"Clear bio",danger:!0}))return;
+  let er=null;try{er=(await sb.rpc("admin_clear_bio",{p_user:pid})).error}catch(x){er=x}
+  if(er)return toast(er.message||"The bio could not be cleared.");
+  toast("Bio cleared",!0);renderProfile()}
 function pfMkCap(i){const a=Array.from(i.value);a.length>80&&(i.value=a.slice(0,80).join(""))}
 
 function pfMkSync(){const on=!!document.querySelector('#pf-mk input[name="pf-mk"]:checked'),w=$("pf-mk-nw"),h=$("pf-mk-dc"),d=$("pf-discord");w&&(w.hidden=!on);h&&(h.hidden=!on||!!(d&&d.value.trim()));
@@ -9888,6 +9938,9 @@ function pfAccount(){
           <label class="field"><span>Discord name <span class="opt">optional</span></span>
             <input id="pf-discord" maxlength="40" value="${esc(me.discord||me._mdHandle||'')}" placeholder="Discord username" oninput="pfMkSync()"></label>${pfDcVis()}
           <p class="acc-note" id="pf-note">${window._noMd?'Other players see all three.':'Other players see your name and profile link. Your Discord name: everyone, or only the players in your communities, as you choose.'}</p>
+          ${"bio"in me?`<label class="field"><span>Bio <span class="opt">optional</span></span>
+            <textarea id="pf-bio" rows="5" style="min-height:128px" placeholder="A few lines about you: where you play, your favourite faction, when you are free for a game" oninput="pfBioCap(this)">${esc(me.bio||'')}</textarea>
+            <small class="hint" id="pf-bio-n">${pfBioLeft(me.bio)}</small></label>`:""}
           ${pfMkRow()}${pfMvVis()}
           <button class="act acc-save" id="pf-prof-btn" onclick="pfSaveProfile()">Save profile</button>`)}
         ${pane('herald',`
@@ -9967,6 +10020,13 @@ async function pfSaveProfile(){
   if(!i&&mk&&(mk.m!==(me.makes||null)||mk.n!==(me.makes_note||null))){let y=null;try{y=(await sb.from('profiles').update({makes:mk.m,makes_note:mk.n}).eq('id',me.id)).error}catch(x){y=x}
     y?(mkErr=slNoCol(y)?'Your details were saved. Listing what you make needs a site update that is not live yet.':'23514'===y.code?'Your details were saved, but not what you make: keep the note to 80 characters.':y.message||'Could not save what you make'):(me.makes=mk.m,me.makes_note=mk.n,cache.makers=null)}
   if(mk&&!mkErr){const ni=$('pf-mk-note');ni&&(ni.value=mk.n||'')}
+  
+  let bioErr=null;const bi=$('pf-bio'),bv=bi?bi.value.replace(/\r/g,"").trim()||null:void 0;
+  if(!i&&void 0!==bv&&bv!==(me.bio||null)){let y=null,bd=null;try{const r=await sb.from('profiles').update({bio:bv}).eq('id',me.id).select('bio').maybeSingle();y=r.error;bd=r.data}catch(x){y=x}
+    if(y){if('42501'===y.code&&GATE_MSG[y.hint]){cache.gate=void 0;const g=await gateLoad();bioErr='Your details were saved, but not the bio. '+(g?gateTxt(g).b:'')}
+      else bioErr=slNoCol(y)?'Your details were saved. The bio needs a site update that is not live yet.':'23514'===y.code?'Your details were saved, but not the bio: keep it to 240 characters and 5 lines.':y.message||'Could not save your bio'}
+    else me.bio=bd?bd.bio:bv}
+  bi&&!i&&!bioErr&&(bi.value=me.bio||'',bi._ok=bi.value,bi._okc=bi.value.length);
   if(a){a.disabled=!1;a.textContent='Save profile'}
   if(i){if(!pnDup(i))return toast(pnDupMsg(i));
     
@@ -9976,7 +10036,7 @@ async function pfSaveProfile(){
   if(vs&&!lv&&null!==me._mdHandle)try{await sb.from('member_discord').delete().eq('user_id',me.id)}catch(x){}
   vs&&(me._mdHandle=lv&&n?n:null);
   const was=pnLinked();Object.assign(me,s),cache.heralds=null,cache.makers=null;
-  toast(mvErr||avErr||mkErr||(!was&&mp?'Profile saved and Play Network profile linked':'Profile saved'),!(mvErr||avErr||mkErr)),pnSet(s.malediction_url),renderProfile(),renderChrome(),mkAfter();
+  toast(mvErr||avErr||mkErr||bioErr||(!was&&mp?'Profile saved and Play Network profile linked':'Profile saved'),!(mvErr||avErr||mkErr||bioErr)),pnSet(s.malediction_url),renderProfile(),renderChrome(),mkAfter();
 }
 async function pfSaveHerald(){
   if(!me)return;
@@ -10034,7 +10094,9 @@ async function renderProfile(){
   if(!again)el.innerHTML='<div class="empty"><span class="spinner"></span> Loading stats…</div>';
   let u=me;
   if(!own){
-    const pc="id,display_name,role,herald_rank,discord,malediction_url,lat,lon,place";let pr=await sb.from("profiles").select(pc+",avatar,makes,makes_note,deleted_at").eq("id",pid).maybeSingle();
+    const pc="id,display_name,role,herald_rank,discord,malediction_url,lat,lon,place";let pr=await sb.from("profiles").select(pc+",avatar,makes,makes_note,deleted_at,bio").eq("id",pid).maybeSingle();
+    
+    pr.error&&slNoCol(pr.error)&&(pr=await sb.from("profiles").select(pc+",avatar,makes,makes_note,deleted_at").eq("id",pid).maybeSingle());
     
     pr.error&&slNoCol(pr.error)&&(pr=await sb.from("profiles").select(pc+",avatar").eq("id",pid).maybeSingle());
     pr.error&&slNoCol(pr.error)&&(pr=await sb.from("profiles").select(pc).eq("id",pid).maybeSingle());const data=pr.data;
@@ -10090,6 +10152,7 @@ async function renderProfile(){
           </div>${mkProfLine(u)}
         </div>
     </div>
+    ${u.bio?`<p class="pf-bio">${esc(u.bio).replace(/\n/g,"<br>")}</p>${!own&&isSiteAdmin()?`<p class="pf-bio-x"><button type="button" class="link" onclick="pfClearBio(${jsq(u.id)})">Clear this bio (site admin)</button></p>`:""}`:""}
     ${u.discord||safeUrl(u.malediction_url)?`<div class="pf-contact">${discordChip(u.discord)}${malChip(u.malediction_url)}</div>`:""}
     <div class="stat-strip pf-stats4">
       <div class="stat pf-wr"><b>${rd.length?pct(wr):"—"}</b><small>Win rate</small>
