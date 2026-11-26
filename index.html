@@ -1798,6 +1798,12 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .du-h{margin:0 0 6px}
 .du-lead{margin:0 0 14px;color:var(--bone-dim);font-size:14px;line-height:1.5}
 .du-me{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;min-width:0}
+
+.du-wrap>.du-me{gap:8px;margin:0 0 12px;padding:5px 10px 5px 6px}
+.du-wrap>.du-me .du-av{width:26px;height:26px;font-size:12px}
+.du-wrap>.du-me>span:last-child{display:flex;align-items:baseline;gap:7px;min-width:0}
+.du-wrap>.du-me small,.du-wrap>.du-me b{display:inline}
+@media(max-width:760px){.du-acts.du-stick{position:sticky;bottom:calc(64px + env(safe-area-inset-bottom));z-index:6;margin:4px -15px 0;padding:14px 15px 10px;background:linear-gradient(180deg,rgba(35,35,35,0),var(--surface) 12px)}.du-acts.du-stick>button{flex:1 1 0;min-width:0;padding-left:8px;padding-right:8px}}
 .du-me>span:last-child{min-width:0}
 .du-me small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);font-family:Oswald,sans-serif}
 .du-me b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1833,7 +1839,7 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .tk-pfix{margin:0 0 14px}
 .du-acts{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 0}
 .du-acts>button{flex:1 1 160px;min-height:44px}
-.du-need{margin:8px 0 0;font-size:12.5px}
+.du-need{margin:8px 0 0;font-size:12.5px}.du-acts>.du-need{flex:1 0 100%;margin:2px 0 0}
 #du-have{border-color:var(--brass);color:var(--brass);background:rgba(200,165,104,.08);font-weight:600}
 #du-have:not(:disabled):hover,#du-have:not(:disabled):focus-visible{background:rgba(200,165,104,.16);color:var(--bone);border-color:var(--brass)}
 #du-have:disabled{border-color:var(--brass-dim);color:var(--bone-dim);background:0 0}
@@ -5422,7 +5428,7 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
   const tn0=t3DuNext(),tnb=t3DuBlock(tn0),sw=!!tn0&&swIsSwiss(tn0.t&&tn0.t.payload),tn=sw?null:tn0;duInvNote();tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
   e.innerHTML=(sw?`<div class="du-tn-ban">${tnb}</div>`:"")+`<div class="panel du-wrap">
     <h2 class="du-h">${sw?"Or play a casual match":"Play a match"}</h2>
-    <p class="du-lead">${sw?"Your tournament game starts from the card above, with one tap and no PIN. A match started here is a casual one. ":""}${DU_MP.includes(p.mode)?"Pick what you are playing, then start the match and read out the PIN. The others join with it, teams follow the order they join, and the match starts by itself when every seat is taken. When it ends, a player from another side confirms the result and it is saved to every player's profile.":"Pick what you are playing, then start the match and read out the PIN, or join your opponent's with theirs. Once you are both in, one phone can keep score for both. When it ends, the other player confirms the result and it is saved to both profiles."}</p>
+    <p class="du-lead">${sw?"Your tournament game is the card above: one tap, no PIN. Here you start a casual match. ":""}${DU_MP.includes(p.mode)?"Start the match and read out the PIN: it starts by itself when every seat is taken.":"Start a match and read out the PIN, or join your opponent's with theirs."}</p>
     <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}${avHtml(me)}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${sw?"":tnb}
     <div class="field"><label class="du-lab" for="du-seeker">Your Seeker</label>
       <div class="du-sk"${hx?` style="--fac:${hx}"`:""}><span class="du-fi">${cur?fBadges(cur.f):""}</span>
@@ -5434,11 +5440,11 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
       <div class="du-sk du-mode${tn?" du-lock":""}"${tn?' onclick="t3DuLocked()"':""}><select id="du-mode"${tn?' disabled aria-disabled="true"':""} onchange="duPickSet('mode',this.value)">${duModeOpts(p.mode,!!tn)}</select></div>
       ${!tn&&"dominion"===p.mode?`<div class="seg du-seats" role="radiogroup" aria-label="Players">${[3,4].map(n=>`<button type="button" role="radio" aria-checked="${p.seats===n}" class="seg-b${p.seats===n?" on":""}" onclick="duPickSet('seats',${n})">${n} players</button>`).join("")}</div>`:""}
       <p class="hint du-mhint">${esc(duModeHint(p.mode,!!tn))}</p></div>
-    <div class="du-acts">
+    <div class="du-acts du-stick">
       <button class="act gold" id="du-start" onclick="duStart()"${ok?"":" disabled"}>${DU_MP.includes(p.mode)?`Start a match (${duSeats(p)} players)`:"Start a match"}</button>
       <button class="ghost" id="du-have" onclick="duPinOpen()" aria-expanded="${open}"${ok?"":" disabled"}>I have a PIN</button>
+      ${ok?"":`<p class="hint du-need">${p.seeker&&p.terrain?"Pick your deck: tournament games need a decklist.":"Pick your Seeker and terrain to start or join a match."}</p>`}
     </div>
-    ${ok?"":`<p class="hint du-need">${p.seeker&&p.terrain?"Pick your deck: tournament games need a decklist.":"Pick your Seeker and terrain to start or join a match."}</p>`}
     ${open?`<div class="du-pin">
       <label class="field"><span>${GM_ON?"The match PIN":"Your opponent's PIN"}</span>
         <input id="du-pin" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="\\d{4}" maxlength="4" placeholder="0000" value="${pv}" aria-label="4-digit PIN" oninput="duPinIn(this)" onkeydown="if(event.key==='Enter')duJoin()"></label>
