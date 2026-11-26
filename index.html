@@ -140,6 +140,8 @@ a.pf-ln:hover{text-decoration:underline}
 
 .top-right{min-width:0}.top-out{white-space:nowrap;flex:0 0 auto}
 
+#topbar .top-right>button.ghost{min-height:32px;padding:4px 10px;font-size:11px;letter-spacing:.08em}
+
 
 #league-sub:empty{display:none}
 .home-cta{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
@@ -5486,7 +5488,11 @@ function duParked(){return duOneOn()&&DU.one!==String(DU.uid).toLowerCase()}
 function duSide(m){const h="host"===DU.role===!!m;return h?{id:DU.hid,name:DU.hn||"Player",seeker:DU.hs,terrain:DU.ht}:{id:DU.gid,name:DU.gn||(DU.gid?"Player":"Your opponent"),seeker:DU.gs,terrain:DU.gt}}
 function duMe(){return duSide(!0)}
 function duOpp(){return duSide(!1)}
-function duNames(){if("group"===DU.kind)return gmNames();const t=DU.trk;t&&(t.p[0].name=duMe().name,t.p[1].name=duOpp().name)}
+
+function skStartEcho(m,sk){if("demo"===m)return 10;const n=normName(sk||"");if(!n)return 0;const c=seekerList().find(e=>normName(e.n)===n);if(!c)return 0;const L=legacyOf(c.n),g=L&&CARDS[CARD_IDX[L]],f=String(g&&g.f||c.f||"");return f.length>1?20:f?25:0}
+
+function duSeedEcho(i,s,sk){const d=DU,t=d&&d.trk,p=t&&t.p[i],o=d&&d.sec&&d.sec[s];if(!p||!o||o.c||1!==t.round||(t.nr||0)||p.mastery||p.relics.some(Boolean))return;const v=skStartEcho(t.mode,sk);if(!v||p.echo===v||p.echo!==tStartEcho(t.mode)&&p.echo!==p.eSk)return;p.echo=v;p.eSk=v;o.d=duOf(s);d.keys[s]=duKey(s)}
+function duNames(){if("group"===DU.kind)return gmNames();const t=DU.trk;t&&(t.p[0].name=duMe().name,t.p[1].name=duOpp().name,duSeedEcho(0,duMine(),duMe().seeker),duSeedEcho(1,"h"===duMine()?"g":"h",duOpp().seeker))}
 function duLeft(m){return m.running?Math.max(0,(0|m.left)-Math.round((Date.now()-(m.at||Date.now()))/1e3)):Math.max(0,0|m.left)}
 function duP(s){return"group"===DU.kind?DU.trk.p[+s.slice(1)]:DU.trk.p[s===duMine()?0:1]}
 function duOf(s){if("group"===DU.kind&&"k"!==s)return gmOf(s);const t=DU.trk;if("o"===s)return{by:DU.one||null,w:DU.ow||null};if("x"===s)return{round:t.round,nr:t.nr||0};if("k"===s){const m=t.timer;return{timer:{mins:m.mins,run:!!m.running,left:duLeft(m)}}}const p=duP(s);return{m:p.mastery,e:p.echo,r:p.relics.map(Boolean),er:p.er||0}}
@@ -5525,7 +5531,7 @@ function duIn(u,h,adj){const d=DU;u=(Array.isArray(u)?u:[]).filter(v=>v&&"object
 
 function duNewer(){const d=DU;if(!d||d.oo)return;d.oo=1;duStore();"live"===d.status&&duView(!0)}
 function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;if("group"===d.kind)return gmStore();const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner isDraw ws ls sec L trk tId tTitle tLabel tState one ow oo inv tRef lv".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
-function duInitTrk(){if("group"===DU.kind)return gmInitTrk();const t=TRK_DEFAULT();t.mode=DU.mode;t.target=DU.target;t.players=2;t.nr=0;t.p.forEach(p=>{p.er=0;p.echo=tStartEcho(t.mode)});t.wake=!_trkB||!1!==_trkB.wake;DU.trk=t;duNames();DU_SECS.forEach(s=>{DU.sec[s]={c:0,d:duOf(s)};DU.keys[s]=duKey(s)})}
+function duInitTrk(){if("group"===DU.kind)return gmInitTrk();const t=TRK_DEFAULT();t.mode=DU.mode;t.target=DU.target;t.players=2;t.nr=0;t.p.forEach(p=>{p.er=0;p.echo=tStartEcho(t.mode)});t.wake=!_trkB||!1!==_trkB.wake;DU.trk=t;duNames();DU_SECS.forEach(s=>{DU.sec[s]={c:0,d:duOf(s)};DU.keys[s]=duKey(s)});duNames()}
 
 function duBoot(){if(DU||!me||!sb||!sb.rpc||window._duBoot===me.id)return;window._duBoot=me.id;let r=null;try{r=JSON.parse(localStorage.getItem(DU_KEY)||"null")}catch(e){}if(!r||1!==r.v||r.uid!==me.id||!r.id||!/^(waiting|live|ending)$/.test(r.status))return void gmBoot();
   const d=DU=duMake(r),t=r.trk;d.one=duOneOk(d.one);d.ow="h"===d.ow||"g"===d.ow?d.ow:null;d.oo=d.oo?1:0;if(t&&Array.isArray(t.p)&&4===t.p.length&&t.timer&&r.sec){t.p.forEach(p=>{Array.isArray(p.relics)&&4===p.relics.length||(p.relics=[!1,!1,!1,!1])});d.L=Math.max(0,0|d.L);DU_SECS.forEach(s=>{d.sec[s]&&"number"==typeof d.sec[s].c||(d.sec[s]={c:0,d:duOf(s)});d.keys[s]=duKey(s)})}else d.sec={},d.L=0,d.rst=1,duInitTrk();duRun()}
@@ -5718,7 +5724,7 @@ function gmInfo(sd){const d=DU;if(!d||!d.trk)return;const t=d.trk,S="dominion"==
     <div class="tk-ask-row"><button class="act" onclick="$('gm-info').remove()">Close</button></div></div>`;
   document.body.appendChild(m);const b=m.querySelector(".tk-ask-row button");b&&b.focus()}
 function gmNameHtml(e){const p=gmPl(e)||{},c=p.seeker&&seekerList().find(x=>x.n===p.seeker),h=c&&facHex(c.f);return`<span class="tkl-name du-nm" id="tk-name-${e}">${esc(p.name||"Player")}${p.left_at?" · left":""}<small>${p.seeker?`<i${h?` style="color:${h}"`:""}>${esc(p.seeker)}</i>`:""}${p.seeker&&p.terrain?" · ":""}${esc(p.terrain||"")}</small></span>`}
-function gmNames(){const t=DU.trk;t&&(DU.players||[]).forEach(p=>{t.p[p.seat]&&(t.p[p.seat].name=p.name||"Player")})}
+function gmNames(){const t=DU.trk;t&&(DU.players||[]).forEach(p=>{t.p[p.seat]&&(t.p[p.seat].name=p.name||"Player",duSeedEcho(p.seat,"p"+p.seat,p.seeker))})}
 function gmSecsSet(){DU.secs=gmSeats().map(i=>"p"+i).concat(["x","k","o","dl"])}
 function gmOf(s){const d=DU,t=d.trk;if("o"===s)return{by:d.one||null,w:null==d.ow?null:d.ow};if("x"===s)return{round:t.round,nr:t.nr||0,i:t.ini|0,ic:t.ic|0};if("dl"===s)return{list:(d.vl||[]).slice()};
   const p=duP(s);return{m:p.mastery,e:p.echo,r:p.relics.map(Boolean),rl:p.relics.filter(Boolean).length,er:p.er||0,ev:(p.ev||[0,0,0,0]).slice()}}
@@ -5794,7 +5800,7 @@ function gmTake(r){const d=DU;d.mode=["dominion","allegiance","nemesis"].include
   d.locked=!!r.teams_locked;d.claim=r.claim_by?{by:String(r.claim_by).toLowerCase(),kind:r.claim_kind,side:r.claim_side,scores:r.claim_scores||null}:null;d.canAnswer=!!r.can_answer;d.confirmers=Array.isArray(r.confirmers)?r.confirmers:[];
   d.winSide=null==r.winner_side?null:+r.winner_side;d.isDraw=!!r.is_draw;d.how=r.ended_how||null;d.rounds=r.rounds;d.rev=+r.rev||0;d.old=(+r.min_v||GM_V)>GM_V;
   if(!d.trk||N!==d.seats)d.seats=N,gmInitTrk();d.trk.mode=d.mode;d.trk.target=d.target;gmNames()}
-function gmInitTrk(){const D=DU,t=TRK_DEFAULT(),m=trkDefaultMins(D.mode);t.mode=D.mode;t.target=D.target;t.players=D.seats;t.nr=0;t.ini=0;t.ic=0;t.p.forEach(p=>{p.er=0;p.ev=[0,0,0,0];p.echo=tStartEcho(t.mode)});t.timer={mins:m,left:60*m,running:!1,at:0,custom:!1};t.wake=!_trkB||!1!==_trkB.wake;D.trk=t;D.vl=[];D.sec={};gmSecsSet();gmNames();D.secs.forEach(s=>{D.sec[s]={c:0,d:duOf(s)};D.keys[s]=duKey(s)})}
+function gmInitTrk(){const D=DU,t=TRK_DEFAULT(),m=trkDefaultMins(D.mode);t.mode=D.mode;t.target=D.target;t.players=D.seats;t.nr=0;t.ini=0;t.ic=0;t.p.forEach(p=>{p.er=0;p.ev=[0,0,0,0];p.echo=tStartEcho(t.mode)});t.timer={mins:m,left:60*m,running:!1,at:0,custom:!1};t.wake=!_trkB||!1!==_trkB.wake;D.trk=t;D.vl=[];D.sec={};gmSecsSet();gmNames();D.secs.forEach(s=>{D.sec[s]={c:0,d:duOf(s)};D.keys[s]=duKey(s)});gmNames()}
 
 function gmEnter(r,rst){if(!me||!r||!r.id||DU||!/^(waiting|live|ending)$/.test(String(r.status||"")))return!1;
   DU=duMake({kind:"group",id:String(r.id).toLowerCase(),uid:me.id,me:Number.isInteger(r.me)?r.me:0,seats:0,players:[],oo:1,rst:rst?1:0,rsW:rst?1:0,vl:[]});gmTake(r);DU.status=String(r.status);/^(live|ending)$/.test(DU.status)&&(DU.lv=1);
