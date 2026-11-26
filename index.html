@@ -316,6 +316,10 @@ body:has(#wts-modal) #toast{z-index:1700}
 .nb-title::before,.nb-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--brass-dim))}
 .nb-title::after{background:linear-gradient(90deg,var(--brass-dim),transparent)}
 .nb-title h2{margin:0;color:var(--brass);letter-spacing:.16em;font-size:16px;white-space:nowrap}
+
+#home-board .nb-title{justify-content:space-between;gap:10px;margin:0 0 8px;min-width:0}
+#home-board .nb-title::before,#home-board .nb-title::after{content:none}
+#home-board .nb-title h2{letter-spacing:.14em;font-size:14px;min-width:0}
 .nb-panel .nb-card{padding:14px 16px;background:#141414}
 .nb-panel .nb-body{font-size:15.5px;line-height:1.55}
 .nb-panel .nb-scope{font-size:10px;border:1px solid currentColor;border-radius:999px;padding:2px 9px}
@@ -810,8 +814,8 @@ button.cg-rule{cursor:pointer;font-family:inherit}
 
 .nb-card.nb-pinned{border-color:var(--brass-dim);box-shadow:inset 0 0 0 1px rgba(200,165,104,.18)}
 .nb-pintag{font-size:12px;line-height:1;white-space:nowrap}
-.nb-cl{text-align:center;margin:-2px 0 10px}
-.nb-cl .link{font-size:12px;color:var(--bone-dim);padding:6px 8px}
+.nb-cl{flex:0 0 auto;margin:0}
+.nb-cl .link{font-size:12px;color:var(--bone-dim);padding:6px 4px;min-height:36px;white-space:nowrap}
 .nb-cl .link:hover{color:var(--brass)}
 .nb-tw{position:relative;margin:8px 0 0;min-width:0}
 .nb-tabs{display:flex;width:100%;position:relative}
@@ -1561,6 +1565,24 @@ details.msec:not([open])>summary{margin-bottom:0}
 .nu-act .act{min-height:40px;padding:0 14px;font-size:12px;box-sizing:border-box}
 .nu-chev{flex:0 0 auto;font-style:normal;font-size:20px;line-height:1;color:var(--bone-dim);padding:0 2px}
 .nu-row:hover .nu-chev{color:var(--bone)}.dkf{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-top:14px}.dkf-f{display:flex;flex-direction:column;gap:3px;flex:1 1 140px;min-width:0}.dkf-f span{font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bone-dim)}.dkf-f select{width:100%;min-height:40px}.dkf-n{flex:1 1 100%;font-size:13px;color:var(--bone-dim)}.dkf-n .link{padding:0;font-size:13px}.dkf-empty{grid-column:1/-1}.nu-more{min-height:44px;padding:0 0 4px}.nu-ev .nu-main{flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:9px 0}.nu-dt{flex:0 0 48px;box-sizing:border-box;padding:4px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:42px;border:1px solid var(--line-2);border-radius:8px;background:var(--coal);line-height:1.05}.nu-dt>span{font-family:Oswald,sans-serif;font-size:7.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--bone-dim)}.nu-dt>b{font-family:Oswald,sans-serif;font-size:16px;font-weight:600;color:var(--brass)}.nu-dt.now{border-color:var(--crimson)}.nu-dt.now>span:first-child{color:var(--crimson-txt)}.nu-tx{display:flex;flex-direction:column;gap:3px;min-width:0}.nu-ev .nu-tx b{font-size:17px;font-weight:600;color:var(--bone);line-height:1.25;overflow-wrap:anywhere}.nu-ev .nu-tx small{font-size:14px;font-weight:400;color:var(--bone-dim);line-height:1.35}.nu-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}.nu-tag{display:inline-block;font-family:Oswald,sans-serif;font-size:10.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;line-height:1.5;padding:0 7px;border:1px solid var(--line-2);border-radius:999px;color:var(--bone-dim)}.nu-tag.in{border-color:var(--brass-dim);color:var(--brass)}
+
+.nb-panel .nu-box{padding:4px 12px}
+.nu-foot{border-top:1px solid var(--line);min-height:44px}
+.nu-foot .nu-more{padding:0}
+
+.nu-list>.nu-big,.nu-list>.nu-big:first-child{flex-direction:column;align-items:stretch;gap:0;margin:8px 0;padding:10px 12px 12px;border:1px solid var(--brass-dim);border-radius:10px;background:rgba(200,165,104,.06)}
+.nu-list>.nu-big+.nu-row:not(.nu-big){border-top:0}
+.nu-big .nu-main,.nu-big.nu-ev .nu-main{flex-direction:column;align-items:stretch;justify-content:flex-start;gap:4px;width:100%;min-height:0;padding:0}
+.nu-bh{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+.nu-big .nu-bh>small{font-family:Oswald,sans-serif;font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);overflow-wrap:anywhere}
+.nu-big.nu-today .nu-bh>small{color:var(--crimson-txt)}
+.nu-big .nu-bh .nu-tb{color:var(--bone)}
+.nu-in{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-size:13px;color:var(--bone);white-space:nowrap}
+.nu-in .nu-chev{padding:0}
+.nu-big .nu-tx b{font-size:19px;font-weight:600;line-height:1.25;color:var(--bone);overflow-wrap:anywhere}
+.nu-big .nu-tx small{font-size:13.5px;font-weight:400;line-height:1.35;color:var(--bone-dim)}
+.nu-big .nu-act{margin-top:10px;width:100%}
+.nu-big .nu-act>*{flex:1 1 auto;width:100%;min-height:44px;font-size:13px}
 
 
 .sn-cap{padding:10px 12px 3px 38px;font-family:Oswald,sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);opacity:.75;overflow-wrap:anywhere}
@@ -4697,8 +4719,9 @@ function nbS0(s,k){return k in s.s0?s.s0[k]:s.s0[k]=nbSeenRd(k)}
 function nbNew(s,x,ks){if(!s||!x||x.author_id===s.u)return!1;const t=Date.parse(x.created_at||"");if(!(t>0))return!1;let b=-1;ks.forEach(k=>{const v=Date.parse(nbS0(s,k)||"");v>b&&(b=v)});return t>(b>=0?b:Date.now()-NB_FIRST)}
 function nbMark(h){return h.replace('<span class="nb-when"','<span class="nb-new">New</span><span class="nb-when"')}
 function nbDone(k,a){if(!me||!a||!a.length)return;let m=0;a.forEach(x=>{if(!x||x.author_id===me.id)return;const v=Date.parse(x.created_at||"");v>m&&(m=v)});m>0&&!(Date.parse(nbSeenRd(k)||"")>=m)&&nbSeenWr(k,new Date(m).toISOString())}
-function nbNuNew(s,R,ks){if(!s||!R.length)return[];const H=new Set;let any=!1;ks.forEach(k=>{const v=nbS0(s,k);if(null==v)return;any=!0;let a=[];try{a=JSON.parse(v)}catch(x){}Array.isArray(a)&&a.forEach(h=>H.add(h))});return any?R.filter(r=>!H.has(nbHash(r))):[]}
-function nbNuDone(k,R){if(!R.length)return;let a=[];try{a=JSON.parse(nbSeenRd(k)||"[]")}catch(x){}const A=new Set((window._nuAllRows||R).map(nbHash)),o=new Set(R.map(nbHash));Array.isArray(a)&&a.forEach(h=>A.has(h)&&o.add(h));nbSeenWr(k,JSON.stringify([...o].slice(0,200)))}
+function nbNuKey(r){return nbHash(String(r).replace(/<span class="nu-in">[^<]*/,"<span class=\"nu-in\">"))}
+function nbNuNew(s,R,ks){if(!s||!R.length)return[];const H=new Set;let any=!1;ks.forEach(k=>{const v=nbS0(s,k);if(null==v)return;any=!0;let a=[];try{a=JSON.parse(v)}catch(x){}Array.isArray(a)&&a.forEach(h=>H.add(h))});return any?R.filter(r=>!H.has(nbNuKey(r))):[]}
+function nbNuDone(k,R){if(!R.length)return;let a=[];try{a=JSON.parse(nbSeenRd(k)||"[]")}catch(x){}const A=new Set((window._nuAllRows||R).map(nbNuKey)),o=new Set(R.map(nbNuKey));Array.isArray(a)&&a.forEach(h=>A.has(h)&&o.add(h));nbSeenWr(k,JSON.stringify([...o].slice(0,200)))}
 function nbTabs(lab,T,on,fn,s,pid){return`<div class="nb-tw"><div class="seg nb-tabs" role="tablist" aria-label="${lab}" onkeydown="nbKey(event,this)" onscroll="nbOv(this)">${T.map((x,i)=>{const a=x.k===on,n=a||s&&s.o.has(x.k)?0:x.n;return`<button type="button" role="tab" id="${pid}-t${i}" aria-controls="${pid}" aria-selected="${a}" tabindex="${a?0:-1}" class="seg-b${a?" on":""}" onclick="${fn}(${jsq(x.k)})"${x.t?` title="${esc(x.t)}"`:""}><span class="nb-tl">${x.l}</span>${admBadge(n,x.bl)}</button>`}).join("")}</div><button type="button" class="nb-more" tabindex="-1" aria-hidden="true" title="More tabs" onclick="nbMore(this)"></button></div>`}
 function nbPane(pid,T,on,h){const i=T.findIndex(x=>x.k===on);return`<div class="nb-pane ${pid}" id="${pid}" role="tabpanel" aria-labelledby="${pid}-t${i<0?0:i}">${h}</div>`}
 function nbKey(ev,el){const B=[...el.querySelectorAll("[role=tab]")],i=B.indexOf(document.activeElement),k=ev.key;if(i<0)return;const j="ArrowRight"===k?(i+1)%B.length:"ArrowLeft"===k?(i-1+B.length)%B.length:"Home"===k?0:"End"===k?B.length-1:-1;j<0||(ev.preventDefault(),B[j].click())}
@@ -4747,8 +4770,7 @@ function paintHomeBoard(){
   if(!t.length&&!nu&&!isSiteAdmin())return void(e.innerHTML="",typeof admHomeNote=="function"&&admHomeNote());
   const B=nbHome(t,nu),adm=isSiteAdmin(),bx=e.querySelector(".nb-tabs"),bl=bx?bx.scrollLeft:0,lx=e.querySelector(".nb-list"),lt=lx?lx.scrollTop:0;
   e.innerHTML=`<div class="panel plain nb-panel">
-    <div class="nb-title">${adm?`<h2><button type="button" class="nb-h" aria-expanded="${nbPostOpen?"true":"false"}" aria-controls="nb-new" onclick="nbPostTg(this)">\u2726 Notice board \u2726<svg class="nb-chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m1 1.5 4 3 4-3"/></svg></button></h2>`:`<h2>\u2726 Notice board \u2726</h2>`}</div>
-    <div class="nb-cl"><button type="button" class="link" onclick="slChangelog()">Changelog \u2014 what\u2019s new</button></div>
+    <div class="nb-title">${adm?`<h2><button type="button" class="nb-h" aria-expanded="${nbPostOpen?"true":"false"}" aria-controls="nb-new" onclick="nbPostTg(this)">\u2726 Notice board<svg class="nb-chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m1 1.5 4 3 4-3"/></svg></button></h2>`:`<h2>\u2726 Notice board</h2>`}<div class="nb-cl"><button type="button" class="link" onclick="slChangelog()" aria-label="Changelog: what\u2019s new">What\u2019s new</button></div></div>
     ${B.bar}
     ${B.body}
     ${adm?`<div id="nb-new"${nbPostOpen?"":" hidden"}><button class="ghost nb-post" onclick="nbCompose(null)">Post to everyone</button></div>`:""}
@@ -4858,9 +4880,15 @@ function t3RegLim(e){const en=Date.parse(e&&e.ends_at||""),st=Date.parse(e&&e.st
 function t3RegLine(e){const s=e&&e.starts_at,d=s?new Date(s):null;if(!d||isNaN(d))return"";
   if(d>Date.now()){const w=nuIn(s);return"Starts at "+slFmt(SL_DF_TIME,d,"")+(dateStr(d)===dateStr(new Date)?"":" · "+pnDay(d))+(w?" · "+w:"")}
   const lim=t3RegLim(e);return!isNaN(lim)&&Date.now()>lim?"":"Waiting for the organizer to start"}
+
+function nuBig(k,w,title,sub,tags,go,lab,act,cls){return`<div class="nu-row nu-big${cls?" "+cls:""}"><button type="button" class="nu-main" onclick="${go}"${lab?` aria-label="${esc(lab)}"`:""}><span class="nu-bh"><small>${k}</small>${w||!act?`<span class="nu-in">${w||""}${act?"":'<i class="nu-chev" aria-hidden="true">›</i>'}</span>`:""}</span><span class="nu-tx"><b>${title}</b>${sub?`<small>${sub}</small>`:""}${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button>${act?`<div class="nu-act">${act}</div>`:""}</div>`}
+
+function nuInF(s){const m=Math.ceil((Date.parse(s||"")-Date.now())/6e4);if(!(m>0))return"";if(m<60)return"in "+m+" min";const h=Math.floor(m/60),r=m%60;return"in "+h+" h"+(r?" "+r+" min":"")}
 function nuEvRow(s,title,sub,tags,go,lab,act){
   const d=s?new Date(s):null,ok=!!d&&!isNaN(d),k=ok?dateStr(d):"",
     td=ok&&k===dateStr(new Date),tm=ok&&k===dateStr(new Date(Date.now()+864e5));
+  if(td){const tt=esc(slFmt(SL_DF_TIME,d,"")),w=nuInF(s),sb=tt&&sub.startsWith(tt+" · ")?sub.slice(tt.length+3):sub===tt?"":sub;w&&(window._nuTk=1);
+    return nuBig("Today"+(tt?" · "+tt:""),w,title,sb,tags,go,lab,act,"nu-ev nu-today")}
   const tile=ok?`<span class="nu-dt${td?" now":""}" aria-hidden="true"><span>${td?"Today":tm?"Tomorrow":esc(slFmt(NU_WD,d,""))}</span><b>${d.getDate()}</b><span>${esc(slFmt(NU_MO,d,""))}</span></span>`
     :'<span class="nu-dt" aria-hidden="true"><b>?</b></span>';
   return`<div class="nu-row nu-ev"><button type="button" class="nu-main" onclick="${go}" aria-label="${esc(lab)}">${tile}<span class="nu-tx"><b>${title}</b><small>${sub}</small>${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button>${act?`<div class="nu-act">${act}</div>`:'<i class="nu-chev" aria-hidden="true">›</i>'}</div>`;
@@ -4875,12 +4903,12 @@ function paintHomeNext(){
   const e=$("home-event");if(!e)return;
   const L=homeLeagues(),o=me?cache.homeAll:null;
   if(!o)return void(e.innerHTML="",window._nuHtml="",window._nuRows=[],paintHomeBoard());
-  const T=cache.homeTourneys||[],top=[];
+  const T=cache.homeTourneys||[],top=[];window._nuTk=0;
   let tm=!1;
   
   const V=T.filter(x=>x&&"running"===x.status).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))),n3=tvMyNext(V);
   n3&&(tm=!0,top.push(duNuRow(n3)));
-  V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuRow(`${esc(t3Title(x))} · Round ${by}`,"You have a bye: 3 points",`go('tournaments',{tournamentId:${jsq(x.id)}})`)))});
+  V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuBig(`Round ${by}`,"","You have a bye",`${esc(t3Title(x))} · 3 points`,"",`go('tournaments',{tournamentId:${jsq(x.id)}})`,`${t3Title(x)}, round ${by}: you have a bye, 3 points`)))});
   
   const LS=cache.homeListings||[],dmE=new Set,lgN=id=>((L.find(y=>y.id===id)||(cache.leagues||[]).find(y=>y&&y.id===id))||{}).name||"";
   T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>{
@@ -4890,7 +4918,7 @@ function paintHomeNext(){
     const pl=in1&&"drop"!==t3Ent0(x,me.id).st;
     top.push(nuEvRow(s,esc(ti),nuEvSub(s,l),nuTag("Demo")+(in1?nuTag("You're in","in"):org?nuTag("You organize","in"):""),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
       [ti,s?pnShort(e):"",l,in1?"Demo event, you are on the list":org?"Demo event you organize":"Demo event"].filter(Boolean).join(", "),
-      pl?'<button type="button" class="act gold nu-go" onclick="duPlayDemo()">Play a game</button>':""))});
+      pl?'<button type="button" class="act gold nu-go" onclick="duPlayDemo()">Play a game</button>':org?`<button type="button" class="ghost nu-go" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
   
   let reg=!1;
   T.filter(x=>x&&"draft"===x.status&&"demo"!==x.mode&&!x.hidden_at).forEach(x=>{
@@ -4901,30 +4929,36 @@ function paintHomeNext(){
     if(!in1&&!day)return;
     x.pn_event_id&&dmE.add(x.pn_event_id);reg=!0;in1&&day&&(tm=!0);
     const n=(x.payload&&x.payload.entrants||[]).filter(y=>y&&"drop"!==y.st).length,
-      sub=[line||"Registration is open",org&&!in1?n+" registered":l].filter(Boolean).map(esc).join(" · ");
+      
+      bigF=!!d&&!isNaN(d)&&dateStr(d)===dateStr(new Date)&&d>Date.now(),
+      sub=[bigF?"":line||"Registration is open",org&&!in1?n+" registered":l].filter(Boolean).map(esc).join(" · ");
     const here=in1&&!0===en.here;
     top.push(nuEvRow(s,esc(ti),sub,nuTag("Tournament")+(in1?nuTag(here?"Checked in":"You're registered","in"):nuTag("You organize","in")),`go('tournaments',{tournamentId:${jsq(x.id)}})`,
       [ti,line,l,in1?here?"you are checked in":"you are registered":"you organize it"].filter(Boolean).join(", "),
-      in1&&!here&&t3CiOpen(x,s)?`<button type="button" class="act gold nu-go" onclick="t3CheckIn(${jsq(x.id)})">I'm here</button>`:""))});
+      in1&&!here&&t3CiOpen(x,s)?`<button type="button" class="act gold nu-go" onclick="t3CheckIn(${jsq(x.id)})">I'm here</button>`:org?`<button type="button" class="ghost nu-go" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
   
-  reg&&!window._nuTick?window._nuTick=setInterval(()=>{if("browse"!==route.view||!me)return;Promise.resolve(me&&tvPoll()).catch(()=>{}).finally(()=>{"browse"===route.view&&paintHomeNext()})},6e4)
-    :!reg&&window._nuTick&&(clearInterval(window._nuTick),window._nuTick=null);
   me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
     const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
     const n=tvMyNext(lt);
-    n&&(tm=!0,top.push(nuRow(`${nm} · Next match · ${esc(n.stage)}`,`vs ${esc(tvOppName(n.opp))}${n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:""}`,`window._tPick=${jsq(n.tid)};goLeagueTab('tournament',${jsq(lid)})`)));
+    n&&(tm=!0,top.push(nuBig(`${esc(n.stage)}${n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:""}`,"",`vs ${esc(tvOppName(n.opp))}`,nm,"",`window._tPick=${jsq(n.tid)};goLeagueTab('tournament',${jsq(lid)})`,[l.name,"next match",n.stage,n.table?"table "+(n.table|0):"","vs "+tvOppName(n.opp)].filter(Boolean).join(", "))));
     adm&&tOpenList(lt).filter(x=>!(n&&n.tid===x.id)).forEach(x=>top.push(nuRow(`${nm} · Tournament running`,`${x.month?esc(monthLabel(x.month))+" · ":""}finish it, then finalize`,`window._tPick=${jsq(x.id)};goLeagueTab('tournament',${jsq(lid)})`)));
   });
   (cache.homeListings||[]).forEach(x=>{const l=L.find(y=>y.id===x.league_id);l&&!dmE.has(x.id)&&!(/demo/i.test(x.type_name||"")&&dmGone(x))&&top.push(nuEvRow(x.starts_at,esc(x.title||"Event"),nuEvSub(x.starts_at,l.name),nuTag(x.type_name),`goLeagueTab('events',${jsq(l.id)})`,[x.title||"Event",pnShort(x),l.name,x.type_name].filter(Boolean).join(", ")))});
-  const rows=top,all=!!window._nuAll,sh=all?rows:rows.slice(0,NU_MAX),
+  
+  window._nuReg=reg;const tk=reg||!!window._nuTk;
+  tk&&!window._nuTick?window._nuTick=setInterval(()=>{if("browse"!==route.view||!me)return;Promise.resolve(me&&window._nuReg&&tvPoll()).catch(()=>{}).finally(()=>{"browse"===route.view&&paintHomeNext()})},6e4)
+    :!tk&&window._nuTick&&(clearInterval(window._nuTick),window._nuTick=null);
+  const rows=top.filter(r=>r.includes(' nu-big')).concat(top.filter(r=>!r.includes(' nu-big'))),all=!!window._nuAll,sh=all?rows:rows.slice(0,NU_MAX),
     can="Notification"in window,
     nt=!tm?"":can&&!slIosNeedsHome()?tvNotifyOn()?'<button class="ghost on" onclick="tvNotifyOff()" title="Stop telling me">✓ Notifying</button>':'<button class="ghost" onclick="tvNotifyAsk()" title="Tell me when my next match is up">Notify me</button>':slIosNeedsHome()?'<button class="ghost" onclick="slIosNotifyHelp()">Notify me</button>':"";
   e.innerHTML="";window._nuRows=sh;window._nuAllRows=rows;
+  
+  const mo=rows.length>NU_MAX?`<button class="link nu-more" onclick="window._nuAll=${all?0:1};paintHomeNext()">${all?"Show fewer":"Show all ("+rows.length+")"}</button>`:"";
   window._nuHtml=!rows.length?"":`<section class="nu-box" aria-label="Next up">
-    <div class="sn-top"><h2 class="sn-k">Next up</h2>${nt}</div>
+    <h2 class="sn-k sr-only">Next up</h2>
     <div class="nu-list">${sh.join("")}</div>
-    ${rows.length>NU_MAX?`<button class="link nu-more" onclick="window._nuAll=${all?0:1};paintHomeNext()">${all?"Show fewer":"Show all ("+rows.length+")"}</button>`:""}
+    ${mo||nt?`<div class="sn-top nu-foot">${mo||"<span></span>"}${nt}</div>`:""}
   </section>`;
   paintHomeBoard();
 }function paintHomeStats(){const e=$("home-stats");if(!e)return;const n=cache.leagues.filter(e=>!isDemo(e.id)),t=[["number"==typeof cache.communityCount?cache.communityCount:n.length,"Communities created"],[cache.playerCount||0,"Players"],[cache.tourneyCount||0,"Events"],[cache.matchCount||0,"Matches played"]];if(!t.some(([e])=>+e>0))return void(e.innerHTML="");e.innerHTML=`<div class="stats-band">\n    <div class="sb-title">The Malediction is growing…</div>\n    <div class="sb-row">${t.map(([e,n])=>`<div class="sb-stat"><b>${e}</b><small>${n}</small></div>`).join("")}</div>\n  </div>`}
@@ -5990,12 +6024,13 @@ function t3NextSw(t,n,on){
 
 function duNuRow(n){
   const t=n.t,sw=!!t&&swIsSwiss(t.payload),s=sw?t3GameState(t,n):"",iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,tb=n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:"",tj=jsq(n.tid);
-  return nuRow(`${esc(n.title)} · Next match · ${esc(n.stage)}`,iv?`${esc(iv.host_name||n.oppName)} is waiting for you${tb}`:`vs ${esc(n.oppName)}${tb}`,`go('tournaments',{tournamentId:${tj}})`,
+  return nuBig(`${esc(n.stage)}${tb}`,"",iv?`${esc(iv.host_name||n.oppName)} is waiting for you`:`vs ${esc(n.oppName)}`,esc(n.title),"",`go('tournaments',{tournamentId:${tj}})`,
+    [n.title,"next match",n.stage,n.table?"table "+(n.table|0):"",iv?(iv.host_name||n.oppName)+" is waiting for you":"vs "+n.oppName].filter(Boolean).join(", "),
     
     iv?`<button type="button" class="act nu-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join</button>`
     :"waiting"===s?`<button type="button" class="act nu-go" onclick="go('tracker')">Open the match</button>`
     :"live"===s&&DU&&DU.tId===n.tid?`<button type="button" class="act nu-go" onclick="go('tracker')">Open the match</button>`
-    :"start"===s||"nodeck"===s||"live"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`:"");
+    :"start"===s||"nodeck"===s||"live"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`:"","nu-mt");
 }
 
 function duInvList(){const c=cache.duInv;return me&&c&&c.uid===me.id?c.list:[]}
