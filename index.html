@@ -1007,6 +1007,17 @@ p .t3-lnk{min-height:0;font-size:inherit;color:var(--bone);text-decoration:under
 .sw-leg{margin:8px 0 0;font-size:12px;color:var(--bone-dim)}
 .sw-pnrow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
 .sw-pnrow>button{flex:1 1 auto;min-height:40px}
+.pnr-src{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:0 0 10px;min-width:0}
+.pnr-src>.hint{flex:1 1 220px;min-width:0;margin:0;font-size:12.5px;overflow-wrap:anywhere}
+.pnr-src a{color:var(--crimson-txt)}
+.pnr-src>.pnr-ref{flex:0 0 auto;min-height:40px}
+.pnr-err{flex:1 1 100%;margin:0;font-size:12.5px;color:var(--crimson-txt)}
+.pnr-h{margin:0 0 10px;font-size:12.5px}
+.pnr-tu{font-size:12px;color:var(--bone-dim)}
+.pnr-dk{flex:1 1 100%;min-width:0;font-size:11.5px;color:var(--bone-dim);overflow-wrap:anywhere}
+.pnr-st a.pnr-pl{color:inherit;text-decoration:none}
+.pnr-st a.pnr-pl:hover{text-decoration:underline}
+.pnr-more{margin:8px 0 0}
 .tkmodal.sw-pnx{width:min(94vw,520px);padding:18px 16px}
 .tkmodal.sw-pnx h3{padding-right:44px}
 .sw-pnx .tkx{width:40px;height:40px;top:10px;right:10px}
@@ -4926,7 +4937,7 @@ function nuEvRow(s,title,sub,tags,go,lab,act){
   return`<div class="nu-row nu-ev"><button type="button" class="nu-main" onclick="${go}" aria-label="${esc(lab)}">${tile}<span class="nu-tx"><b>${title}</b><small>${sub}</small>${tags?`<span class="nu-tags">${tags}</span>`:""}</span></button>${act?`<div class="nu-act">${act}</div>`:'<i class="nu-chev" aria-hidden="true">›</i>'}</div>`;
 }
 
-function swOrgTodo(p){if(!swIsSwiss(p))return"enter the results, then close it";const c=swCur(p),R=p.rounds|0,h=p.hold||{};
+function swOrgTodo(p,t){if(t3PnOn(t)||swIsSwiss(p)&&!swCur(p))return"Rounds and results come from Play Network";if(!swIsSwiss(p))return"enter the results, then close it";const c=swCur(p),R=p.rounds|0,h=p.hold||{};
   
   if(swRoundDone(p))return c<R?h.pair===c+1?`Round ${c} is complete: pair round ${c+1}`:`Round ${c} is complete: round ${c+1} is paired automatically`:h.close?"Reopened: close it when you are done":"All rounds are played: it closes automatically";
   const D=t3DropSet(p),u=(p.gm||[]).some(m=>m.r===c&&null==m.w&&null!=m.b&&!(D.has(m.a)&&D.has(m.b))&&(!t3IdOk(m.a)||!t3IdOk(m.b)));
@@ -4969,7 +4980,7 @@ function paintHomeNext(){
       [ti,line,l,in1?here?"you are checked in":"you are registered":"you organize it"].filter(Boolean).join(", "),
       in1&&!here&&t3CiOpen(x,s)?`<button type="button" class="act gold nu-go" onclick="t3CheckIn(${jsq(x.id)})">I'm here</button>`:org?`<button type="button" class="ghost nu-go nu-sm" onclick="go('tournaments',{tournamentId:${jsq(x.id)}})">Manage</button>`:""))});
   
-  me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{}),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
+  me&&V.filter(x=>x.organizer_id===me.id&&!(n3&&n3.tid===x.id)).forEach(x=>top.push(nuRow(`${esc(t3Title(x))} · Tournament running`,swOrgTodo(x.payload||{},x),`go('tournaments',{tournamentId:${jsq(x.id)}})`)));
   L.forEach(l=>{
     const lid=esc(l.id),nm=esc(l.name),adm=isAdminOf(l),lt=T.filter(x=>x&&x.league_id===l.id&&null==x.status);
     const n=tvMyNext(lt);
@@ -10038,7 +10049,7 @@ const SL_GUIDES={
        ["Save deck","registers the deck you will play. It <em>locks</em> when the tournament starts.","evDeck"],
        ["Start the match","opens your paired game in the tracker; <em>the result files itself</em>. Cannot stay? <b>Leave the tournament</b> takes you off.","evMatch"],
        ["Start the tournament","the organizer&#39;s button: it <em>pairs the first round</em> by itself. Before it, <b>Here</b> on a player&#39;s row checks them in, and the <b>Check-in</b> tab holds the QR for the venue.","evStart"]],
-    n:"A Demo has no rounds: <b>Join this event</b>, then <b>Play a game</b>. <b>Enter result</b> and <b>Copy for the Play Network</b> are the organizer&#39;s; the official standings still go on the Play Network."},
+    n:"A Demo has no rounds: <b>Join this event</b>, then <b>Play a game</b>. <b>Enter result</b> and <b>Copy for the Play Network</b> are the organizer&#39;s; the official standings still go on the Play Network. A Play Network <b>Tournament</b> can take its rounds from there instead: the organizer pairs them and enters the results on the Play Network, and this page starts, follows and closes the event by itself."},
   builder:{t:"Deck builder",l:"Pick the Seeker first &mdash; the pool then <em>follows the deck rules</em> by itself.",f:"bldHero",
     s:[["Deck name","a deck with no name <em>cannot be saved</em>.","bldName"],
        ["&mdash; pick a Seeker &mdash;","until you choose one there is <em>no pool</em> to build from. The Seeker and its Legacy go into the deck by themselves.","bldSeeker"],
@@ -10937,7 +10948,7 @@ function t3CanRep(t){
 }
 function t3RepFoot(t){return t3CanRep(t)?`<div class="t3-rep"><button type="button" class="link t3-rep-b" onclick="t3Report()">Report this tournament</button></div>`:""}
 
-function t3HidNote(t){return t&&t.hidden_at&&(t3IsOrg(t)||t.organizer_id===(me&&me.id))?`<p class="t3-note">This tournament was taken off the public list, so it is no longer shown to everyone and its Play Network event is no longer public. You can still run it and the players already in it can still see it. Use <b>Send feedback</b> on the home page if you think that is a mistake.</p>`:""}
+function t3HidNote(t){return t&&t.hidden_at&&(t3IsOrg(t)||t.organizer_id===(me&&me.id))?`<p class="t3-note">This tournament was taken off the public list, so it is no longer shown to everyone and its Play Network event is no longer public. ${t3PnOn(t)?"The players already in it can still see it, but its rounds and standings from Play Network are not shown while it is off the list.":"You can still run it and the players already in it can still see it."} Use <b>Send feedback</b> on the home page if you think that is a mistake.</p>`:""}
 
 function t3Report(){
   const t=cache.tourney;if(!t3CanRep(t))return;
@@ -10992,7 +11003,7 @@ async function t3Load(id){
   q.error&&(q=await sb.from("tournaments").select("*").eq("id",id).maybeSingle());
   if(q.error)return{error:q.error};
   const t=q.data||null;
-  if(t&&null!=t.status&&t.payload){await ensureProfNames();t3Names(t);await t3CtaLoad(t);cache.tourney=t;
+  if(t&&null!=t.status&&t.payload){await ensureProfNames();t3Names(t);await t3CtaLoad(t);await pnLiveLoad(t);cache.tourney=t;
     
     if(me&&t.organizer_id&&t.organizer_id!==me.id&&t3AdminMe(t)){const l=t3Lg(t);
       if(l&&l.owner_id!==t.organizer_id)try{const r=await sb.from("memberships").select("is_admin,dropped_at").eq("league_id",t.league_id).eq("user_id",t.organizer_id).maybeSingle();r.error||(t._orgGone=!(r.data&&r.data.is_admin&&!r.data.dropped_at))}catch(x){}}}
@@ -11022,7 +11033,7 @@ async function t3Reload(){
   if(!r.row){cache.tourney=null;const e=$("tnp-body");return void(e&&t3Missing(e))}
   t3Paint(r.row);t3After(r.row);
 }
-async function t3After(t){duInbox();try{await t3DeckLoad(t)}catch(x){}try{t3Ed(t)&&!t.hidden_at&&"closed"!==t3St(t)&&await t3InvLoad(t)}catch(x){}try{swKick(t)}catch(x){}try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
+async function t3After(t){duInbox();pnLiveKick(t).catch(()=>{});try{await t3DeckLoad(t)}catch(x){}try{t3Ed(t)&&!t.hidden_at&&"closed"!==t3St(t)&&await t3InvLoad(t)}catch(x){}try{swKick(t)}catch(x){}try{await t3Fill(t);await t3LiveLoad(t)}catch(x){}}
 function t3Typing(){const a=document.activeElement,b=$("tnp-body");return!!(a&&b&&b.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
 function t3Repaint(){const t=cache.tourney;"tournaments"===route.view&&t&&route.tournamentId===t.id&&!t3Typing()&&t3Paint(t)}
 
@@ -11238,7 +11249,7 @@ function t3Row(t,x,ed){
     [dkc,dkl]=t3DkRow(t,x);
   let a="";
   if(ed){"draft"===st&&!t3IsDemo(t)&&!dr&&(a+=!0===x.here?`<button class="ghost t3-b" onclick="t3Ci(${k},false)">Not here</button>`:`<button class="ghost t3-b" onclick="t3Ci(${k},true)">Here</button>`);
-    !closed&&(a+=dr?run&&(t3Drawn(p)||!t3Grouped(p,x.id)||swIsSwiss(p)&&(x.dr|0)<swCur(p))?"":`<button class="ghost t3-b" onclick="t3Ent('undrop',${k})">Bring back</button>`:`<button class="ghost t3-b" onclick="t3Ent('drop',${k})">Drop</button>`);
+    !closed&&!(run&&t3PnOn(t))&&(a+=dr?run&&(t3Drawn(p)||!t3Grouped(p,x.id)||swIsSwiss(p)&&(x.dr|0)<swCur(p))?"":`<button class="ghost t3-b" onclick="t3Ent('undrop',${k})">Bring back</button>`:`<button class="ghost t3-b" onclick="t3Ent('drop',${k})">Drop</button>`);
     wt&&(a+=`<button class="ghost t3-b" onclick="t3Ent('relink',${k})">Link the account</button>`);
     t3MoreOps(t,x).length&&(a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`)}
   else if(t3Forget(t)&&t3MoreOps(t,x).length)a+=`<button class="ghost t3-b" onclick="t3More(${k})" aria-label="More for ${esc(x.name||"this player")}">More</button>`;
@@ -11403,7 +11414,7 @@ function t3UnlHtml(t,ed){
   const L=ed?t3Unl(t):[],n=L.length;if(!n)return"";
   const lg=t3Lg(t),can=!!t.league_id,
     ul=`<ul class="t3-unl-l">${L.map(x=>`<li>${t3Av(x)}<span class="t3-nm" title="${esc(x.name||"")}">${esc(x.name||"Player")}</span>${can?`<button class="ghost t3-b" onclick="t3SeatOpen(${jsq(x.id)})" aria-label="Link ${esc(x.name||"this player")} to a member">Link to a member</button>`:""}</li>`).join("")}</ul>`;
-  return`<div class="t3-unl" id="t3-unl"><p class="t3-unl-h"><b>${n} player${1===n?" has":"s have"} no Seekers League account linked:</b> their games are not tracked and their results are entered by hand.${can?` If one of them is a member of ${esc(lg&&lg.name||"the community")}, link them to their account.`:""}</p>${n>5?`<details${window._t3UnlOpen===t.id?" open":""} ontoggle="window._t3UnlOpen=this.open?${jsq(t.id)}:null"><summary>Show the ${n} players</summary>${ul}</details>`:ul}</div>`;
+  return`<div class="t3-unl" id="t3-unl"><p class="t3-unl-h"><b>${n} player${1===n?" has":"s have"} no Seekers League account linked${t3PnOn(t)?".</b>":":</b> their games are not tracked and their results are entered by hand."}${can?` If one of them is a member of ${esc(lg&&lg.name||"the community")}, link them to their account.`:""}</p>${n>5?`<details${window._t3UnlOpen===t.id?" open":""} ontoggle="window._t3UnlOpen=this.open?${jsq(t.id)}:null"><summary>Show the ${n} players</summary>${ul}</details>`:ul}</div>`;
 }
 function t3Players(t,ed){
   const p=t.payload||{},E=(p.entrants||[]).filter(Boolean),st=t3St(t),draft="draft"===st,closed="closed"===st,
@@ -11411,7 +11422,7 @@ function t3Players(t,ed){
   return`<div class="panel plain t3-pl" id="t3-pl">
     <div class="t3-pl-h"><h2 style="margin:0">Players <span class="rel-count">${nIn} in${nDr?` &middot; ${nDr} dropped`:""}</span></h2>${ed&&draft?`<button class="ghost" id="t3-imp" onclick="t3Import()">Update from the Play Network</button>`:""}</div>
     ${draft?`<p class="hint t3-src">${p.pn&&p.pn.at?`Copied from the Play Network ${esc(pnShort({starts_at:p.pn.at}))}${null!=p.pn.n?` &middot; ${p.pn.n|0} registered there`:""}.`:"Not copied from the Play Network yet."}</p>`:closed?"":'<p class="hint t3-src">The list was fixed when the tournament started.</p>'}${t3PnDk(t,ed)}
-    ${ed&&draft&&!t3IsDemo(t)?'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
+    ${ed&&draft&&!t3IsDemo(t)?t3PnOn(t)?'<p class="hint">Rounds and results come from Play Network. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':'<p class="hint">Players with a linked account have their tracked matches recorded automatically. For the others, you enter the results. Players link their account by adding their malediction.gg profile link in Settings &rsaquo; Profile; after the start, you confirm each new link.</p>':""}
     ${ed&&!draft&&!closed&&E.some(x=>x.wait&&!x.lock&&!t3IdOk(x.id))?'<p class="hint t3-wait">An account added a player\'s profile link after the start. Check that it is really them, then tap <b>Link the account</b> on their row.</p>':""}
     ${t3UnlHtml(t,ed)}<div class="t3-list">${E.map(x=>t3Row(t,x,ed)).join("")||`<div class="empty">No players yet.</div>`}</div>
     ${ed&&draft?`<div class="t3-add" role="group" aria-label="Add a player">
@@ -11504,7 +11515,7 @@ async function swPlanAsk(){
 
 function swNote(t){const p=t.payload||{},cur=swCur(p),k=t.id+":"+cur;if(!swRoundDone(p)||cur>=(p.rounds|0)||(p.hold||{}).pair!==cur+1||swNote.k===k)return;swNote.k=k;toast(`Round ${cur} is complete. Automatic pairing is paused: pair round ${cur+1} when you are ready.`,!0)}
 
-function swKickOk(t){const p=t&&t.payload;if(!me||!sb||!sb.functions||!t||!t.id||"running"!==t.status||!swIsSwiss(p)||t3Archived(t))return!1;if(t3IsOrg(t))return!0;const x=t3Mine(t);return!!x&&"drop"!==x.st}
+function swKickOk(t){const p=t&&t.payload;if(t3PnOn(t))return!1;if(!me||!sb||!sb.functions||!t||!t.id||"running"!==t.status||!swIsSwiss(p)||t3Archived(t))return!1;if(t3IsOrg(t))return!0;const x=t3Mine(t);return!!x&&"drop"!==x.st}
 function swKick(t){
   if(!swKickOk(t)||!swAutoDue(t.payload))return;
   const K=window._swK||(window._swK={}),k=K[t.id],rev=t.rev|0;
@@ -11549,7 +11560,7 @@ function swRunHint(p){
       :h.close?"The organizer closes the tournament after the last result.":"The tournament closes automatically after the last result.");
   return`<p class="hint sw-wait">${esc(s)}</p>`;
 }
-function swActsHtml(t){
+function swActsHtml(t){if(t3PnOn(t))return"";
   const p=t.payload||{},cur=swCur(p),R=p.rounds|0,done=swRoundDone(p),D=t3DropSet(p),G=(p.gm||[]).filter(m=>m.r===cur),
     open=G.filter(m=>null==m.w&&!(D.has(m.a)&&null!=m.b&&D.has(m.b))).length,h=p.hold||{},hp=h.pair===cur+1,o=[];
   let msg;
@@ -11682,7 +11693,7 @@ async function swPnRpLoad(t){
   catch(x){ids.forEach(id=>{delete C[id]});return}
   const o=$("sw-pn");o&&o._paint&&o._paint();
 }
-function swPnSheet(r){
+function swPnSheet(r){if(t3PnOn(cache.tourney))return;
   const t0=cache.tourney;if(!t0||!t0.payload||!swIsSwiss(t0.payload))return;
   r=r|0;if(r<1||r>swCur(t0.payload))return;
   const tid=t0.id,old=$("sw-pn");old&&old.remove();
@@ -11729,7 +11740,7 @@ function swPnSheet(r){
   document.body.appendChild(o);
   swPnRpLoad(t0);
 }
-function swResultSheet(i){
+function swResultSheet(i){if(t3PnOn(cache.tourney))return;
   const t=cache.tourney;if(!t||!t3Ed(t)||"running"!==t3St(t))return;
   const p=t.payload||{},m=(p.gm||[])[i];if(!swIsSwiss(p)||!m||null==m.b||"bye"===m.src)return;
   const old=$("sw-res");old&&old.remove();
@@ -11757,6 +11768,148 @@ function swResultSheet(i){
   document.body.appendChild(o);
 }
 
+function t3PnOn(t){return!!t&&"pn"===t.rounds_src&&!t3IsDemo(t)}
+function pnK(tid){const K=window._pnK||(window._pnK={});return K[tid]||(K[tid]={at:0,n:0,stop:0,busy:0,pk:0})}
+async function pnLiveLoad(t){
+  if(!t3PnOn(t)||!sb||!sb.from)return;
+  let r=null;try{const q=await sb.from("tournament_pn_live").select("*").eq("tournament_id",t.id).maybeSingle();q&&!q.error&&q.data&&"object"==typeof q.data&&(r=q.data)}catch(x){}
+  t._pnl=r;pnK(t.id).pk=Date.now();
+}
+function pnLiveSt(t){const L=t&&t._pnl;return L&&/^(Upcoming|Ongoing|Completed)$/.test(L.pn_state)?L.pn_state:{running:"Ongoing",closed:"Completed"}[t3St(t)]||"Upcoming"}
+function pnAgo(x){const d=new Date(x);return!x||isNaN(d)?"":dateStr(d)===dateStr(new Date)?"at "+slFmt(SL_DF_TIME,d,""):pnShort({starts_at:x})}
+
+function pnWhoMap(t){
+  const P=Object.create(null),N=Object.create(null);
+  ((t&&t.payload||{}).entrants||[]).forEach(e=>{if(!e||!e.id)return;const p=String(e.pid||""),n=String(e.name||"").trim();p&&(P[p]=P[p]?-1:e);n&&(N[n]=N[n]?-1:e)});
+  return{P,N};
+}
+function pnWho(M,s){
+  if(!s||"object"!=typeof s)return null;
+  const nk=String(s.nick||"").trim(),p=String(s.pid||""),e=p?M.P[p]:nk?M.N[nk]:null,x=e&&-1!==e?e:null;
+  return x?{id:x.id,nm:nameOf(x.id),acct:t3IdOk(x.id),mine:!!(me&&x.id===me.id)}:{id:null,nm:nk||"Player",acct:!1,mine:!1};
+}
+function pnNum(v,lo,hi){return Number.isInteger(v)&&v>=lo&&v<=hi?v:null}
+
+function pnSrcHtml(t,L){
+  const p=t.payload||{},u=pnUrl(p.pn&&p.pn.url),at=L&&pnAgo(L.fetched_at),ed=t3Ed(t)&&!t.hidden_at;
+  return`<div class="pnr-src"><p class="hint">Rounds and results come from Play Network &middot; ${at?`updated ${esc(at)}`:"not read yet"}${u?` &middot; <a href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">View on Play Network &#8599;</a>`:""}</p>${ed&&"closed"!==t3St(t)?'<button type="button" class="ghost pnr-ref" onclick="pnLiveRefresh()">Refresh from Play Network</button>':""}${ed&&L&&!1===L.ok?'<p class="pnr-err">The last read from Play Network did not work. This page shows the last good copy.</p>':""}${ed&&"running"===t3St(t)&&pnStale(L)?'<p class="pnr-err">Play Network has not finished this event. If it never will, close it here: it ends with no standings and no champion.</p><button type="button" class="ghost pnr-close" onclick="pnStaleClose()">Close the tournament</button>':""}</div>`;
+}
+
+function pnStale(L){return!!L&&(!L.fetched_at||Date.now()-Date.parse(L.fetched_at)>864e5||/^(event_not_found|not_tournament)$/.test(String(L.err||"")))}
+async function pnStaleClose(){
+  const t=cache.tourney;if(!t||!t3Ed(t)||!t3PnOn(t)||"running"!==t3St(t)||!pnStale(t._pnl))return;
+  if(!await slConfirm({title:"Close the tournament here?",body:"Play Network has not finished this event, so its final standings never came through. Closed here, it ends with no standings and no champion, and it cannot be reopened.",ok:"Close it",danger:!0}))return;
+  const d=await t3Rpc("t_close",{p_tid:t.id,p_rev:t.rev|0});if(!d)return;
+  toast("The tournament is closed",!0);await t3Reload();
+}
+
+function pnOffHtml(){return'<p class="hint">Rounds and standings from Play Network are not shown while this tournament is off the public list.</p>'}
+
+function pnSetupHtml(t){
+  const E=((t.payload||{}).entrants||[]).filter(e=>e&&"drop"!==e.st),h=E.filter(e=>!0===e.here).length;
+  return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
+    <p class="hint" style="margin:0 0 10px">Rounds and results come from Play Network. On the day, players check in with I'm here from 2 hours before the start, and you can check in the others on their row (Here). Then pair round 1 on Play Network: this page starts the tournament by itself, reads the list of players again (late registrations come in with their decks), and shows the pairings, the results and the standings as Play Network publishes them. Players are not notified here when a round is paired. To pair the rounds on this page instead, change Rounds in Settings.</p>
+    ${E.length?`<div class="t3-ci"><b>${h} of ${E.length} checked in</b></div>`:""}
+    ${t3DkSetup(t)}
+    ${pnSrcHtml(t,t._pnl)}
+  </div>`;
+}
+
+function pnGameHtml(g,M,i){
+  const A=pnWho(M,g&&g.a);if(!A)return"";
+  if(!0===g.bye||!g.b)return`<div class="sw-g"><div class="tv-m done sw-bye"><span class="tv-tb">Bye</span><span class="sw-byen${A.mine?" mine":""}" title="${esc(A.nm)}">${esc(A.nm)}</span><span class="sw-byep">Bye</span></div></div>`;
+  const B=pnWho(M,g.b),dw=!0===g.draw,w=1===g.win?1:2===g.win?2:0,dn=dw||!!w,ma=pnNum(g.sa,0,99999),mb=pnNum(g.sb,0,99999),tu=pnNum(g.turns,1,999),tb=pnNum(g.tb,1,9999),
+    sd=(X,k)=>`<button type="button" class="tv-side${w===k?" win":""}${X.mine?" mine":""}" title="${esc(X.nm)}${X.mine?" (you)":""}" disabled><span>${esc(X.nm)}</span></button>`,
+    dk=(X,s,r)=>{const v=[s,r].map(x=>String(x||"").trim()).filter(Boolean).join(" · ");return v?`<span class="pnr-dk">${esc(X.nm)}: ${esc(v)}</span>`:""},
+    line=dn?(null!=ma&&null!=mb?`<span class="sw-sc" title="Mastery">${ma}–${mb}</span>`:"")+(dw?'<span class="t3-tag">draw</span>':"")+(null!=tu?`<span class="pnr-tu">${tu} round${1===tu?"":"s"} played</span>`:"")+dk(A,g.sk_a,g.tr_a)+dk(B,g.sk_b,g.tr_b):"";
+  return`<div class="sw-g"><div class="tv-m${dn?" done":""}${dw?" sw-draw":""}"><span class="tv-tb">${tb?"Table "+tb:"Game "+((i|0)+1)}</span>${sd(A,1)}<span class="tv-vs">vs</span>${sd(B,2)}</div>${line?`<div class="sw-ml">${line}</div>`:""}</div>`;
+}
+function pnRounds(L){return(Array.isArray(L&&L.rounds)?L.rounds:[]).filter(x=>x&&"object"==typeof x&&Number.isInteger(x.r)&&x.r>=1).sort((a,b)=>a.r-b.r)}
+function pnRndGo(r){const t=cache.tourney;if(!t)return;r=r|0;const L=t._pnl,c=L&&L.cur_round|0;window._pnRnd=r===c?null:{t:t.id,r};t3Paint(t)}
+function pnRoundsPanel(t,L){
+  const Rs=pnRounds(L),last=Rs.length?Rs[Rs.length-1].r:0,N=Math.max(last,pnNum(L&&L.n_rounds,1,99)||0),M=pnWhoMap(t),run="running"===t3St(t),
+    c0=pnNum(L&&L.cur_round,1,99),cur=c0&&Rs.some(x=>x.r===c0)?c0:last,k=window._pnRnd,
+    sel=k&&k.t===t.id&&Rs.some(x=>x.r===k.r)?k.r:cur,ix=Rs.findIndex(x=>x.r===sel),R=Rs[ix],
+    G=(R&&Array.isArray(R.games)?R.games:[]).filter(g=>g&&"object"==typeof g).map((g,j)=>[g,j]).sort((x,y)=>(!0===x[0].bye||!x[0].b)-(!0===y[0].bye||!y[0].b)||(pnNum(x[0].tb,1,9999)||0)-(pnNum(y[0].tb,1,9999)||0)||x[1]-y[1]).map(x=>x[0]),
+    games=G.filter(g=>!0!==g.bye&&g.b),done=games.filter(g=>!0===g.draw||1===g.win||2===g.win).length,sys=String(L&&L.system||"").trim().slice(0,40);
+  let n=0;
+  const body=!Rs.length?`<div class="empty">${L?"No round is paired on Play Network yet.":t.hidden_at?"Play Network is not read for a tournament off the public list.":"Play Network has not been read for this tournament yet."}</div>`:`<div class="tv-rv">
+    <div class="tv-rnav">
+      <button class="ghost" ${ix<=0?"disabled":""} onclick="pnRndGo(${ix>0?Rs[ix-1].r:sel})" aria-label="Previous round">&#8249;</button>
+      <select aria-label="Round" onchange="pnRndGo(this.value)">${Rs.map(x=>`<option value="${x.r}"${x.r===sel?" selected":""}>Round ${x.r} of ${Math.max(N,x.r)}${run&&x.r===cur?" · now":""}</option>`).join("")}</select>
+      <button class="ghost" ${ix>=Rs.length-1?"disabled":""} onclick="pnRndGo(${ix<Rs.length-1?Rs[ix+1].r:sel})" aria-label="Next round">&#8250;</button>
+    </div>
+    <div class="tv-rinfo"><span class="hint">${done} of ${games.length} result${1===games.length?"":"s"} in${run&&sel===cur?" · current round":""}</span>${sel!==cur?`<button class="link" onclick="pnRndGo(${cur})">${run?"Go to the current round":"Go to the last round"}</button>`:""}</div>
+    <div class="tv-matches">${G.map(g=>pnGameHtml(g,M,!0===g.bye||!g.b?0:n++)).join("")||'<div class="empty">No games in this round.</div>'}</div>
+  </div>`;
+  return`<div class="panel plain"><div class="tv-vh"><h2 style="margin:0">Rounds</h2><span class="sw-fmt">${esc(sys||"Swiss")}${N?` &middot; ${N} round${1===N?"":"s"}`:""}</span></div>
+    ${pnSrcHtml(t,L)}
+    ${run?'<p class="hint pnr-h">Each round is paired on Play Network, and a result shows here once it is confirmed there. You are not notified here when a round is paired.</p>':""}
+    ${body}
+  </div>`;
+}
+
+function pnStandingsHtml(L,M,lim){
+  const R=(Array.isArray(L&&L.rank)?L.rank:[]).filter(r=>r&&"object"==typeof r);
+  if(!R.length)return`<p class="hint">${L&&"Completed"!==L.pn_state&&!pnRounds(L).length?"The standings appear once Play Network pairs round 1.":"The standings appear here once Play Network shows them."}</p>`;
+  const rk=r=>pnNum(r.rank,1,9999),sh=i=>{const v=rk(R[i]);return null!=v&&R.some((x,j)=>j!==i&&rk(x)===v)},any=R.some((_,i)=>sh(i)),v=x=>Number.isInteger(x)?x:0,tb=String(L.tiebreak||"").trim().slice(0,60);
+  return`<table class="sw-st pnr-st"><thead><tr><th class="c-rk" scope="col">#</th><th class="c-nm" scope="col">Player</th><th class="c-tp" scope="col" title="Tournament Points">TP</th><th class="c-rec" scope="col" title="Wins, losses, draws">W-L-D</th><th class="c-md" scope="col" title="Mastery Differential">MD</th></tr></thead><tbody>${(lim?R.slice(0,lim):R).map((r,i)=>{const X=pnWho(M,r);return`<tr class="${X.mine?"me":""}"><td class="c-rk">${null!=rk(r)?rk(r):"–"}${sh(i)?'<span class="tv-tie" title="Shared rank">=</span>':""}</td><td class="c-nm"><div class="sw-nm"><span title="${esc(X.nm)}">${X.acct?`<a class="pnr-pl" href="#/profile/${esc(X.id)}">${esc(X.nm)}</a>`:esc(X.nm)}</span></div></td><td class="c-tp">${v(r.tp)}</td><td class="c-rec">${v(r.w)}–${v(r.l)}–${v(r.d)}</td><td class="c-md">${v(r.md)}</td></tr>`}).join("")}</tbody></table>
+    <p class="sw-leg">As Play Network shows them: TP Tournament Points · W-L-D wins–losses–draws · MD Mastery Differential${tb?` · tiebreaker: ${esc(tb)}`:""}${any?" · = shared rank":""}.</p>`;
+}
+function pnStandingsPanel(t,L){return`<div class="panel plain"><h2>Standings</h2>${pnSrcHtml(t,L)}${t.hidden_at&&!L?pnOffHtml():pnStandingsHtml(L,pnWhoMap(t))}</div>`}
+
+function pnResultPanel(t,L){
+  const p=t.payload||{},M=pnWhoMap(t),R=(Array.isArray(L&&L.rank)?L.rank:[]).filter(r=>r&&"object"==typeof r),top=R.filter(r=>1===r.rank),
+    ch=p.champion?tvChampHtml({id:p.champion}):1===top.length?`<div class="champion"><span aria-hidden="true">&#9819;</span> Champion &middot; <b>${esc(pnWho(M,top[0]).nm)}</b></div>`
+      :top.length?`<div class="champion">Shared first place &middot; <b>${top.map(r=>esc(pnWho(M,r).nm)).join(", ")}</b></div>`:"";
+  return`<div class="panel plain"><h2>Final standings</h2>${pnSrcHtml(t,L)}${ch}${t.hidden_at&&!L?pnOffHtml():pnStandingsHtml(L,M,R.length>3?3:0)}${R.length>3?'<p class="hint pnr-more">The full table is under <b>Standings</b>.</p>':""}</div>`;
+}
+
+function pnSrcSetHtml(t){
+  const p=t.payload||{},ty=String(p.pn&&p.pn.type||"").trim();
+  if(t3IsDemo(t)||"draft"!==t3St(t)||!("rounds_src"in t)||!t.pn_event_id||"clash"!==t.mode||(p.gm||[]).length||ty&&!/^tournament$/i.test(ty))return"";
+  const s=t3PnOn(t)?"pn":"sl";
+  return`<div class="tm-label" style="margin-top:12px">Rounds</div>
+    <div class="seg t3-rsrc" role="radiogroup" aria-label="Rounds">${[["pn","Play Network"],["sl","Seekers League"]].map(([k,l])=>`<button type="button" class="seg-b${s===k?" on":""}" role="radio" aria-checked="${s===k}" onclick="pnRoundsSet(${jsq(k)})">${l}</button>`).join("")}</div>
+    <p class="hint t3-whoh">${"pn"===s?"You pair the rounds and enter the results on Play Network. This page shows them with the standings, and starts and closes the tournament by itself.":"You start the tournament, pair the rounds and enter the results on this page, then copy them to Play Network for the official standings."}</p>`;
+}
+async function pnRoundsSet(s){
+  const t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t)||!/^(pn|sl)$/.test(s)||(t3PnOn(t)?"pn":"sl")===s)return;
+  const d=await t3Rpc("t_rounds_src",{p_tid:t.id,p_rev:t.rev|0,p_src:s});if(!d)return;
+  window._pnK&&delete window._pnK[t.id];window._pnRnd=null;
+  toast("pn"===s?"Rounds now come from Play Network":"Rounds are now made on this page",!0);
+  await t3Reload();
+}
+
+const PNL_SAY={fresh:"Already up to date: Play Network was read a moment ago.",busy:"Play Network is being read right now. Try again in a moment.",done:"The event is finished on Play Network: there is nothing more to read.",rate_limited:"Play Network was read many times in the last hour. Try again later.",hidden:"This tournament is off the public list, so Play Network is not read for it.",no_access:"This event can't be refreshed from this account.",not_pn:"This event makes its rounds on Seekers League.",upstream_error:"Reading Play Network needs a site update that is not live yet."};
+function pnRefBtn(on){document.querySelectorAll(".pnr-ref").forEach(b=>{b.disabled=!!on;b.textContent=on?"Reading Play Network…":"Refresh from Play Network"})}
+async function pnLiveKick(t,loud){
+  if(!t3PnOn(t)||!t.id||!sb)return;
+  const k=pnK(t.id),gap=("Upcoming"===pnLiveSt(t)?3e5:6e4)*Math.pow(2,Math.min(k.n,4));
+  if(k.busy)return void(loud&&toast(PNL_SAY.busy));
+  if(!me||!sb.functions)return loud?void 0:pnLivePeek(t);
+  if(!loud&&(k.stop||"closed"===t3St(t)||Date.now()-k.at<gap))return pnLivePeek(t);
+  k.busy=1;k.at=Date.now();loud&&pnRefBtn(1);
+  let d=null,er=null;
+  try{({data:d,error:er}=await sb.functions.invoke("play-network-event",{body:{pn_live:t.id}}))}catch(x){er=x}
+  k.busy=0;k.at=Date.now();
+  if(er||!d||"object"!=typeof d){k.n++;loud&&(pnRefBtn(0),toast("Play Network could not be reached just now. Try again in a minute."));return}
+  if(!d.why&&d.error){k.stop=1;loud&&(pnRefBtn(0),toast("bad_url"===d.error?PNL_SAY.upstream_error:PNL_SAY.no_access));return}const why=String(d.why||"");
+  d.ok?(k.n=0,"done"===why&&(k.stop=1)):/^(not_pn|no_access|hidden)$/.test(why)?k.stop=1:"rate_limited"===why?k.n=Math.min(k.n+1,2):k.n++;
+  loud&&(pnRefBtn(0),toast(d.ok&&!why?"Updated from Play Network":PNL_SAY[why]||"Play Network could not be read just now. The page keeps the last good copy.",!!d.ok&&!why));
+  const L=t._pnl,s=pnNum(d.srev,0,1e9);
+  (null!=s&&s!==(L?L.srev|0:0)||loud&&d.ok&&!why)&&await pnLiveSync(t);
+}
+async function pnLivePeek(t){
+  if(!t3PnOn(t)||!sb||!sb.from||"closed"===t3St(t)&&t._pnl)return;
+  const k=pnK(t.id);if(Date.now()-k.pk<25e3)return;k.pk=Date.now();
+  let r;try{r=await sb.from("tournament_pn_live").select("srev").eq("tournament_id",t.id).maybeSingle()}catch(x){return}
+  if(!r||r.error||!r.data)return;
+  const L=t._pnl;(r.data.srev|0)!==(L?L.srev|0:0)&&await pnLiveSync(t);
+}
+async function pnLiveSync(t){if(cache.tourney!==t||"tournaments"!==route.view||route.tournamentId!==t.id||t3Typing())return;await t3Reload()}
+function pnLiveRefresh(){const t=cache.tourney;t&&t3Ed(t)&&!t.hidden_at&&pnLiveKick(t,1).catch(()=>pnRefBtn(0))}
+
 function evTabs(t,ed){
   const p=t.payload||{},st=t3St(t),run="running"===st,closed="closed"===st,draft="draft"===st,
     act=ed&&run,demo=t3IsDemo(t),
@@ -11767,6 +11920,12 @@ function evTabs(t,ed){
     add("players","Players",t3Players(t,ed));
     ed&&draft&&!t.hidden_at&&add("invite","Invite",t3InviteHtml(t));
     ed&&add("settings","Settings",t3SettingsHtml(t,ed));
+  }else if(t3PnOn(t)&&!draft){
+    
+    closed&&add("result","Result",pnResultPanel(t,t._pnl));
+    add("rounds","Rounds",pnRoundsPanel(t,t._pnl));
+    add("standings","Standings",pnStandingsPanel(t,t._pnl));
+    add("players","Players",t3Players(t,ed));
   }else if(draft){
     add("players","Players",t3Players(t,ed));
     ed&&!t.hidden_at&&add("invite","Check-in",t3InviteHtml(t));
@@ -11855,7 +12014,7 @@ function t3SettingsHtml(t,ed){
       :run?(t3HasResults(p)?"":`<button class="ghost" onclick="t3Unstart()">Back to registration</button><button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`)
       :`<button class="ghost t-danger-b" onclick="t3Discard()">Discard</button>`;
   return`<div class="panel plain"><h2 style="margin:0 0 6px">Settings</h2>
-    ${demo?t3CtaEdHtml(t):t3ScopeHtml(t,"tournament")}
+    ${demo?t3CtaEdHtml(t):t3ScopeHtml(t,"tournament")}${pnSrcSetHtml(t)}
     ${t3HidNote(t)}
     ${fin?`<div class="t-fin">${fin}</div>`:""}
   </div>`;
@@ -11900,14 +12059,14 @@ function t3Paint(t){
     if(draft){
       if(!ed)h+=demo?`<div class="panel plain">${t3JoinBtn(t)}${t3CtaHtml(t)}${t3LinkHint(t)}</div>`:`<div class="panel plain"><p class="t3-lead">${esc(t3RegLine(t.pn_events)||"Registration is open. The organizer starts the tournament on the day of the event.")}</p>${t3CiHtml(t)}${t3LeaveHtml(t)}${t3LinkHint(t)}</div>`;
       
-      else if(!demo)h+=swSetupHtml(t);
+      else if(!demo)h+=t3PnOn(t)?pnSetupHtml(t):swSetupHtml(t);
       
       else if(me&&t3Ent0(t,me.id)&&"drop"!==t3Ent0(t,me.id).st)h+='<div class="panel plain"><div class="t3-acts"><button type="button" class="act gold" onclick="duPlayDemo()">Play a game</button></div></div>';
       
       if(!demo)h+=t3DeckBlock(t);
     }
     
-    else if(run)h+=t3DeckBlock(t)+t3NextHtml(t)+t3LeaveHtml(t);
+    else if(run)h+=t3DeckBlock(t)+(t3PnOn(t)?"":t3NextHtml(t)+t3LeaveHtml(t));
     h+=pane;
   }else
   {
@@ -11928,7 +12087,7 @@ function t3Paint(t){
 
 
 async function t3Start(){
-  let t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t)||t3Start.busy)return;
+  let t=cache.tourney;if(!t||!t3Ed(t)||"draft"!==t3St(t)||t3Start.busy)return;if(t3PnOn(t))return void toast("Rounds come from Play Network: pair round 1 there and this page starts by itself.");
   let add=0;
   if(t.pn_event_id||(t.payload&&t.payload.pn&&t.payload.pn.url)){
     t3Start.busy=1;const b=$("t3-go");b&&(b.disabled=!0,b.textContent="Checking the Play Network…");
@@ -11936,7 +12095,7 @@ async function t3Start(){
     try{await t3Reload()}catch(x){}
     t3Start.busy=0;t=cache.tourney;
     const b2=$("t3-go");b2&&(b2.disabled=!1,b2.textContent="Start the tournament");
-    if(!t||!t3Ed(t)||"draft"!==t3St(t)||"tournaments"!==route.view||route.tournamentId!==t.id)return;
+    if(!t||!t3Ed(t)||"draft"!==t3St(t)||"tournaments"!==route.view||route.tournamentId!==t.id)return;if(t3PnOn(t))return void toast("Rounds now come from Play Network: pair round 1 there, or change Rounds in Settings.");
   }
   const keys=t3Active(t.payload||{}),n=keys.length;
   if(n<TV_MIN)return toast(`At least ${TV_MIN} players are needed to start`);
@@ -12085,14 +12244,14 @@ async function t3CheckIn(tid,on){if(!me)return void go("auth");if(t3CheckIn.busy
   if("browse"===route.view){try{await homeLoad()}catch(x){}paintHomeNext()}}
 
 async function t3Ci(key,on){const t=cache.tourney;if(!t||!t3Ed(t))return;const d=await t3Rpc("t_checkin",{p_tid:t.id,p_rev:t.rev|0,p_key:key,p_on:!!on});if(d)await t3Reload()}
-async function t3DropAbsent(){const t=cache.tourney;if(!t||!t3Ed(t))return;
+async function t3DropAbsent(){const t=cache.tourney;if(!t||!t3Ed(t)||t3PnOn(t))return;
   const E=(t.payload&&t.payload.entrants||[]).filter(e=>e&&"drop"!==e.st),A=E.filter(e=>!0!==e.here);if(!A.length)return;
   if(!await slConfirm({title:`Drop ${A.length} player${1===A.length?"":"s"}?`,body:"Not checked in: "+A.map(e=>e.name||"Player").join(", ")+".\n\nYou can bring any of them back from their row before the start.",ok:"Drop",danger:!0}))return;
   try{await t3Reload()}catch(x){}const t2=cache.tourney;if(!t2||t2.id!==t.id)return;
   const d=await t3Rpc("t_drop_absent",{p_tid:t.id,p_rev:t2.rev|0});if(!d)return;
   toast(`${d.dropped|0} dropped`,!0);await t3Reload()}
 
-function t3LeaveOk(t){const m=t3Mine(t),s=t3St(t);return!!m&&"drop"!==m.st&&!t3IsDemo(t)&&!t3Archived(t)&&!t.hidden_at&&("draft"===s||"running"===s&&swIsSwiss(t.payload||{}))}
+function t3LeaveOk(t){const m=t3Mine(t),s=t3St(t);return!!m&&"drop"!==m.st&&!t3IsDemo(t)&&!t3Archived(t)&&!t.hidden_at&&("draft"===s||"running"===s&&swIsSwiss(t.payload||{})&&!t3PnOn(t))}
 function t3LeaveHtml(t){const m=t3Mine(t);if(!m||t3IsDemo(t))return"";
   if("drop"===m.st&&"closed"!==t3St(t))return'<p class="hint t3-left">You are no longer playing in this tournament. Only the organizer can bring you back.</p>';
   return t3LeaveOk(t)?`<div class="t3-acts t3-leave"><button type="button" class="ghost" onclick="t3Leave(${jsq(t.id)})">Leave the tournament</button></div>`:""}
