@@ -10,6 +10,9 @@
 //   POST { "id": "<pn_events id>" }                        refresh a listing
 //   POST { "tournament_id": "<uuid>",                      import the players
 //          "known"?: { "<card base id>": "<name>" } }      of a tournament
+//   POST { "pn_live": "<tournament uuid>" }                mirror the rounds, results
+//                                                          and standings of a tournament
+//                                                          that takes them from Play Network
 //
 // "known" is the site's own card list (collection number such as "CON-48"
 // to its name, at most 4000 entries), so Play Network card ids become the
@@ -57,6 +60,21 @@
 // It hands them to t_import, which keeps them inside that tournament only
 // (they are deleted with it). The list is never cached, logged or echoed
 // back: the answer carries counts only.
+//
+// pn_live mode: any signed-in user who can see the tournament may ask;
+// t_pn_live_allow (as the caller) decides whether a look-up is due (60 s
+// while Ongoing, 10 min / 6 h before, once after it finishes), holds a 20 s
+// claim so two viewers do not both fetch, and logs it in pn_fetch_log. The
+// only page requested is the tournament's own event page, as above. It
+// reads the pairings, the Confirmed results (score, turns, Seeker and
+// terrain of each side) and the standings: exactly what is listed above the
+// "pn live (pure)" block below. Of a player it keeps the nickname and the
+// profile id only; first and last names, user_id and member_id are never
+// read. It hands the mirror to t_pn_live_put (service role), which keeps it
+// in tournament_pn_live, readable by whoever can see the tournament (Play
+// Network shows the same publicly). The answer has state, round and srev
+// only: no names, no results. Failures store an error code and keep the
+// last good mirror.
 //
 // "Verify JWT" is turned off for this function in the dashboard: the code
 // below verifies the user itself (auth.getUser), which also works with the
@@ -1011,7 +1029,7 @@ function foldName(s = "") {
  * @param {{ seeker: unknown, terrain: unknown }} fb  Play Network names of the Seeker and terrain
  */
 function mapDeck(raw = Object(), db = Object(), known = Object(), fb = Object()) {
-  const unk = [];
+  const unk = [""].slice(0, 0); // string[] (plain JS: no annotation)
   const unkSeen = new Set();
   const nameOf = (id = "", fallback = Object()) => {
     const base = id.replace(/-[0-9]{1,3}-[A-Z]{1,4}$/, "");
@@ -1179,6 +1197,400 @@ function readRegistrants(html = "") {
 }
 // ---- end registrants ----
 
+// ---- pn live (pure) ----
+// The pn_live mode only: the rounds, the results and the standings of a Play
+// Network Tournament, mirrored on the Seekers League event page. Plain
+// JavaScript on purpose, like the registrants block above (types in JSDoc,
+// parameter types from defaults). It uses clean(), decodeEntities(),
+// literalStart(), sliceLiteral(), sha256hex() and PROFILE from above.
+//
+// From playNetworkCurrentEventData it reads ONLY: id, publish_status,
+// is_test, event_state, officially_finished, type_name, game_mode_name,
+// num_rounds, system_name, tiebreaker_name, and in rounds: each round's
+// status and, of each match, id, table_number, is_bye, event_round_number
+// and the nickname of each player in team_a_players / team_b_players.
+// From each reported game card (.compMatchResult[data-match-json]) ONLY: id,
+// event_round_number, is_bye, is_draw, winning_team, team_a_score,
+// team_b_score, match_played_turns, result_status, team_a_seeker,
+// team_a_terrain, team_b_seeker, team_b_terrain, and of each player nickname
+// and profile_url (the profile id is taken out of it). A result counts only
+// when result_status is "Confirmed"; any other game shows as not played yet.
+// From each standings row (.compRankRowProfile) ONLY: the rank, the profile
+// id of the player link, the nickname, Tournament Points, wins, defeats,
+// draws and Mastery Differential.
+// Never read: first_name, last_name, name, user_id, member_id, data-user-id,
+// avatar, deck fields, locked_deck_data, slot_index, is_float, event_name,
+// is_author, the decklists. Never console.* the page, a card, a name or a
+// result: failures are reported by code only (PN_LIVE_ERRORS).
+
+const PN_LIVE = {
+  literal: 1_500_000, // playNetworkCurrentEventData with its rounds (this mode only)
+  card: 200_000,      // one data-match-json attribute
+  rounds: 100,
+  games: 1024,        // all rounds together
+  rankRows: 512,
+  bytes: 500_000,     // rounds + rank as JSON, under the 512 KB of tournament_pn_live
+};
+
+// Every error code this block can give (they end up in tournament_pn_live.err).
+const PN_LIVE_ERRORS = [
+  "truncated", "no_event", "event_json", "wrong_event", "not_published", "state", "not_tournament",
+  "team_mode", "rounds_shape", "match_shape", "too_many", "card_json", "card_shape", "card_dup",
+  "card_unknown", "card_mismatch", "incomplete", "rank_missing", "rank_row", "rank_short", "too_big",
+];
+
+/**
+ * A whole number between min and max (a number or a numeric string), or null.
+ * @param {unknown} v
+ * @param {number} min
+ * @param {number} max
+ * @returns {number | null}
+ */
+function pnInt(v = Object(), min = 0, max = 0) {
+  const s = typeof v === "number" ? String(v) : typeof v === "string" ? v.trim() : "";
+  if (!/^[+-]?[0-9]{1,9}$/.test(s)) return null;
+  const n = Number(s);
+  return n >= min && n <= max ? n : null;
+}
+
+/** "1" / 1 / true -> true. @param {unknown} v */
+function pnFlag(v = Object()) {
+  return v === 1 || v === "1" || v === true;
+}
+
+/** A nickname as shown. @param {unknown} v @returns {string} */
+function pnNick(v = Object()) {
+  return clean(v, 40) ?? "Player";
+}
+
+/** The profile id out of a profile link, or null. @param {unknown} v @returns {string | null} */
+function pnPidOf(v = Object()) {
+  if (typeof v !== "string" || v.length > 200) return null;
+  const m = PROFILE.exec(v);
+  return m ? m[1] : null;
+}
+
+/**
+ * The event literal, with its rounds: checked to be this event, published and
+ * not a test. {ev} or {err}.
+ * @param {string} html
+ * @param {string} id
+ */
+function pnLiveEvent(html = "", id = "") {
+  const at = literalStart(html, "playNetworkCurrentEventData");
+  if (at < 0) return { err: "no_event" };
+  const lit = sliceLiteral(html, at, PN_LIVE.literal);
+  if (!lit) return { err: "event_json" };
+  let v = null;
+  try {
+    v = JSON.parse(lit);
+  } catch (_e) {
+    return { err: "event_json" };
+  }
+  if (!v || typeof v !== "object" || Array.isArray(v)) return { err: "event_json" };
+  if (String(v.id) !== id) return { err: "wrong_event" };
+  if (v.publish_status !== "Published" || pnFlag(v.is_test)) return { err: "not_published" };
+  return { ev: v };
+}
+
+/**
+ * The players of one side of a match (rounds[] or a card): [] or [{nick, pid}].
+ * More than one player is a team game (2x2), which Seekers League does not
+ * mirror. null when not an array.
+ * @param {unknown} v
+ * @returns {{ nick: string, pid: string | null }[] | null}
+ */
+function pnSide(v = Object()) {
+  if (!Array.isArray(v) || v.length > 8) return null;
+  const out = [];
+  for (const p of v) {
+    if (!p || typeof p !== "object") return null;
+    out.push({ nick: pnNick(p.nickname), pid: pnPidOf(p.profile_url) });
+  }
+  return out;
+}
+
+/**
+ * The pairings of rounds[]: [{r, status, games:[{id, tb, bye, a, b}]}],
+ * sorted by round, or {err}. Play Network gives {} keyed by round, or []
+ * when there are none.
+ * @param {any} ev
+ */
+function pnLiveRounds(ev = Object()) {
+  const src = ev.rounds;
+  if (src === undefined || src === null || (Array.isArray(src) && src.length === 0)) return { rounds: [] };
+  if (typeof src !== "object" || Array.isArray(src)) return { err: "rounds_shape" };
+  const keys = Object.keys(src);
+  if (keys.length > PN_LIVE.rounds) return { err: "too_many" };
+  const rounds = [];
+  const seen = new Set();
+  let total = 0;
+  for (const k of keys) {
+    const r = pnInt(k, 1, PN_LIVE.rounds);
+    const R = src[k];
+    if (r === null || !R || typeof R !== "object" || Array.isArray(R)) return { err: "rounds_shape" };
+    const ms = R.matches === undefined || R.matches === null ? [] : R.matches;
+    if (!Array.isArray(ms)) return { err: "rounds_shape" };
+    total += ms.length;
+    if (total > PN_LIVE.games) return { err: "too_many" };
+    const st = typeof R.status === "string" && /^[A-Za-z_ -]{1,20}$/.test(R.status) ? R.status.toLowerCase() : null;
+    const games = [];
+    for (const m of ms) {
+      if (!m || typeof m !== "object") return { err: "match_shape" };
+      const id = pnInt(m.id, 1, 2_000_000_000);
+      if (id === null || seen.has(id)) return { err: "match_shape" };
+      if (m.event_round_number !== undefined && m.event_round_number !== null && pnInt(m.event_round_number, 1, PN_LIVE.rounds) !== r) {
+        return { err: "match_shape" };
+      }
+      seen.add(id);
+      const bye = pnFlag(m.is_bye);
+      const a = pnSide(m.team_a_players);
+      const b = pnSide(m.team_b_players === undefined || m.team_b_players === null ? [] : m.team_b_players);
+      if (!a || !b) return { err: "match_shape" };
+      if (a.length > 1 || b.length > 1) return { err: "team_mode" };
+      if (a.length !== 1 || (bye ? b.length !== 0 : b.length !== 1)) return { err: "match_shape" };
+      games.push({ id, tb: pnInt(m.table_number, 0, 100000) ?? 0, bye, a: a[0].nick, b: bye ? null : b[0].nick });
+    }
+    rounds.push({ r, status: st, games });
+  }
+  rounds.sort((x, y) => x.r - y.r);
+  return { rounds };
+}
+
+/**
+ * The reported game cards: Map(match id -> card), or {err}. A card is read
+ * only from a tag whose class has compMatchResult. The same card twice (the
+ * page may repeat one) must be the same card.
+ * @param {string} html
+ */
+function pnLiveCards(html = "") {
+  const cards = new Map();
+  const raw = new Map();
+  const re = /<div\b([^>']{0,2000})\bdata-match-json='([^']{0,200000})'/g;
+  for (const m of html.matchAll(re)) {
+    if (!/\bclass="[^"]*\bcompMatchResult\b[^"]*"/.test(m[1])) continue;
+    const txt = decodeEntities(m[2]);
+    const id0 = /^\{\s*"id"\s*:\s*"?([0-9]{1,10})"?/.exec(txt);
+    if (id0 && raw.has(id0[1])) {
+      if (raw.get(id0[1]) !== txt) return { err: "card_dup" };
+      continue;
+    }
+    if (raw.size >= PN_LIVE.games) return { err: "too_many" };
+    let c = null;
+    try {
+      c = JSON.parse(txt);
+    } catch (_e) {
+      return { err: "card_json" };
+    }
+    if (!c || typeof c !== "object" || Array.isArray(c)) return { err: "card_json" };
+    const id = pnInt(c.id, 1, 2_000_000_000);
+    const r = pnInt(c.event_round_number, 1, PN_LIVE.rounds);
+    if (id === null || r === null) return { err: "card_shape" };
+    if (raw.has(String(id)) || cards.has(id)) {
+      if (raw.get(String(id)) !== txt) return { err: "card_dup" };
+      continue;
+    }
+    raw.set(String(id), txt);
+    const bye = pnFlag(c.is_bye);
+    const a = pnSide(c.team_a_players);
+    const b = pnSide(c.team_b_players === undefined || c.team_b_players === null ? [] : c.team_b_players);
+    if (!a || !b) return { err: "card_shape" };
+    if (a.length > 1 || b.length > 1) return { err: "team_mode" };
+    if (a.length !== 1 || (!bye && b.length !== 1)) return { err: "card_shape" };
+    const conf = c.result_status === "Confirmed";
+    const draw = conf && pnFlag(c.is_draw);
+    const wt = pnInt(c.winning_team, 0, 2);
+    cards.set(id, {
+      id, r, bye,
+      a: a[0], b: b.length ? b[0] : null,
+      conf,
+      draw,
+      win: conf && !draw && (wt === 1 || wt === 2) ? wt : null,
+      sa: conf ? pnInt(c.team_a_score, 0, 100000) : null,
+      sb: conf ? pnInt(c.team_b_score, 0, 100000) : null,
+      turns: conf ? pnInt(c.match_played_turns, 0, 1000) : null,
+      sk_a: conf ? clean(c.team_a_seeker, 80) : null,
+      tr_a: conf ? clean(c.team_a_terrain, 80) : null,
+      sk_b: conf ? clean(c.team_b_seeker, 80) : null,
+      tr_b: conf ? clean(c.team_b_terrain, 80) : null,
+    });
+  }
+  return { cards };
+}
+
+/**
+ * The standings table: [{rank, pid, nick, tp, w, l, d, md}] in page order,
+ * null when the table is not on the page, or {err} when a row does not read
+ * in full.
+ * @param {string} html
+ */
+function pnLiveRank(html = "") {
+  const s = html.indexOf('id="RankingsCardsWrapper"');
+  if (s < 0) return null;
+  let e = html.indexOf("data-content-type=", s);
+  if (e < 0) e = Math.min(html.length, s + 2_000_000);
+  const part = html.slice(s, e);
+  const starts = [];
+  for (const m of part.matchAll(/<div\b[^>]{0,500}\bclass="[^"]*\bcompRankRowProfile\b[^"]*"/g)) starts.push(m.index);
+  if (starts.length > PN_LIVE.rankRows) return { err: "too_many" };
+  const rows = [];
+  for (let i = 0; i < starts.length; i++) {
+    const row = part.slice(starts[i], i + 1 < starts.length ? starts[i + 1] : part.length);
+    const rk = /<h5\b[^>]*>\s*([0-9]{1,4})\.\s*<\/h5>/.exec(row);
+    const who = /<a\b([^>]{0,600})\bclass="[^"]*\bcompUserNickname\b[^"]*"[^>]*>\s*<span\b[^>]*>([^<]{0,200})<\/span>/.exec(row);
+    const href = who ? /\bhref="([^"]{0,200})"/.exec(who[1]) : null;
+    const ps = [...row.matchAll(/<p class="tx-reg m-tx-sml[^"]*">\s*([+-]?[0-9]{1,6})\s*<\/p>/g)].map((m) => Number(m[1]));
+    const rec = Object.create(null);
+    const recRe =
+      /<span class="tx-reg m-tx-sml[^"]*">\s*([0-9]{1,4})\s*<\/span>\s*<div class="compTooltip\b[^"]*">\s*<div\b[^>]*>\s*<p\b[^>]*>\s*(Wins|Defeats|Draws)\s*<\/p>/g;
+    for (const m of row.matchAll(recRe)) {
+      if (rec[m[2]] !== undefined) return { err: "rank_row" };
+      rec[m[2]] = Number(m[1]);
+    }
+    if (!rk || !who || ps.length !== 2 || rec.Wins === undefined || rec.Defeats === undefined || rec.Draws === undefined) {
+      return { err: "rank_row" };
+    }
+    rows.push({
+      rank: Number(rk[1]),
+      pid: href ? pnPidOf(decodeEntities(href[1])) : null,
+      nick: pnNick(who[2]),
+      tp: ps[0],
+      w: rec.Wins,
+      l: rec.Defeats,
+      d: rec.Draws,
+      md: ps[1],
+    });
+  }
+  return { rank: rows };
+}
+
+/**
+ * The mirror of an event page: {ok: true, live: {state, cur_round, n_rounds,
+ * system, tiebreak, rounds, rank}} or {ok: false, err} (fail closed: the
+ * caller keeps the last good mirror). rounds and rank have the shape of
+ * tournament_pn_live; a game's result fields are filled only for a
+ * Confirmed result.
+ * Checks: the page is whole (it ends with </html>); a Tournament in 1x1;
+ * every card belongs to a match of rounds[] in the same round with the same
+ * players; every game that is not a bye has a card in every round before the
+ * current one (in every round once Completed); the standings table is there
+ * once the event has started, with at least one row per player paired.
+ * @param {string} html
+ * @param {string} id  the Play Network event id
+ */
+function pnLiveParse(html = "", id = "") {
+  const bad = (err = "") => ({ ok: false, err, live: null });
+  if (!/<\/html>\s*$/i.test(html)) return bad("truncated");
+  const got = pnLiveEvent(html, id);
+  if (got.err) return bad(got.err);
+  const ev = got.ev;
+  let state = typeof ev.event_state === "string" ? ev.event_state : "";
+  if (state !== "Upcoming" && state !== "Ongoing" && state !== "Completed") return bad("state");
+  if (state === "Ongoing" && pnFlag(ev.officially_finished)) state = "Completed";
+  if (ev.type_name !== "Tournament") return bad("not_tournament");
+  if (ev.game_mode_name !== "1x1") return bad("team_mode");
+
+  const rr = pnLiveRounds(ev);
+  if (rr.err) return bad(rr.err);
+  const cc = pnLiveCards(html);
+  if (cc.err) return bad(cc.err);
+  const cards = cc.cards || new Map();
+  const pairings = rr.rounds || [];
+
+  // Every card is a match of rounds[], in its round, between the same players.
+  const where = new Map();
+  for (const R of pairings) for (const g of R.games) where.set(g.id, { r: R.r, g });
+  for (const c of cards.values()) {
+    const w = where.get(c.id);
+    if (!w || w.r !== c.r) return bad("card_unknown");
+    if (w.g.bye !== c.bye || w.g.a !== c.a.nick || (w.g.b ?? null) !== (c.b ? c.b.nick : null)) return bad("card_mismatch");
+  }
+  let cur = 0;
+  for (const R of pairings) if (R.games.length > 0) cur = Math.max(cur, R.r);
+  for (const R of pairings) {
+    const need = state === "Completed" || (state === "Ongoing" && R.r < cur);
+    if (!need) continue;
+    for (const g of R.games) if (!g.bye && !cards.has(g.id)) return bad("incomplete");
+  }
+
+  // Before the start the table holds only zeros: it is not mirrored.
+  const rk = state === "Upcoming" ? null : pnLiveRank(html);
+  if (state !== "Upcoming") {
+    if (!rk) return bad("rank_missing");
+    if (rk.err) return bad(rk.err);
+  }
+  const rank = (rk && rk.rank) || [];
+  // Everyone paired has a row (a player who dropped keeps theirs): fewer
+  // rows means the rows were not read (the page changed).
+  const paired = new Set();
+  for (const R of pairings) for (const g of R.games) {
+    paired.add(g.a);
+    if (g.b !== null) paired.add(g.b);
+  }
+  if (state !== "Upcoming" && rank.length < paired.size) return bad("rank_short");
+
+  // Profile ids: pairings in rounds[] carry none, so a nickname takes the id
+  // the cards and the standings give it, when they all agree on one.
+  const pidBy = new Map();
+  const note = (nick = "", pid = Object()) => {
+    if (!pid) return;
+    const was = pidBy.get(nick);
+    pidBy.set(nick, was === undefined || was === pid ? pid : "");
+  };
+  for (const c of cards.values()) {
+    note(c.a.nick, c.a.pid);
+    if (c.b) note(c.b.nick, c.b.pid);
+  }
+  for (const x of rank) note(x.nick, x.pid);
+  const side = (nick = "", fromCard = Object()) => ({ pid: (fromCard && fromCard.pid) || pidBy.get(nick) || null, nick });
+
+  const rounds = pairings.map((R) => ({
+    r: R.r,
+    status: R.status,
+    games: R.games.map((g) => {
+      const c = cards.get(g.id) || null;
+      const res = !!(c && c.conf);
+      return {
+        id: g.id,
+        tb: g.tb,
+        a: side(g.a, c && c.a),
+        b: g.b === null ? null : side(g.b, c && c.b),
+        bye: g.bye,
+        draw: res ? c.draw : false,
+        win: res ? c.win : null,
+        sa: res ? c.sa : null,
+        sb: res ? c.sb : null,
+        turns: res ? c.turns : null,
+        sk_a: res ? c.sk_a : null,
+        tr_a: res ? c.tr_a : null,
+        sk_b: res ? c.sk_b : null,
+        tr_b: res ? c.tr_b : null,
+      };
+    }),
+  }));
+  const live = {
+    state,
+    cur_round: cur,
+    n_rounds: pnInt(ev.num_rounds, 1, 100),
+    system: clean(ev.system_name, 60),
+    tiebreak: clean(ev.tiebreaker_name, 60),
+    rounds,
+    rank,
+  };
+  if (JSON.stringify(rounds).length + JSON.stringify(rank).length > PN_LIVE.bytes) return bad("too_big");
+  return { ok: true, err: "", live };
+}
+
+/**
+ * The check hash of a mirror (srev moves only when it changes).
+ * @param {any} live  pnLiveParse().live
+ * @returns {Promise<string>}
+ */
+function pnLiveHash(live = Object()) {
+  return sha256hex("PL1|" + JSON.stringify([live.state, live.cur_round, live.n_rounds, live.system, live.tiebreak, live.rounds, live.rank]));
+}
+// ---- end pn live ----
+
 // ---------------------------------------------------------------- cache
 
 // Per Play Network id, for 60 s, in this instance only. Holds only the
@@ -1248,6 +1660,9 @@ Deno.serve(async (req: Request) => {
     // 2. The request: { tournament_id }, { league_id, url } or { id }.
     const body = await readRequestJson(req);
     if (!body) return fail("bad_url", cors);
+    if (body.pn_live !== undefined && body.pn_live !== null) {
+      return await pnLive(caller, body.pn_live, started, cors);
+    }
     if (body.tournament_id !== undefined && body.tournament_id !== null) {
       return await importRegistrants(caller, body.tournament_id, body.known, started, cors);
     }
@@ -1362,6 +1777,119 @@ async function saveListing(leagueId: string | null, pnId: number, fields: Json, 
     .select("*").single();
 }
 
+// ---------------------------------------------------------------- pn live
+
+const PN_LIVE_WHY = new Set(["fresh", "not_pn", "done", "rate_limited", "hidden", "busy", "no_access"]);
+
+// POST { pn_live: "<tournament uuid>" }: mirrors the rounds, results and
+// standings of the tournament's Play Network event into tournament_pn_live.
+// t_pn_live_allow (as the caller) decides whether a look-up is due, claims
+// it and logs it; the page is read fresh (never cached) and parsed by
+// pnLiveParse(); t_pn_live_put (service role) stores it, and moves the
+// tournament draft -> running -> closed with Play Network. The read that
+// starts it (the gate answers st "draft" and the page is no longer Upcoming)
+// first imports the registrants from the same page (mergeRegistrants, as
+// Start does on an event that makes its own rounds). A page that does
+// not read in full is stored as a failure (ok false, an error code) and the
+// last good mirror stays. The answer never carries a name or a result:
+//   { ok, why?, state, round, srev }
+// ok is true when the mirror is fine as it is (why "fresh", "done" or
+// "busy") or was just refreshed; false with why for the rest (the refusals
+// of t_pn_live_allow, or an error code of PN_LIVE_ERRORS, event_not_found,
+// upstream_error, bad_url, save_failed).
+async function pnLive(caller: typeof service, raw: unknown, started: number, cors: Record<string, string>): Promise<Response> {
+  const out = (ok: boolean, why: string | null, state: unknown, round: unknown, srev: unknown) =>
+    reply({
+      ok,
+      ...(why ? { why } : {}),
+      state: typeof state === "string" ? state : null,
+      round: typeof round === "number" ? round : null,
+      srev: asCount(srev),
+    }, cors);
+  if (typeof raw !== "string" || !UUID.test(raw)) return out(false, "no_access", null, null, 0);
+  const tid = raw;
+
+  // 1. Due, allowed, claimed and logged: asked as the caller, before anything
+  //    leaves for malediction.gg.
+  const allow = await caller.rpc("t_pn_live_allow", { p_tid: tid });
+  if (allow.error) {
+    console.error("play-network-event: t_pn_live_allow failed", allow.error.code ?? "");
+    return out(false, "upstream_error", null, null, 0);
+  }
+  const a = (allow.data && typeof allow.data === "object" ? allow.data : {}) as Json;
+  if (a.go !== true) {
+    const why = typeof a.why === "string" && PN_LIVE_WHY.has(a.why) ? a.why : "no_access";
+    return out(why === "fresh" || why === "done" || why === "busy", why, null, null, a.srev);
+  }
+
+  // From here the claim is held: every way out stores the outcome, which
+  // also lets the claim go.
+  const failPut = async (err: string): Promise<Response> => {
+    const put = await service.rpc("t_pn_live_put", {
+      p_tid: tid,
+      p_state: null,
+      p_cur_round: null,
+      p_n_rounds: null,
+      p_system: null,
+      p_tiebreak: null,
+      p_rounds: [],
+      p_rank: [],
+      p_hash: null,
+      p_ok: false,
+      p_err: err,
+    });
+    if (put.error) console.error("play-network-event: t_pn_live_put failed", put.error.code ?? "");
+    else console.error("play-network-event: pn_live", err);
+    const p = (put.data && typeof put.data === "object" ? put.data : {}) as Json;
+    return out(false, err, null, null, p.srev ?? a.srev);
+  };
+  const ref = parsePnUrl(a.url);
+  if (!ref) return await failPut("bad_url");
+
+  // 2. The official page, fresh.
+  const page = await fetchPage(ref);
+  if (page.kind === "not_found") return await failPut("event_not_found");
+  if (page.kind === "error") return await failPut("upstream_error");
+  const parsed = pnLiveParse(page.html, ref.id);
+  if (!parsed.ok || !parsed.live) {
+    const err = typeof parsed.err === "string" && PN_LIVE_ERRORS.includes(parsed.err) ? parsed.err : "parse_error";
+    return await failPut(err);
+  }
+  const live = parsed.live;
+
+  // 2b. The read that starts the tournament (it is still a draft here and Play Network has paired
+  //     round 1): import the registrants first, from this same page, as Start does on an event
+  //     that makes its own rounds. A failure is logged and does not hold the start back.
+  if (a.st === "draft" && live.state !== "Upcoming") {
+    const found = parseEvent(page.html, ref);
+    if (found.kind === "ok") {
+      const m = await mergeRegistrants(tid, page.html, ref, found.data, null, started);
+      if (!m.ok) console.error("play-network-event: pn_live import", m.code);
+    } else console.error("play-network-event: pn_live import", found.code);
+  }
+
+  // 3. Store it (service role: t_pn_live_put is not callable by users).
+  const put = await service.rpc("t_pn_live_put", {
+    p_tid: tid,
+    p_state: live.state,
+    p_cur_round: live.cur_round,
+    p_n_rounds: live.n_rounds,
+    p_system: live.system,
+    p_tiebreak: live.tiebreak,
+    p_rounds: live.rounds,
+    p_rank: live.rank,
+    p_hash: await pnLiveHash(live),
+    p_ok: true,
+    p_err: null,
+  });
+  const p = (put.data && typeof put.data === "object" ? put.data : {}) as Json;
+  if (put.error || p.ok !== true) {
+    console.error("play-network-event: t_pn_live_put failed", put.error?.code ?? (typeof p.reason === "string" ? p.reason.slice(0, 40) : ""));
+    return out(false, "save_failed", live.state, live.cur_round, p.srev ?? a.srev);
+  }
+  return out(true, null, live.state, live.cur_round, p.srev);
+}
+
 // ---------------------------------------------------------------- tournaments
 
 function asCount(v: unknown): number {
@@ -1439,53 +1967,23 @@ async function readDecks(
   return { dks, counts };
 }
 
-// POST { tournament_id, known? }: reads the registered players of the
-// tournament's Play Network event and merges them into the tournament (draft
-// only), with their avatars, Discord handles and decks. The answer carries
-// counts only; the client re-reads the tournament row.
-async function importRegistrants(
-  caller: typeof service,
-  raw: unknown,
+// Steps 4b-6 of the tournament mode, from a page already read: the registrants with their avatars,
+// Discord handles and decks, merged by t_import (service role, draft only). Shared by
+// importRegistrants() and by pnLive(), which runs it once just before the read that starts the
+// tournament, so whoever registered on Play Network since the last import plays with their deck.
+type Merge = { ok: true; r: Json; regs: NonNullable<ReturnType<typeof readRegistrants>>; counts: DeckCounts; hidden: boolean; pre: number; sizeCut: boolean } | { ok: false; code: Code; message?: string };
+async function mergeRegistrants(
+  tid: string,
+  html: string,
+  ref: PnRef,
+  ev: EventData,
   rawKnown: unknown,
   started: number,
-  cors: Record<string, string>,
-): Promise<Response> {
-  if (typeof raw !== "string" || !UUID.test(raw)) return fail("not_allowed", cors, T_NOT_ALLOWED);
-  const tid = raw;
+): Promise<Merge> {
   const oops = "Something went wrong. Try again later.";
-
-  // 3. Organizer, draft, community not archived, 30 s since the last import
-  //    and the pn_fetch_log brake (it logs this look-up), asked as the caller
-  //    before anything leaves for malediction.gg.
-  const allow = await caller.rpc("t_fetch_allow", { p_tid: tid });
-  if (allow.error) {
-    console.error("play-network-event: t_fetch_allow failed", allow.error.code ?? "");
-    return fail("upstream_error", cors, oops);
-  }
-  const a = (allow.data && typeof allow.data === "object" ? allow.data : {}) as Json;
-  if (a.ok !== true) {
-    if (a.reason === "archived") return fail("archived", cors);
-    if (a.reason === "started") return fail("started", cors);
-    if (a.reason === "rate_limited") return fail("rate_limited", cors);
-    return fail("not_allowed", cors, T_NOT_ALLOWED);
-  }
-  const ref = parsePnUrl(a.url);
-  if (!ref) return fail("bad_url", cors, "The Play Network link of this tournament is not valid.");
-  const pnEventId = typeof a.pn_event_id === "string" && UUID.test(a.pn_event_id) ? a.pn_event_id : null;
-
-  // 4. The official page, fresh: the registrants are never cached.
-  const page = await fetchPage(ref);
-  if (page.kind === "not_found") {
-    rememberEvent(ref.id, { kind: "error", code: "event_not_found" });
-    return fail("event_not_found", cors);
-  }
-  if (page.kind === "error") return fail("upstream_error", cors);
-  const found = parseEvent(page.html, ref); // keeps the id and published/test checks
-  rememberEvent(ref.id, found);
-  if (found.kind === "error") return fail(found.code, cors);
+  const page = { html };
   const regs = readRegistrants(page.html);
-  if (!regs) return fail("parse_error", cors, T_PARSE_ERROR);
-  const ev = found.data;
+  if (!regs) return { ok: false, code: "parse_error", message: T_PARSE_ERROR };
   const list = regs.list as Reg[];
 
   // 5. Decks, read only from the JSON list and only while Play Network shows
@@ -1563,21 +2061,73 @@ async function importRegistrants(
       system: ev.format,
       minutes: ev.round_minutes,
       game_mode: ev.game_mode,
+      type: ev.type_name, // "Tournament" lets t_import pick Play Network rounds (rounds_src 'pn')
       ...(json ? { decks: hidden ? "hidden" : "shown", pre } : {}),
     },
   });
   if (imp.error) {
     console.error("play-network-event: t_import failed", imp.error.code ?? "");
-    return fail("upstream_error", cors, oops);
+    return { ok: false, code: "upstream_error", message: oops };
   }
   const r = (imp.data && typeof imp.data === "object" ? imp.data : {}) as Json;
   if (r.ok !== true) {
-    if (r.reason === "status" || r.reason === "started") return fail("started", cors);
-    if (r.reason === "not_allowed") return fail("not_allowed", cors, T_NOT_ALLOWED);
-    if (r.reason === "archived") return fail("archived", cors);
+    if (r.reason === "status" || r.reason === "started") return { ok: false, code: "started" };
+    if (r.reason === "not_allowed") return { ok: false, code: "not_allowed", message: T_NOT_ALLOWED };
+    if (r.reason === "archived") return { ok: false, code: "archived" };
     console.error("play-network-event: t_import refused", typeof r.reason === "string" ? r.reason.slice(0, 40) : "");
+    return { ok: false, code: "upstream_error", message: oops };
+  }
+  return { ok: true, r, regs, counts, hidden, pre, sizeCut };
+}
+
+// POST { tournament_id, known? }: reads the registered players of the
+// tournament's Play Network event and merges them into the tournament (draft
+// only), with their avatars, Discord handles and decks. The answer carries
+// counts only; the client re-reads the tournament row.
+async function importRegistrants(
+  caller: typeof service,
+  raw: unknown,
+  rawKnown: unknown,
+  started: number,
+  cors: Record<string, string>,
+): Promise<Response> {
+  if (typeof raw !== "string" || !UUID.test(raw)) return fail("not_allowed", cors, T_NOT_ALLOWED);
+  const tid = raw;
+  const oops = "Something went wrong. Try again later.";
+
+  // 3. Organizer, draft, community not archived, 30 s since the last import
+  //    and the pn_fetch_log brake (it logs this look-up), asked as the caller
+  //    before anything leaves for malediction.gg.
+  const allow = await caller.rpc("t_fetch_allow", { p_tid: tid });
+  if (allow.error) {
+    console.error("play-network-event: t_fetch_allow failed", allow.error.code ?? "");
     return fail("upstream_error", cors, oops);
   }
+  const a = (allow.data && typeof allow.data === "object" ? allow.data : {}) as Json;
+  if (a.ok !== true) {
+    if (a.reason === "archived") return fail("archived", cors);
+    if (a.reason === "started") return fail("started", cors);
+    if (a.reason === "rate_limited") return fail("rate_limited", cors);
+    return fail("not_allowed", cors, T_NOT_ALLOWED);
+  }
+  const ref = parsePnUrl(a.url);
+  if (!ref) return fail("bad_url", cors, "The Play Network link of this tournament is not valid.");
+  const pnEventId = typeof a.pn_event_id === "string" && UUID.test(a.pn_event_id) ? a.pn_event_id : null;
+
+  // 4. The official page, fresh: the registrants are never cached.
+  const page = await fetchPage(ref);
+  if (page.kind === "not_found") {
+    rememberEvent(ref.id, { kind: "error", code: "event_not_found" });
+    return fail("event_not_found", cors);
+  }
+  if (page.kind === "error") return fail("upstream_error", cors);
+  const found = parseEvent(page.html, ref); // keeps the id and published/test checks
+  rememberEvent(ref.id, found);
+  if (found.kind === "error") return fail(found.code, cors);
+  const ev = found.data;
+  const m = await mergeRegistrants(tid, page.html, ref, ev, rawKnown, started);
+  if (!m.ok) return fail(m.code, cors, m.message);
+  const { r, regs, counts, hidden, pre, sizeCut } = m;
 
   // 7. Refresh the listing's details and count too, when the tournament still
   //    has one. Only that row is updated (never a new listing); errors ignored.
