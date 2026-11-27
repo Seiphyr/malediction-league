@@ -2018,7 +2018,7 @@ button.link.lg-ln{display:inline;min-height:0;font-size:inherit;vertical-align:b
 .du-wt{display:flex;justify-content:center;margin:0 0 14px;font-size:14px;color:var(--bone)}
 .du-sum{margin:0 0 16px;text-align:center;font-size:13px;color:var(--bone-dim);overflow-wrap:anywhere}
 .du-vs{margin:0 4px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-faint)}
-.du-wait .du-acts>button{flex:0 1 200px;margin:0 auto}
+.du-wait .du-acts>button{flex:0 1 200px;margin:0 auto}.du-gl{margin:12px 0 0;text-align:center}
 .du-res{text-align:center}
 .du-kick{margin:0 0 2px;font-family:Oswald,sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim)}
 .du-res .du-h{font-size:30px;letter-spacing:.06em;text-transform:uppercase}
@@ -5435,27 +5435,31 @@ function t3DuApply(n){
 function t3DuOff(){const n=t3DuNext();n&&(window._duTnOff=n.tid+":"+n.key);duPickPaint()}
 function t3DuLocked(){toast("Your tournament game is played in "+t3GameLabel((t3DuNext()||{}).mode)+". To play something else, tap Not this game.")}
 function duSavedTxt(d){
+  if(d.vg)return"✓ Saved to your profile (vs guest). Not counted in the Meta.";
   const t=esc(d.tTitle||"the tournament");
   return"recorded"===d.tState?"✓ Saved to both profiles and recorded in "+t:"kept"===d.tState?"✓ Saved to both profiles. The organizer had already entered this result.":"closed"===d.tState?"✓ Saved to both profiles. The tournament was already closed.":"✓ Saved to both profiles";
 }
+
+function duSkSel(id,lab,ph,v,on){const sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===v),hx=cur&&facHex(cur.f);return`<div class="field"><label class="du-lab" for="${id}">${lab}</label>
+      <div class="du-sk"${hx?` style="--fac:${hx}"`:""}><span class="du-fi">${cur?fBadges(cur.f):""}</span>
+      <select id="${id}" required aria-required="true" onchange="${on}"><option value="">${ph}</option>${sk.map(c=>`<option value="${esc(c.n)}"${c.n===v?" selected":""}>${esc(c.n)} \u00b7 ${esc(factionLabel(c.f))}</option>`).join("")}</select></div></div>`}
+function duTerSel(id,lab,ph,v,on){return`<div class="field"><label class="du-lab" for="${id}">${lab}</label>
+      <div class="du-sk"><select id="${id}" required aria-required="true" onchange="${on}"><option value="">${ph}</option>${TERRAINS.map(t=>`<option value="${esc(t)}"${v===t?" selected":""}>${esc(t)}</option>`).join("")}</select></div></div>`}
 function duPickPaint(){const e=$("tracker-body");if(!e)return;
   if(!me)return void(e.innerHTML=`<div class="panel du-wrap">
     <h2 class="du-h">Play a match</h2>
     <p class="du-lead">Keep score on both phones at once. Each player signs in on their own phone, Mastery, Echo, the round and the clock stay in sync, and the result is saved to both profiles.</p>
     <div class="du-acts"><button class="act gold" onclick="go('auth')">Sign in to play</button><button class="ghost" onclick="go('basic-tracker')">Open the Basic tracker</button></div>
-    <p class="hint du-foot">${GM_ON?"No account?":"No account, or more than two players?"} The Basic tracker keeps score on this device only and saves nothing online.</p>
+    <p class="hint du-foot">${GM_ON?"No account?":"No account, or more than two players?"} The Basic tracker keeps score on this device only and saves nothing online. Your opponent has no account? Sign in, tap <b>Start a match</b> and choose <b>Play against a guest</b>.</p>
   </div>`);
   
-  const tn0=t3DuNext(),tnb=t3DuBlock(tn0),sw=!!tn0&&swIsSwiss(tn0.t&&tn0.t.payload),tn=sw?null:tn0;duInvNote();tn&&t3DuApply(tn);const p=duPick(),sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===p.seeker),hx=cur&&facHex(cur.f),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
+  const tn0=t3DuNext(),tnb=t3DuBlock(tn0),sw=!!tn0&&swIsSwiss(tn0.t&&tn0.t.payload),tn=sw?null:tn0;duInvNote();tn&&t3DuApply(tn);const p=duPick(),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
   e.innerHTML=(sw?`<div class="du-tn-ban">${tnb}</div>`:"")+`<div class="panel du-wrap">
     <h2 class="du-h">${sw?"Or play a casual match":"Play a match"}</h2>
     <p class="du-lead">${sw?"Your tournament game is the card above: one tap, no PIN. Here you start a casual match. ":""}${DU_MP.includes(p.mode)?"Start the match and read out the PIN: it starts by itself when every seat is taken.":"Start a match and read out the PIN, or join your opponent's with theirs."}</p>
     <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}${avHtml(me)}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${sw?"":tnb}
-    <div class="field"><label class="du-lab" for="du-seeker">Your Seeker</label>
-      <div class="du-sk"${hx?` style="--fac:${hx}"`:""}><span class="du-fi">${cur?fBadges(cur.f):""}</span>
-      <select id="du-seeker" required aria-required="true" onchange="duPickSet('seeker',this.value)"><option value="">Pick your Seeker</option>${sk.map(c=>`<option value="${esc(c.n)}"${c.n===p.seeker?" selected":""}>${esc(c.n)} \u00b7 ${esc(factionLabel(c.f))}</option>`).join("")}</select></div></div>
-    <div class="field"><label class="du-lab" for="du-terrain">Your terrain</label>
-      <div class="du-sk"><select id="du-terrain" required aria-required="true" onchange="duPickSet('terrain',this.value)"><option value="">Pick your terrain</option>${TERRAINS.map(t=>`<option value="${esc(t)}"${p.terrain===t?" selected":""}>${esc(t)}</option>`).join("")}</select></div></div>
+    ${duSkSel("du-seeker","Your Seeker","Pick your Seeker",p.seeker,"duPickSet('seeker',this.value)")}
+    ${duTerSel("du-terrain","Your terrain","Pick your terrain",p.terrain,"duPickSet('terrain',this.value)")}
     ${duDeckHtml(p,dk,!!tn)}
     <div class="field"><label class="du-lab" for="du-mode">Mode <small class="du-opt">${tn?"(set by the tournament)":"(when you start the match)"}</small></label>
       <div class="du-sk du-mode${tn?" du-lock":""}"${tn?' onclick="t3DuLocked()"':""}><select id="du-mode"${tn?' disabled aria-disabled="true"':""} onchange="duPickSet('mode',this.value)">${duModeOpts(p.mode,!!tn)}</select></div>
@@ -5471,7 +5475,7 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
         <input id="du-pin" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="\\d{4}" maxlength="4" placeholder="0000" value="${pv}" aria-label="4-digit PIN" oninput="duPinIn(this)" onkeydown="if(event.key==='Enter')duJoin()"></label>
       <button class="act" id="du-join" onclick="duJoin()"${4===pv.length?"":" disabled"}>Join</button>
     </div>`:""}
-    <p class="hint du-foot">Each player needs a Seekers League account. To play without one${GM_ON?"":", or with more than two players"}, use the <button class="link" onclick="go('basic-tracker')">Basic tracker</button>.</p>
+    <p class="hint du-foot">Your opponent has no account? Tap <b>Start a match</b> and choose <b>Play against a guest</b>: this phone keeps score for both. To play with no account at all${GM_ON?"":", or with more than two players"}, use the <button class="link" onclick="go('basic-tracker')">Basic tracker</button>.</p>
   </div>`}
 function duPinOpen(){if(!duPickOk())return;window._duPinOpen=!window._duPinOpen,duPickPaint();const e=$("du-pin");e&&e.focus()}
 function duPinIn(e){e.value=e.value.replace(/\D/g,"").slice(0,4);const n=$("du-join");n&&(n.disabled=4!==e.value.length)}
@@ -5521,7 +5525,7 @@ function duFlush(){const d=DU;if(!d)return;clearTimeout(d.ft);d.ft=null;d.lf=Dat
 function duSend(ev,p){const d=DU;if(!d||!d.ch||!d.joined)return;p.f="group"===d.kind?d.me:d.role;try{Promise.resolve(d.ch.send({type:"broadcast",event:ev,payload:p})).catch(()=>{})}catch(e){}}
 function duOut(){duFlush();const g="group"===DU.kind,o=g?{}:{h:DU.sec.h,g:DU.sec.g,x:DU.sec.x,k:DU.sec.k,o:DU.sec.o};g&&DU.secs.forEach(s=>o[s]=DU.sec[s]);if(o.k&&o.k.d){const m=DU.trk.timer;o.k=g?{c:o.k.c,d:{timer:{mins:m.mins,run:!!m.running,left:duLeft(m)}},w:o.k.w}:{c:o.k.c,d:{timer:{mins:m.mins,run:!!m.running,left:duLeft(m)}}}}return o}
 function duState(){return Object.assign({v:"group"===DU.kind?GM_V:1},duOut())}
-function duHello(){DU_HOOKS.on()&&duSend("hello","group"===DU.kind?{st:duOut(),v:GM_V}:{st:duOut()})}
+function duHello(){DU_HOOKS.on()&&!DU.vg&&duSend("hello","group"===DU.kind?{st:duOut(),v:GM_V}:{st:duOut()})}
 function duOnMsg(d,ev,p){if(d!==DU||!p||"object"!=typeof p||!DU_HOOKS.on())return;if("group"===d.kind)return gmOnMsg(d,ev,p);const h="host"===p.f;if("s"===ev)return Array.isArray(p.u)&&p.u.some(v=>v&&"o"===v.s)&&duNewer(),void duIn(p.u,h,0);const st=p.st&&"object"==typeof p.st?p.st:{};st.o&&duNewer();duIn(DU_SECS.map(s=>st[s]&&{s,c:st[s].c,d:st[s].d}),h,0);"hello"===ev&&d===DU&&duSend("state",{st:duOut()})}
 
 function duIn(u,h,adj){const d=DU;u=(Array.isArray(u)?u:[]).filter(v=>v&&"object"==typeof v);duApply(u.filter(v=>"o"===v.s),h,adj);if(d!==DU||!DU_HOOKS.on())return;
@@ -5530,7 +5534,7 @@ function duIn(u,h,adj){const d=DU;u=(Array.isArray(u)?u:[]).filter(v=>v&&"object
   ra&&d===DU&&DU_HOOKS.on()&&(DU.dirty[m]=1,duSave())}
 
 function duNewer(){const d=DU;if(!d||d.oo)return;d.oo=1;duStore();"live"===d.status&&duView(!0)}
-function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;if("group"===d.kind)return gmStore();const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner isDraw ws ls sec L trk tId tTitle tLabel tState one ow oo inv tRef lv".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
+function duStore(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;if("group"===d.kind)return gmStore();const o={v:1};"id role uid mode target status pin pinEnd hid gid hn gn hs ht gs gt claimBy claimWinner isDraw ws ls sec L trk tId tTitle tLabel tState one ow oo inv tRef lv vg".split(" ").forEach(k=>o[k]=d[k]);try{localStorage.setItem(DU_KEY,JSON.stringify(o))}catch(e){}}
 function duInitTrk(){if("group"===DU.kind)return gmInitTrk();const t=TRK_DEFAULT();t.mode=DU.mode;t.target=DU.target;t.players=2;t.nr=0;t.p.forEach(p=>{p.er=0;p.echo=tStartEcho(t.mode)});t.wake=!_trkB||!1!==_trkB.wake;DU.trk=t;duNames();DU_SECS.forEach(s=>{DU.sec[s]={c:0,d:duOf(s)};DU.keys[s]=duKey(s)});duNames()}
 
 function duBoot(){if(DU||!me||!sb||!sb.rpc||window._duBoot===me.id)return;window._duBoot=me.id;let r=null;try{r=JSON.parse(localStorage.getItem(DU_KEY)||"null")}catch(e){}if(!r||1!==r.v||r.uid!==me.id||!r.id||!/^(waiting|live|ending)$/.test(r.status))return void gmBoot();
@@ -5539,29 +5543,34 @@ function duBoot(){if(DU||!me||!sb||!sb.rpc||window._duBoot===me.id)return;window
 async function duFind(){if(DU||!me||!sb||!sb.from||window._duFind===me.id)return;const u=me.id;window._duFind=u;try{const{data:r}=await sb.from("duels").select("id,status,host_id,guest_id,mode,target,tournament_id,t_ref").or(`host_id.eq.${u},guest_id.eq.${u}`).in("status",["waiting","live","ending"]).order("updated_at",{ascending:!1}).limit(5);const x=(r||[]).find(x=>x&&!("waiting"===x.status&&x.guest_id===u));if(!x)return void(GM_ON&&gmFind());if(DU||!me||me.id!==u)return;
   DU=duMake({id:String(x.id).toLowerCase(),role:x.host_id===u?"host":"guest",uid:u,mode:"demo"===x.mode?"demo":"clash",target:+x.target||40,status:"live"===x.status||"ending"===x.status?x.status:"waiting",pinEnd:Date.now()+6e4,rst:1,inv:"waiting"===x.status&&x.guest_id?1:0,tId:x.tournament_id||null,tRef:x.t_ref||null});duInitTrk();duRun();"tracker"===route.view&&renderTracker()}catch(e){}}
 function duRun(){const d=DU;clearInterval(d.iv);d.iv=setInterval(duTick,5e3);duConnect();duSync()}
-function duTick(){const d=DU;if(!d)return;d.n=(d.n||0)+1;if("waiting"===d.status){d.inv&&"host"===d.role&&duInvKeep(d);return void duSync()}if(!DU_HOOKS.on())return;(d.n%2==0||d.cpR)&&duCheckpoint();!d.joined&&d.downAt&&Date.now()-d.downAt>2e4&&duConnect();(("ending"===d.status||!d.joined)&&d.n%3==0||d.n%6==0)&&duSync();d.joined&&d.n%6==3&&duHello()}
-async function duConnect(){const d=DU;if(!d||!sb||!sb.channel||d._cn)return;d._cn=1;try{const o=d.ch;d.ch=null;d.joined=!1;d.downAt=Date.now();duStrip();
+function duTick(){const d=DU;if(!d)return;d.n=(d.n||0)+1;if("waiting"===d.status){d.inv&&"host"===d.role&&duInvKeep(d);return void duSync()}if(!DU_HOOKS.on())return;(d.n%2==0||d.cpR)&&duCheckpoint();!d.vg&&!d.joined&&d.downAt&&Date.now()-d.downAt>2e4&&duConnect();(("ending"===d.status||!d.joined&&!d.vg)&&d.n%3==0||d.n%6==0)&&duSync();d.joined&&d.n%6==3&&duHello()}
+async function duConnect(){const d=DU;if(!d||!sb||!sb.channel||d._cn||d.vg)return;d._cn=1;try{const o=d.ch;d.ch=null;d.joined=!1;d.downAt=Date.now();duStrip();
   o&&await Promise.race([Promise.resolve().then(()=>sb.removeChannel(o)).catch(()=>{}),new Promise(r=>setTimeout(r,4e3))]);
   try{sb.realtime&&sb.realtime.setAuth&&await sb.realtime.setAuth()}catch(e){}
-  if(d!==DU||!/^(waiting|live|ending)$/.test(d.status))return;
+  if(d!==DU||d.vg||!/^(waiting|live|ending)$/.test(d.status))return;
   const c=sb.channel(("group"===d.kind?"gm:":"duel:")+d.id,{config:{private:!0,broadcast:{self:!1},presence:{key:d.uid}}}),cb=st=>{if(d!==DU||d.ch!==c)return;if("SUBSCRIBED"===st){d.joined=!0;d.ever=1;d.downAt=0;try{Promise.resolve(c.track("group"===d.kind?{s:d.me}:{r:d.role})).catch(()=>{})}catch(e){}duSync().then(()=>duHello())}else d.joined=!1,d.downAt=d.downAt||Date.now();duStrip()};
   d.ch=c;if(c===o){try{c.subscribe(cb)}catch(e){}return}
   c.on("broadcast",{event:"s"},m=>duOnMsg(d,"s",m&&m.payload)).on("broadcast",{event:"hello"},m=>duOnMsg(d,"hello",m&&m.payload)).on("broadcast",{event:"state"},m=>duOnMsg(d,"state",m&&m.payload)).on("broadcast",{event:"rs"},()=>{d===DU&&(d.rs=Date.now())}).on("broadcast",{event:"end"},m=>gmEndIn(d,m&&m.payload)).on("broadcast",{event:"group"===d.kind?"status":"duel_status"},()=>{d===DU&&duSync()}).on("presence",{event:"sync"},()=>duPres(d,c)).subscribe(cb)}catch(e){}finally{d._cn=0}}
 function duUnsub(){const d=DU;if(!d||!d.ch)return;const c=d.ch;d.ch=null;d.joined=!1;try{Promise.resolve(sb.removeChannel(c)).catch(()=>{})}catch(e){}}
-function duPres(d,c){if(d!==DU)return;let s={};try{s=c.presenceState()||{}}catch(e){}if("group"===d.kind)return gmPres(d,s);Object.keys(s).some(k=>k!==d.uid)?(d.opp=1,d.seen=1):d.opp=d.seen?2:0;duStrip()}
+function duPres(d,c){if(d!==DU||d.vg)return;let s={};try{s=c.presenceState()||{}}catch(e){}if("group"===d.kind)return gmPres(d,s);Object.keys(s).some(k=>k!==d.uid)?(d.opp=1,d.seen=1):d.opp=d.seen?2:0;duStrip()}
 function duResync(){const d=DU;if(!d||!/^(waiting|live|ending)$/.test(d.status))return;duSync();d.ch&&d.joined?duHello():(!d.ch||Date.now()-(d.downAt||0)>5e3)&&duConnect()}
 async function duSync(){const d=DU;if(!d||!sb)return;if(d._sy)return void(d._sy2=1);d._sy=1;try{const{data:r,error:x}=await sb.rpc("group"===d.kind?"gm_get":"duel_get",{p_id:d.id});if(d!==DU||x)return;r&&"object"==typeof r?"group"===d.kind?gmRow(r):duRow(r):duEnded("gone")}catch(e){}finally{d._sy=0;d._sy2&&(d._sy2=0,d===DU&&duSync())}}
 function duRow(r){const d=DU,was=d.status,cb=d.claimBy,s0=String(r.status||""),s="waiting"===s0&&r.pin_expires_at&&r.server_now&&Date.parse(r.server_now)>=Date.parse(r.pin_expires_at)?"expired":s0,nm=()=>[d.hn,d.gn,d.hs,d.gs,d.ht,d.gt].join("|"),n0=nm();if(!/^(waiting|live|ending|done|cancelled|expired)$/.test(s))return;
-  d.hid=r.host_id||d.hid;d.gid=r.guest_id||d.gid;d.hn=r.host_name||d.hn;d.gn=r.guest_name||d.gn;d.hs=r.host_seeker||d.hs;d.ht=r.host_terrain||d.ht;d.gs=r.guest_seeker||d.gs;d.gt=r.guest_terrain||d.gt;d.mode="demo"===r.mode?"demo":"clash"===r.mode?"clash":d.mode;d.target=+r.target||d.target;d.trk&&(d.trk.mode=d.mode,d.trk.target=d.target);
+  
+  if("waiting"===s0&&/^(live|ending)$/.test(was))return;
+  
+  r.vs_guest&&!d.vg&&(d.vg=1,d.one=String(d.uid).toLowerCase(),d.ow="h",d.oo=1,duUnsub());
+  d.hid=r.host_id||d.hid;d.gid=r.guest_id||d.gid;d.hn=r.host_name||d.hn;d.gn=r.guest_name||d.vg&&(r.guest_label||"Guest")||d.gn;d.hs=r.host_seeker||d.hs;d.ht=r.host_terrain||d.ht;d.gs=r.guest_seeker||d.gs;d.gt=r.guest_terrain||d.gt;d.mode="demo"===r.mode?"demo":"clash"===r.mode?"clash":d.mode;d.target=+r.target||d.target;d.trk&&(d.trk.mode=d.mode,d.trk.target=d.target);
   r.pin&&(d.pin=String(r.pin));r.pin_expires_at&&r.server_now&&(d.pinEnd=Date.now()+(Date.parse(r.pin_expires_at)-Date.parse(r.server_now)));
   d.claimBy=r.claim_by||null;d.claimWinner=r.claim_winner||null;d.isDraw=!!r.is_draw;d.ws=r.winner_score;d.ls=r.loser_score;d.winner=r.winner_id||null;d.rounds=r.rounds;duNames();d.status=s;"t_ref"in r&&(d.tRef=r.t_ref||null);r.t_invite&&(d.inv=1);("live"===s||"ending"===s)&&(d.lv=1);"tournament_id"in r&&(d.tId=r.tournament_id||null,d.tTitle=r.t_title||null,d.tLabel=r.t_label||null,d.tState=r.t_state||null);
   if(("live"===s||"ending"===s)&&r.state&&"object"==typeof r.state){const a=r.state_at&&r.server_now?(Date.parse(r.server_now)-Date.parse(r.state_at))/1e3:0;duIn(DU_SECS.map(k=>r.state[k]&&{s:k,c:r.state[k].c,d:r.state[k].d}),!1,a>0?a:0)}
-  if("waiting"===was&&"live"===s){toast(`${duOpp().name} joined: the match is on`,!0);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}duHello()}
+  d.vg&&(d.one=String(d.uid).toLowerCase(),d.ow="h");
+  if("waiting"===was&&"live"===s&&!d.vg){toast(`${duOpp().name} joined: the match is on`,!0);try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}duHello()}
   "ending"===was&&"live"===s&&(duHello(),cb===d.uid)&&toast(`${duOpp().name} says that result is not right. The match goes on.`,!0);
   if(/^(done|cancelled|expired)$/.test(s))return void duEnded(s);duStore();duView(s!==was||nm()!==n0)}
 
 function duEnded(s){const d=DU;d.status=s;cache.t3Mine=null;clearInterval(d.iv);d.iv=null;clearTimeout(d.ft);duUnsub();try{localStorage.removeItem("group"===d.kind?GM_KEY:DU_KEY)}catch(e){}duSheet();const k=$("du-end");k&&k.remove();
-  if("tracker"===route.view)tkDu=d,duPaint();else if("group"===d.kind)gmEndToast(s);else"done"===s?toast(`Match over: ${d.isDraw?"a draw":d.winner===d.uid?"you won":duOpp().name+" won"}. Saved to both profiles.`,!0):"cancelled"===s&&toast("Your match was cancelled",!0);
+  if("tracker"===route.view)tkDu=d,duPaint();else if("group"===d.kind)gmEndToast(s);else"done"===s?toast(`Match over: ${d.isDraw?"a draw":d.winner===d.uid?"you won":duOpp().name+" won"}. ${d.vg?"Saved to your profile (vs guest). Not counted in the Meta.":"Saved to both profiles."}`,!0):"cancelled"===s&&toast("Your match was cancelled",!0);
   
   "done"===s&&d.tId&&swKickId(d.tId,d.id)}
 function duClear(keep){const d=DU;if(d){clearInterval(d.iv);clearTimeout(d.ft);duUnsub()}clearInterval(window._duCd);DU=null;tkDu===d&&(tkDu=null);d&&trk===d.trk&&(clearInterval(_tkClock),trk=_trkB);if(!keep)try{localStorage.removeItem(d&&"group"===d.kind?GM_KEY:DU_KEY)}catch(e){}["du-sheet","du-end","gm-info","gm-teams"].forEach(i=>{const e=$(i);e&&e.remove()});tkWakeSync()}
@@ -5569,16 +5578,16 @@ function duClear(keep){const d=DU;if(d){clearInterval(d.iv);clearTimeout(d.ft);d
 function duDrop(){window._duBoot=null;window._duFind=null;DU&&duClear(!0)}
 function duNew(){duClear();"tracker"===route.view&&renderTracker()}
 function duMatches(){duClear();window._pfMx=1;go("profile")}
-function duView(full){if(!DU)return;{const q=$("tk-ask"),r=q&&q.dataset.r;r&&trk&&+r!==trk.round&&q.querySelector("#tk-ask-no").click()}if("tracker"!==route.view||tkDu!==DU)return void duSheet();if(!DU_HOOKS.on())return void((full||!$("du-bigpin")&&!$("du-invw"))&&duPaint());if(duParked())return void(full||!$("du-park")?duPaint():(duParkPatch(),duStrip(),duSheet()));if(full||!$("tk-card-"+("group"===DU.kind?DU.me:0)))return void duPaint();trk===DU.trk&&(tPatch(),tkTick(),duStrip());duSheet();const k=$("du-end");if(k&&"group"===DU.kind)gmEndPatch();else if(k){const s=[DU.trk.p[0].mastery,DU.trk.p[1].mastery],bs=k.querySelectorAll(".du-who b");(s[0]===s[1]&&duDrawOk(DU))!==(bs.length>2)?duEndPaint():bs.forEach((b,i)=>b.textContent=i<2?s[i]:s[0]+"–"+s[1])}}
+function duView(full){if(!DU)return;{const q=$("tk-ask"),r=q&&q.dataset.r;r&&trk&&+r!==trk.round&&q.querySelector("#tk-ask-no").click()}if("tracker"!==route.view||tkDu!==DU)return void duSheet();if(!DU_HOOKS.on())return void((full||!$("du-bigpin")&&!$("du-invw")&&!$("du-gform"))&&duPaint());if(duParked())return void(full||!$("du-park")?duPaint():(duParkPatch(),duStrip(),duSheet()));if(full||!$("tk-card-"+("group"===DU.kind?DU.me:0)))return void duPaint();trk===DU.trk&&(tPatch(),tkTick(),duStrip());duSheet();const k=$("du-end");if(k&&"group"===DU.kind)gmEndPatch();else if(k){const s=[DU.trk.p[0].mastery,DU.trk.p[1].mastery],bs=k.querySelectorAll(".du-who b");(s[0]===s[1]&&duDrawOk(DU))!==(bs.length>2)?duEndPaint():bs.forEach((b,i)=>b.textContent=i<2?s[i]:s[0]+"–"+s[1])}}
 function duPaint(){const e=$("tracker-body"),d=DU;if(!e||!d)return;clearInterval(window._duCd);if(DU_HOOKS.on()&&!duParked())return tkDu=d,trk=d.trk,paintTracker(),void duSheet();
   clearInterval(_tkClock);window._tkFs&&(window._tkFs=!1,document.fullscreenElement&&document.exitFullscreen().catch(()=>{}));const k=$("du-end");k&&k.remove();
   if(DU_HOOKS.on()){tkDu=d;trk=d.trk;window._tkSet=!1;const q=$("tk-ask");q&&q.remove()}
   e.innerHTML=DU_HOOKS.on()?duParkHtml():"group"===d.kind?gmPageHtml():"waiting"===d.status?duWaitHtml():"done"===d.status?duResHtml():duEndHtml();"waiting"===d.status&&duCount();duSheet();tkWakeSync()}
 function duNameHtml(e){if("group"===DU.kind)return gmNameHtml(e);const s=duSide(0===e),c=s.seeker&&seekerList().find(x=>x.n===s.seeker),h=c&&facHex(c.f);return`<span class="tkl-name du-nm" id="tk-name-${e}">${esc(s.name)}<small>${s.seeker?`<i${h?` style="color:${h}"`:""}>${esc(s.seeker)}</i>`:""}${s.seeker&&s.terrain?" · ":""}${esc(s.terrain||"")}</small></span>`}
-function duStripIn(){if("group"===DU.kind)return gmStripIn();const d=DU,o=esc(duOpp().name),[k,t]=d.joined?1===d.opp?["ok",o+" connected"]:duScorer()?["one","Scoring for both"]:2===d.opp?["wait",o+" reconnecting…"]:["wait","Waiting for "+o+"…"]:d.ever?["off","Reconnecting…"]:["wait","Connecting…"];return`<span class="du-conn s-${k}" role="status"><i aria-hidden="true"></i><span>${t}</span></span><span class="du-tgt">${"demo"===d.mode?"Demo":"Clash"}<span class="du-tsep"> · </span><span class="du-tto">first to ${d.target}</span>${d.tLabel?`<small>${esc(d.tLabel)}</small>`:""}</span>`}
+function duStripIn(){if("group"===DU.kind)return gmStripIn();const d=DU,o=esc(duOpp().name),[k,t]=d.vg?["one","This phone scores both"]:d.joined?1===d.opp?["ok",o+" connected"]:duScorer()?["one","Scoring for both"]:2===d.opp?["wait",o+" reconnecting…"]:["wait","Waiting for "+o+"…"]:d.ever?["off","Reconnecting…"]:["wait","Connecting…"];return`<span class="du-conn s-${k}" role="status"><i aria-hidden="true"></i><span>${t}</span></span><span class="du-tgt">${"demo"===d.mode?"Demo":"Clash"}<span class="du-tsep"> · </span><span class="du-tto">first to ${d.target}</span>${d.tLabel?`<small>${esc(d.tLabel)}</small>`:""}</span>`}
 function duStrip(){const e=$("du-strip");e&&DU&&(e.innerHTML=duStripIn())}
 
-function duOneSet(){const d=DU;if(d&&"group"===d.kind)return gmOneSet();if(!d||"live"!==d.status||!d.one&&!d.oo)return"";const s=duScorer();return`<div class="field du-oneset"><span class="du-lab">Scoring</span><p class="hint">${s?"You keep score for both players. The other phone only shows the score.":"One phone can keep score for both players. The other phone can be locked; that player still confirms the result at the end."}</p><button type="button" class="ghost" onclick="window._tkSet=!1;${s?"duBoth()":"duOneHere()"};'tracker'===route.view&&renderTracker()">${s?"Use both phones":"Score both here"}</button></div>`}
+function duOneSet(){const d=DU;if(d&&"group"===d.kind)return gmOneSet();if(!d||"live"!==d.status||!d.one&&!d.oo)return"";if(d.vg)return'<div class="field du-oneset"><span class="du-lab">Scoring</span><p class="hint">This phone keeps score for both players: your opponent plays as a guest, with no account.</p></div>';const s=duScorer();return`<div class="field du-oneset"><span class="du-lab">Scoring</span><p class="hint">${s?"You keep score for both players. The other phone only shows the score.":"One phone can keep score for both players. The other phone can be locked; that player still confirms the result at the end."}</p><button type="button" class="ghost" onclick="window._tkSet=!1;${s?"duBoth()":"duOneHere()"};'tracker'===route.view&&renderTracker()">${s?"Use both phones":"Score both here"}</button></div>`}
 
 function duParkSum(){if("group"===DU.kind)return gmParkSum();const t=DU.trk;return`Round ${t.round} · Echo ${t.p[0].echo} – ${t.p[1].echo}`}
 function duParkHtml(){if("group"===DU.kind)return gmParkHtml();const d=DU,o=esc(duOpp().name),t=d.trk;return`<div class="panel du-wrap du-park" id="du-park">
@@ -5590,16 +5599,35 @@ function duParkHtml(){if("group"===DU.kind)return gmParkHtml();const d=DU,o=esc(
     <div class="du-acts"><button class="act gold" onclick="duOneHere()">Keep score here instead</button><button class="ghost" onclick="duBoth()">Use both phones</button></div>
   </div>`}
 function duParkPatch(){if("group"===DU.kind)return gmParkPatch();const t=DU.trk,f=(i,v)=>{const e=$(i);e&&e.textContent!==String(v)&&(e.textContent=v)};f("du-pk-0",t.p[0].mastery);f("du-pk-1",t.p[1].mastery);f("du-pk-r",duParkSum())}
-function duOneHere(){const d=DU;if(!d||"live"!==d.status||duScorer()||d.left)return;duFlush();d.one=String(d.uid).toLowerCase();const g="group"===d.kind;d.ow=g?d.me:duMine();duGrants();g&&gmDefRun();duSave();duFlush();duView(!0);toast(g?"You keep score for every player. The others can lock their phones.":`You keep score for both players. ${duOpp().name} can lock their phone.`,!0)}
-function duBoth(){const d=DU;if(!d||"live"!==d.status||!d.one||d.left)return;duFlush();d.one=null;d.ow="group"===d.kind?d.me:duMine();d.dirty[duMine()]=1;duGrants();duSave();duFlush();duView(!0);toast("Each phone keeps its own player's score again",!0)}
-function duWaitHtml(){if(DU.inv)return duInvWaitHtml();const d=DU,m=duMe(),p=String(d.pin||"");return`<div class="panel du-wrap du-wait">
+function duOneHere(){const d=DU;if(!d||"live"!==d.status||duScorer()||d.left||d.vg)return;duFlush();d.one=String(d.uid).toLowerCase();const g="group"===d.kind;d.ow=g?d.me:duMine();duGrants();g&&gmDefRun();duSave();duFlush();duView(!0);toast(g?"You keep score for every player. The others can lock their phones.":`You keep score for both players. ${duOpp().name} can lock their phone.`,!0)}
+function duBoth(){const d=DU;if(!d||"live"!==d.status||!d.one||d.left||d.vg)return;duFlush();d.one=null;d.ow="group"===d.kind?d.me:duMine();d.dirty[duMine()]=1;duGrants();duSave();duFlush();duView(!0);toast("Each phone keeps its own player's score again",!0)}
+function duWaitHtml(){if(DU.inv)return duInvWaitHtml();const d=DU,m=duMe(),p=String(d.pin||""),g=duGst();if(g)return duGstHtml(g);return`<div class="panel du-wrap du-wait">
     <h2 class="du-h">Your match PIN</h2>
     <p class="du-lead">Your opponent opens Play › Match on their phone, picks their Seeker and terrain, taps <b>I have a PIN</b> and types:</p>
     <div class="du-bigpin" id="du-bigpin" aria-label="PIN ${esc(p.split("").join(" "))}">${esc(p)}</div>
     <p class="du-cd">Valid for <b id="du-cd">${tkFmt(Math.max(0,Math.round((d.pinEnd-Date.now())/1e3)))}</b></p>
     <p class="du-wt"><span class="du-conn s-wait" role="status"><i aria-hidden="true"></i><span>Waiting for your opponent…</span></span></p>
     <p class="du-sum">${esc(m.seeker||"")} · ${esc(m.terrain||"")} · ${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}${d.tTitle?" · "+esc(d.tTitle)+(d.tLabel?" · "+esc(d.tLabel):""):""}</p>
-    <div class="du-acts"><button class="ghost" onclick="duCancelAsk()">Cancel</button></div>
+    <div class="du-acts"><button class="ghost" onclick="duCancelAsk()">Cancel</button></div>${duGstOk()?`
+    <p class="du-gl"><button type="button" class="link" id="du-gst" onclick="duGstOpen()">Play against a guest</button></p>`:""}
+  </div>`}
+
+function duGstOk(){const d=DU;return!!d&&"group"!==d.kind&&"host"===d.role&&"waiting"===d.status&&!d.inv&&!d.tId&&!d.vg}
+function duGst(){const g=window._duGst;return g&&DU&&g.id===DU.id&&duGstOk()?g:null}
+function duGstOpen(){if(!duGstOk())return;duGst()||(window._duGst={id:DU.id,name:"",seeker:"",terrain:""});duPaint();const e=$("du-gname");e&&e.focus()}
+function duGstBack(){window._duGst=null;duPaint();const e=$("du-gst");e&&e.focus()}
+function duGstSet(k,v){const g=duGst();if(!g)return;g[k]=String(v||"");if("name"===k)return;duPaint();const e=$("du-g"+k);e&&e.focus()}
+function duGstHtml(g){const d=DU,m=duMe(),ok=!!(g.seeker&&g.terrain);return`<div class="panel du-wrap" id="du-gform">
+    <h2 class="du-h">Play against a guest</h2>
+    <p class="du-lead">Your opponent has no account: this phone keeps score for both of you, and the result is saved only on your profile, outside the Meta.</p>
+    <label class="field"><span>Their name <small class="du-opt">(optional)</small></span>
+      <input id="du-gname" type="text" maxlength="24" placeholder="Guest" autocomplete="off" value="${esc(g.name)}" oninput="duGstSet('name',this.value)"></label>
+    ${duSkSel("du-gseeker","Their Seeker","Pick their Seeker",g.seeker,"duGstSet('seeker',this.value)")}
+    ${duTerSel("du-gterrain","Their terrain","Pick their terrain",g.terrain,"duGstSet('terrain',this.value)")}
+    <p class="du-sum">You: ${esc(m.seeker||"")} · ${esc(m.terrain||"")} · ${"demo"===d.mode?"Demo":"Clash"} · first to ${d.target}</p>
+    <div class="du-acts"><button class="act gold" id="du-gstart" onclick="duGuest()"${ok?"":" disabled"}>Start the match</button><button class="ghost" onclick="duGstBack()">Back</button></div>
+    ${ok?"":`<p class="hint du-need">Pick their Seeker and terrain to start.</p>`}
+    <p class="hint du-foot">Until you start (<b id="du-cd">${tkFmt(Math.max(0,Math.round((d.pinEnd-Date.now())/1e3)))}</b> left), your PIN ${esc(String(d.pin||""))} still works: if a player with an account joins first, you play them instead.</p>
   </div>`}
 
 function duCount(){clearInterval(window._duCd);const f=()=>{const e=$("du-cd");if(!e||!DU||"waiting"!==DU.status)return void clearInterval(window._duCd);const s=Math.max(0,Math.round((DU.pinEnd-Date.now())/1e3));e.textContent=tkFmt(s);s<=0&&Date.now()-(DU._xs||0)>4e3&&(DU._xs=Date.now(),duSync())};f();window._duCd=setInterval(f,1e3)}
@@ -5634,24 +5662,37 @@ function duEndPaint(){let m=$("du-end");const d=DU;if(!d||"live"!==d.status)retu
   m||(m=document.createElement("div"),m.id="du-end",m.className="tkov",m.onclick=e=>{e.target===m&&m.remove()},document.body.appendChild(m));
   m.innerHTML=`<div class="tkmodal" role="dialog" aria-modal="true" aria-labelledby="du-end-h"><h3 id="du-end-h">End the match</h3><p class="tk-ask-t">Who won? The scores are each player's Mastery.${eq?" Equal Mastery when time runs out is a draw.":""}</p>
     <div class="du-who" role="radiogroup" aria-labelledby="du-end-h">${[["me",esc(duMe().name)+" (you)",sc[0]],["opp",o,sc[1]]].concat(eq?[["draw","Draw",sc[0]+"–"+sc[1]]]:[]).map(([k,n,s])=>`<button type="button" role="radio" aria-checked="${w===k}" class="fchip${w===k?" on":""}" onclick="window._duW='${k}';duEndPaint()"><span>${n}</span><b>${s}</b></button>`).join("")}</div>
-    <p class="hint du-endh">${"me"===w?`${o} confirms the result on their phone.`:"opp"===w?`You concede: the match ends now as a win for ${o}.`:"draw"===w?`${o} confirms the draw on their phone.`:eq?"Pick the winner, or Draw.":"Pick the winner."}</p>
-    <div class="tk-ask-row"><button class="ghost" onclick="$('du-end').remove()">Back</button><button class="act" id="du-end-ok" onclick="duClaim()"${w?"":" disabled"}>${"opp"===w?"Concede the match":"Send the result"}</button></div>
+    <p class="hint du-endh">${d.vg?("me"===w?"Saved to your profile only, marked vs guest.":"opp"===w?`Saved as a win for ${o}.`:"draw"===w?"Saved as a draw, on your profile only.":eq?"Pick the winner, or Draw.":"Pick the winner."):("me"===w?`${o} confirms the result on their phone.`:"opp"===w?`You concede: the match ends now as a win for ${o}.`:"draw"===w?`${o} confirms the draw on their phone.`:eq?"Pick the winner, or Draw.":"Pick the winner.")}</p>
+    <div class="tk-ask-row"><button class="ghost" onclick="$('du-end').remove()">Back</button><button class="act" id="du-end-ok" onclick="${d.vg?"duGuestEnd()":"duClaim()"}"${w?"":" disabled"}>${d.vg?"Save the result":"opp"===w?"Concede the match":"Send the result"}</button></div>
     <button class="link du-endc" onclick="$('du-end').remove();duCancelAsk()">Cancel the match instead (no result)</button></div>`;
   const f=m.querySelector('[aria-checked="true"]')||m.querySelector(".du-who button");f&&f.focus()}
-async function duClaim(){const d=DU,w=window._duW;if(!d||"live"!==d.status||!w||d._cl)return;const t=d.trk,a=Math.min(999,t.p[0].mastery),b=Math.min(999,t.p[1].mastery),dr="draw"===w,me1="me"===w||dr,wid=dr?null:me1?d.uid:duOpp().id;
+async function duClaim(){const d=DU,w=window._duW;if(d&&d.vg)return duGuestEnd();if(!d||"live"!==d.status||!w||d._cl)return;const t=d.trk,a=Math.min(999,t.p[0].mastery),b=Math.min(999,t.p[1].mastery),dr="draw"===w,me1="me"===w||dr,wid=dr?null:me1?d.uid:duOpp().id;
   if(dr&&(a!==b||!duDrawOk(d)))return window._duW="",duEndPaint(),toast("A draw needs the same Mastery for both players");if(!me1&&!wid||dr&&!duOpp().id)return toast("Your opponent has not joined yet");d._cl=1;const k=$("du-end-ok");k&&(k.disabled=!0);
   
   try{const q={p_id:d.id,p_winner:wid,p_winner_score:me1?a:b,p_loser_score:me1?b:a,p_rounds:Math.min(999,t.round),p_state:duState()};dr&&(q.p_draw=!0);const{data:r,error:x}=await sb.rpc("duel_claim",q);if(x)throw x;const m=$("du-end");m&&m.remove();
     r&&r.ok&&"ending"===r.status&&d===DU&&(d.status="ending",d.claimBy=d.uid,d.claimWinner=wid,d.isDraw=dr,d.ws=me1?a:b,d.ls=me1?b:a,duStore(),duView(!0))}catch(e){toast(e);k&&(k.disabled=!1)}finally{d._cl=0;d===DU&&duSync()}}
 function duCancelAsk(){if(!DU)return;if("group"===DU.kind)return gmCancelAsk();if("waiting"===DU.status)return void duCancel();tkAsk("Cancel this match?","Nothing is saved for either player. Starting again gives a new PIN.","Cancel match",duCancel);const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
 
-function duResetAsk(){if(!DU)return;if("group"===DU.kind)return gmCancelAsk();if("waiting"===DU.status)return void duCancel(1);tkAsk("Reset the match?",DU.inv&&DU.tId?"Nothing is saved for this match. Your tournament game starts again, and your opponent taps “Join your tournament game”.":"Nothing is saved for this match. A new one starts with a new PIN to read out to your opponent.","Reset",()=>duCancel(1));const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
+function duResetAsk(){if(!DU)return;if("group"===DU.kind)return gmCancelAsk();if("waiting"===DU.status)return void duCancel(1);tkAsk("Reset the match?",DU.inv&&DU.tId?"Nothing is saved for this match. Your tournament game starts again, and your opponent taps “Join your tournament game”.":DU.vg?"Nothing is saved for this match. A new one starts with a new PIN: choose Play against a guest again to keep scoring here.":"Nothing is saved for this match. A new one starts with a new PIN to read out to your opponent.","Reset",()=>duCancel(1));const n=$("tk-ask-no");n&&(n.textContent="Keep playing")}
 async function duCancel(nw){const d=DU;if(!d||d._cc)return;d._cc=1;nw&&duSend("rs",{});try{const{data:r,error:x}=await sb.rpc("duel_cancel",{p_id:d.id});if(x)throw x;if(d!==DU)return;r&&(r.ok||/^(cancelled|expired)$/.test(r.status))?(duClear(),nw&&"tracker"===route.view?(renderTracker(),d.inv&&d.tId?duStartT(d.tId):duStart()):(toast("Match cancelled",!0),"tracker"===route.view&&renderTracker())):duSync()}catch(e){toast(e)}finally{d._cc=0}}
 function duBusy(b){window._duBusy=b;b?["du-start","du-have","du-join"].forEach(i=>{const e=$(i);e&&(e.disabled=!0)}):DU||"tracker"!==route.view||duPickPaint()}
 async function duStart(){if(!me)return go("auth");if(!duPickOk())return toast(duNeedTxt());if(window._duBusy||DU)return;const p=duPick();if(DU_MP.includes(p.mode))return void gmOpen(p);duBusy(1);
   try{const{data:r,error:x}=await sb.rpc("duel_open",{p_mode:p.mode,p_seeker:p.seeker,p_terrain:p.terrain,p_deck_id:duDeck(p)});if(x)throw x;if(!r||!r.id||!r.pin)throw new Error("Could not start the match. Try again.");
     DU=duMake({id:String(r.id).toLowerCase(),role:"host",uid:me.id,mode:"demo"===p.mode?"demo":"clash",target:"demo"===p.mode?25:40,status:"waiting",pin:String(r.pin),pinEnd:Date.now()+Math.max(0,(Date.parse(r.pin_expires_at)-Date.parse(r.server_now))||9e5),hid:me.id,hn:me.display_name,hs:p.seeker,ht:p.terrain});
     duInitTrk();duStore();duRun();"tracker"===route.view&&(renderTracker(),scrollTop())}catch(e){toast(e)}finally{duBusy(0)}}
+
+async function duGuest(){const d=DU,g=duGst();if(!d||!g||!g.seeker||!g.terrain||d._gs)return;d._gs=1;const b=$("du-gstart");b&&(b.disabled=!0);
+  try{const{data:r,error:x}=await sb.rpc("duel_guest",{p_id:d.id,p_label:String(g.name||"").trim().slice(0,24),p_seeker:g.seeker,p_terrain:g.terrain});if(x)throw x;if(d!==DU)return;
+    if(!r||!r.ok){window._duGst=null;"joined"!==(r&&r.reason)&&toast("This match is no longer waiting. Start a new one.");return void duSync()}
+    window._duGst=null;d.vg=1;d.gn=r.guest_label||"Guest";d.gs=r.guest_seeker||g.seeker;d.gt=r.guest_terrain||g.terrain;d.pin=null;d.status="live";d.lv=1;d.one=String(d.uid).toLowerCase();d.ow="h";d.oo=1;
+    duUnsub();duNames();duSave();duFlush();duStore();duView(!0)}
+  catch(e){const m=String(e&&e.message||e||"");if("PGRST202"===(e&&e.code)||/Could not find the function/i.test(m)){window._duGst=null;toast("Playing against a guest is not available yet");d===DU&&duPaint()}else toast(e)}
+  finally{d._gs=0;const k=$("du-gstart");k&&(k.disabled=!(g.seeker&&g.terrain))}}
+
+async function duGuestEnd(){const d=DU,w=window._duW;if(!d||!d.vg||"live"!==d.status||!w||d._cl)return;const t=d.trk,a=Math.min(999,t.p[0].mastery),b=Math.min(999,t.p[1].mastery),dr="draw"===w;
+  if(dr&&a!==b)return window._duW="",duEndPaint(),toast("A draw needs the same Mastery for both players");d._cl=1;const k=$("du-end-ok");k&&(k.disabled=!0);
+  try{const{data:r,error:x}=await sb.rpc("duel_guest_end",{p_id:d.id,p_result:dr?"draw":"me"===w?"host":"guest",p_host_score:a,p_guest_score:b,p_rounds:Math.min(999,t.round),p_state:duState()});if(x)throw x;const m=$("du-end");m&&m.remove();
+    r&&r.ok&&"done"===r.status&&d===DU&&(d.isDraw=!!r.is_draw,d.winner=r.winner_id||null,d.ws=r.winner_score,d.ls=r.loser_score)}catch(e){toast(e);k&&(k.disabled=!1)}finally{d._cl=0;d===DU&&duSync()}}
 async function duJoin(){if(!me)return go("auth");if(!duPickOk())return toast(duNeedTxt());const e=(($("du-pin")||{}).value||"").trim();if(!/^\d{4}$/.test(e))return toast("Enter the 4-digit PIN",0,3e3);if(window._duBusy||DU)return;const p=duPick();duBusy(1);
   try{const q={p_pin:e,p_seeker:p.seeker,p_terrain:p.terrain,p_deck_id:duDeck(p)};let{data:r,error:x}=await sb.rpc("duel_join",GM_ON?Object.assign({p_v:GM_V},q):q);if(GM_ON&&x&&"PGRST202"===x.code)({data:r,error:x}=await sb.rpc("duel_join",q));if(x)throw x;if(r&&r.ok&&"group"===r.kind)return void gmJoined(r);
     if(!r||!r.ok||!r.id)return void toast({bad_pin:"That PIN is not valid or has expired",rate_limited:"Too many tries, wait a minute",own_match:"That is your own match: your opponent types this PIN on their phone",busy:"Too many matches are starting right now. Try again in a few minutes.",full:"That match is full: every seat is taken"}[r&&r.reason]||"Could not join the match. Try again.",0,3500);
@@ -9976,10 +10017,11 @@ const SL_GUIDES={
     s:[["Pick your Seeker","and your terrain: nothing can start until both are set. <b>Mode</b> picks the game: <em>Demo</em> (first to 25), <em>Clash</em> (first to 40) or one for more players.","trkPick"],
        ["Start a match","gives you a <em>4-digit PIN</em>, valid for 15 minutes. Read it out to your opponent.","trkPin"],
        ["I have a PIN","the other side of the same thing: type the <em>four digits</em> and join.","trkJoin"],
+       ["Play against a guest","on the PIN screen, when your opponent has <em>no account</em>: this phone keeps score for both, and the result is saved <em>only on your profile</em>, outside the Meta.","trkPin"],
        ["&minus; and +","<em>tap for one, hold for five</em>. The round button adds the Echo itself.","trkCtr"],
        ["Start the match","on the <b>Tournament game</b> card: your paired game in one tap, <em>no PIN</em>, and the result goes to the tournament.","trkTn"],
        ["End match","pick the winner, or <b>Draw</b> on equal Mastery, and send it: once your opponent <em>confirms</em>, it lands on both profiles.","trkEnd"]],
-    n:"No account? <b>Open the Basic tracker</b> keeps score on this device and saves nothing."},
+    n:"Your opponent has no account? <b>Play against a guest</b>, on the PIN screen. Neither of you has one? <b>Open the Basic tracker</b>: it keeps score on this device and saves nothing."},
   tournaments:{t:"Events",l:"Tournaments and Demos: your games, your pairings &mdash; and <em>the whole event</em>, if you run it.",f:"evHero",
     s:[["Yours, All, Communities","filter the <b>Tournaments</b> and <b>Demos</b> tabs: your own events, or <em>every open one</em> anyone can turn up to.","evTabs"],
        ["Is this you?","tap your Play Network nickname <em>once</em> to link it to your account.","evMe"],
@@ -10497,7 +10539,7 @@ async function renderProfile(){
   slDropDu(all,slDuIds(dus)).filter(m=>m.winner_id===u.id||m.loser_id===u.id).forEach(m=>{const w=m.winner_id===u.id;
     s.push({win:w,src:m.kind||"standard",when:m.created_at||"",league:m.league_id,mySk:w?m.winner_seeker:m.loser_seeker,oppSk:w?m.loser_seeker:m.winner_seeker,myTer:w?m.winner_terrain:m.loser_terrain,oppId:w?m.loser_id:m.winner_id})});
   fbs.forEach(f=>{s.push({id:f.id,win:"win"===f.result,src:"fb",when:f.played_on||f.created_at||"",mySk:f.my_seeker,oppSk:f.opp_seeker,myTer:f.my_terrain,oppTer:f.opp_terrain,oppName:f.opponent_name})});
-  dus.forEach(d=>{s.push({id:d.id,du:1,win:!d.is_draw&&!!d.won,draw:!!d.is_draw,src:d.tournament_id?"tournament":"standard",when:d.played_at||"",mySk:d.my_seeker,oppSk:d.opp_seeker,myTer:d.my_terrain,oppTer:d.opp_terrain,oppId:d.opponent_id||null,oppName:d.opponent_name,tnName:d.tournament_name||"",tnId:d.tournament_id||""})});
+  dus.forEach(d=>{s.push({id:d.id,du:1,win:!d.is_draw&&!!d.won,draw:!!d.is_draw,src:d.tournament_id?"tournament":"standard",when:d.played_at||"",mySk:d.my_seeker,oppSk:d.opp_seeker,myTer:d.my_terrain,oppTer:d.opp_terrain,oppId:d.opponent_id||null,oppName:d.vs_guest&&!d.opponent_name?"Guest":d.opponent_name,vg:!!d.vs_guest,tnName:d.tournament_name||"",tnId:d.tournament_id||""})});
   s.sort((a,b)=>(a.when||"").localeCompare(b.when||""));
   
   const gm=(gms||[]).map(pgRow);
@@ -10550,7 +10592,7 @@ async function renderProfile(){
       ${[["","All"],["standard","Standard"],["tournament","Tournaments"]].concat(fbs.length?[["fb","By hand"]]:[]).map(([k,l])=>`<button class="seg-b ${scope===k?"on":""}" aria-pressed="${scope===k}" onclick="window._msScope=${jsq(k)};renderProfile()">${l}</button>`).join("")}
     </span></div>`:""}
     ${last.length?`<div class="ms-form" style="margin-top:10px"><span class="tm-label" style="margin:0 10px 0 0">Last 10</span>
-      ${last.map(x=>`<span class="fsq ${x.draw?"d":x.win?"w":"l"}" title="${x.draw?"Draw":x.win?"Win":"Loss"}${"fb"===x.src?" (logged by hand)":"tournament"===x.src?" (tournament)":""}"></span>`).join("")}
+      ${last.map(x=>`<span class="fsq ${x.draw?"d":x.win?"w":"l"}" title="${x.draw?"Draw":x.win?"Win":"Loss"}${"fb"===x.src?" (logged by hand)":x.vg?" (vs guest)":"tournament"===x.src?" (tournament)":""}"></span>`).join("")}
       <span class="hint" style="font-size:11px;margin-left:8px">oldest → newest</span></div>`:""}
   </div>`;
   if(!r.length)own||gmS.length||(b+=`<div class="panel plain"><div class="empty">No games on record that you can see. Results from private communities stay inside them.</div></div>`);
@@ -10568,7 +10610,7 @@ async function renderProfile(){
   const pl=r.filter(x=>x.du||"fb"===x.src).reverse(),lim="private"===mv||"players"===mv&&!me,nm=esc(u.display_name||"This player");
   window._pmL=pl,window._pmG=gmS,window._pmOwn=own,window._pmN=25;
   if(own||pl.length||gmS.length||lim)b+=`<div class="panel plain" id="pf-matches"><h2 style="margin:0 0 4px">Matches</h2>
-    <p class="hint" style="margin:0 0 10px">${own?`Matches you play with Play › Match. Shown to ${{players:"signed-in players",private:"you and your opponents only"}[me.matches_visibility]||"everyone"}; change it in Settings.${fbs.length?" Games you logged by hand are only ever shown to you.":""}`:lim?"private"===mv?`${nm} keeps their matches private.${me?" Only matches you played together are shown.":""}`:`Sign in to see ${nm}'s matches.`:"Played with Play › Match, newest first."}</p>
+    <p class="hint" style="margin:0 0 10px">${own?`Matches you play with Play › Match. Shown to ${{players:"signed-in players",private:"you and your opponents only"}[me.matches_visibility]||"everyone"}; change it in Settings.${fbs.length?" Games you logged by hand are only ever shown to you.":""}${dus.some(d=>d&&d.vs_guest)?" Matches against a guest are only ever shown to you.":""}`:lim?"private"===mv?`${nm} keeps their matches private.${me?" Only matches you played together are shown.":""}`:`Sign in to see ${nm}'s matches.`:"Played with Play › Match, newest first."}</p>
     <div id="pm-list">${pmList()}</div></div>`;
   el.innerHTML=b;window._pfMx&&(window._pfMx=0,setTimeout(()=>{const m=$("pf-matches");m&&m.scrollIntoView({block:"start"})},60));
 }
@@ -10578,7 +10620,7 @@ async function pmLoad(id){if(!sb||!id)return[];const{data:d}=await slPaged(()=>s
 async function pmVis(id){try{const{data:d,error:x}=await sb.from("profiles").select("matches_visibility").eq("id",id).maybeSingle();return x||!d?null:d.matches_visibility||null}catch(e){return null}}
 function pmSk(n,t){const k=n?seekerByNorm(normName(n)):null;return`<span class="pm-s">${k?fBadges(k.f):""}<span class="pm-sk"><b>${esc((n||"—").split(",")[0])}</b>${t?`<small>${esc(t)}</small>`:""}</span></span>`}
 function pmRow(x,own){const fb="fb"===x.src,dt=x.when?fb&&10===x.when.length?fmtDate(x.when):fmtDateTs(x.when):"",gone=!x.oppId||"Deleted player"===x.oppName,
-    o=fb?`<span class="pm-on">${esc(x.oppName||"Unknown opponent")}</span><span class="pm-tag">logged by hand</span>`:gone?`<span class="pm-on">${esc(x.oppName||"Private player")}</span>`:`<a class="pm-on" href="#/profile/${esc(x.oppId)}">${esc(x.oppName||"A Seeker")}</a>`;
+    o=fb?`<span class="pm-on">${esc(x.oppName||"Unknown opponent")}</span><span class="pm-tag">logged by hand</span>`:x.vg?`<span class="pm-on">${esc(x.oppName||"Guest")}</span><span class="pm-tag">vs guest</span>`:gone?`<span class="pm-on">${esc(x.oppName||"Private player")}</span>`:`<a class="pm-on" href="#/profile/${esc(x.oppId)}">${esc(x.oppName||"A Seeker")}</a>`;
   return`<div class="pm-row${fb?" fb":""}"><span class="pm-d">${dt}</span><span class="pm-o"><small class="pm-vs">vs</small>${o}</span><span class="pm-ss">${pmSk(x.mySk,x.myTer)}<i>vs</i>${pmSk(x.oppSk,x.oppTer)}</span><span class="pm-r ${x.draw?"d":x.win?"w":"l"}">${x.draw?"Draw":x.win?"Win":"Loss"}</span>${x.tnName&&t3IdOk(x.tnId)?`<a class="pm-n" href="#/tournaments/${esc(x.tnId)}">${esc(x.tnName)}</a>`:`<span class="pm-n">${x.tnName?esc(x.tnName):""}</span>`}${own&&fb?`<button type="button" class="pm-x" aria-label="Delete this game" title="Delete this game" onclick="fbDel(${jsq(x.id)})">&#215;</button>`:'<span class="pm-xs"></span>'}</div>`}
 
 function pmList(){const A=window._pmL||[],G=window._pmG||[],own=!!window._pmOwn,n=window._pmN||25,k=G.length&&["1v1","mp"].includes(window._pmK)?window._pmK:"",
