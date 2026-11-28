@@ -2668,6 +2668,8 @@ const SET_PREVIEW={name:"Fury and Dread",sub:"New Seeker Decks",dir:"preview/fur
 
 const CHANGELOG=[
   ["2026-11-28",[
+    "Your Play Network pairing on Home, Play and the event page. When the Play Network pairs a round of your tournament, your round, table and opponent show up, or You have a bye. If your opponent has an account in the event, Join your tournament game starts the tracked match in one tap, with no PIN and your registered deck; if not, Track it against a guest is ready with their name filled in. The result is still reported on the Play Network, the official record.",
+    "With notifications on, you get one when the Play Network pairs a round of your tournament, with your table and opponent or your bye. An invitation for an earlier pairing is cancelled when a round is paired again.",
     "The Meta counts the games of Play Network events. When a tournament here takes its rounds and results from the Play Network, the results Play Network confirms join the Meta once the event is closed, with the Seekers and terrains it reports, and the number of matches on the home page counts them too. A game that was also played on the match tracker is counted once, with Play Network’s result.",
     "The Meta says where its games come from: under the summary, how many are from Play Network events, tracked live by both players, from tournaments run here, or logged and confirmed. Next to it, How these numbers are counted explains in plain words every rule behind the numbers. It is also linked from About.",
     "Too few games to tell. A Seeker, a matchup or a terrain with fewer than 5 games is still shown, but faded and marked few games, its number in grey and without a rank: sorted by win rate it comes after every Seeker with enough games, and on a Seeker’s page it has its own list, Too few games to tell. An even matchup now has its own list too, between the best and the worst.",
@@ -2676,6 +2678,62 @@ const CHANGELOG=[
     "The deck builder can order its cards by how often they are played with your Seeker: choose Order: Played most with this Seeker. It counts only lists that are already public, public decks and the Play Network decks of closed tournaments, each list once, and says nothing until there are at least 5 of them.",
     "Game intelligence: the Meta breakdown and the Clash test are now one page under Utilities, with three tabs. Stats is the Meta as before; Seekers shows one Seeker at a time, picked from a row of all of them; Clash test is the Clash test. Tapping a Seeker in Stats opens it in Seekers.",
     "A Seeker’s page has a fourth tile under How its games go: its typical deck, the average number of Units, Swift and Channel spells and Attachments in the public decks of that Seeker, from 5 decks up."
+  ]],
+  ["2026-11-27",[
+    "Tournaments can take their rounds from the Play Network. The organiser pairs the rounds and enters the results on the Play Network, and the event page here shows them: each round’s games, the results once they are confirmed there, and the Play Network standings (Tournament Points, wins, losses and draws, Mastery Differential). The tournament starts when round 1 is paired there and closes by itself when the event finishes. Refresh from Play Network reads it again on demand, and an organiser can switch Rounds in Settings to keep making rounds here.",
+    "Play against a guest. If your opponent has no account, tap Play against a guest on your PIN screen, enter their name if you like and their Seeker and terrain, and your phone keeps score for both of you. The result is saved only on your profile, marked vs guest, and does not count in the Meta. Resetting the match starts again against the same guest. Not for tournament games or group matches.",
+    "Fixed: in fullscreen landscape on the tracker, a long Seeker name could run under the + and − buttons. The Seeker and terrain now split onto two lines and are cut short when there is not enough room."
+  ]],
+  ["2026-11-26",[
+    "A short bio on your profile. Settings › Profile has an optional Bio box, up to 240 characters and 5 lines: where you play, your favourite faction, when you are free for a game. Everyone can read it under your name. Like a post on a public board, it needs a confirmed email, an account a few hours old and a linked Play Network profile.",
+    "Star your favourite community. Tap the star on a community card, or Make it your favourite on its page. Your favourite comes first on Home and in the menu, and it is the one picked for you wherever the site needs a single community. It replaces the old Make home community buttons.",
+    "Page guides with pictures, and a welcome tour. The guides on the harder pages are now short steps you swipe through, each with a small moving picture of the controls it names. New accounts get a welcome tour of Home. The guide opens from the ? Guide button in the header.",
+    "The Home board puts today first: an event happening today is a big card with its start time and a countdown, and so are your tournament pairing, table or bye. If you organise an event, its row has a Manage button.",
+    "In a match tracked on two phones, and in group matches, each player’s Echo now starts at the Starting Echo printed on their Seeker’s Legacy: 25 for a one-faction Seeker, 20 for a two-faction one. Demo games still start at 10.",
+    "On Play › Match the explanation is one short line, and on a phone the start and PIN buttons stay just above the bottom menu, with the reason next to them when something is missing. The match tracker and the Basic tracker show a Tap for fullscreen bubble for a few seconds when they open.",
+    "The Events number on Home counts every Play Network event added to the site, once each, whatever its state: Demos, tournaments still open for registration and community listings too.",
+    "Fixed: if your opponent started the next round while your Start round dialog was open, you got an error. The dialog now closes by itself with a short note."
+  ]],
+  ["2026-11-25",[
+    "Tournament day. Registered players tap I’m here from 2 hours before a Clash tournament starts, or scan the tournament’s QR code at the venue; a player not yet linked can pick their nickname from the Play Network list to link and check in. The organiser can mark anyone Here or Not here, drop whoever did not check in, and is told when it is time to start. Once round 1 starts you see your table and opponent on Home with a button straight to the match, Play › Match shows your tournament game, and Events opens on the tournament you are playing.",
+    "Leave a tournament yourself. Before the start this takes you off the list; while it runs, your open game counts as a win for your opponent and you are not paired again. Only the organiser can bring you back.",
+    "With notifications on, you get a reminder the day before and an hour before a tournament you registered for, and tapping a tournament notification opens its page.",
+    "How many rounds? In + New event, type the number of players (or teams for Allegiance 2v2) to see how many rounds to set on the Play Network and roughly how long the event will take, following the official Tournament Guide.",
+    "Demo events can invite players somewhere next. After someone joins, the page invites them to the organiser’s community in one tap, or shows a short line with one link (a Discord, say), as the organiser chooses in Settings. Demo events are now called just Demo, without 25 cards.",
+    "The Events list has two tabs, Tournaments and Demos, with Yours, All and Communities as filters. Next up on Home shows each event with a date tile (Today, Tomorrow or the weekday), title first, and a Demo you have joined only once.",
+    "A community’s Manage page has four tabs: Details, Invite, Members and Controls. The Invite tab shows the community’s QR code, ready to print. Community and event invites have an Image button that makes a picture with the QR code and the name, ready to post, and a Share… button for chat apps.",
+    "Fixed: for about an hour, event pages lost their date, venue and community name. Fixed too: players who joined a Demo event by QR or link lost the link to their account when the organiser pressed Update from the Play Network."
+  ]],
+  ["2026-11-24",[
+    "One-use invites. Organisers can make a personal invite for one person, for an event or a community: it works once, expires after 30 days and can be taken back. A player invited to a private community’s event can open that event’s page.",
+    "The Communities page has tabs: Communities, Your communities, Heralds and Makers. Communities in the menu is a single item again and opens this page."
+  ]],
+  ["2026-11-23",[
+    "Play › Tournaments is now Play › Events, for tournaments and Demo events alike. Events are named by kind and game mode (Tournament · Clash · Single, or Demo), each card says which it is, and each event page is split into tabs such as Rounds, Standings, Players and Settings, with what concerns you (Join, your next game, your deck) above them. Old links still work.",
+    "Demo events: no rounds, just turn up and play. A Demo event has no Swiss rounds: players turn up, play a game and go, the organiser adds whoever walks in and closes the event at the end. A Demo is always open to everyone, and a closed one can be reopened.",
+    "Join a Demo event from a link, a code or a QR code. Each Demo event has a six-character code, a link to copy and an Invite tab with a QR code to scan at the table or print as a table card. Opening the link adds you to the event, even if you sign up first, and open Demo events show in Next up on Home."
+  ]],
+  ["2026-11-21",[
+    "Open tournaments. A tournament can be a community’s own or open to everyone: anyone signed in can press + New tournament and paste a Play Network event link to run it without a community. A Play Network event can have only one public tournament.",
+    "All tournaments: the Tournaments page lists every tournament anyone can turn up to, registering or already under way, nearest first, also when you are signed out, and on a map: organisers can drop a pin for their event, since the Play Network gives only the town.",
+    "Report a tournament. Every public tournament page has a Report this tournament link, for fake, offensive or duplicate events. A tournament taken off the public list keeps running for its organiser and its players.",
+    "The Collection’s Type filter has a Seekers choice, right after Units. The Buy the developer a coffee button opens PayPal with 2 euros filled in, which you can change."
+  ]],
+  ["2026-11-20",[
+    "The ? that reopens a page’s guide sits in the top bar, next to your profile, instead of over the page’s own buttons. On small phones the BETA badge sits under the logo, so the header fits on one line.",
+    "Fixed: on Home, scrolling to the end of the notice board stopped the whole page. The page now keeps scrolling."
+  ]],
+  ["2026-11-18",[
+    "Home fits on one phone screen. The notice board is a box you scroll inside, the greeting is smaller, and Send feedback is a link next to the coffee button. The whole app sits on the stone of the match tracker (plain dark if your device asks for less transparency or more contrast).",
+    "The site opens on a black screen with the Seekers League logo, gone as soon as the first page is ready, and pages that are loading show the Seekers League mark gently pulsing.",
+    "Fixed: in a deck’s card grid the number of copies covered the card’s faction mark. It is in the bottom-right corner now."
+  ]],
+  ["2026-11-17",[
+    "Page guides. The first time you open the match tracker, Tournaments, the Deck builder, the Collection, the Meta, a community page, the Clash test or Public decks, a short guide shows which buttons do what. It opens again from the ? button."
+  ]],
+  ["2026-11-16",[
+    "The Clash test, face to face: attacker and defender side by side with a big Clash! button between them; the d20 lands with the result and the damage. The bonus − and + fold under Add bonuses, which says how many you changed, and a natural 1 is a Critical graze, a natural 20 a Critical hit.",
+    "The Alpha emblem is open to everyone: any signed-in account can pick it as its profile icon. Nobody’s icon changes unless they pick it."
   ]],
   ["2026-11-15",[
     "New in Utilities: the Clash test. Pick an attacker and a defender, press CLASH!, and see how often the attack lands, the damage it averages and the rounds it takes to bring the defender to 0. It uses the printed statistics of the cards and the rules in the Rules page: 1d20 plus Accuracy against Defense, a natural 20 summing the Power, a natural 1 for a flat 1. The chances are counted face by face, not guessed at. A − and a + on each statistic, five either way, stand in for auras, relics, attachments and whatever the card’s own rules do — the test reads no keywords, so that part is yours to set.",
