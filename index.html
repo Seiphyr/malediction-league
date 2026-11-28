@@ -4951,7 +4951,7 @@ function paintHomeNext(){
   
   const V=T.filter(x=>x&&"running"===x.status).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))),n3=tvMyNext(V);
   n3&&(tm=!0,top.push(duNuRow(n3)));
-  V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuBig(`Round ${by}`,"","You have a bye",`${esc(t3Title(x))} · 3 points`,"",`go('tournaments',{tournamentId:${jsq(x.id)}})`,`${t3Title(x)}, round ${by}: you have a bye, 3 points`)))});
+  V.forEach(x=>{const by=n3&&n3.tid===x.id?0:swMyBye(x);by&&(tm=!0,top.push(nuBig(`Round ${by}`,"","You have a bye",`${esc(t3Title(x))}${t3PnOn(x)?"":" · 3 points"}`,"",`go('tournaments',{tournamentId:${jsq(x.id)}})`,`${t3Title(x)}, round ${by}: you have a bye${t3PnOn(x)?"":", 3 points"}`)))});
   
   const LS=cache.homeListings||[],dmE=new Set,lgN=id=>((L.find(y=>y.id===id)||(cache.leagues||[]).find(y=>y&&y.id===id))||{}).name||"";
   T.filter(x=>x&&"demo"===x.mode&&"draft"===x.status&&!x.hidden_at).forEach(x=>{
@@ -5412,11 +5412,17 @@ function t3MineGet(age){
     try{const{data:d,error:x}=await sb.rpc("t_mine");!x&&Array.isArray(d)&&(rows=d.filter(t=>t&&t.id&&null!=t.status&&t.payload))}catch(x){}
     try{rows.some(t=>"running"===t.status)&&await ensureProfNames()}catch(x){}
     
-    const k=cache.t3Mine;k&&k.p===p&&(cache.t3Mine={uid:u,at:Date.now(),rows},setTimeout(duInbox,0));
+    let pn=null;
+    try{if(!window._pnNextOff&&rows.some(t=>t3PnOn(t)&&/^(running|draft)$/.test(t.status)&&(t.payload.entrants||[]).some(e=>e&&e.id===u))){
+      const{data:d,error:x}=await sb.rpc("t_pn_next");
+      if(x||!d||"object"!=typeof d||d.ok&&!Array.isArray(d.rows))window._pnNextOff=1;
+      else{pn={m:{}};d.ok&&d.rows.forEach(r=>{r&&r.tid&&(pn.m[String(r.tid)]=r)})}}}catch(x){window._pnNextOff=1}
     
-    try{const S=cache.t3Seen&&cache.t3Seen.uid===u?cache.t3Seen:cache.t3Seen={uid:u,m:{}};rows.forEach(t=>{S.m[t.id]={id:t.id,status:t.status,payload:t.payload}})}catch(x){}
+    const k=cache.t3Mine;k&&k.p===p&&(cache.t3Mine={uid:u,at:Date.now(),rows,pn},setTimeout(duInbox,0));
+    
+    try{const S=cache.t3Seen&&cache.t3Seen.uid===u?cache.t3Seen:cache.t3Seen={uid:u,m:{}};rows.forEach(t=>{S.m[t.id]={id:t.id,status:t.status,payload:t.payload,pn:pn&&pn.m[t.id]||null}})}catch(x){}
     return rows})();
-  cache.t3Mine={uid:u,at:c?c.at:0,rows:c?c.rows:[],p};
+  cache.t3Mine={uid:u,at:c?c.at:0,rows:c?c.rows:[],pn:c?c.pn:null,p};
   return p;
 }
 
@@ -5425,7 +5431,7 @@ function t3DuNext(){
   const n=tvMyNext(c.rows.filter(t=>"running"===t.status).sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||""))));
   return n&&n.v3&&window._duTnOff!==n.tid+":"+n.key?n:null;
 }
-function t3DuSig(n){return n?[n.tid,n.key,n.opp,n.oppName,n.mode,n.title,n.stage,n.table].join("|"):""}
+function t3DuSig(n){return n?[n.tid,n.key,n.opp,n.oppName,n.mode,n.title,n.stage,n.table,n.why,n.dn].join("|"):""}
 function t3DuBlock(n){
   const c=me&&cache.t3Mine;
   if(me&&(!c||c.uid!==me.id||!c.p&&Date.now()-c.at>=3e4)){const k0=t3DuSig(n);t3MineGet().then(()=>{"tracker"===route.view&&!DU&&t3DuSig(t3DuNext())!==k0&&duPickPaint()})}
@@ -5453,7 +5459,8 @@ function t3DuLocked(){toast("Your tournament game is played in "+t3GameLabel((t3
 function duSavedTxt(d){
   if(d.vg)return"✓ Saved to your profile (vs guest). Not counted in the Meta.";
   const t=esc(d.tTitle||"the tournament");
-  return"recorded"===d.tState?"✓ Saved to both profiles and recorded in "+t:"kept"===d.tState?"✓ Saved to both profiles. The organizer had already entered this result.":"closed"===d.tState?"✓ Saved to both profiles. The tournament was already closed.":"✓ Saved to both profiles";
+  
+  return"pn"===d.tState?"✓ Saved to both profiles. The official result is the one on Play Network: report it there if you haven&#39;t.":"recorded"===d.tState?"✓ Saved to both profiles and recorded in "+t:"kept"===d.tState?"✓ Saved to both profiles. The organizer had already entered this result.":"closed"===d.tState?"✓ Saved to both profiles. The tournament was already closed.":"✓ Saved to both profiles";
 }
 
 function duSkSel(id,lab,ph,v,on){const sk=seekerList().slice().sort((a,b)=>a.n.localeCompare(b.n)),cur=sk.find(c=>c.n===v),hx=cur&&facHex(cur.f);return`<div class="field"><label class="du-lab" for="${id}">${lab}</label>
@@ -5469,10 +5476,11 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
     <p class="hint du-foot">${GM_ON?"No account?":"No account, or more than two players?"} The Basic tracker keeps score on this device only and saves nothing online. Your opponent has no account? Sign in, tap <b>Start a match</b> and choose <b>Play against a guest</b>.</p>
   </div>`);
   
+  pnNextKick().catch(()=>{});
   const tn0=t3DuNext(),tnb=t3DuBlock(tn0),sw=!!tn0&&swIsSwiss(tn0.t&&tn0.t.payload),tn=sw?null:tn0;duInvNote();tn&&t3DuApply(tn);const p=duPick(),dk=cache.myDecks,ok=duPickOk(),open=ok&&!!window._duPinOpen,pv=(($("du-pin")||{}).value||"").replace(/\D/g,"").slice(0,4),nm=me.display_name||"You";
   e.innerHTML=(sw?`<div class="du-tn-ban">${tnb}</div>`:"")+`<div class="panel du-wrap">
     <h2 class="du-h">${sw?"Or play a casual match":"Play a match"}</h2>
-    <p class="du-lead">${sw?"Your tournament game is the card above: one tap, no PIN. Here you start a casual match. ":""}${DU_MP.includes(p.mode)?"Start the match and read out the PIN: it starts by itself when every seat is taken.":"Start a match and read out the PIN, or join your opponent's with theirs."}</p>
+    <p class="du-lead">${sw?(/^(untracked|tracked)$/.test(t3GameState(tn0.t,tn0))?"":"Your tournament game is the card above: one tap, no PIN. ")+"Here you start a casual match. ":""}${DU_MP.includes(p.mode)?"Start the match and read out the PIN: it starts by itself when every seat is taken.":"Start a match and read out the PIN, or join your opponent's with theirs."}</p>
     <div class="du-me"><span class="du-av" aria-hidden="true">${esc((nm[0]||"?").toUpperCase())}${avHtml(me)}</span><span><small>Playing as</small><b>${esc(nm)}</b></span></div>${sw?"":tnb}
     ${duSkSel("du-seeker","Your Seeker","Pick your Seeker",p.seeker,"duPickSet('seeker',this.value)")}
     ${duTerSel("du-terrain","Your terrain","Pick your terrain",p.terrain,"duPickSet('terrain',this.value)")}
@@ -5481,7 +5489,7 @@ function duPickPaint(){const e=$("tracker-body");if(!e)return;
       <div class="du-sk du-mode${tn?" du-lock":""}"${tn?' onclick="t3DuLocked()"':""}><select id="du-mode"${tn?' disabled aria-disabled="true"':""} onchange="duPickSet('mode',this.value)">${duModeOpts(p.mode,!!tn)}</select></div>
       ${!tn&&"dominion"===p.mode?`<div class="seg du-seats" role="radiogroup" aria-label="Players">${[3,4].map(n=>`<button type="button" role="radio" aria-checked="${p.seats===n}" class="seg-b${p.seats===n?" on":""}" onclick="duPickSet('seats',${n})">${n} players</button>`).join("")}</div>`:""}
       <p class="hint du-mhint">${esc(duModeHint(p.mode,!!tn))}</p></div>
-    <div class="du-acts du-stick">
+    ${(q=>q&&q.until>Date.now()?`<p class="hint du-gpre">Start a match, then tap <b>Play against a guest</b>: ${esc(q.name||"your opponent")} is filled in.</p>`:"")(window._duGstPre)}<div class="du-acts du-stick">
       <button class="act gold" id="du-start" onclick="duStart()"${ok?"":" disabled"}>${DU_MP.includes(p.mode)?`Start a match (${duSeats(p)} players)`:"Start a match"}</button>
       <button class="ghost" id="du-have" onclick="duPinOpen()" aria-expanded="${open}"${ok?"":" disabled"}>I have a PIN</button>
       ${ok?"":`<p class="hint du-need">${p.seeker&&p.terrain?"Pick your deck: tournament games need a decklist.":"Pick your Seeker and terrain to start or join a match."}</p>`}
@@ -5588,7 +5596,8 @@ function duRow(r){const d=DU,was=d.status,cb=d.claimBy,s0=String(r.status||""),s
 function duEnded(s){const d=DU;d.status=s;cache.t3Mine=null;clearInterval(d.iv);d.iv=null;clearTimeout(d.ft);duUnsub();try{localStorage.removeItem("group"===d.kind?GM_KEY:DU_KEY)}catch(e){}duSheet();const k=$("du-end");k&&k.remove();
   if("tracker"===route.view)tkDu=d,duPaint();else if("group"===d.kind)gmEndToast(s);else"done"===s?toast(`Match over: ${d.isDraw?"a draw":d.winner===d.uid?"you won":duOpp().name+" won"}. ${d.vg?"Saved to your profile (vs guest). Not counted in the Meta.":"Saved to both profiles."}`,!0):"cancelled"===s&&toast("Your match was cancelled",!0);
   
-  "done"===s&&d.tId&&swKickId(d.tId,d.id)}
+  
+  "done"===s&&d.tId&&!/^pn:/.test(d.tRef||"")&&swKickId(d.tId,d.id)}
 function duClear(keep){const d=DU;if(d){clearInterval(d.iv);clearTimeout(d.ft);duUnsub()}clearInterval(window._duCd);DU=null;tkDu===d&&(tkDu=null);d&&trk===d.trk&&(clearInterval(_tkClock),trk=_trkB);if(!keep)try{localStorage.removeItem(d&&"group"===d.kind?GM_KEY:DU_KEY)}catch(e){}["du-sheet","du-end","gm-info","gm-teams"].forEach(i=>{const e=$(i);e&&e.remove()});tkWakeSync()}
 
 function duDrop(){window._duBoot=null;window._duFind=null;DU&&duClear(!0)}
@@ -5630,7 +5639,9 @@ function duWaitHtml(){if(DU.inv)return duInvWaitHtml();const d=DU,m=duMe(),p=Str
 
 function duGstOk(){const d=DU;return!!d&&"group"!==d.kind&&"host"===d.role&&"waiting"===d.status&&!d.inv&&!d.tId&&!d.vg}
 function duGst(){const g=window._duGst;return g&&DU&&g.id===DU.id&&duGstOk()?g:null}
-function duGstOpen(){if(!duGstOk())return;duGst()||(window._duGst={id:DU.id,name:"",seeker:"",terrain:""});duPaint();const e=$("du-gname");e&&e.focus()}
+function duGstOpen(){if(!duGstOk())return;const q=window._duGstPre,pre=q&&q.until>Date.now()?String(q.name||"").slice(0,24):"";window._duGstPre=null;duGst()||(window._duGst={id:DU.id,name:pre,seeker:"",terrain:""});duPaint();const e=$("du-gname");e&&e.focus()}
+
+function pnGstGo(tid,key,name){window._duTnOff=tid+":"+key;window._duGstPre={name:String(name||"").slice(0,24),until:Date.now()+6e5};const p=duPick();p.mode=duModeOk("clash");duPickSave();go("tracker")}
 function duGstBack(){window._duGst=null;duPaint();const e=$("du-gst");e&&e.focus()}
 function duGstSet(k,v){const g=duGst();if(!g)return;g[k]=String(v||"");if("name"===k)return;duPaint();const e=$("du-g"+k);e&&e.focus()}
 function duGstHtml(g){const d=DU,m=duMe(),ok=!!(g.seeker&&g.terrain);return`<div class="panel du-wrap" id="du-gform">
@@ -5999,12 +6010,18 @@ function gmCancelAsk(){const d=DU;if(!d)return;if("waiting"===d.status)return vo
 async function gmCancel(fn){const d=DU;if(!d||d._cc)return;d._cc=1;"gm_leave"===fn&&"waiting"!==d.status&&!d.left&&(duScorer()?duBoth():duFlush());try{const{data:r,error:x}=await sb.rpc(fn,{p_id:d.id});if(x)throw x;if(d!==DU)return;
   r&&("cancelled"===r.status||"left"===r.status)?(duClear(),toast("left"===r.status?"You left the match":"Match cancelled",!0),"tracker"===route.view&&renderTracker()):(r&&"locked"===r.reason&&toast("The match has started: you can leave it, not cancel it"),r&&r.left&&toast("You left the match. The others play on.",!0),duSync())}catch(e){toast(e)}finally{d._cc=0}}
 
+
+const DU_TWHY_PN={not_entrant:"Link your malediction.gg profile in Account › Profile, then ask the organizer to add you.",dropped:"You have left this event.",no_round:"No round is paired on Play Network yet.",unmatched:"Your name was not found in the Play Network pairings.",no_game:"You have no game in this round on Play Network.",bye:"You have a bye this round.",played:"Play Network already has the result of this game.",opp_unmatched:"This game is not tracked: your opponent has no Seekers League account in this event. Play it and report it on Play Network.",opp_dropped:"This game is not tracked: your opponent has no Seekers League account in this event. Play it and report it on Play Network.",opp_no_account:"This game is not tracked: your opponent has no Seekers League account in this event. Play it and report it on Play Network.",tracked:"This game was already tracked here. Report the result on Play Network.",pn_wait:"Play Network has not started this event yet."};
 const DU_TWHY={no_game:"You have no game to play in this round.",opp_no_account:"Your opponent has no linked account, so this game is not tracked. Play it and tell the organizer the result.",busy:"This game is already being played on another phone.",dropped:"You have dropped from this tournament.",not_entrant:"Link your malediction.gg profile in Settings › Profile, then ask the organizer to add you.",status:"This tournament is not running.",rate_limited:"You started 30 matches in the last hour. Try again later.",full:"Too many matches are waiting for an opponent right now. Try again in a few minutes.",gone:"This invitation has ended.",not_allowed:"This invitation has ended."};
 
-function t3Ref(n){return n&&/^g\d+$/.test(n.key)?"g:"+n.key.slice(1):""}
+
+function t3Ref(n){return n&&n.pn&&/^pn:\d{1,3}:\d{1,10}$/.test(n.ref)?n.ref:n&&/^g\d+$/.test(n.key)?"g:"+n.key.slice(1):""}
 
 function t3GameState(t,n){
-  if(!me||!t||!n||!t3IdOk(n.opp))return"untracked";
+  if(!me||!t||!n)return"untracked";
+  
+  if(n.pn){if(n.why)return"untracked";if(n.dn&&!(DU&&DU.tRef===n.ref&&/^(waiting|live|ending)$/.test(DU.status)))return"tracked"}
+  if(!t3IdOk(n.opp))return"untracked";
   const ref=t3Ref(n),d=DU,L=cache.t3Live&&cache.t3Live.tid===t.id?cache.t3Live.m[ref]:null,r=t3Dk(t);
   if(d&&d.tId===t.id&&d.tRef===ref&&/^(live|ending)$/.test(d.status))return"live";
   if(d&&d.inv&&d.tId===t.id&&d.tRef===ref&&"waiting"===d.status)return"waiting";
@@ -6017,15 +6034,16 @@ async function duTRpc(n,a){
   catch(e){toast("Not started — check your connection and tap again");return null}
 }
 function duTOpen(){return!!DU&&/^(live|ending)$/.test(DU.status)}
-async function duStartT(tid,again){
+async function duStartT(tid,again,ref){
   if(!me)return go("auth");if(window._duBusy||!tid)return;
   if(duTOpen()&&DU.tId!==tid)return toast("Finish your open match first"),void go("tracker");
-  duBusy(1);const r=await duTRpc("t_duel_start",{p_tid:tid});duBusy(0);if(!r)return;
+  const pn=/^pn:/.test(ref||"");
+  duBusy(1);const r=await duTRpc(pn?"t_duel_start_pn":"t_duel_start",pn?{p_tid:tid,p_ref:ref}:{p_tid:tid});duBusy(0);if(!r)return;
   if(!r.ok){const k=r.reason;
-    if("stale"===k&&!again)return duStartT(tid,1);
-    if("no_deck"===k)return void t3DeckSheet(tid,()=>duStartT(tid),"Save and start");
-    /^(no_game|opp_no_account|dropped|not_entrant|status|stale)$/.test(k)&&(cache.t3Mine=null,duInvRepaint());
-    return void toast(DU_TWHY[k]||r.message||"Could not start the match. Try again.")}
+    if("stale"===k&&!again)return duStartT(tid,1,ref);
+    if("no_deck"===k)return void t3DeckSheet(tid,()=>duStartT(tid,0,ref),"Save and start");
+    /^(no_game|opp_no_account|opp_unmatched|opp_dropped|dropped|not_entrant|status|stale|played|tracked|bye|unmatched|no_round|pn_wait)$/.test(k)&&(cache.t3Mine=null,duInvRepaint());
+    return void toast(ref&&DU_TWHY_PN[k]||DU_TWHY[k]||r.message||"Could not start the match. Try again.")}
   if("guest"===r.role&&r.accept)return duJoinT(r.id,tid);
   const id=String(r.id||"").toLowerCase();if(!id)return;
   if(DU&&DU.id===id&&/^(waiting|live|ending)$/.test(DU.status))return void go("tracker");
@@ -6033,7 +6051,7 @@ async function duStartT(tid,again){
   const t=r.t&&"object"==typeof r.t?r.t:{},o=r.opp&&"object"==typeof r.opp?r.opp:{},m="demo"===r.mode?"demo":"clash";
   DU="waiting"===r.status?duMake({id,role:"host",uid:me.id,mode:m,target:+r.target||("demo"===m?25:40),status:"waiting",inv:1,pinEnd:Date.now()+Math.max(0,(Date.parse(r.expires_at)-Date.parse(r.server_now))||18e5),hid:me.id,hn:me.display_name,hs:r.host_seeker,ht:r.host_terrain,gid:o.id||null,gn:o.name||null,tId:String(t.id||tid),tTitle:t.title||null,tLabel:t.label||null,tRef:t.ref||null})
     
-    :duMake({id,role:"guest"===r.role?"guest":"host",uid:me.id,mode:m,target:"demo"===m?25:40,status:"ending"===r.status?"ending":"live",inv:1,lv:1,tId:tid,pinEnd:Date.now()+6e4,rst:1});
+    :duMake({id,role:"guest"===r.role?"guest":"host",uid:me.id,mode:m,target:"demo"===m?25:40,status:"ending"===r.status?"ending":"live",inv:1,lv:1,tId:tid,pinEnd:Date.now()+6e4,rst:1,tRef:ref||void 0});
   duInitTrk();duStore();duRun();duInvNote();"tracker"===route.view?renderTracker():go("tracker");
 }
 async function duJoinT(id,tid){
@@ -6056,7 +6074,9 @@ async function duJoinT(id,tid){
 function duInvKeep(d){
   
   if(!d.tId||d.pinEnd<=Date.now()||d.pinEnd-Date.now()>3e5||Date.now()-(d._kp||0)<6e4)return;d._kp=Date.now();
-  Promise.resolve(sb.rpc("t_duel_start",{p_tid:d.tId})).then(q=>{const r=q&&q.data,x=r&&String(r.id||"").toLowerCase();
+  
+  const pn=/^pn:/.test(d.tRef||"");
+  Promise.resolve(sb.rpc(pn?"t_duel_start_pn":"t_duel_start",pn?{p_tid:d.tId,p_ref:d.tRef}:{p_tid:d.tId})).then(q=>{const r=q&&q.data,x=r&&String(r.id||"").toLowerCase();
     
     if(r&&r.ok&&"host"===r.role&&"waiting"===r.status&&x&&x!==d.id){DU&&DU.id===x||Promise.resolve(sb.rpc("duel_cancel",{p_id:x})).catch(()=>{});return}
     if(d!==DU||!r||!r.ok||"host"!==r.role||x!==d.id||!r.expires_at||!r.server_now)return;d.pinEnd=Date.now()+(Date.parse(r.expires_at)-Date.parse(r.server_now));duStore()}).catch(()=>{});
@@ -6085,24 +6105,24 @@ function duTnPage(tnb){const nm=me.display_name||"You";return`<div class="panel 
 function duTnDk(t){const r=t3Dk(t);if(r||!me||!sb||window._duTnDk===t.id)return r;window._duTnDk=t.id;
   Promise.resolve(sb.rpc("t_deck_get",{p_tid:t.id})).then(q=>{q&&!q.error&&q.data&&q.data.ok&&(cache.t3Dk={k:t3DkKey(t),r:q.data,due:!1})}).catch(()=>{}).finally(()=>{window._duTnDk=null;"tracker"===route.view&&!DU&&t3Dk(t)&&duPickPaint()});return null}
 function duTnCard(n){
-  const t=n.t,s=t3GameState(t,n),iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,dk=duTnDk(t),mn="untracked"!==s&&dk&&dk.mine,tj=jsq(n.tid),
+  const t=n.t,s=t3GameState(t,n),iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,dk=duTnDk(t),mn=!/^(untracked|tracked)$/.test(s)&&dk&&dk.mine,tj=jsq(n.tid),
     dl=mn?`Your deck: ${esc(t3DkSk(mn.seeker))} · ${esc(mn.terrain||"")}`:dk?"No deck registered yet: you choose it when you start.":"",
-    a="untracked"===s?"":iv?`<button type="button" class="act gold du-tn-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:`<button type="button" class="act gold du-tn-go" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`;
+    a=/^(untracked|tracked)$/.test(s)?"":iv?`<button type="button" class="act gold du-tn-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:`<button type="button" class="act gold du-tn-go" onclick="duStartT(${tj}${n.pn?",0,"+jsq(n.ref):""})">${"live"===s?"Open the match":"Start the match"}</button>`;
   return`<div class="du-tn du-tn-sw" role="status"><small>Tournament game</small>
       <b>${esc(n.title)}</b>
       <span class="du-tn-vs">${esc(n.stage)}${n.table?" · Table "+(n.table|0):""} · vs ${esc(n.oppName)}</span>
       ${iv?`<p class="du-tn-inv">${esc(iv.host_name||n.oppName)} is waiting for you</p>`:""}
-      ${"untracked"===s?`<p>${esc(n.oppName)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.</p>`:dl?`<p class="du-tn-dk">${dl}</p>`:""}${t3DcLine(t,n,n.oppName,"du-tn-dc")}
+      ${n.pn&&/^(untracked|tracked)$/.test(s)?`<p>${pnNxTxt(n,s,n.oppName)}</p>`:n.pn&&"start"===s?(dl?`<p class="du-tn-dk">${dl}</p>`:"")+`<p>${pnNxTxt(n,s,n.oppName)}</p>`:"untracked"===s?`<p>${esc(n.oppName)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.</p>`:dl?`<p class="du-tn-dk">${dl}</p>`:""}${t3DcLine(t,n,n.oppName,"du-tn-dc")}
       <p>Mode: ${esc(t3GameLabel(n.mode))}, set by the tournament</p><p>Time ran out with equal Mastery? End the match and choose Draw.</p>
       ${a}
-      <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${tj}})">Tournament page</button>${iv?`<button type="button" class="link" onclick="duInvDecline(${jsq(iv.id)})">Decline</button>`:""}</div>
+      <div class="du-tn-a"><button type="button" class="link" onclick="go('tournaments',{tournamentId:${tj}})">Tournament page</button>${pnNxGst(n,s)}${iv?`<button type="button" class="link" onclick="duInvDecline(${jsq(iv.id)})">Decline</button>`:""}</div>
     </div>`}
 
 function t3NextSw(t,n,on){
   const s=t3GameState(t,n),iv="invited"===s?duInvFor(t.id,t3Ref(n)):null,tj=jsq(t.id),hd=`Your next game &middot; ${esc(n.stage)}${n.table?" &middot; Table "+(n.table|0):""}`,
     b=iv?`${esc(iv.host_name||on)} is waiting for you`:`vs ${esc(on)}`,
-    a="untracked"===s?"":iv?`<button class="act" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:"waiting"===s?`<button class="act" onclick="go('tracker')">Open the match</button>`:`<button class="act" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`,
-    h="untracked"===s?`${esc(on)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.`
+    a=n.pn?pnNxBtn(t,n,s)||pnNxGst(n,s):"untracked"===s?"":iv?`<button class="act" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:"waiting"===s?`<button class="act" onclick="go('tracker')">Open the match</button>`:`<button class="act" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`,
+    h=n.pn&&/^(untracked|tracked|start)$/.test(s)?pnNxTxt(n,s,on):"untracked"===s?`${esc(on)} has no linked account, so this game is not tracked. Play it and tell the organizer the result.`
       :"waiting"===s?`Waiting for ${esc(on)} to join. They see “Join your tournament game” when the site is open on their phone.`
       :iv?"One tap and the match is live, with your registered deck. No PIN."
       :"live"===s?"This game is being played with the match tracker."
@@ -6114,13 +6134,13 @@ function t3NextSw(t,n,on){
 
 function duNuRow(n){
   const t=n.t,sw=!!t&&swIsSwiss(t.payload),s=sw?t3GameState(t,n):"",iv="invited"===s?duInvFor(n.tid,t3Ref(n)):null,tb=n.table?` · <span class="nu-tb">Table ${n.table|0}</span>`:"",tj=jsq(n.tid);
-  return nuBig(`${esc(n.stage)}${tb}`,"",iv?`${esc(iv.host_name||n.oppName)} is waiting for you`:`vs ${esc(n.oppName)}`,esc(n.title),"",`go('tournaments',{tournamentId:${tj}})`,
+  return nuBig(`${esc(n.stage)}${tb}`,"",iv?`${esc(iv.host_name||n.oppName)} is waiting for you`:`vs ${esc(n.oppName)}`,esc(n.title)+(n.pn&&"untracked"===s?" · Not tracked: report it on Play Network":n.pn&&"tracked"===s?" · Tracked here · report it on Play Network":""),"",`go('tournaments',{tournamentId:${tj}})`,
     [n.title,"next match",n.stage,n.table?"table "+(n.table|0):"",iv?(iv.host_name||n.oppName)+" is waiting for you":"vs "+n.oppName].filter(Boolean).join(", "),
     
     iv?`<button type="button" class="act nu-go" onclick="duJoinT(${jsq(iv.id)},${tj})">Join</button>`
     :"waiting"===s?`<button type="button" class="act nu-go" onclick="go('tracker')">Open the match</button>`
     :"live"===s&&DU&&DU.tId===n.tid?`<button type="button" class="act nu-go" onclick="go('tracker')">Open the match</button>`
-    :"start"===s||"nodeck"===s||"live"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj})">${"live"===s?"Open the match":"Start the match"}</button>`:"","nu-mt");
+    :"start"===s||"nodeck"===s||"live"===s?`<button type="button" class="act nu-go" onclick="duStartT(${tj}${n.pn?",0,"+jsq(n.ref):""})">${"live"===s?"Open the match":"Start the match"}</button>`:"","nu-mt");
 }
 
 function duInvList(){const c=cache.duInv;return me&&c&&c.uid===me.id?c.list:[]}
@@ -6188,12 +6208,12 @@ async function duInboxPoll(force){
   if(!r||I!==window._duInb||!me||I.uid!==me.id)return;
   duInvSet(r.invites);
   
-  const c=cache.t3Mine,ch=c&&c.uid===me.id&&!c.p&&Array.isArray(r.mine)?r.mine.find(x=>{const t=x&&(c.rows||[]).find(y=>y&&y.id===x.id);return t&&null!=t.rev&&(t.rev!==x.rev||t.status!==x.status)}):null;
+  const c=cache.t3Mine,ch=c&&c.uid===me.id&&!c.p&&Array.isArray(r.mine)?r.mine.find(x=>{const t=x&&(c.rows||[]).find(y=>y&&y.id===x.id);return t&&null!=t.rev&&(t.rev!==x.rev||t.status!==x.status||null!=x.srev&&!!c.pn&&!!c.pn.m[x.id]&&x.srev!==c.pn.m[x.id].srev)}):null;
   ch&&duInbT(String(ch.id));
 }
 
 function duInbT(tid){
-  if(!me)return;const c=cache.t3Mine,s=cache.t3Seen,o=(c&&c.uid===me.id?(c.rows||[]).find(t=>t&&t.id===tid):null)||(s&&s.uid===me.id?s.m[tid]:null)||null,o0=o&&swIsSwiss(o.payload)?swCur(o.payload):0,os=o&&o.status;
+  if(!me)return;const c=cache.t3Mine,s=cache.t3Seen,o=(c&&c.uid===me.id?(c.rows||[]).find(t=>t&&t.id===tid):null)||(s&&s.uid===me.id?s.m[tid]:null)||null,o0=o&&swIsSwiss(o.payload)?swCur(o.payload):0,os=o&&o.status,q0=(c&&c.uid===me.id&&c.pn?c.pn.m[tid]:null)||(s&&s.uid===me.id&&s.m[tid]?s.m[tid].pn:null)||null;
   cache.t3Mine=null;
   "tournaments"===route.view&&cache.tourney&&cache.tourney.id===tid&&t3Poll(tid);
   return t3MineGet().then(R=>{if(!me)return;const t=(R||[]).find(x=>x&&x.id===tid);
@@ -6202,12 +6222,16 @@ function duInbT(tid){
     
     t&&"function"==typeof window.swKick&&window.swKick(t);
     if(!t||!o||!swIsSwiss(t.payload))return;
-    const cur=swCur(t.payload),T=t3Title(t);let a="",b="",kd="";
+    const cur=swCur(t.payload),T=t3Title(t);let a="",b="",kd="",sk=t.rev|0;
+    
+    if(t3PnOn(t)&&"running"===t.status){const n=pnNextOf(t),r1=n?n.r|0:0,g=!!n&&/^(|opp_unmatched|opp_dropped|opp_no_account)$/.test(n.why||""),rp=!!n&&!!q0&&(q0.r|0)===r1&&String(q0.ref||"")!==String(n.ref||"");
+      if(n&&(r1>(q0&&q0.r|0)||rp)&&(g||"bye"===n.why)){kd=g?"round":"bye";a=rp?`Round ${r1} was paired again`:`Round ${r1} is paired`;b=g?`Your game: vs ${n.oppName}${n.table?", table "+n.table:""}.`:"You have a bye.";sk="pnr"+r1+(g?"_"+(String(n.ref||"").split(":")[2]||""):"b")}}
+    else
     if("running"===t.status&&cur>o0){const n=tvMyNext([t]);kd=n?"round":swMyBye(t)?"bye":"";a=`Round ${cur} is paired`;b=n?`Your next game: vs ${n.oppName}${n.table?", table "+n.table:""}.`:swMyBye(t)?"You have a bye.":""}
     
     else if("closed"===t.status&&"closed"!==os){kd="closed";const p=t.payload||{},S=Array.isArray(p.standings)?p.standings:[],ch=p.champion||swChampion(S);a="The tournament is closed";b=ch?`Champion: ${swNmIn(tid,ch,R)}`:S.length?"First place is shared.":"See the final standings."}
     if(!a)return;
-    if(!swSay(tid,t.rev|0,`${a}.${b?" "+b:""}`))return;
+    if(!swSay(tid,sk,`${a}.${b?" "+b:""}`))return;
     "hidden"===document.visibilityState&&tvNotifyOn()&&tvNotify(a,(b?b+" ":"")+T,tvNoteData(null,tid,null,!0),kd);
   });
 }
@@ -8022,6 +8046,8 @@ function tvMyNext(list){
     const p=t.payload,v3=null!=t.status;
     
     if(!tvIsV2(p)||!(p.entrants||[]).some(e=>e&&e.id===me.id&&!(v3&&"drop"===e.st))||v3&&"running"!==t.status)continue;
+    
+    if(v3&&t3PnOn(t)){const n=pnNextOf(t);if(n&&/^(|opp_unmatched|opp_dropped|opp_no_account)$/.test(n.why||""))return n;continue}
     const n=tvNextFor(p,me.id);
     
     if(n)return v3?{...n,tid:t.id,month:t.month||"",lid:"",v3:!0,t,title:t3Title(t),mode:"demo"===t.mode?"demo":"clash",oppName:t3KeyName(t,n.opp)}:{...n,tid:t.id,month:t.month||"",lid:t.league_id||""};
@@ -8029,7 +8055,7 @@ function tvMyNext(list){
   return null;
 }
 
-function swMyBye(t){const p=t&&t.payload;if(!me||!t||"running"!==t.status||!swIsSwiss(p)||p.finalized||!(p.entrants||[]).some(e=>e&&e.id===me.id&&"drop"!==e.st)||tvNextFor(p,me.id))return 0;const c=swCur(p);return(p.gm||[]).some(m=>m.r===c&&"bye"===m.src&&m.a===me.id)?c:0}
+function swMyBye(t){if(t3PnOn(t)){const n="running"===t.status&&pnNextOf(t);return n&&"bye"===n.why?n.r|0:0}const p=t&&t.payload;if(!me||!t||"running"!==t.status||!swIsSwiss(p)||p.finalized||!(p.entrants||[]).some(e=>e&&e.id===me.id&&"drop"!==e.st)||tvNextFor(p,me.id))return 0;const c=swCur(p);return(p.gm||[]).some(m=>m.r===c&&"bye"===m.src&&m.a===me.id)?c:0}
 function tvOppName(id){return(cache.profNames||{})[id]||((cache.members||[]).find(m=>m.id===id)||{}).display_name||"your opponent"}
 function tvNextBanner(list,here){
   const n=tvMyNext(list);
@@ -8234,7 +8260,8 @@ async function slPushTest(){const r=await slPushRpc("push_test");if(!r.ok)return
 
 function slPushInPage(d){try{
   const k=String(d.kind||""),D=d.data&&"object"==typeof d.data?d.data:{},t=String(d.title||"").slice(0,120),b=String(d.body||"").slice(0,300),lc=x=>String(x||"").toLowerCase();
-  t&&toast(b?t+" — "+b:t,!0);
+  const pk=/^t_(round|bye)$/.test(k)&&D.pn&&D.tid?String(D.tid)+":pnr"+(D.r|0)+("t_round"===k?"_"+String(null==D.mid?"":D.mid).replace(/\D/g,"").slice(0,10):"b"):"",SS=window._swSaid||(window._swSaid={});
+  t&&!(pk&&SS[pk])&&toast(b?t+" — "+b:t,!0);pk&&(SS[pk]=1);
   if(/^(t_round|t_bye|t_invite|m_join|gm_join|gm_live|m_confirm|gm_confirm)$/.test(k)&&!(/^g?m_/.test(k)?"tracker"===route.view:!!D.tid&&"tournaments"===route.view&&lc(route.tournamentId)===lc(D.tid)))try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}
   const lg="league"===route.view&&!!D.lid&&lc(route.leagueId)===lc(D.lid),tb=route.tab||"about";
   lg&&("nt_new"===k&&/^(about|standings)$/.test(tb)||/^ev_/.test(k)&&/^(events|past)$/.test(tb)||"bd_report"===k&&"about"===tb)&&renderLeague();
@@ -8280,9 +8307,10 @@ async function tvPoll(){
     if(key===last)return;
     ch=!0;
     try{localStorage.setItem(k,key)}catch(e){}
-    key&&tvNotifyOn()&&(n?tvNotify("Your next match",`vs ${n.oppName}${n.table?" · Table "+n.table:""} · ${n.stage} · ${n.title}`,tvNoteData("",t.id,t.month,!0),t.payload&&"swiss"===t.payload.fmt?"round":void 0):tvNotify("You have a bye",`Round ${by} · ${t3Title(t)}: 3 points and 20 mastery differential`,tvNoteData("",t.id,t.month,!0),t.payload&&"swiss"===t.payload.fmt?"bye":void 0));
+    key&&tvNotifyOn()&&(n?tvNotify("Your next match",`vs ${n.oppName}${n.table?" · Table "+n.table:""} · ${n.stage} · ${n.title}`,tvNoteData("",t.id,t.month,!0),t.payload&&"swiss"===t.payload.fmt?"round":void 0):tvNotify("You have a bye",`Round ${by} · ${t3Title(t)}${t3PnOn(t)?"":": 3 points and 20 mastery differential"}`,tvNoteData("",t.id,t.month,!0),t.payload&&"swiss"===t.payload.fmt?"bye":void 0));
   });
   ch&&"browse"===route.view&&paintHomeNext();
+  pnNextKick().catch(()=>{});
 }
 
 function tvCanSetMine(p){return!!(me&&p&&2===p.v&&!p.finalized&&!tvPlayed(p)&&(p.entrants||[]).some(e=>e.id===me.id))}
@@ -11525,7 +11553,7 @@ function swKick(t){
 
 function swKickId(tid,id){
   if(!me||!sb||!sb.functions||!tid||!id)return;
-  const c=cache.t3Mine,r=c&&c.uid===me.id&&(c.rows||[]).find(x=>x&&x.id===tid);if(r&&!swIsSwiss(r.payload))return;
+  const c=cache.t3Mine,r=c&&c.uid===me.id&&(c.rows||[]).find(x=>x&&x.id===tid);if(r&&(!swIsSwiss(r.payload)||t3PnOn(r)))return;
   const D=window._swKD||(window._swKD={});if(D[id])return;D[id]=1;
   swInvoke(tid,null);
 }
@@ -11790,6 +11818,76 @@ function pnWho(M,s){
 }
 function pnNum(v,lo,hi){return Number.isInteger(v)&&v>=lo&&v<=hi?v:null}
 
+function pnCur(L){const R=pnRounds(L),has=x=>!!x&&Array.isArray(x.games)&&x.games.length>0,c=L&&L.cur_round;
+  if(Number.isInteger(c)&&c>=1&&c<=100&&R.some(x=>x.r===c&&has(x)))return c;
+  let m=0;R.forEach(x=>{has(x)&&x.r>m&&(m=x.r)});return m}
+
+function pnMyGame(t,L,uid){
+  const M=pnWhoMap(t),E=((t&&t.payload||{}).entrants||[]).filter(x=>x&&x.id),e=E.find(x=>x.id===uid),o={r:null,mid:null,ref:null,tb:null,opp:null,opp_nick:null,why:null},
+    sd=s=>(pnWho(M,s)||{}).id||null,gs=x=>(Array.isArray(x&&x.games)?x.games:[]).filter(g=>g&&"object"==typeof g),mine=g=>sd(g.a)===uid||sd(g.b)===uid;
+  if(!e)return o.why="not_entrant",o;if("drop"===e.st)return o.why="dropped",o;
+  const c=pnCur(L);if(!c)return o.why="no_round",o;o.r=c;
+  const R=pnRounds(L),G=gs(R.find(x=>x.r===c)).map((g,j)=>[g,j]).filter(x=>mine(x[0])).sort((x,y)=>(pnNum(x[0].tb,1,999999)??1e9)-(pnNum(y[0].tb,1,999999)??1e9)||x[1]-y[1]),g=G.length?G[0][0]:null;
+  if(!g)return o.why=R.some(x=>gs(x).some(mine))?"no_game":"unmatched",o;
+  if(!0===g.bye||null==g.b)return o.why="bye",o;
+  const id=String(g.id);if(!/^[0-9]{1,10}$/.test(id)||!(+id>0))return o.why="no_game",o;
+  o.mid=+id;o.ref="pn:"+c+":"+o.mid;o.tb=pnNum(g.tb,1,9999);
+  const ob=sd(g.a)===uid?g.b:g.a,k=sd(ob),nk=ob&&"object"==typeof ob?String(ob.nick||"").trim().slice(0,40):"";o.opp=k;o.opp_nick=nk||null;
+  if(!0===g.draw||/^[12]$/.test(String(g.win)))return o.why="played",o;
+  const oe=k&&E.find(x=>x.id===k);o.why=!k?"opp_unmatched":oe&&"drop"===oe.st?"opp_dropped":t3IdOk(k)?null:"opp_no_account";return o}
+
+function pnNextRow(t,x){const r=x.r|0,m=/^pn:(\d{1,3}):(\d{1,10})$/.exec(String(x.ref||""));
+  return{key:"p"+r+"_"+(m?m[2]:""),ref:m?String(x.ref):"",pn:1,r,why:x.why||null,dn:!!x.dn,opp:x.opp||null,oppName:(x.opp?t3KeyName(t,x.opp):"")||String(x.on||"").trim()||"your opponent",
+    table:pnNum(x.tb,1,9999),stage:"Round "+r,tid:t.id,v3:!0,t,title:t3Title(t),mode:"clash"}}
+function pnNextOf(t){const c=me&&cache.t3Mine,x=!window._pnNextOff&&!!t&&!!c&&c.uid===me.id&&c.pn&&c.pn.m[t.id];return x?pnNextRow(t,x):null}
+
+function pnMineN(t,L){const g=pnMyGame(t,L,me.id),c=cache.t3Mine,P=c&&c.uid===me.id&&!window._pnNextOff?c.pn||null:null,x=P&&P.m[t.id];
+  const sv=x&&x.ref===g.ref&&!g.why&&"opp_no_account"===x.why?x:null;return{g,P,n:g.ref?pnNextRow(t,{r:g.r,ref:g.ref,tb:g.tb,opp:sv?sv.opp:g.opp,on:sv&&sv.on||g.opp_nick,why:sv?sv.why:g.why,dn:!!(x&&x.ref===g.ref&&x.dn)}):null}}
+function pnNxTxt(n,s,on){return"tracked"===s?"Tracked here and saved to both profiles. If you haven&#39;t yet, report the result on Play Network: that is the official record."
+  :"untracked"===s?`${esc(on)} ${"opp_no_account"===n.why?"has no Seekers League account in this event":"could not be matched to a player of this event"}, so this game can&#39;t be tracked for both of you. Play it and report it on Play Network.`
+  :"start"===s?"One tap starts it in Clash with your registered deck, no PIN. Report the result on Play Network as usual: that is the official record.":""}
+function pnNxGst(n,s){return n.pn&&"untracked"===s&&/^opp_(unmatched|dropped)$/.test(n.why||"")?`<button type="button" class="link" onclick="pnGstGo(${jsq(n.tid)},${jsq(n.key)},${jsq(n.oppName)})">Track it against a guest</button>`:""}
+function pnNxBtn(t,n,s){const iv="invited"===s?duInvFor(t.id,t3Ref(n)):null,tj=jsq(t.id);
+  return iv?`<button class="act" onclick="duJoinT(${jsq(iv.id)},${tj})">Join your tournament game</button>`:"waiting"===s?`<button class="act" onclick="go('tracker')">Open the match</button>`
+    :/^(start|nodeck|live)$/.test(s)?`<button class="act" onclick="duStartT(${tj},0,${jsq(n.ref)})">${"live"===s?"Open the match":"Start the match"}</button>`:""}
+
+function pnRndAct(t,L){const x=t3Mine(t);if(!me||!x||"drop"===x.st)return null;const{g,P,n}=pnMineN(t,L);if(!P||!n||g.why)return null;
+  const s=t3GameState(t,n);return/^(start|invited|waiting|live)$/.test(s)?{mid:g.mid,a:pnNxBtn(t,n,s)}:null}
+
+function t3PnNextHtml(t){
+  const x=t3Mine(t),L=t&&t._pnl;if(!me||!x||"drop"===x.st||!L)return"";
+  const{g,P,n}=pnMineN(t,L),r=g.r|0,N=pnNum(L.n_rounds,1,99)||0,u=pnUrl((t.payload||{}).pn&&t.payload.pn.url),
+    bx=(hd,b,h,a)=>`<div class="tv-next here t3-next" role="status"><div class="tv-next-main"><small>${hd}</small><b>${b}</b></div>${a?`<div class="tv-next-act">${a}</div>`:""}${h?`<p class="t3-next-h">${h}</p>`:""}</div>`;
+  if(!P&&!window._pnNextOff&&!window._pnNxQ){window._pnNxQ=1;t3MineGet().then(()=>{const c=cache.t3Mine;c&&c.pn&&t3Repaint()}).catch(()=>{}).finally(()=>{window._pnNxQ=0})}
+  if(n&&/^(|opp_unmatched|opp_dropped|opp_no_account)$/.test(n.why||""))return P?t3NextSw(t,n,n.oppName):bx(`Your game &middot; Round ${r}${n.table?" &middot; Table "+n.table:""}`,`vs ${esc(n.oppName)}`,"Report the result on Play Network.");
+  switch(g.why){
+    case"bye":return bx(`Your game &middot; Round ${r}`,`You have a bye in round ${r}.`);
+    case"played":return bx("Your result is in",N&&r>=N?"Waiting for Play Network to finish the event.":`Waiting for round ${r+1} on Play Network.`);
+    case"no_round":return bx("Your game","Round 1 is not paired on Play Network yet.",slPushActive("tournaments")?"You&#39;ll get a notification when it is.":"");
+    case"no_game":return bx(`Your game &middot; Round ${r}`,`You are not paired in round ${r} on Play Network.`);
+    case"unmatched":return bx(`Your game &middot; Round ${r}`,`Your name was not found in the Play Network pairings of round ${r}.`,u?`<a href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">View on Play Network &#8599;</a>`:"");
+  }
+  return"";
+}
+
+async function pnNextKick(){
+  if(!me||!sb||!sb.functions||"hidden"===document.visibilityState||window._pnNextOff)return;
+  const c=cache.t3Mine,P=c&&c.uid===me.id&&c.pn;if(!P)return;
+  const R=Object.values(P.m).filter(x=>x&&x.tid&&("running"===x.status&&"Ongoing"===x.st||"draft"===x.status&&"not_started"===x.why)).slice(0,2);let ch=0;
+  for(const x of R){const k=pnK(x.tid),gap=12e4*Math.pow(2,Math.min(k.n,4));if(k.busy||k.stop||Date.now()-k.at<gap)continue;
+    k.busy=1;k.at=Date.now();let d=null,er=null;
+    try{({data:d,error:er}=await sb.functions.invoke("play-network-event",{body:{pn_live:x.tid}}))}catch(e){er=e}
+    k.busy=0;k.at=Date.now();
+    if(er||!d||"object"!=typeof d){k.n++;continue}
+    if(!d.why&&d.error){k.stop=1;continue}
+    const why=String(d.why||"");d.ok?(k.n=0,"done"===why&&(k.stop=1)):/^(not_pn|no_access|hidden)$/.test(why)?k.stop=1:"rate_limited"===why?k.n=Math.min(k.n+1,2):k.n++;
+    const s=pnNum(d.srev,0,1e9);(null!=s&&s!==(x.srev|0)||d.state&&d.state!==x.st)&&(ch=1)}
+  if(!ch||!me)return;
+  cache.t3Mine=null;const T=await t3MineGet();if(!me)return;
+  Array.isArray(cache.homeTourneys)&&(cache.homeTourneys=cache.homeTourneys.map(y=>y&&(T||[]).find(z=>z&&z.id===y.id)||y));
+  "browse"===route.view&&paintHomeNext();"tracker"===route.view&&!DU&&duPickPaint();
+}
+
 function pnSrcHtml(t,L){
   const p=t.payload||{},u=pnUrl(p.pn&&p.pn.url),at=L&&pnAgo(L.fetched_at),ed=t3Ed(t)&&!t.hidden_at;
   return`<div class="pnr-src"><p class="hint">Rounds and results come from Play Network &middot; ${at?`updated ${esc(at)}`:"not read yet"}${u?` &middot; <a href="${esc(u.url)}" target="_blank" rel="noopener noreferrer">View on Play Network &#8599;</a>`:""}</p>${ed&&"closed"!==t3St(t)?'<button type="button" class="ghost pnr-ref" onclick="pnLiveRefresh()">Refresh from Play Network</button>':""}${ed&&L&&!1===L.ok?'<p class="pnr-err">The last read from Play Network did not work. This page shows the last good copy.</p>':""}${ed&&"running"===t3St(t)&&pnStale(L)?'<p class="pnr-err">Play Network has not finished this event. If it never will, close it here: it ends with no standings and no champion.</p><button type="button" class="ghost pnr-close" onclick="pnStaleClose()">Close the tournament</button>':""}</div>`;
@@ -11808,21 +11906,21 @@ function pnOffHtml(){return'<p class="hint">Rounds and standings from Play Netwo
 function pnSetupHtml(t){
   const E=((t.payload||{}).entrants||[]).filter(e=>e&&"drop"!==e.st),h=E.filter(e=>!0===e.here).length;
   return`<div class="panel plain t3-setup"><h2 style="margin:0 0 6px">Start</h2>
-    <p class="hint" style="margin:0 0 10px">Rounds and results come from Play Network. On the day, players check in with I'm here from 2 hours before the start, and you can check in the others on their row (Here). Then pair round 1 on Play Network: this page starts the tournament by itself, reads the list of players again (late registrations come in with their decks), and shows the pairings, the results and the standings as Play Network publishes them. Players are not notified here when a round is paired. To pair the rounds on this page instead, change Rounds in Settings.</p>
+    <p class="hint" style="margin:0 0 10px">Rounds and results come from Play Network. On the day, players check in with I'm here from 2 hours before the start, and you can check in the others on their row (Here). Then pair round 1 on Play Network: this page starts the tournament by itself, reads the list of players again (late registrations come in with their decks), and shows the pairings, the results and the standings as Play Network publishes them. Players with a Seekers League account get a notification when Play Network pairs a round, if this site is open somewhere during the event. To pair the rounds on this page instead, change Rounds in Settings.</p>
     ${E.length?`<div class="t3-ci"><b>${h} of ${E.length} checked in</b></div>`:""}
     ${t3DkSetup(t)}
     ${pnSrcHtml(t,t._pnl)}
   </div>`;
 }
 
-function pnGameHtml(g,M,i){
+function pnGameHtml(g,M,i,act){
   const A=pnWho(M,g&&g.a);if(!A)return"";
   if(!0===g.bye||!g.b)return`<div class="sw-g"><div class="tv-m done sw-bye"><span class="tv-tb">Bye</span><span class="sw-byen${A.mine?" mine":""}" title="${esc(A.nm)}">${esc(A.nm)}</span><span class="sw-byep">Bye</span></div></div>`;
   const B=pnWho(M,g.b),dw=!0===g.draw,w=1===g.win?1:2===g.win?2:0,dn=dw||!!w,ma=pnNum(g.sa,0,99999),mb=pnNum(g.sb,0,99999),tu=pnNum(g.turns,1,999),tb=pnNum(g.tb,1,9999),
     sd=(X,k)=>`<button type="button" class="tv-side${w===k?" win":""}${X.mine?" mine":""}" title="${esc(X.nm)}${X.mine?" (you)":""}" disabled><span>${esc(X.nm)}</span></button>`,
     dk=(X,s,r)=>{const v=[s,r].map(x=>String(x||"").trim()).filter(Boolean).join(" · ");return v?`<span class="pnr-dk">${esc(X.nm)}: ${esc(v)}</span>`:""},
     line=dn?(null!=ma&&null!=mb?`<span class="sw-sc" title="Mastery">${ma}–${mb}</span>`:"")+(dw?'<span class="t3-tag">draw</span>':"")+(null!=tu?`<span class="pnr-tu">${tu} round${1===tu?"":"s"} played</span>`:"")+dk(A,g.sk_a,g.tr_a)+dk(B,g.sk_b,g.tr_b):"";
-  return`<div class="sw-g"><div class="tv-m${dn?" done":""}${dw?" sw-draw":""}"><span class="tv-tb">${tb?"Table "+tb:"Game "+((i|0)+1)}</span>${sd(A,1)}<span class="tv-vs">vs</span>${sd(B,2)}</div>${line?`<div class="sw-ml">${line}</div>`:""}</div>`;
+  return`<div class="sw-g"><div class="tv-m${dn?" done":""}${dw?" sw-draw":""}"><span class="tv-tb">${tb?"Table "+tb:"Game "+((i|0)+1)}</span>${sd(A,1)}<span class="tv-vs">vs</span>${sd(B,2)}</div>${line?`<div class="sw-ml">${line}</div>`:""}${act?`<div class="sw-ml">${act}</div>`:""}</div>`;
 }
 function pnRounds(L){return(Array.isArray(L&&L.rounds)?L.rounds:[]).filter(x=>x&&"object"==typeof x&&Number.isInteger(x.r)&&x.r>=1).sort((a,b)=>a.r-b.r)}
 function pnRndGo(r){const t=cache.tourney;if(!t)return;r=r|0;const L=t._pnl,c=L&&L.cur_round|0;window._pnRnd=r===c?null:{t:t.id,r};t3Paint(t)}
@@ -11832,7 +11930,7 @@ function pnRoundsPanel(t,L){
     sel=k&&k.t===t.id&&Rs.some(x=>x.r===k.r)?k.r:cur,ix=Rs.findIndex(x=>x.r===sel),R=Rs[ix],
     G=(R&&Array.isArray(R.games)?R.games:[]).filter(g=>g&&"object"==typeof g).map((g,j)=>[g,j]).sort((x,y)=>(!0===x[0].bye||!x[0].b)-(!0===y[0].bye||!y[0].b)||(pnNum(x[0].tb,1,9999)||0)-(pnNum(y[0].tb,1,9999)||0)||x[1]-y[1]).map(x=>x[0]),
     games=G.filter(g=>!0!==g.bye&&g.b),done=games.filter(g=>!0===g.draw||1===g.win||2===g.win).length,sys=String(L&&L.system||"").trim().slice(0,40);
-  let n=0;
+  let n=0;const mA=run&&sel===pnCur(L)?pnRndAct(t,L):null;
   const body=!Rs.length?`<div class="empty">${L?"No round is paired on Play Network yet.":t.hidden_at?"Play Network is not read for a tournament off the public list.":"Play Network has not been read for this tournament yet."}</div>`:`<div class="tv-rv">
     <div class="tv-rnav">
       <button class="ghost" ${ix<=0?"disabled":""} onclick="pnRndGo(${ix>0?Rs[ix-1].r:sel})" aria-label="Previous round">&#8249;</button>
@@ -11840,11 +11938,11 @@ function pnRoundsPanel(t,L){
       <button class="ghost" ${ix>=Rs.length-1?"disabled":""} onclick="pnRndGo(${ix<Rs.length-1?Rs[ix+1].r:sel})" aria-label="Next round">&#8250;</button>
     </div>
     <div class="tv-rinfo"><span class="hint">${done} of ${games.length} result${1===games.length?"":"s"} in${run&&sel===cur?" · current round":""}</span>${sel!==cur?`<button class="link" onclick="pnRndGo(${cur})">${run?"Go to the current round":"Go to the last round"}</button>`:""}</div>
-    <div class="tv-matches">${G.map(g=>pnGameHtml(g,M,!0===g.bye||!g.b?0:n++)).join("")||'<div class="empty">No games in this round.</div>'}</div>
+    <div class="tv-matches">${G.map(g=>pnGameHtml(g,M,!0===g.bye||!g.b?0:n++,mA&&Number(g.id)===mA.mid?mA.a:"")).join("")||'<div class="empty">No games in this round.</div>'}</div>
   </div>`;
   return`<div class="panel plain"><div class="tv-vh"><h2 style="margin:0">Rounds</h2><span class="sw-fmt">${esc(sys||"Swiss")}${N?` &middot; ${N} round${1===N?"":"s"}`:""}</span></div>
     ${pnSrcHtml(t,L)}
-    ${run?'<p class="hint pnr-h">Each round is paired on Play Network, and a result shows here once it is confirmed there. You are not notified here when a round is paired.</p>':""}
+    ${run?'<p class="hint pnr-h">Each round is paired on Play Network, and a result shows here once it is confirmed there. If notifications are on, you get one when Play Network pairs a round.</p>':""}
     ${body}
   </div>`;
 }
@@ -12066,7 +12164,7 @@ function t3Paint(t){
       if(!demo)h+=t3DeckBlock(t);
     }
     
-    else if(run)h+=t3DeckBlock(t)+(t3PnOn(t)?"":t3NextHtml(t)+t3LeaveHtml(t));
+    else if(run)h+=t3DeckBlock(t)+(t3PnOn(t)?t3PnNextHtml(t):t3NextHtml(t)+t3LeaveHtml(t));
     h+=pane;
   }else
   {
