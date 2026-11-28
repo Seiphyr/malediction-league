@@ -3463,7 +3463,7 @@ function giGo(t){if("clash"===t){"clashtest"!==route.view&&go("clashtest");retur
 function giSeekers(f){const e=periodFilter(f),agg=metaAgg(e),n=k=>agg[k]?agg[k].w+agg[k].l:0;
   let k=window._metaSeeker;k&&!n(k)&&(k=window._metaSeeker=null);
   const sel=`<label class="field gi-pick"><span>Seeker</span><select aria-label="Choose a Seeker" onchange="giPick(this.value||null)"><option value=""${k?"":" selected"}>Choose a Seeker</option>${SEEKERS.map(s=>{const q=normName(s.name),g=n(q);
-    return`<option value="${esc(q)}"${q===k?" selected":""}${g?"":" disabled"}>${esc(s.name)} · ${g?`${g} ${1===g?"game":"games"}`:"no games here"}</option>`}).join("")}</select></label>`;
+    return`<option value="${esc(q)}"${q===k?" selected":""}${g?"":" disabled"}>${esc(s.name)}</option>`}).join("")}</select></label>`;
   return metaHead()+sel+(k?metaDetail(f,k,1):'<div class="empty">Choose a Seeker to see its win rate month by month, how its games go, its matchups, its terrains and its decks.</div>')}
 function giPick(k){window._metaSeeker=k||null;window._metaRepaint&&window._metaRepaint();const s=document.querySelector("#meta-body .gi-pick select");s&&s.focus({preventScroll:!0})}
 
